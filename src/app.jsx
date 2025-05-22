@@ -12,7 +12,6 @@ export default function App() {
   return (
     <div className="bg-zinc-900 text-white min-h-screen">
       <Navbar />
-
       <Routes>
         {/* Home Route */}
         <Route
