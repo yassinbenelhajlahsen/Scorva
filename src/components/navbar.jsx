@@ -11,7 +11,7 @@ export default function Navbar() {
         <Link to="/">Sportify</Link>
       </div>
 
-      {/* Search bar */}
+      {/* Search bar TODO: DOESNT WORK ATM!!*/}
       <div className="relative w-full sm:w-auto max-w-sm flex-grow">
         <input
           type="text"
