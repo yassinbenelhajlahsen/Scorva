@@ -5,6 +5,7 @@ export default function Footer() {
         © 2025 Sportify — Built by Yassin Benelhajlahsen.
         Not affiliated with the NBA, NFL, NHL or any other sports league.
       </p>
+      
       <p className="text-sm mt-2">
         <a
           href="https://github.com/yassinbenelhajlahsen/sportify"

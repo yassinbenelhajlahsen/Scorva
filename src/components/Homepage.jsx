@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import nbalogo from "../assets/nbalogo.png";
-import nhllogo from "../assets/NHL-Logo.png";
-import nfllogo from "../assets/nfl-logo.png";
+import nbalogo from "../assets/NBAlogo.png";
+import nhllogo from "../assets/NHLlogo.png";
+import nfllogo from "../assets/NFllogo.png";
 import nbaGames from '../mock/nbaGames.js';
 import nflGames from '../mock/nflGames.js';
 import nhlGames from '../mock/nhlGames.js'
@@ -36,7 +36,7 @@ export default function Homepage() {
                 setError("Failed to load featured games.");
                 setLoading(false);
             }
-        }, 100);
+        }, 500);
     }, []);
 
     if (loading) return <div className="p-6">Loading featured games...</div>;
