@@ -1,7 +1,14 @@
-import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export default function About() {
   return (
+        <motion.section
+        initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5 }}
+    >
+
     <div className="max-w-3xl mx-auto px-6 py-12 text-white">
       
               
@@ -48,5 +55,7 @@ export default function About() {
 
 
     </div>
+        </motion.section>
+
   );
 }

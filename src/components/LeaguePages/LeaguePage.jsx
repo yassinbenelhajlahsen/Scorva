@@ -11,8 +11,8 @@ const logos = {
 
 export default function LeaguePage({ league, links }) {
   return (
-    <div className="p-6 min-h-screen">
-      <div className="flex items-center gap-6 mb-12 ml-4">
+    <div className="p-6">
+      <div className="flex items-center gap-6 mb-4 ml-4">
         <img
           src={logos[league]}
           alt={league + ' Logo'}
@@ -26,12 +26,12 @@ export default function LeaguePage({ league, links }) {
           <Link
             key={link.to}
             to={link.to}
-            className="flex items-center justify-center text-3xl sm:text-4xl border border-zinc-700 bg-zinc-800 py-8 px-16 rounded-lg shadow transition duration-300 hover:bg-orange-400 cursor-pointer w-full max-w-xl"
+            className="flex items-center justify-center text-3xl sm:text-4xl border border-zinc-700 bg-zinc-800 py-8  rounded-lg shadow transition-transform duration-200 hover:scale-105 cursor-pointer w-full max-w-xl"
           >
             {link.label}
           </Link>
         ))}
       </div>
-    </div>
+        </div>
   );
-}
+  }

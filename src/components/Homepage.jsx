@@ -6,17 +6,37 @@ import nbaGames from '../mock/nbaGames.js';
 import nflGames from '../mock/nflGames.js';
 import nhlGames from '../mock/nhlGames.js'
 import { useState, useEffect } from 'react';
+import GameCard from "./GameCard.jsx";
 
-const GameCard = ({ game }) => (
-  <div className="border border-zinc-700 bg-zinc-800 p-4 mb-4 rounded-lg shadow transition duration-300 hover:bg-orange-400 cursor-pointer">
-    <h3 className="text-lg font-bold">{game.homeTeam} vs {game.awayTeam}</h3>
-    <p>{game.date}</p>
-    <p>Status: {game.status}</p>
-    {game.status === "Final" && (
-      <p>Score: {game.homeScore} - {game.awayScore}</p>
-    )}
-  </div>
-);
+
+function getFeaturedGames(games, count = 2) {
+  //const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" //TODO: Fix this to get the current date
+  const today = "2025-05-22" // For testing purposes, set a fixed date
+  const todayGames = games.filter(g => g.date === today);
+  let featured = [...todayGames];
+
+  if (featured.length < count) {
+    // Get future games, sorted by date
+    const futureGames = games
+      .filter(g => g.date > today)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    for (let i = 0; featured.length < count && i < futureGames.length; i++) {
+      featured.push(futureGames[i]);
+    }
+  }
+
+  // If still less than count, add recent past games
+  if (featured.length < count) {
+    const pastGames = games
+      .filter(g => g.date < today)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    for (let i = 0; featured.length < count && i < pastGames.length; i++) {
+      featured.push(pastGames[i]);
+    }
+  }
+
+  return featured.slice(0, count);
+}
 
 export default function Homepage() {
     const [nba, setNba] = useState([]);
@@ -28,15 +48,15 @@ export default function Homepage() {
     useEffect(() => {
         setTimeout(() => {
             try {
-                setNba(nbaGames.slice(0, 2));
-                setNfl(nflGames.slice(0, 2));
-                setNhl(nhlGames.slice(0, 2));
+                setNba(getFeaturedGames(nbaGames, 2));
+                setNfl(getFeaturedGames(nflGames, 2));
+                setNhl(getFeaturedGames(nhlGames, 2));
                 setLoading(false);
             } catch (err) {
                 setError("Failed to load featured games.");
                 setLoading(false);
             }
-        }, 500);
+        }, 100);
     }, []);
 
     if (loading) return <div className="p-6">Loading featured games...</div>;
@@ -48,7 +68,7 @@ export default function Homepage() {
   <div className="flex-1 flex flex-col items-center">
     <Link
       to="/nba"
-      className="flex flex-col items-center max-w[200px] hover:bg-orange-400 transition duration-300 rounded-lg shadow cursor-pointer p-2"
+      className="flex flex-col items-center max-w[200px] transition-transform duration-200 hover:scale-125 rounded-lg shadow cursor-pointer p-2"
     >
       <div className="text-2xl mt-10 font-bold">NBA</div>
 
@@ -66,7 +86,7 @@ export default function Homepage() {
   <div className="flex-1 flex flex-col items-center">
     <Link
       to="/nhl"
-      className="flex flex-col items-center hover:bg-orange-400 transition duration-300 rounded-lg shadow cursor-pointer p-2"
+      className="flex flex-col items-center max-w[200px] transition-transform duration-200 hover:scale-125 rounded-lg shadow cursor-pointer p-2"
     >
       <div className="text-2xl mt-10 font-bold">NHL</div>
       <img src={nhllogo} alt="NHL Logo" className="w-40 h-40 mt-2 object-contain" />
@@ -85,7 +105,7 @@ export default function Homepage() {
   <div className="flex-1 flex flex-col items-center">
     <Link
       to="/nfl"
-      className="flex flex-col items-center hover:bg-orange-400 transition duration-300 rounded-lg shadow cursor-pointer p-2"
+      className="flex flex-col items-center max-w[200px] transition-transform duration-200 hover:scale-125 rounded-lg shadow cursor-pointer p-2"
     >
       <div className="text-2xl mt-10 font-bold">NFL</div>
       <img src={nfllogo} alt="NFL Logo" className="w-40 h-40 mt-2 object-contain" />
@@ -97,8 +117,6 @@ export default function Homepage() {
     </div>
   </div>
 
-  
-  
 </div>
 
     );

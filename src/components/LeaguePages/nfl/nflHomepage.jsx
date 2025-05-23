@@ -1,5 +1,7 @@
 import LeaguePage from '../LeaguePage';
 
+
+
 export default function Nfl() {
   return (
     <LeaguePage
