@@ -4,14 +4,16 @@ const mockNbaTeams = [
     name: "Atlanta Hawks",
     city: "Atlanta",
     arena: "State Farm Arena",
-    logo: "https://upload.wikimedia.org/wikipedia/en/2/24/Atlanta_Hawks_logo.svg"
+    logo: "https://upload.wikimedia.org/wikipedia/en/2/24/Atlanta_Hawks_logo.svg",
+    record: "0-0",
   },
   {
     id: 2,
     name: "Boston Celtics",
     city: "Boston",
     arena: "TD Garden",
-    logo: "https://upload.wikimedia.org/wikipedia/en/8/8f/Boston_Celtics.svg"
+    logo: "https://upload.wikimedia.org/wikipedia/en/8/8f/Boston_Celtics.svg",
+    record: "2-0",
   },
   {
     id: 3,

@@ -3,7 +3,7 @@ export default function Footer() {
     <footer className="bg-zinc-900 text-gray-400 py-6 text-center mt-20 border-t border-zinc-700">
       <p className="text-sm">
         © 2025 Sportify — Built by Yassin Benelhajlahsen.
-        Not affiliated with the NBA, NFL, NHL or any other sports league.
+        Not affiliated with the NBA, NFL, NHL, any other sports league or organization.
       </p>
       
       <p className="text-sm mt-2">

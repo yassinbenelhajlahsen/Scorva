@@ -11,7 +11,7 @@ const mockNhlGames = [
   {
     id: 2,
     date: "2025-10-06",
-    homeTeam: "Maple Leafs",
+    homeTeam: "Leafs",
     awayTeam: "Bruins",
     homeScore: null,
     awayScore: null,

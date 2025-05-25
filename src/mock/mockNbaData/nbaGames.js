@@ -1,5 +1,3 @@
-import NbaTeams from "../components/LeaguePages/nba/nbaTeams";
-
 const mockNbaGames = [
   {
     id: 1,
@@ -9,15 +7,16 @@ const mockNbaGames = [
     homeScore: 112,
     awayScore: 108,
     status: "Final",
+    
   },
   {
     id: 2,
     date: "2025-05-23",
     homeTeam: "Bucks",
     awayTeam: "Celtics",
-    homeScore: null,
-    awayScore: null,
-    status: "Scheduled",
+    homeScore: 120,
+    awayScore: 99,
+    status: "Final",
   },
   {
     id: 3,
