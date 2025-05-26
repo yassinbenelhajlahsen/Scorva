@@ -1,4 +1,4 @@
-import backupLogo from "../assets/backupTeamLogo.png";
+import backupLogo from "../../assets/backupTeamLogo.png";
 import { Link } from "react-router-dom";
 
 function slugify(name) {

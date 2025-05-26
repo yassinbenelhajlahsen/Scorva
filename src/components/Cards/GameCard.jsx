@@ -1,52 +1,15 @@
-import nbaTeams from "../mock/mockNbaData/nbaTeams.js";
-import nflTeams from "../mock/mockNflData/nflTeams.js";
-import nhlTeams from "../mock/mockNhlData/nhlTeams.js";
-import backupLogo from "../assets/backupTeamLogo.png";
+import backupLogo from "../../assets/backupTeamLogo.png";
 import { Link } from "react-router-dom";
-
-const leagueMap = {
-  nba: nbaTeams,
-  nfl: nflTeams,
-  nhl: nhlTeams,
-};
-const normalize = (str) =>str?.toLowerCase().replace(/[^a-z]/g, "");
-
-const getTeamLogo = (teamName) => {
-  const normalized = normalize(teamName);
-  const allTeams = [...nbaTeams, ...nflTeams, ...nhlTeams];
-
-  const team = allTeams.find((t) =>
-    normalize(t.name).includes(normalized) || normalized.includes(normalize(t.name))
-  );
-
-  return team?.logo || null;
-};
-
-
+import getTeamLogo from "../../components/getLogoFromTeam.js";
+import getLeague from "../../HelperFunctions.js/getLeagueFromTeam.js";
 
 export default function GameCard({ game }) {
   const isFinal = game.status === "Final";
   const homeWon = isFinal && game.homeScore > game.awayScore;
   const awayWon = isFinal && game.awayScore > game.homeScore;
 
-
-const getLeague = (teamName) => {
-  const normalized = normalize(teamName);
-
-  for (const [league, teams] of Object.entries(leagueMap)) {
-    if (teams.some((t) => normalize(t.name).includes(normalized))) {
-      return league;
-    }
-  }
-
-  return null;
-};
-
 const league = getLeague(game.homeTeam);
 if (!league) return null;
-
-
-
 
   return (
     <Link to={`/${league}/games/${game.id}`} className="no-underline">

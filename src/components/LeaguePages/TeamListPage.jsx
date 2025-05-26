@@ -1,27 +1,24 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 import nbaTeams from "../../mock/mockNbaData/nbaTeams";
 import nflTeams from "../../mock/mockNflData/nflTeams";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams";
 
-import nbaLogo from "../../assets/NBAlogo.png";
-import nflLogo from "../../assets/NFLlogo.png";
-import nhlLogo from "../../assets/NHLlogo.png";
 
-import TeamCard from "../TeamCard";
+import TeamCard from "../Cards/TeamCard";
 
 const leagueData = {
   nba: {
-    logo: nbaLogo,
+    logo: "/NBAlogo.png",
     teams: nbaTeams,
   },
   nfl: {
-    logo: nflLogo,
+    logo: "/NFllogo.png",
     teams: nflTeams,
   },
   nhl: {
-    logo: nhlLogo,
+    logo: "/NHLlogo.png",
     teams: nhlTeams,
   },
 };
@@ -54,6 +51,13 @@ export default function TeamListPage() {
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
+    <>
+    <Link
+                  to={`/${league}`}
+                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+                >
+                  Return to {league.toUpperCase()}
+                </Link>
     <div className="p-6">
       <div className="flex items-center gap-6 mb-8">
         <img
@@ -61,7 +65,7 @@ export default function TeamListPage() {
           alt={`${league} logo`}
           className="w-20 h-20 object-contain"
         />
-        <h1 className="text-5xl font-bold capitalize">{league} Teams</h1>
+        <h1 className="text-5xl font-bold capitalize">{league.toUpperCase()} Teams</h1>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4">
@@ -75,5 +79,6 @@ export default function TeamListPage() {
         ))}
       </div>
     </div>
+    </>
   );
 }

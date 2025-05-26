@@ -5,15 +5,12 @@ import nbaGames from "../../mock/mockNbaData/nbaGames";
 import nflGames from "../../mock/mockNflData/nflGames";
 import nhlGames from "../../mock/mockNhlData/nhlGames";
 
-import nbaLogo from "../../assets/NBAlogo.png";
-import nflLogo from "../../assets/NFLlogo.png";
-import nhlLogo from "../../assets/NHLlogo.png";
 
-import GameCard from "../GameCard";
+import GameCard from "../Cards/GameCard";
 
 const leagueData = {
   nba: {
-    logo: nbaLogo,
+    logo: "/NBAlogo.png",
     games: nbaGames,
     links: [
       { label: "Players", to: "/nba/players" },
@@ -21,7 +18,7 @@ const leagueData = {
     ],
   },
   nfl: {
-    logo: nflLogo,
+    logo: "NFLlogo.png",
     games: nflGames,
     links: [
       { label: "Players", to: "/nfl/players" },
@@ -29,7 +26,7 @@ const leagueData = {
     ],
   },
   nhl: {
-    logo: nhlLogo,
+    logo: "NHLlogo.png",
     games: nhlGames,
     links: [
       { label: "Players", to: "/nhl/players" },
@@ -57,13 +54,30 @@ export default function LeaguePage() {
       setError("Failed to load games.");
       setLoading(false);
     }
-  }, [league]);
+  }, [league, data?.games]);
 
   if (!data) {
-    return <div className="text-red-500 p-6">Invalid league: {league}</div>;
+    return (
+   <div className="flex flex-col items-center justify-center min-h-screen">
+                <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
+                <Link
+                  to="/"
+                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+                >
+                  Return to Homepage
+                </Link>
+              </div>
+    )
   }
 
   return (
+    <>
+    <Link
+                  to="/"
+                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+                >
+                  Return to Home
+                </Link>
     <div className="p-6">
       <div className="flex items-center gap-6 mb-4 ml-4">
         <img
@@ -99,5 +113,6 @@ export default function LeaguePage() {
         </div>
       </>
     </div>
+    </>
   );
 }

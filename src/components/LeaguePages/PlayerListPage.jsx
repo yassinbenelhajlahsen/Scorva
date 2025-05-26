@@ -1,30 +1,29 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 import nbaPlayers from "../../mock/mockNbaData/nbaPlayers";
 import nflPlayers from "../../mock/mockNflData/nflPlayers";
 import nhlPlayers from "../../mock/mockNhlData/nhlPlayers";
 
-import nbaLogo from "../../assets/NBAlogo.png";
-import nflLogo from "../../assets/NFLlogo.png";
-import nhlLogo from "../../assets/NHLlogo.png";
 
-import PlayerCard from "../PlayerCard";
+import PlayerCard from "../Cards/PlayerCard";
 
 const leagueData = {
   nba: {
-    logo: nbaLogo,
+    logo: "/NBAlogo.png",
     players: nbaPlayers,
   },
   nfl: {
-    logo: nflLogo,
+    logo: "/NFllogo.png",
     players: nflPlayers,
   },
   nhl: {
-    logo: nhlLogo,
+    logo: "/NHLlogo.png",
     players: nhlPlayers,
   },
 };
+
+
 
 export default function PlayerListPage() {
   const { league } = useParams();
@@ -52,8 +51,16 @@ export default function PlayerListPage() {
 
   if (loading) return <div className="p-6">Loading players...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
+        console.log(league)
 
   return (
+    <>
+    <Link
+                  to={`/${league}`}
+                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+                >
+                  Return to {league.toUpperCase()}
+                </Link>
     <div className="p-6">
       <div className="flex items-center gap-6 mb-8">
         <img
@@ -61,10 +68,11 @@ export default function PlayerListPage() {
           alt={`${league} logo`}
           className="w-20 h-20 object-contain"
         />
-        <h1 className="text-5xl font-bold capitalize">{league} Players</h1>
+      
+        <h1 className="text-5xl font-bold capitalize">{league.toUpperCase()} Players</h1>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {players.map((player) => (
           <PlayerCard
             key={player.name}
@@ -75,5 +83,6 @@ export default function PlayerListPage() {
         ))}
       </div>
     </div>
+    </>
   );
 }

@@ -1,9 +1,8 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import nbaTeams from "../../mock/mockNbaData/nbaTeams.js";
 import nflTeams from "../../mock/mockNflData/nflTeams.js";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams.js";
 import backupLogo from "../../assets/backupTeamLogo.png";
-import { Link } from "react-router-dom";
 
 const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
 
@@ -32,6 +31,13 @@ export default function TeamPage() {
     );
 
   return (
+     <>
+    <Link
+                  to={`/${league}/teams`}
+                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+                >
+                  Return to Teams Page
+                </Link>
     <div className="text-white p-8">
       <h1 className="text-4xl font-bold mb-4">{team.name}</h1>
       <img
@@ -47,5 +53,6 @@ export default function TeamPage() {
       <p>Arena: {team.arena}</p>
       <p>Record: {team.record}</p>
     </div>
+    </>
   );
 }

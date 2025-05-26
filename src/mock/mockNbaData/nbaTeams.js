@@ -69,7 +69,8 @@ const mockNbaTeams = [
     name: "Golden State Warriors",
     city: "San Francisco",
     arena: "Chase Center",
-    logo: "https://upload.wikimedia.org/wikipedia/en/0/01/Golden_State_Warriors_logo.svg"
+    logo: "https://upload.wikimedia.org/wikipedia/en/0/01/Golden_State_Warriors_logo.svg",
+    coach: "Steve Kerr"
   },
   {
     id: 11,
@@ -97,7 +98,8 @@ const mockNbaTeams = [
     name: "Los Angeles Lakers",
     city: "Los Angeles",
     arena: "Crypto.com Arena",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/3/3c/Los_Angeles_Lakers_logo.svg"
+    logo: "https://upload.wikimedia.org/wikipedia/commons/3/3c/Los_Angeles_Lakers_logo.svg",
+    coach: "JJ Reddick"
   },
   {
     id: 15,

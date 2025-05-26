@@ -3,9 +3,13 @@ const mockNbaPlayers = [
         id : 1,
         name : "LeBron James",
         team : "Los Angeles Lakers",
-        position : "SF",
+        position : "SF/PF",
         height : "6'9", 
-        image : "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png"
+        image : "https://cdn.nba.com/headshots/nba/latest/1040x760/2544.png",
+        jerseyNum: 23,
+        weight: 250,
+        birthdate: "12/30/1984",
+        draftInfo: "2003: Rd 1, Pk 1 (CLE)"
     },
     {
         id : 2,
@@ -19,15 +23,16 @@ const mockNbaPlayers = [
         id : 3,
         name : "Kevin Durant",
         team : "Phoenix Suns",
-        position : "SF",
+        position : "SF/PF",
         height : "6'10", 
-        image : "https://cdn.nba.com/headshots/nba/latest/1040x760/201142.png"
+        image : "https://cdn.nba.com/headshots/nba/latest/1040x760/201142.png",
+        jerseyNum: 35
     },
     {
         id : 4,
         name : "Giannis Antetokounmpo",
         team : "Milwaukee Bucks",
-        position : "PF",
+        position : "PF/C",
         height : "6'11", 
         image : "https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png"
     },
@@ -35,7 +40,7 @@ const mockNbaPlayers = [
         id : 5,
         name : "Kawhi Leonard",
         team : "Los Angeles Clippers",
-        position : "SF",
+        position : "SF/PF",
         height : "6'7",
         image : "https://cdn.nba.com/headshots/nba/latest/1040x760/202695.png"
     },
@@ -51,7 +56,7 @@ const mockNbaPlayers = [
         id: 7,
         name: "Luka Doncic",
         team: "Dallas Mavericks", 
-        position: "PG",
+        position: "PG/SG",
         height: "6'7",
         image: "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png"
     },

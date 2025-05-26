@@ -1,12 +1,9 @@
 import { Link } from "react-router-dom";
-import nbalogo from "../assets/NBAlogo.png";
-import nhllogo from "../assets/NHLlogo.png";
-import nfllogo from "../assets/NFllogo.png";
 import nbaGames from "../mock/mockNbaData/nbaGames.js";
 import nflGames from "../mock/mockNflData/nflGames.js";
 import nhlGames from "../mock/mockNhlData/nhlGames.js";
 import { useState, useEffect } from "react";
-import GameCard from "./GameCard.jsx";
+import GameCard from "./Cards/GameCard.jsx";
 
 function getFeaturedGames(games, count = 5) {
   //const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" //TODO: Fix this to get the current date
@@ -80,7 +77,7 @@ export default function Homepage() {
             <div className="text-2xl mt-10 font-bold">NBA</div>
 
             <img
-              src={nbalogo}
+              src="/NBAlogo.png"
               alt="NBA Logo"
               className="w-40 h-40 mt-2 object-contain"
             />
@@ -100,7 +97,7 @@ export default function Homepage() {
           >
             <div className="text-2xl mt-10 font-bold">NHL</div>
             <img
-              src={nhllogo}
+              src="/NHLlogo.png"
               alt="NHL Logo"
               className="w-40 h-40 mt-2 object-contain"
             />
@@ -125,7 +122,7 @@ export default function Homepage() {
           >
             <div className="text-2xl mt-10 font-bold">NFL</div>
             <img
-              src={nfllogo}
+              src="/NFLlogo.png"
               alt="NFL Logo"
               className="w-40 h-40 mt-2 object-contain"
             />
