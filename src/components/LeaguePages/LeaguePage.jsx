@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import GameCard from "../Cards/GameCard";
 import leagueData from "../../HelperFunctions.js/LeagueData";
-
+import LoadingPage from "../LoadingPage.jsx"
 export default function LeaguePage() {
   const { league } = useParams();
 
@@ -26,6 +26,9 @@ export default function LeaguePage() {
     }
   }, [league, data?.games]);
 
+  if (loading) return <LoadingPage />;
+    if (error) return <div className="p-6 text-red-500">{error}</div>;
+
   if (!data) {
     return (
    <div className="flex flex-col items-center justify-center mx-auto block sm:mx-0 sm:absolute sm:top-4 sm:left-4 min-h-screen">
@@ -39,7 +42,8 @@ export default function LeaguePage() {
               </div>
     )
   }
-
+ if (loading) return <LoadingPage />;
+    if (error) return <div className="p-6 text-red-500">{error}</div>;
   return (
     <>
     <Link
@@ -72,8 +76,6 @@ export default function LeaguePage() {
 
       <>
         <h2 className="text-4xl font-bold text-center mt-20 mb-20">Games</h2>
-        {loading && <div className="p-6">Loading featured games...</div>}
-        {error && <div className="p-6 text-red-500">{error}</div>}
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
           {games.map((game) => (
             <div key={game.id} className="w-full max-w-md">

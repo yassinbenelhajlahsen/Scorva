@@ -6,6 +6,7 @@ import nflTeams from "../../mock/mockNflData/nflTeams";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams";
 
 import TeamCard from "../Cards/TeamCard";
+import LoadingPage from "../LoadingPage.jsx"
 
 const leagueData = {
   nba: {
@@ -46,8 +47,8 @@ export default function TeamListPage() {
     return <div className="text-red-500 p-6">Invalid league: {league}</div>;
   }
 
-  if (loading) return <div className="p-6">Loading teams...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+   if (loading) return <LoadingPage />;
+      if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <>

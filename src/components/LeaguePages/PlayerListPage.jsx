@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import nbaPlayers from "../../mock/mockNbaData/nbaPlayers";
 import nflPlayers from "../../mock/mockNflData/nflPlayers";
 import nhlPlayers from "../../mock/mockNhlData/nhlPlayers";
+import LoadingPage from "../LoadingPage.jsx"
 
 
 import PlayerCard from "../Cards/PlayerCard";
@@ -49,9 +50,8 @@ export default function PlayerListPage() {
     return <div className="text-red-500 p-6">Invalid league: {league}</div>;
   }
 
-  if (loading) return <div className="p-6">Loading players...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
-        console.log(league)
+   if (loading) return <LoadingPage />;
+      if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <>

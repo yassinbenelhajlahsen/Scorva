@@ -4,6 +4,7 @@ import nflGames from "../mock/mockNflData/nflGames.js";
 import nhlGames from "../mock/mockNhlData/nhlGames.js";
 import { useState, useEffect } from "react";
 import GameCard from "./Cards/GameCard.jsx";
+import LoadingPage from "./LoadingPage.jsx";
 
 function getFeaturedGames(games, count = 5) {
   //const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" //TODO: Fix this to get the current date
@@ -55,7 +56,7 @@ export default function Homepage() {
     }, 100);
   }, []);
 
-  if (loading) return <div className="p-6">Loading featured games...</div>;
+if (loading) return <LoadingPage />;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (

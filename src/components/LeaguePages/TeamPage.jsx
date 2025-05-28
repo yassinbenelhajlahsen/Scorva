@@ -7,7 +7,9 @@ import nhlTeams from "../../mock/mockNhlData/nhlTeams.js";
 
 import GameCard from "../Cards/GameCard";
 import leagueData from "../../HelperFunctions.js/LeagueData";
+import LoadingPage from "../LoadingPage.jsx"
 
+import LoadingScreen from "../LoadingPage.jsx";
 const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
 
 
@@ -21,7 +23,7 @@ const { league, teamId } = useParams();
   const [error, setError] = useState(null);
 
   const data = leagueData[league?.toLowerCase()];
-
+  
   useEffect(() => {
   if (!data) return;
 
@@ -43,6 +45,8 @@ const { league, teamId } = useParams();
   }
 }, [league, data, teamId]);
 
+  if (loading) return <LoadingPage />;
+    if (error) return <div className="p-6 text-red-500">{error}</div>;
   let teams = [];
   if (league === "nba") teams = nbaTeams;
   else if (league === "nfl") teams = nflTeams;
