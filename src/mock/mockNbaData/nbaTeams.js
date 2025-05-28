@@ -10,6 +10,7 @@ const mockNbaTeams = [
   {
     id: 2,
     name: "Boston Celtics",
+    
     city: "Boston",
     arena: "TD Garden",
     logo: "https://upload.wikimedia.org/wikipedia/en/8/8f/Boston_Celtics.svg",
@@ -122,6 +123,7 @@ const mockNbaTeams = [
   {
     id: 17,
     name: "Milwaukee Bucks",
+    shortName: "Bucks",
     city: "Milwaukee",
     arena: "Fiserv Forum",
     logo: "https://upload.wikimedia.org/wikipedia/en/4/4a/Milwaukee_Bucks_logo.svg"

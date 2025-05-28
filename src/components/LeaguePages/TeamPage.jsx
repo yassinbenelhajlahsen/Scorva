@@ -9,51 +9,49 @@ import GameCard from "../Cards/GameCard";
 import leagueData from "../../HelperFunctions.js/LeagueData";
 import LoadingPage from "../LoadingPage.jsx"
 
-import LoadingScreen from "../LoadingPage.jsx";
 const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
-
-
 
 export default function TeamPage() {
 
 const { league, teamId } = useParams();
 
-  const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const [games, setGames] = useState([]);
+const [loading, setLoading] = useState(true);
 
-  const data = leagueData[league?.toLowerCase()];
-  
-  useEffect(() => {
-  if (!data) return;
+// Get teams for the league
+let teams = [];
+if (league === "nba") teams = nbaTeams;
+else if (league === "nfl") teams = nflTeams;
+else if (league === "nhl") teams = nhlTeams;
+
+// Find the team
+const team = teams.find((t) => slugify(t.name) === teamId);
+
+const data = leagueData[league?.toLowerCase()];
+
+useEffect(() => {
+  if (!data || !team) return;
 
   setLoading(true);
   try {
     const gameList = data.games || [];
 
     const filteredGames = gameList.filter(
-  (game) =>
-    slugify(game.homeTeam) === slugify(team.shortName) ||
-    slugify(game.awayTeam) === slugify(team.shortName)
-);
+      (game) =>
+        slugify(game.homeTeam) === slugify(team.shortName) ||
+        slugify(game.awayTeam) === slugify(team.shortName)
+    );
 
-    setGames(filteredGames.slice(0, 15)); // Limit to 15 most recent
+    setGames(filteredGames.slice(0, 15));
     setLoading(false);
   } catch {
     setError("Failed to load games.");
     setLoading(false);
   }
-}, [league, data, teamId]);
+}, [league, data, teamId, team]);
 
   if (loading) return <LoadingPage />;
-    if (error) return <div className="p-6 text-red-500">{error}</div>;
-  let teams = [];
-  if (league === "nba") teams = nbaTeams;
-  else if (league === "nfl") teams = nflTeams;
-  else if (league === "nhl") teams = nhlTeams;
-
-  const team = teams.find((t) => slugify(t.name) === teamId);
-
+ 
   if (!team)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
