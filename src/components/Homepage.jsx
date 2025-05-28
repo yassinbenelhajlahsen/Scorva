@@ -59,17 +59,18 @@ export default function Homepage() {
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="flex flex-col w-full max-w-6xl mx-auto px-4">
+<div className="flex flex-col w-full px-8">
       {/* Columns */}
+
       {/* Featured Games Title for mobile */}
       <div className="flex lg:hidden justify-center">
         <h2 className="text-3xl font-bold text-center mt-10 mb-6 w-full">
           Featured Games
         </h2>
       </div>
-      <div className="flex flex-col lg:flex-row justify-center gap-8 w-full">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
         {/* NBA Column */}
-        <div className="flex-1 flex flex-col items-center">
+        <div className="flex flex-col items-cente">
           <Link
             to="/nba"
             className="flex flex-col items-center max-w[200px] transition-transform duration-200 hover:scale-125 rounded-lg shadow cursor-pointer p-2"
@@ -83,9 +84,10 @@ export default function Homepage() {
             />
           </Link>
 
-          <div className="mt-45 w-full ">
+          <div className="mt-45 w-full max-w-xl">
             {nba.map((game) => (
-              <GameCard key={game.id} game={game} />
+              <GameCard
+              key={game.id} game={game} />
             ))}
           </div>
         </div>
@@ -107,7 +109,7 @@ export default function Homepage() {
           Featured Games
         </h2>
       </div>
-          <div className="mt-26 w-full">
+          <div className="mt-26 w-full max-w-xl">
             {nhl.map((game) => (
               <GameCard key={game.id} game={game} />
             ))}
@@ -127,7 +129,7 @@ export default function Homepage() {
               className="w-40 h-40 mt-2 object-contain"
             />
           </Link>
-          <div className="mt-45 w-full">
+          <div className="mt-45 w-full max-w-xl">
             {nfl.map((game) => (
               <GameCard key={game.id} game={game} />
             ))}

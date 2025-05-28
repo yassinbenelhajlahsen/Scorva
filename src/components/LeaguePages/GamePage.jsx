@@ -2,8 +2,8 @@ import { Link, useParams } from "react-router-dom";
 import nbaGames from "../../mock/mockNbaData/nbaGames.js";
 import nflGames from "../../mock/mockNflData/nflGames";
 import nhlGames from "../../mock/mockNhlData/nhlGames";
-import getLogoFromTeam from "../getLogoFromTeam.js";
 
+import getLogoFromTeam from "../getLogoFromTeam.js";
 const leagueMap = {
   nba: nbaGames,
   nfl: nflGames,
@@ -29,10 +29,14 @@ export default function GamePage() {
       {/* Logos and matchup */}
       <div className="flex items-center justify-center gap-8 mb-8">
         <img
-          src={getLogoFromTeam(game.homeTeam)}
-          alt={`${game.homeTeam} logo`}
-          className="w-40 h-40 object-contain"
-        />
+  src={getLogoFromTeam(game.homeTeam)}
+  alt={`${game.homeTeam} logo`}
+  className="w-40 h-40 object-contain"
+  onError={(e) => {
+    e.target.onerror = null; 
+    e.target.src = "/backupTeamLogo.png"; 
+  }}
+/>
         <h2 className="text-5xl md:text-8xl font-bold mx-4 whitespace-nowrap">
           <Link
             to={`/${league}/teams/${slugify(game.homeTeamFull)}`}
@@ -52,6 +56,10 @@ export default function GamePage() {
           src={getLogoFromTeam(game.awayTeam)}
           alt={`${game.awayTeam} logo`}
           className="w-40 h-40 object-contain"
+          onError={(e) => {
+    e.target.onerror = null; 
+    e.target.src = "/backupTeamLogo.png"; 
+  }}
         />
       </div>
       {/* Scores row */}

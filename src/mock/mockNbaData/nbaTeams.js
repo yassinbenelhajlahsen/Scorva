@@ -99,7 +99,9 @@ const mockNbaTeams = [
     city: "Los Angeles",
     arena: "Crypto.com Arena",
     logo: "https://upload.wikimedia.org/wikipedia/commons/3/3c/Los_Angeles_Lakers_logo.svg",
-    coach: "JJ Reddick"
+    coach: "JJ Reddick",
+    record: "51-31",
+    location: "Los Angeles, Californa"
   },
   {
     id: 15,

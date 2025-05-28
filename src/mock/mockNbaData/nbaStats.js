@@ -37,6 +37,48 @@ const nbaStats = [
         plusMinus: "+15",
         minutes: 36
       },
+      {
+        id: 3,
+        date: "2025-01-15",
+        opponent: "Clippers",
+        points: 12,
+        rebounds: 14,
+        assists: 12,
+        fg: "12/22",
+        threePt: "3/7",
+        ft: "7/8",
+        turnovers: 2,
+        plusMinus: "+15",
+        minutes: 36
+      },
+      {
+        id: 3,
+        date: "2025-01-15",
+        opponent: "Clippers",
+        points: 12,
+        rebounds: 14,
+        assists: 12,
+        fg: "12/22",
+        threePt: "3/7",
+        ft: "7/8",
+        turnovers: 2,
+        plusMinus: "+15",
+        minutes: 36
+      },
+      {
+        id: 3,
+        date: "2025-01-15",
+        opponent: "Clippers",
+        points: 12,
+        rebounds: 14,
+        assists: 12,
+        fg: "12/22",
+        threePt: "3/7",
+        ft: "7/8",
+        turnovers: 2,
+        plusMinus: "+15",
+        minutes: 36
+      }
     ]
   },
   {

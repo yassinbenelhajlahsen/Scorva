@@ -99,11 +99,17 @@ export default function PlayerPage() {
       { label: "PTS", value: game.points },
       { label: "REB", value: game.rebounds },
       { label: "AST", value: game.assists },
-      
+      {label: "FG", value: game.fg},
+      {label: "3PT", value: game.threePt},
+      {label: "FT", value: game.ft},
+      {label: "TO", value: game.turnovers},
+      {label: "+/-", value: game.plusMinus},
+      {label: "MINS", value: game.minutes}      
     ]}
     opponent = {game.opponent}
     date = {game.date}
     gameId={game.id}
+
   />
 ))}
 </div>

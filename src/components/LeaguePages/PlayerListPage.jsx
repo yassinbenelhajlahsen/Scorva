@@ -14,7 +14,7 @@ const leagueData = {
     players: nbaPlayers,
   },
   nfl: {
-    logo: "/NFllogo.png",
+    logo: "/NFLlogo.png",
     players: nflPlayers,
   },
   nhl: {

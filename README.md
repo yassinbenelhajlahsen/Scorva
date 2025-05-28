@@ -1,7 +1,8 @@
-# 🏀 Sportify 
-*IN-PROGRESS*
+# 🏀 Scorva
 
-**Sportify** is a full-stack sports tracking web app built with React and Tailwind CSS. It allows users to view upcoming NBA, NFL, and NHL games, and explore stats from past box scores.
+_IN-PROGRESS_
+
+**Scorva** is a full-stack sports tracking web app built with React and Tailwind CSS. It allows users to view upcoming NBA, NFL, and NHL games, and explore stats from past box scores.
 
 ## 🚀 Features
 

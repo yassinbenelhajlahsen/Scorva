@@ -2,7 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import nbaTeams from "../../mock/mockNbaData/nbaTeams.js";
 import nflTeams from "../../mock/mockNflData/nflTeams.js";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams.js";
-import backupLogo from "../../assets/backupTeamLogo.png";
+
+import nbaGames from "../../mock/mockNbaData/nbaGames.js";
 
 const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
 
@@ -10,7 +11,6 @@ export default function TeamPage() {
   const { league, teamId } = useParams();
 
   let teams = [];
-
   if (league === "nba") teams = nbaTeams;
   else if (league === "nfl") teams = nflTeams;
   else if (league === "nhl") teams = nhlTeams;
@@ -31,28 +31,36 @@ export default function TeamPage() {
     );
 
   return (
-     <>
-    <Link
-                  to={`/${league}/teams`}
-                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
-                >
-                  Return to Teams Page
-                </Link>
-    <div className="text-white p-8">
-      <h1 className="text-4xl font-bold mb-4">{team.name}</h1>
-      <img
-        src={team.logo || backupLogo}
-        alt={team.name}
-        className="w-40 h-40 object-cover mb-4"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = backupLogo;
-        }}
-      />
-      <p>City: {team.city}</p>
-      <p>Arena: {team.arena}</p>
-      <p>Record: {team.record}</p>
-    </div>
+    <>
+      <Link
+        to={`/${league}/teams`}
+        className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+      >
+        Return to Teams Page
+      </Link>
+      <div className="flex flex-col md:flex-row gap-8 p-8 text-white">
+        {/* Team Info */}
+        <div className="flex-1">
+          <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
+          <img
+            src={team.logo || "/images/placeholder.png"}
+            alt={team.name}
+            className="w-80 h-80 object-contain rounded-b-4xl mb-4"
+          />
+        </div>
+
+        <div className="grid grid-cols-2">
+          <p>Location</p>
+          <p className="font-semibold">{team.location}</p>
+          <p>Arena</p>
+          <p className="font-semibold">{team.arena}</p>
+          <p>Coach</p>
+          <p className="font-semibold">{team.coach}</p>
+          <p>Record</p>
+          <p className="font-semibold">{team.record}</p>
+        </div>
+      </div>
+      <h2 className="text-5xl font-bold mb-4 p-8">Recent Games </h2>
     </>
   );
 }

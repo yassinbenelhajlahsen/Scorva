@@ -5,7 +5,6 @@ import nbaTeams from "../../mock/mockNbaData/nbaTeams";
 import nflTeams from "../../mock/mockNflData/nflTeams";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams";
 
-
 import TeamCard from "../Cards/TeamCard";
 
 const leagueData = {
@@ -14,7 +13,7 @@ const leagueData = {
     teams: nbaTeams,
   },
   nfl: {
-    logo: "/NFllogo.png",
+    logo: "/NFLlogo.png",
     teams: nflTeams,
   },
   nhl: {
