@@ -61,18 +61,17 @@ export default function PlayerListPage() {
                 >
                   Return to {league.toUpperCase()}
                 </Link>
-    <div className="p-6">
-      <div className="flex items-center gap-6 mb-8">
+    <div className="p-2 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
         <img
           src={data.logo}
           alt={`${league} logo`}
-          className="w-20 h-20 object-contain"
+          className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
         />
-      
-        <h1 className="text-5xl font-bold capitalize">{league.toUpperCase()} Players</h1>
+        <h1 className="text-3xl sm:text-5xl font-bold capitalize text-center sm:text-left">{league.toUpperCase()} Players</h1>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
         {players.map((player) => (
           <PlayerCard
             key={player.name}
