@@ -67,6 +67,7 @@ const mockNbaTeams = [
   {
     id: 10,
     name: "Golden State Warriors",
+    shortName: "Warriors",
     city: "San Francisco",
     arena: "Chase Center",
     logo: "https://upload.wikimedia.org/wikipedia/en/0/01/Golden_State_Warriors_logo.svg",
@@ -96,6 +97,7 @@ const mockNbaTeams = [
   {
     id: 14,
     name: "Los Angeles Lakers",
+    shortName: "lakers",
     city: "Los Angeles",
     arena: "Crypto.com Arena",
     logo: "https://upload.wikimedia.org/wikipedia/commons/3/3c/Los_Angeles_Lakers_logo.svg",

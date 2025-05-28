@@ -1,39 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import nbaGames from "../../mock/mockNbaData/nbaGames";
-import nflGames from "../../mock/mockNflData/nflGames";
-import nhlGames from "../../mock/mockNhlData/nhlGames";
-
 
 import GameCard from "../Cards/GameCard";
-
-const leagueData = {
-  nba: {
-    logo: "/NBAlogo.png",
-    games: nbaGames,
-    links: [
-      { label: "Players", to: "/nba/players" },
-      { label: "Teams", to: "/nba/teams" },
-    ],
-  },
-  nfl: {
-    logo: "NFLlogo.png",
-    games: nflGames,
-    links: [
-      { label: "Players", to: "/nfl/players" },
-      { label: "Teams", to: "/nfl/teams" },
-    ],
-  },
-  nhl: {
-    logo: "NHLlogo.png",
-    games: nhlGames,
-    links: [
-      { label: "Players", to: "/nhl/players" },
-      { label: "Teams", to: "/nhl/teams" },
-    ],
-  },
-};
+import leagueData from "../../HelperFunctions.js/LeagueData";
 
 export default function LeaguePage() {
   const { league } = useParams();
@@ -58,11 +28,11 @@ export default function LeaguePage() {
 
   if (!data) {
     return (
-   <div className="flex flex-col items-center justify-center min-h-screen">
+   <div className="flex flex-col items-center justify-center mx-auto block sm:mx-0 sm:absolute sm:top-4 sm:left-4 min-h-screen">
                 <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
                 <Link
                   to="/"
-                  className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+                  className="mt-6  inline-block bg-white text-red-500 font-semibold py-4 px-8 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
                 >
                   Return to Homepage
                 </Link>

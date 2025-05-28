@@ -1,14 +1,47 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+
 import nbaTeams from "../../mock/mockNbaData/nbaTeams.js";
 import nflTeams from "../../mock/mockNflData/nflTeams.js";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams.js";
 
-import nbaGames from "../../mock/mockNbaData/nbaGames.js";
+import GameCard from "../Cards/GameCard";
+import leagueData from "../../HelperFunctions.js/LeagueData";
 
 const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
 
+
+
 export default function TeamPage() {
-  const { league, teamId } = useParams();
+
+const { league, teamId } = useParams();
+
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const data = leagueData[league?.toLowerCase()];
+
+  useEffect(() => {
+  if (!data) return;
+
+  setLoading(true);
+  try {
+    const gameList = data.games || [];
+
+    const filteredGames = gameList.filter(
+  (game) =>
+    slugify(game.homeTeam) === slugify(team.shortName) ||
+    slugify(game.awayTeam) === slugify(team.shortName)
+);
+
+    setGames(filteredGames.slice(0, 15)); // Limit to 15 most recent
+    setLoading(false);
+  } catch {
+    setError("Failed to load games.");
+    setLoading(false);
+  }
+}, [league, data, teamId]);
 
   let teams = [];
   if (league === "nba") teams = nbaTeams;
@@ -38,9 +71,9 @@ export default function TeamPage() {
       >
         Return to Teams Page
       </Link>
-      <div className="flex flex-col md:flex-row gap-8 p-8 text-white">
+      <div className="flex flex-col items-center md:flex-row gap-8 p-8 text-white">
         {/* Team Info */}
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col">
           <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
           <img
             src={team.logo || "/images/placeholder.png"}
@@ -49,7 +82,7 @@ export default function TeamPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-12 text-lg p-6">
           <p>Location</p>
           <p className="font-semibold">{team.location}</p>
           <p>Arena</p>
@@ -60,7 +93,13 @@ export default function TeamPage() {
           <p className="font-semibold">{team.record}</p>
         </div>
       </div>
-      <h2 className="text-5xl font-bold mb-4 p-8">Recent Games </h2>
-    </>
+      <h2 className="text-5xl font-bold mb-4 p-8 text-center">Recent Games </h2>
+<div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
+          {games.map((game) => (
+            <div key={game.id} className="w-full max-w-md">
+              <GameCard game={game} />
+            </div>
+          ))}
+        </div>    </>
   );
 }
