@@ -3,6 +3,7 @@ const mockNbaTeams = [
     id: 1,
     name: "Atlanta Hawks",
     city: "Atlanta",
+    shortName: "Hawks",
     arena: "State Farm Arena",
     logo: "https://upload.wikimedia.org/wikipedia/en/2/24/Atlanta_Hawks_logo.svg",
     record: "0-0",
@@ -41,6 +42,7 @@ const mockNbaTeams = [
   {
     id: 6,
     name: "Cleveland Cavaliers",
+    shortName: "Cavaliers",
     city: "Cleveland",
     arena: "Rocket Mortgage FieldHouse",
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Cleveland_Cavaliers_logo.svg/1189px-Cleveland_Cavaliers_logo.svg.png"

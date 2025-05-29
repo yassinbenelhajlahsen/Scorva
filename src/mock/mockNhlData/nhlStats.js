@@ -14,7 +14,7 @@ const mockNhlStats = [
       plusMinus: 20,
       saves: 11,
       savePct: 67,
-    GAA: 22
+        GAA: 22
     },
     recentGames: [
       {
@@ -23,9 +23,17 @@ const mockNhlStats = [
         opponent: "Pittsburgh Penguins",
         G: 0,
         A: 0,
-        S: 3,
+        SAVES: 3,
         plusMinus: 1,
-        TOI: 23
+        TOI: 23,
+        SHOTS: 1,
+        SM: 1,
+        BS: 0,
+        PN: 3,
+        PIM: 2, 
+        HT: 1,
+        TK: 0,
+        GV: 0
       }
     ]
   }

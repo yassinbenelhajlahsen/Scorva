@@ -100,7 +100,7 @@ export default function BoxScore({league, game, stats }) {
   if (statHeaders.length === 0) {
     return (
       <div className="text-center text-gray-400 mt-8">
-        No player stats available for this game.
+        No box score available for this game. Check back once the game has finished.
       </div>
     );
   }

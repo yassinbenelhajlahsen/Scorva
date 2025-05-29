@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import getTeamLogo from "../../HelperFunctions/getLogoFromTeam.js";
+import getLogo from "../../HelperFunctions/getLogoFromTeam.js";
 import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
 
 export default function GameCard({ game }) {
@@ -23,7 +23,7 @@ export default function GameCard({ game }) {
           {/* Home */}
           <div className="flex flex-col items-center">
             <img
-              src={getTeamLogo(game.homeTeam) || "/backupTeamLogo.png"}
+              src={getLogo(game.homeTeam) || "/backupTeamLogo.png"}
               alt={`${game.homeTeam} logo`}
               className="w-16 h-16 object-contain"
               onError={(e) => {
@@ -57,7 +57,7 @@ export default function GameCard({ game }) {
           {/* Away */}
           <div className="flex flex-col items-center">
             <img
-              src={getTeamLogo(game.awayTeam) || "/backupTeamLogo.png"}
+              src={getLogo(game.awayTeam) || "/backupTeamLogo.png"}
               alt={`${game.awayTeam} logo`}
               className="w-16 h-16 object-contain"
               onError={(e) => {

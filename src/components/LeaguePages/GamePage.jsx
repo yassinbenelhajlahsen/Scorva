@@ -46,7 +46,6 @@ export default function GamePage() {
   const isFinal = game.status.includes("Final");
   const homeWon = isFinal && game.homeScore > game.awayScore;
   const awayWon = isFinal && game.awayScore > game.homeScore;
-  console.log(allPlayerStats)
   return (
     <>
    {/* Team matchup section with scores */}
