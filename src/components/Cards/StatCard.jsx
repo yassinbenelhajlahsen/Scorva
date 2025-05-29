@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import getLeague from "../../HelperFunctions.js/getLeagueFromTeam";
+import getLeague from "../../HelperFunctions/getLogoFromTeam.js";
 
 export default function StatCard({ stats = [], opponent, date, gameId }) {
   if (!stats.length) {

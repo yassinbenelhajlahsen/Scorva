@@ -1,6 +1,6 @@
 const mockNflGames = [
   {
-    id: 1,
+    id: 34,
     date: "2025-09-12",
     homeTeam: "Giants",
     homeTeamFull: "New York Giants",
@@ -11,7 +11,7 @@ const mockNflGames = [
     status: "Final",
   },
   {
-    id: 2,
+    id: 45,
     date: "2025-09-13",
     homeTeam: "Chiefs",
     homeTeamFull: "Kansas City Chiefs",
@@ -22,7 +22,7 @@ const mockNflGames = [
     status: "Scheduled",
   },
   {
-    id: 3,
+    id: 55,
     date: "2025-09-14",
     homeTeam: "Packers",
     homeTeamFull: "Green Bay Packers",
@@ -33,7 +33,7 @@ const mockNflGames = [
     status: "Scheduled",
   },
   {
-    id: 4,
+    id: 62,
     date: "2025-09-15",
     homeTeam: "Ravens",
     homeTeamFull: "Baltimore Ravens",
@@ -44,7 +44,7 @@ const mockNflGames = [
     status: "Scheduled",
   },
   {
-    id: 5,
+    id: 99,
     date: "2025-09-16",
     homeTeam: "Dolphins",
     homeTeamFull: "Miami Dolphins",

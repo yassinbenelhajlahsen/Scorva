@@ -2,7 +2,14 @@ import { Link, useParams } from "react-router-dom";
 import nbaGames from "../../mock/mockNbaData/nbaGames.js";
 import nflGames from "../../mock/mockNflData/nflGames";
 import nhlGames from "../../mock/mockNhlData/nhlGames";
-import getLogoFromTeam from "../getLogoFromTeam.js";
+
+import nbaStats from "../../mock/mockNbaData/nbaStats.js";
+import getLogoFromTeam from "../../HelperFunctions/getLogoFromTeam.js";
+import BoxScore from "../BoxScore.jsx";
+import slugify from "../../HelperFunctions/slugify.js"
+import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
+import computeTopPlayers from "../../HelperFunctions/topPlayers.js";
+import TopPerformerCard from "../Cards/TopPerformerCard.jsx";
 
 const leagueMap = {
   nba: nbaGames,
@@ -10,23 +17,24 @@ const leagueMap = {
   nhl: nhlGames,
 };
 
-const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
 
 export default function GamePage() {
   const { league, gameId } = useParams();
   const games = leagueMap[league.toLowerCase()] || [];
   const game = games.find((g) => String(g.id) === String(gameId));
-
+  
   if (!game) return <div className="text-white">Game not found</div>;
 
   const isFinal = game.status.includes("Final");
   const homeWon = isFinal && game.homeScore > game.awayScore;
   const awayWon = isFinal && game.awayScore > game.homeScore;
 
+  const { topPerformer, topScorer, impactPlayer } = computeTopPlayers(game, nbaStats);
+
   return (
     <>
    {/* Team matchup section with scores */}
-<div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 mb-8">
+<div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 mt-6 mb-8">
   {/* Home Team */}
   <div className="flex items-center gap-3 sm:gap-4">
     <img
@@ -91,16 +99,31 @@ export default function GamePage() {
   </div>
 </div>
 
-        <div className="grid grid-cols-2 gap-x-40 gap-y-4 p-6 max-w-md mx-auto text-left">
-          <p className="text-lg">Date</p>
-          <p className="font-semibold">{game.date}</p>
-          <p className="text-lg">Status</p>
-          <p className="font-semibold">{game.status}</p>
-          <p className="text-lg">Location</p>
-          <p className="font-semibold"> {game.venue} ({game.homeTeam})</p>
-          <p className="text-lg">Broadcast</p>
-          <p className="font-semibold">{game.broadcast}</p>
-        </div>
+        <div className="flex flex-col lg:flex-row justify-center px-6 sm:px-6 mb-12">
+  {/* Game info on the left */}
+  <div className="grid grid-cols-2 gap-y-4 text-left max-w-md w-full">
+    <p className="text-lg">Date</p>
+    <p className="font-semibold">{game.date}</p>
+    <p className="text-lg">Status</p>
+    <p className="font-semibold">{game.status}</p>
+    <p className="text-lg">Location</p>
+    <p className="font-semibold">{game.venue} ({game.homeTeam})</p>
+    <p className="text-lg">Broadcast</p>
+    <p className="font-semibold">{game.broadcast}</p>
+  </div>
+
+  {/* Top performers on the right */}
+  <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 max-w-6xl mx-auto">
+  <TopPerformerCard title="Top Performer" player={topPerformer} league={league} />
+  <TopPerformerCard title="Top Scorer" player={topScorer} league={league} />
+  <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
+</div>
+</div>
+        <BoxScore 
+          game = {game}
+          stats = {nbaStats}
+          league = {getLeague(game.homeTeam)}
+          ></BoxScore>
 </>
   );
 }

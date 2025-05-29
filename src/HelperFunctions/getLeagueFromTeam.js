@@ -1,7 +1,7 @@
 import nbaTeams from "../mock/mockNbaData/nbaTeams.js";
 import nflTeams from "../mock/mockNflData/nflTeams.js";
 import nhlTeams from "../mock/mockNhlData/nhlTeams.js";
-import normalize from "../HelperFunctions.js/Normalize.js";
+import normalize from "../HelperFunctions/Normalize.js";
 const leagueMap = {
   nba: nbaTeams,
   nfl: nflTeams,

@@ -1,7 +1,7 @@
 export default function PlayerAvgCard({ league, position, averages, season}) {
   let statsToDisplay = [];
 
- if (!averages || Object.keys(averages).length === 0) {
+ if (!averages || Object.keys(averages).length === 0 || averages == null) {
     return (
       <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-fit overflow-hidden">
         <div className="bg-orange-400 text-center text-sm font-bold uppercase py-2 px-4">

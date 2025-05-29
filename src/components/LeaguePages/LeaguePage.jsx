@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 
 import GameCard from "../Cards/GameCard";
-import leagueData from "../../HelperFunctions.js/LeagueData";
+import leagueData from "../../HelperFunctions/LeagueData";
 import LoadingPage from "../LoadingPage.jsx"
 export default function LeaguePage() {
   const { league } = useParams();
@@ -46,12 +46,15 @@ export default function LeaguePage() {
     if (error) return <div className="p-6 text-red-500">{error}</div>;
   return (
     <>
+       <div className="w-full flex justify-center sm:justify-start sm:ml-5">
+
     <Link
                   to="/"
                   className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
                 >
                   Return to Home
                 </Link>
+                </div>
     <div className="p-6">
       <div className="flex items-center gap-6 mb-4 ml-4">
         <img

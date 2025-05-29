@@ -1,8 +1,7 @@
 import nbaTeams from "../mock/mockNbaData/nbaTeams.js";
 import nflTeams from "../mock/mockNflData/nflTeams.js";
 import nhlTeams from "../mock/mockNhlData/nhlTeams.js";
-
-const normalize = (str) =>str?.toLowerCase().replace(/[^a-z]/g, "");
+import normalize from "./Normalize.js";
 
 export default function getTeamLogo(teamName){
   const normalized = normalize(teamName);

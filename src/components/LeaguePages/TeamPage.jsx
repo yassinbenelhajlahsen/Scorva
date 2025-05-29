@@ -6,7 +6,7 @@ import nflTeams from "../../mock/mockNflData/nflTeams.js";
 import nhlTeams from "../../mock/mockNhlData/nhlTeams.js";
 
 import GameCard from "../Cards/GameCard";
-import leagueData from "../../HelperFunctions.js/LeagueData";
+import leagueData from "../../HelperFunctions/LeagueData";
 import LoadingPage from "../LoadingPage.jsx"
 
 const slugify = (name) => name.toLowerCase().replace(/\s+/g, "-");
@@ -17,6 +17,7 @@ const { league, teamId } = useParams();
 
 const [games, setGames] = useState([]);
 const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null);
 
 // Get teams for the league
 let teams = [];
@@ -51,6 +52,7 @@ useEffect(() => {
 }, [league, data, teamId, team]);
 
   if (loading) return <LoadingPage />;
+  if (error) return <h1 className="text-center text-3xl"> Error</h1>
  
   if (!team)
     return (

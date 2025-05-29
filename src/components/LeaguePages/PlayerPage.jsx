@@ -78,7 +78,8 @@ export default function PlayerPage() {
               {player.team}
             </Link>
           </div>
-        <div className="mt-20">
+        
+        {stats && (<div className="mt-20">
           <PlayerAvgCard
             league={league}
             position={player.position}
@@ -86,7 +87,10 @@ export default function PlayerPage() {
             season={stats.season}
           />
         </div>
+        )}
       </div>
+        
+        
 
       <h1 className="font-semibold text-4xl mt-6 p-6">Recent Performances</h1>
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-6">

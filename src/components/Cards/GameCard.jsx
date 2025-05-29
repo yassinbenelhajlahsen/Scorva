@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import getTeamLogo from "../../components/getLogoFromTeam.js";
-import getLeague from "../../HelperFunctions.js/getLeagueFromTeam.js";
+import getTeamLogo from "../../HelperFunctions/getLogoFromTeam.js";
+import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
 
 export default function GameCard({ game }) {
   const isFinal = game.status.includes("Final");
