@@ -25,9 +25,9 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
   } else if (league === "nfl") {
     if (position === "QB") {
       statsToDisplay = [
-        { label: "Pass YDS", value: averages.passYards },
-        { label: "TD", value: averages.touchdowns },
-        { label: "INT", value: averages.interceptions }
+        { label: "Pass YDS", value: averages.passYds },
+        { label: "TD", value: averages.tds },
+        { label: "INT", value: averages.ints }
       ];
     } else if (["RB", "WR"].includes(position)) {
       statsToDisplay = [
@@ -41,13 +41,13 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
       statsToDisplay = [
         { label: "Saves", value: averages.saves },
         { label: "SV%", value: averages.savePct },
-        { label: "GAA", value: averages.gaa }
+        { label: "GAA", value: averages.GAA }
       ];
     } else {
       statsToDisplay = [
-        { label: "Goals", value: averages.goals },
-        { label: "Assists", value: averages.assists },
-        { label: "Points", value: averages.points }
+        { label: "Goals", value: averages.G },
+        { label: "Assists", value: averages.A },
+        { label: "Points", value: averages.pts }
       ];
     }
   }

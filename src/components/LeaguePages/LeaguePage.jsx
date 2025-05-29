@@ -31,7 +31,7 @@ export default function LeaguePage() {
 
   if (!data) {
     return (
-   <div className="flex flex-col items-center justify-center mx-auto block sm:mx-0 sm:absolute sm:top-4 sm:left-4 min-h-screen">
+   <div className="flex-col items-center justify-center mx-auto block sm:mx-0 sm:absolute sm:top-4 sm:left-4 min-h-screen">
                 <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
                 <Link
                   to="/"

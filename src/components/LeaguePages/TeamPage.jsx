@@ -19,13 +19,11 @@ const [games, setGames] = useState([]);
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState(null);
 
-// Get teams for the league
 let teams = [];
 if (league === "nba") teams = nbaTeams;
 else if (league === "nfl") teams = nflTeams;
 else if (league === "nhl") teams = nhlTeams;
 
-// Find the team
 const team = teams.find((t) => slugify(t.name) === teamId);
 
 const data = leagueData[league?.toLowerCase()];
@@ -50,9 +48,8 @@ useEffect(() => {
     setLoading(false);
   }
 }, [league, data, teamId, team]);
-
   if (loading) return <LoadingPage />;
-  if (error) return <h1 className="text-center text-3xl"> Error</h1>
+  if (error) return <h1 className="text-center text-3xl">{error}</h1>
  
   if (!team)
     return (

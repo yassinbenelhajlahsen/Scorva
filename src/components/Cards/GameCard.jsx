@@ -10,10 +10,14 @@ export default function GameCard({ game }) {
   const league = getLeague(game.homeTeam);
   if (!league) return null;
 
-  return (
-    <Link to={`/${league}/games/${game.id}`} className="group block no-underline">
-      <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center mb-6 rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer max-w-md mx-auto overflow-hidden">
+  const nhl = league == "nhl";
 
+  return (
+    <Link
+      to={`/${league}/games/${game.id}`}
+      className="group block no-underline"
+    >
+      <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center mb-6 rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer max-w-md mx-auto overflow-hidden">
         {/* Teams & Scores */}
         <div className="flex items-center justify-between gap-6">
           {/* Home */}
@@ -31,7 +35,11 @@ export default function GameCard({ game }) {
               {game.homeTeam}
             </div>
             {isFinal && (
-              <div className={`text-lg font-semibold ${homeWon ? "text-green-400" : "text-red-400"}`}>
+              <div
+                className={`text-lg font-semibold ${
+                  homeWon ? "text-green-400" : "text-red-400"
+                }`}
+              >
                 {game.homeScore}
               </div>
             )}
@@ -61,85 +69,202 @@ export default function GameCard({ game }) {
               {game.awayTeam}
             </div>
             {isFinal && (
-              <div className={`text-lg font-semibold ${awayWon ? "text-green-400" : "text-red-400"}`}>
+              <div
+                className={`text-lg font-semibold ${
+                  awayWon ? "text-green-400" : "text-red-400"
+                }`}
+              >
                 {game.awayScore}
               </div>
             )}
           </div>
         </div>
-
+        {nhl && (
+          <ul className="mt-4 text-sm text-gray-300 font-mono max-h-0 min-h-[0px] group-hover:max-h-[300px] overflow-hidden transition-[max-height] duration-700 ease-in-out space-y-1">
+            {" "}
+            <li className="text-white text-sm font-bold text-center">
+              {game.status}
+            </li>{" "}
+            {/* HEADER ROW */}{" "}
+            <li className="flex justify-between text-xs text-gray-400 px-2">
+              {" "}
+              <span className="w-12" /> {/* spacer */}{" "}
+              <span className="w-8 text-center">1</span>{" "}
+              <span className="w-8 text-center">2</span>{" "}
+              <span className="w-8 text-center">3</span>{" "}
+              {/* Dynamic OT headers */}{" "}
+              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+                game[key] ? (
+                  <span key={key} className="w-10 text-center">
+                    {key}
+                  </span>
+                ) : null
+              )}{" "}
+              <span className="w-8 text-center">T</span>{" "}
+            </li>{" "}
+            {/* AWAY TEAM ROW */}{" "}
+            <li className="flex justify-between px-2 text-sm">
+              {" "}
+              <span className="w-12 font-bold text-left">
+                {game.awayTeam}
+              </span>{" "}
+              <span className="w-8 text-center">
+                {game.firstQtr?.split("-")[1]}
+              </span>{" "}
+              <span className="w-8 text-center">
+                {game.secondQtr?.split("-")[1]}
+              </span>{" "}
+              <span className="w-8 text-center">
+                {game.thirdQtr?.split("-")[1]}
+              </span>{" "}
+              {/* Dynamic OT scores */}{" "}
+              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+                game[key] ? (
+                  <span key={key} className="w-10 text-center">
+                    {" "}
+                    {game[key].split("-")[1]}{" "}
+                  </span>
+                ) : null
+              )}{" "}
+              <span
+                className={`w-8 text-center ${
+                  awayWon ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {" "}
+                {game.awayScore}{" "}
+              </span>{" "}
+            </li>{" "}
+            {/* HOME TEAM ROW */}{" "}
+            <li className="flex justify-between px-2 text-sm">
+              {" "}
+              <span className="w-12 font-bold text-left">
+                {game.homeTeam}
+              </span>{" "}
+              <span className="w-8 text-center">
+                {game.firstQtr?.split("-")[0]}
+              </span>{" "}
+              <span className="w-8 text-center">
+                {game.secondQtr?.split("-")[0]}
+              </span>{" "}
+              <span className="w-8 text-center">
+                {game.thirdQtr?.split("-")[0]}
+              </span>{" "}
+              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+                game[key] ? (
+                  <span key={key} className="w-10 text-center">
+                    {" "}
+                    {game[key].split("-")[0]}{" "}
+                  </span>
+                ) : null
+              )}{" "}
+              <span
+                className={`w-8 text-center ${
+                  homeWon ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {" "}
+                {game.homeScore}{" "}
+              </span>{" "}
+            </li>{" "}
+          </ul>
+        )}
         {/* Quarter breakdown */}
-        {isFinal && (
-  <ul className="mt-4 text-sm text-gray-300 font-mono 
+        {isFinal && !nhl && (
+          <ul
+            className="mt-4 text-sm text-gray-300 font-mono 
     max-h-0 min-h-[0px] group-hover:max-h-[300px] 
     overflow-hidden transition-[max-height] duration-700 ease-in-out space-y-1"
-  >
-    <li className="text-white text-sm font-bold text-center">{game.status}</li>
+          >
+            <li className="text-white text-sm font-bold text-center">
+              {game.status}
+            </li>
+            {/* HEADER ROW */}
+            <li className="flex justify-between text-xs text-gray-400 px-2">
+              <span className="w-12" /> {/* spacer */}
+              <span className="w-8 text-center">1</span>
+              <span className="w-8 text-center">2</span>
+              <span className="w-8 text-center">3</span>
+              <span className="w-8 text-center">4</span>
+              {/* Dynamic OT headers */}
+              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+                game[key] ? (
+                  <span key={key} className="w-10 text-center">
+                    {key}
+                  </span>
+                ) : null
+              )}
+              <span className="w-8 text-center">T</span>
+            </li>
 
-    {/* HEADER ROW */}
-    <li className="flex justify-between text-xs text-gray-400 px-2">
-      <span className="w-12" /> {/* spacer */}
-      <span className="w-8 text-center">1</span>
-      <span className="w-8 text-center">2</span>
-      <span className="w-8 text-center">3</span>
-      <span className="w-8 text-center">4</span>
+            {/* AWAY TEAM ROW */}
+            <li className="flex justify-between px-2 text-sm">
+              <span className="w-12 font-bold text-left">{game.awayTeam}</span>
+              <span className="w-8 text-center">
+                {game.firstQtr?.split("-")[1]}
+              </span>
+              <span className="w-8 text-center">
+                {game.secondQtr?.split("-")[1]}
+              </span>
+              <span className="w-8 text-center">
+                {game.thirdQtr?.split("-")[1]}
+              </span>
+              <span className="w-8 text-center">
+                {game.fourthQtr?.split("-")[1]}
+              </span>
 
-      {/* Dynamic OT headers */}
-      {["OT", "OT2", "OT3", "OT4"].map((key) =>
-        game[key] ? (
-          <span key={key} className="w-10 text-center">{key}</span>
-        ) : null
-      )}
+              {/* Dynamic OT scores */}
+              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+                game[key] ? (
+                  <span key={key} className="w-10 text-center">
+                    {game[key].split("-")[1]}
+                  </span>
+                ) : null
+              )}
 
-      <span className="w-8 text-center">T</span>
-    </li>
+              <span
+                className={`w-8 text-center ${
+                  awayWon ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {game.awayScore}
+              </span>
+            </li>
 
-    {/* AWAY TEAM ROW */}
-    <li className="flex justify-between px-2 text-sm">
-      <span className="w-12 font-bold text-left">{game.awayTeam}</span>
-      <span className="w-8 text-center">{game.firstQtr?.split("-")[1]}</span>
-      <span className="w-8 text-center">{game.secondQtr?.split("-")[1]}</span>
-      <span className="w-8 text-center">{game.thirdQtr?.split("-")[1]}</span>
-      <span className="w-8 text-center">{game.fourthQtr?.split("-")[1]}</span>
+            {/* HOME TEAM ROW */}
+            <li className="flex justify-between px-2 text-sm">
+              <span className="w-12 font-bold text-left">{game.homeTeam}</span>
+              <span className="w-8 text-center">
+                {game.firstQtr?.split("-")[0]}
+              </span>
+              <span className="w-8 text-center">
+                {game.secondQtr?.split("-")[0]}
+              </span>
+              <span className="w-8 text-center">
+                {game.thirdQtr?.split("-")[0]}
+              </span>
+              <span className="w-8 text-center">
+                {game.fourthQtr?.split("-")[0]}
+              </span>
 
-      {/* Dynamic OT scores */}
-      {["OT", "OT2", "OT3", "OT4"].map((key) =>
-        game[key] ? (
-          <span key={key} className="w-10 text-center">
-            {game[key].split("-")[1]}
-          </span>
-        ) : null
-      )}
+              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+                game[key] ? (
+                  <span key={key} className="w-10 text-center">
+                    {game[key].split("-")[0]}
+                  </span>
+                ) : null
+              )}
 
-      <span className={`w-8 text-center ${awayWon ? "text-green-400" : "text-red-400"}`}>
-        {game.awayScore}
-      </span>
-    </li>
-
-    {/* HOME TEAM ROW */}
-    <li className="flex justify-between px-2 text-sm">
-      <span className="w-12 font-bold text-left">{game.homeTeam}</span>
-      <span className="w-8 text-center">{game.firstQtr?.split("-")[0]}</span>
-      <span className="w-8 text-center">{game.secondQtr?.split("-")[0]}</span>
-      <span className="w-8 text-center">{game.thirdQtr?.split("-")[0]}</span>
-      <span className="w-8 text-center">{game.fourthQtr?.split("-")[0]}</span>
-
-      {["OT", "OT2", "OT3", "OT4"].map((key) =>
-        game[key] ? (
-          <span key={key} className="w-10 text-center">
-            {game[key].split("-")[0]}
-          </span>
-        ) : null
-      )}
-
-      <span className={`w-8 text-center ${homeWon ? "text-green-400" : "text-red-400"}`}>
-        {game.homeScore}
-      </span>
-    </li>
-  </ul>
-)}
-
-
+              <span
+                className={`w-8 text-center ${
+                  homeWon ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {game.homeScore}
+              </span>
+            </li>
+          </ul>
+        )}
       </div>
     </Link>
   );

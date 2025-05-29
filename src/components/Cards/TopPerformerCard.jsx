@@ -34,7 +34,6 @@ export default function TopPerformerCard({ player, title = "Top Performer", leag
   const path = `/${currentLeague}/players/${slugify(name)}`;
 
   const formattedStats = statFormatMap[currentLeague]?.(stats) || [];
-console.log("player", {player})
   return (
     <Link
       to={path}

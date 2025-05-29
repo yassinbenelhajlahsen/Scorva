@@ -10,6 +10,14 @@ import slugify from "../../HelperFunctions/slugify.js"
 import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
 import computeTopPlayers from "../../HelperFunctions/topPlayers.js";
 import TopPerformerCard from "../Cards/TopPerformerCard.jsx";
+import nflStats from "../../mock/mockNflData/nflStats.js";
+import nhlStats from "../../mock/mockNhlData/nhlStats.js";
+
+const statsMap = {
+  nba: nbaStats,
+  nfl: nflStats,
+  nhl: nhlStats,
+};
 
 const leagueMap = {
   nba: nbaGames,
@@ -19,18 +27,26 @@ const leagueMap = {
 
 
 export default function GamePage() {
+
   const { league, gameId } = useParams();
   const games = leagueMap[league.toLowerCase()] || [];
-  const game = games.find((g) => String(g.id) === String(gameId));
-  
+  const game  = games.find(g => String(g.id) === String(gameId));
+  if (!game) return <div>Game not found</div>;
+
+  const allPlayerStats = statsMap[league.toLowerCase()] || [];
+
+  const { topPerformer, topScorer, impactPlayer } =
+    computeTopPlayers(game, allPlayerStats);
+
+
+
+
   if (!game) return <div className="text-white">Game not found</div>;
 
   const isFinal = game.status.includes("Final");
   const homeWon = isFinal && game.homeScore > game.awayScore;
   const awayWon = isFinal && game.awayScore > game.homeScore;
-
-  const { topPerformer, topScorer, impactPlayer } = computeTopPlayers(game, nbaStats);
-
+  console.log(allPlayerStats)
   return (
     <>
    {/* Team matchup section with scores */}
@@ -121,7 +137,7 @@ export default function GamePage() {
 </div>
         <BoxScore 
           game = {game}
-          stats = {nbaStats}
+          stats = {allPlayerStats}
           league = {getLeague(game.homeTeam)}
           ></BoxScore>
 </>
