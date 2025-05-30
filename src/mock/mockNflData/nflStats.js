@@ -24,7 +24,6 @@ const mockNflStats = [
         SACK: 6,
         TD: 3,
         INT: 2,
-        
       }
     ]
     

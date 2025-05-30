@@ -12,6 +12,7 @@ const mockNhlGames = [
     firstQtr: "2-1",
     secondQtr: "1-1",
     thirdQtr:"1-1",
+    fourthQtr: "",
     OT : "",
     OT2 : "",
     OT3 : "",
