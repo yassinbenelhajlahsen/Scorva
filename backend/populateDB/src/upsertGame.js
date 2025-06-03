@@ -26,7 +26,8 @@ export default async function upsertGame(client, league, gamePayload) {
           ot3        = EXCLUDED.ot3,
           ot4        = EXCLUDED.ot4,
           status     = EXCLUDED.status,
-          season     = EXCLUDED.season;
+          season     = EXCLUDED.season
+          RETURNING id;
   `;
 
   const values = [
@@ -49,5 +50,6 @@ export default async function upsertGame(client, league, gamePayload) {
     gamePayload.status,        // 'SCHEDULED' / 'IN' / 'FINAL'
     gamePayload.seasonText     // '2024-reg' / '2024-post'
   ];
-  await client.query(text, values);
+ const result = await client.query(text, values);
+  return result.rows[0].id;
 }

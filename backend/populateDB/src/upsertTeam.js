@@ -31,4 +31,5 @@ export default async function upsertTeam(client, espnId, league, teamInfo) {
   
     const res = await client.query(text, values);
     return res.rows[0].id;
+
 }

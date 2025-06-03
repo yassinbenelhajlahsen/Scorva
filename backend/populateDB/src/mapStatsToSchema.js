@@ -10,31 +10,28 @@ export default function mapStatsToSchema(statsObj, leagueSlug) {
       ft: ["freeThrowPercentage", "FT"],
     },
     nfl: {
-      cmp: ["cmp", "completions"],
-      att: ["att", "attempts"],
-      yds: ["yds", "yards"],
-      cmp_pct: ["cmp_pct", "completion_percentage"],
-      sacks: ["sacks", "sack"],
-      td: ["td", "touchdowns"],
-      interceptions: ["interceptions", "int"],
+      cmpatt: ["Completions/Attempts"],
+      yds: ["yds", "Yards"],
+      sacks: ["sacks", "sack", "Sacks"],
+      td: ["td", "Touchdowns"],
+      interceptions: ["Interceptions", "int"],
     },
     nhl: {
-      g: ["g", "goals"],
-      a: ["a", "assists"],
-      pts: ["pts", "points"],
-      plus_minus: ["plus_minus", "+/-"],
-      saves: ["saves", "sv"],
-      save_pct: ["save_pct", "save_percentage"],
-      gaa: ["gaa", "goals_against_average"],
-      toi: ["toi", "time_on_ice"],
-      shots: ["shots", "sog"],
-      sm: ["sm", "shots_missed"],
-      bs: ["bs", "blocked_shots"],
-      pn: ["pn", "penalties"],
-      pim: ["pim", "penalty_minutes"],
-      ht: ["ht", "hits"],
-      tk: ["tk", "takeaways"],
-      gv: ["gv", "giveaways"],
+      g:           ["g", "goals"],
+      a:           ["a", "assists"],
+      pts:         ["pts", "points"],
+      plus_minus:  ["plusMinus", "+/-"],
+      saves:       ["saves", "SV"],
+      save_pct:    ["save_pct", "save_percentage"],
+      toi:         ["toi", "timeOnIce"],
+      shots:       ["shotsTotal", "sog"],
+      sm:          ["sm", "shotsMissed"],
+      bs:          ["bs", "blockedShots"],
+      pn:          ["pn", "penalties"],
+      pim:         ["pim", "penaltyMinutes"],
+      ht:          ["ht", "hits"],
+      tk:          ["tk", "takeaways"],
+      gv:          ["gv", "giveaways"],
     },
   };
   // Process common mappings
@@ -57,19 +54,7 @@ export default function mapStatsToSchema(statsObj, leagueSlug) {
     });
   }
 
-  // Special handling for percentage stats (convert from string "50.0" to float 50.0)
-  const percentageFields = ["cmp_pct", "save_pct", "fg_pct"];
-  percentageFields.forEach((field) => {
-    if (mappedStats[field] && typeof mappedStats[field] === "string") {
-      mappedStats[field] = parseFloat(mappedStats[field]);
-    }
-  });
 
-  // Special handling for time formats (convert "15:30" to minutes as integer)
-  if (mappedStats.minutes && typeof mappedStats.minutes === "string") {
-    const [mins, secs] = mappedStats.minutes.split(":").map(Number);
-    mappedStats.minutes = mins + (secs ? Math.round(secs / 60) : 0);
-  }
 
   return mappedStats;
 }

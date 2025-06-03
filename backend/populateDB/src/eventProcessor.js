@@ -7,7 +7,6 @@ import upsertPlayer from "./upsertPlayer.js";
 import upsertStat from "./upsertStat.js";
 import upsertGame from "./upsertGame.js";
 
-
 export function getSportPath(leagueSlug) {
   switch (leagueSlug.toLowerCase()) {
     case "nba":
@@ -203,13 +202,11 @@ export async function processEvent(client, leagueSlug, event) {
           default:  break;
         }
       });
-      const seasonTypeCode = event.season.type.id;
 
-      // 5.4.9) Season text (“YYYY-reg” or “YYYY-post”)
-      const seasonYear = event.season.year;
-      const seasonText = (seasonTypeCode === 3)
-        ? `${seasonYear}-post`
-        : `${seasonYear}-reg`;
+    const startYear = event.season.year;          // e.g. 2024
+    const endYear = startYear + 1;              // e.g. 2024
+    const endTwoDigits = String(endYear).slice(-2); // "25"
+    const seasonText = `${startYear}-${endTwoDigits}`; // "2024-25"
 
       // 5.4.10) Upsert into games
       const gamePayload = {
@@ -234,7 +231,9 @@ export async function processEvent(client, leagueSlug, event) {
 
     let statsResp;
     try {
+
       statsResp = await axios.get(boxscoreUrl);
+
     } catch (err) {
       console.warn(`⚠️ [processEvent] no boxscore for ${espnEventId}: ${err.message}`);
       // We still want to commit the game row even if stats fail
@@ -242,16 +241,23 @@ export async function processEvent(client, leagueSlug, event) {
       return gameId;
     }
 
+
+
     const playerGroups = statsResp.data.boxscore?.players || [];
+
+
     for (const group of playerGroups) {
       // figure out if this group is HOME or AWAY
+
       const espnGroupTeamId = String(group.team.id);
       const teamIdForPlayer =
         espnGroupTeamId === String(homeComp.team.id) ? homeTeamId : awayTeamId;
-
-      const statNames = group.statistics?.[0]?.names || [];
+    const statNames = Array.isArray(group.statistics?.[0]?.keys)
+  ? group.statistics[0].keys
+  : Array.isArray(group.statistics?.[0]?.descriptions)
+    ? group.statistics[0].descriptions
+    : group.statistics?.[0]?.names || [];
       const athletes = group.statistics?.[0]?.athletes || [];
-
       for (const athleteEntry of athletes) {
         if (athleteEntry.didNotPlay) continue; // skip DNP
         const espnId = athleteEntry.athlete?.id;
@@ -268,11 +274,11 @@ export async function processEvent(client, leagueSlug, event) {
             detailedAthlete?.position?.abbreviation ||
             athleteEntry.athlete.position?.abbreviation ||
             null,
-          height: detailedAthlete?.displayHeight || null,
-          weight: detailedAthlete?.displayWeight || null,
-          birthdate: detailedAthlete?.displayDOB || null,
+          height: detailedAthlete?.displayHeight || "N/A",
+          weight: detailedAthlete?.displayWeight || "N/A",
+          birthdate: detailedAthlete?.displayDOB || "N/A",
           image_url: detailedAthlete?.headshot?.href || null,
-          draftinfo: detailedAthlete?.displayDraft || null,
+          draftinfo: detailedAthlete?.displayDraft || "Undrafted",
           jerseynum: detailedAthlete?.jersey || athleteEntry.athlete.jersey || null,
           birthplace: detailedAthlete?.displayBirthPlace || null,
           age: detailedAthlete?.age || null,
@@ -287,9 +293,8 @@ export async function processEvent(client, leagueSlug, event) {
           if (!label) return;
           rawStatsObj[label.trim()] = statValues[idx] === "" ? null : statValues[idx];
         });
-
         const mappedStats = mapStatsToSchema(rawStatsObj, leagueSlug);
-
+        console.log(mappedStats);
         // 5d) Upsert the stat row
         await upsertStat(client, gameId, playerId, mappedStats);
       }
