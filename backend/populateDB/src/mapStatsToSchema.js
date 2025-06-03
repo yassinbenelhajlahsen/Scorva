@@ -5,24 +5,24 @@ export default function mapStatsToSchema(statsObj, leagueSlug) {
   // League-specific mappings
   const leagueMappings = {
     nba: {
-      fg: ["fgPct", "fieldGoalPercentage", "FG"],
+      fg: ["fgPct", "fieldGoalPercentage", "FG", "fieldGoalsMade-fieldGoalsAttempted"],
       threept: ["threePointFieldGoalsMade", "3FGM", "3PT"],
       ft: ["freeThrowPercentage", "FT"],
     },
     nfl: {
-      cmpatt: ["Completions/Attempts"],
-      yds: ["yds", "Yards"],
-      sacks: ["sacks", "sack", "Sacks"],
-      td: ["td", "Touchdowns"],
-      interceptions: ["Interceptions", "int"],
+      cmpatt: ["Completions/Attempts", "C/ATT"],
+      yds: ["yds", "Yards", "YDS"],
+      sacks: ["sacks", "sack", "SACKS"],
+      td: ["td", "Touchdowns", "TD"],
+      interceptions: ["Interceptions", "int", "INT"],
     },
     nhl: {
       g:           ["g", "goals"],
       a:           ["a", "assists"],
-      pts:         ["pts", "points"],
-      plus_minus:  ["plusMinus", "+/-"],
+      plusminus:  ["plusMinus", "+/-"],
       saves:       ["saves", "SV"],
-      save_pct:    ["save_pct", "save_percentage"],
+      ga: ["goalsAgainst", "GA"],
+      savePct:    ["save_pct", "savePct"],
       toi:         ["toi", "timeOnIce"],
       shots:       ["shotsTotal", "sog"],
       sm:          ["sm", "shotsMissed"],

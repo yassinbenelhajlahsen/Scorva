@@ -31,7 +31,9 @@ export async function fetchPlayerDetails(espnId, leagueSlug) {
     return resp.data.athlete || null;
   } catch (err) {
     // If ESPN returns 404 or similar, skip details
-    console.warn(`⚠️ [fetchPlayerDetails] could not fetch athlete ${espnId}: ${err.message}`);
+    console.warn(
+      `⚠️ [fetchPlayerDetails] could not fetch athlete ${espnId}: ${err.message}`
+    );
     return null;
   }
 }
@@ -47,7 +49,9 @@ export async function getEventsByDate(dateString, leagueSlug) {
     const resp = await axios.get(url);
     return resp.data.events || [];
   } catch (err) {
-    console.error(`🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}: ${err.message}`);
+    console.error(
+      `🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}: ${err.message}`
+    );
     return [];
   }
 }
@@ -63,7 +67,9 @@ export async function getTodayEvents(leagueSlug) {
     const resp = await axios.get(url);
     return resp.data.events || [];
   } catch (err) {
-    console.error(`🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`);
+    console.error(
+      `🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`
+    );
     return [];
   }
 }
@@ -81,7 +87,9 @@ export async function processEvent(client, leagueSlug, event) {
   // 5a) Ensure event.id is a number
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
-    console.warn(`⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`);
+    console.warn(
+      `⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`
+    );
     return null;
   }
 
@@ -91,7 +99,9 @@ export async function processEvent(client, leagueSlug, event) {
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
   if (!homeComp || !awayComp) {
-    console.warn(`⚠️ [processEvent] missing home/away for event ${espnEventId}`);
+    console.warn(
+      `⚠️ [processEvent] missing home/away for event ${espnEventId}`
+    );
     return null;
   }
 
@@ -100,26 +110,28 @@ export async function processEvent(client, leagueSlug, event) {
   await client.query("SET LOCAL statement_timeout = 0");
 
   const homeTeamData = {
-        name: homeComp.team.displayName,
-        shortname: homeComp.team.name,
-        location: homeComp.team.location,
-        logo_url: homeComp.team.logo,
-        record: homeComp.records?.[0]?.summary || "0-0",
-        homerecord: homeComp.records?.find((r) => r.type === "home")?.summary || "0-0",
-        awayrecord: homeComp.records?.find((r) => r.type === "road")?.summary || "0-0",
-      };
+    name: homeComp.team.displayName,
+    shortname: homeComp.team.name,
+    location: homeComp.team.location,
+    logo_url: homeComp.team.logo,
+    record: homeComp.records?.[0]?.summary || "0-0",
+    homerecord:
+      homeComp.records?.find((r) => r.type === "home")?.summary || "0-0",
+    awayrecord:
+      homeComp.records?.find((r) => r.type === "road")?.summary || "0-0",
+  };
 
-      const awayTeamData = {
-        name: awayComp.team.displayName,
-        shortname: awayComp.team.name,
-        location: awayComp.team.location,
-        logo_url: awayComp.team.logo,
-        record: awayComp.records?.[0]?.summary || "0-0",
-        homerecord: awayComp.records?.find((r) => r.type === "home")?.summary || "0-0",
-        awayrecord: awayComp.records?.find((r) => r.type === "road")?.summary || "0-0",
-      }
-
-    
+  const awayTeamData = {
+    name: awayComp.team.displayName,
+    shortname: awayComp.team.name,
+    location: awayComp.team.location,
+    logo_url: awayComp.team.logo,
+    record: awayComp.records?.[0]?.summary || "0-0",
+    homerecord:
+      awayComp.records?.find((r) => r.type === "home")?.summary || "0-0",
+    awayrecord:
+      awayComp.records?.find((r) => r.type === "road")?.summary || "0-0",
+  };
 
   try {
     // ── Upsert HOME team ──
@@ -130,7 +142,6 @@ export async function processEvent(client, leagueSlug, event) {
       homeTeamData
     );
 
-
     // ── Upsert AWAY team ──
     const awayTeamId = await upsertTeam(
       client,
@@ -139,171 +150,214 @@ export async function processEvent(client, leagueSlug, event) {
       awayTeamData
     );
 
+    // 5.4.5) Extract scores (if present)
+    const homeScore =
+      homeComp.score !== undefined ? parseInt(homeComp.score, 10) : null;
+    const awayScore =
+      awayComp.score !== undefined ? parseInt(awayComp.score, 10) : null;
 
+    // 5.4.6) Venue & broadcast
+    const venue = event.competitions[0].venue
+      ? event.competitions[0].venue.fullName
+      : null;
 
-// 5.4.5) Extract scores (if present)
-      const homeScore = (homeComp.score !== undefined) ? parseInt(homeComp.score, 10) : null;
-      const awayScore = (awayComp.score !== undefined) ? parseInt(awayComp.score, 10) : null;
+    let broadcast = null;
+    if (event.competitions[0].broadcast) {
+      broadcast = event.competitions[0].broadcast;
+    } else if (event.broadcasts && event.broadcasts.length) {
+      broadcast = event.broadcasts.map((b) => b.names.join("/")).join(", ");
+    }
 
-      // 5.4.6) Venue & broadcast
-      const venue = event.competitions[0].venue
-        ? event.competitions[0].venue.fullName
-        : null;
+    // 5.4.7) Status (SCHEDULED, IN, FINAL, etc.)
+    const status =
+      event.status && event.status.type ? event.status.type.description : null;
 
-      let broadcast = null;
-      if (event.competitions[0].broadcast) {
-        broadcast = event.competitions[0].broadcast;
-      } else if (event.broadcasts && event.broadcasts.length) {
-        broadcast = event.broadcasts.map(b => b.names.join('/')).join(', ');
-      }
-
-      // 5.4.7) Status (SCHEDULED, IN, FINAL, etc.)
-      const status = (event.status && event.status.type)
-        ? event.status.type.description
-        : null;
-
-      // 5.4.8) Build quarter/period scores (if available)
-      const periodsMap = {};
-      for (const teamComp of comps) {
-        if (!teamComp.linescores) continue;
-        const sideKey = (teamComp.homeAway === 'home') ? 'home' : 'away';
-        for (const ls of teamComp.linescores) {
-          const p = ls.period.toString();
-          if (!periodsMap[p]) {
-            periodsMap[p] = { home: null, away: null };
-          }
-          periodsMap[p][sideKey] = ls.value;
+    // 5.4.8) Build quarter/period scores (if available)
+    const periodsMap = {};
+    for (const teamComp of comps) {
+      if (!teamComp.linescores) continue;
+      const sideKey = teamComp.homeAway === "home" ? "home" : "away";
+      for (const ls of teamComp.linescores) {
+        const p = ls.period.toString();
+        if (!periodsMap[p]) {
+          periodsMap[p] = { home: null, away: null };
         }
+        periodsMap[p][sideKey] = ls.value;
       }
+    }
 
-      const quarterStrings = {
-        first:  null,
-        second: null,
-        third:  null,
-        fourth: null,
-        ot1:    null,
-        ot2:    null,
-        ot3:    null,
-        ot4:    null,
-      };
-      Object.entries(periodsMap).forEach(([p, scores]) => {
-        const h = (scores.home !== null) ? scores.home : '-';
-        const a = (scores.away !== null) ? scores.away : '-';
-        const str = `${h}-${a}`;
-        switch (p) {
-          case '1': quarterStrings.first  = str; break;
-          case '2': quarterStrings.second = str; break;
-          case '3': quarterStrings.third  = str; break;
-          case '4': quarterStrings.fourth = str; break;
-          case '5': quarterStrings.ot1    = str; break;
-          case '6': quarterStrings.ot2    = str; break;
-          case '7': quarterStrings.ot3    = str; break;
-          case '8': quarterStrings.ot4    = str; break;
-          default:  break;
-        }
-      });
+    const quarterStrings = {
+      first: null,
+      second: null,
+      third: null,
+      fourth: null,
+      ot1: null,
+      ot2: null,
+      ot3: null,
+      ot4: null,
+    };
+    Object.entries(periodsMap).forEach(([p, scores]) => {
+      const h = scores.home !== null ? scores.home : "-";
+      const a = scores.away !== null ? scores.away : "-";
+      const str = `${h}-${a}`;
+      switch (p) {
+        case "1":
+          quarterStrings.first = str;
+          break;
+        case "2":
+          quarterStrings.second = str;
+          break;
+        case "3":
+          quarterStrings.third = str;
+          break;
+        case "4":
+          quarterStrings.fourth = str;
+          break;
+        case "5":
+          quarterStrings.ot1 = str;
+          break;
+        case "6":
+          quarterStrings.ot2 = str;
+          break;
+        case "7":
+          quarterStrings.ot3 = str;
+          break;
+        case "8":
+          quarterStrings.ot4 = str;
+          break;
+        default:
+          break;
+      }
+    });
 
-    const startYear = event.season.year;          // e.g. 2024
-    const endYear = startYear + 1;              // e.g. 2024
+    const startYear = event.season.year; // e.g. 2024
+    const endYear = startYear + 1; // e.g. 2024
     const endTwoDigits = String(endYear).slice(-2); // "25"
     const seasonText = `${startYear}-${endTwoDigits}`; // "2024-25"
 
-      // 5.4.10) Upsert into games
-      const gamePayload = {
-        eventid: espnEventId,
-        date:       isoDateOnly,
-        homeTeamId,
-        awayTeamId,
-        homeScore,
-        awayScore,
-        venue,
-        broadcast,
-        quarters:   quarterStrings,
-        status,
-        seasonText,
-      };
-      const gameId = await upsertGame(client, leagueSlug, gamePayload);
-
-    // ── Fetch boxscore summary to upsert player stats ──
+    // 5.4.10) Upsert into games
+    const gamePayload = {
+      eventid: espnEventId,
+      date: isoDateOnly,
+      homeTeamId,
+      awayTeamId,
+      homeScore,
+      awayScore,
+      venue,
+      broadcast,
+      quarters: quarterStrings,
+      status,
+      seasonText,
+    };
+    const gameId = await upsertGame(client, leagueSlug, gamePayload);
     const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
       leagueSlug
     )}/${leagueSlug}/summary?event=${espnEventId}`;
 
     let statsResp;
     try {
-
       statsResp = await axios.get(boxscoreUrl);
-
     } catch (err) {
-      console.warn(`⚠️ [processEvent] no boxscore for ${espnEventId}: ${err.message}`);
-      // We still want to commit the game row even if stats fail
+      console.warn(
+        `⚠️ [processEvent] no boxscore for ${espnEventId}: ${err.message}`
+      );
       await client.query("COMMIT");
       return gameId;
     }
 
-
-
     const playerGroups = statsResp.data.boxscore?.players || [];
 
+    try {
+      for (const group of playerGroups) {
+        // figure out if this group is HOME or AWAY
+        const espnGroupTeamId = String(group.team.id);
+        const teamIdForPlayer =
+          espnGroupTeamId === String(homeComp.team.id)
+            ? homeTeamId
+            : awayTeamId;
 
-    for (const group of playerGroups) {
-      // figure out if this group is HOME or AWAY
+        const statCategories = group.statistics || [];
 
-      const espnGroupTeamId = String(group.team.id);
-      const teamIdForPlayer =
-        espnGroupTeamId === String(homeComp.team.id) ? homeTeamId : awayTeamId;
-    const statNames = Array.isArray(group.statistics?.[0]?.keys)
-  ? group.statistics[0].keys
+        for (const cat of statCategories) {
+                     let statNames;
+
+        if (leagueSlug === 'nfl') {
+    statNames = Array.isArray(group.statistics?.[0]?.keys)
+  ? group.statistics[0].labels
   : Array.isArray(group.statistics?.[0]?.descriptions)
     ? group.statistics[0].descriptions
     : group.statistics?.[0]?.names || [];
-      const athletes = group.statistics?.[0]?.athletes || [];
-      for (const athleteEntry of athletes) {
-        if (athleteEntry.didNotPlay) continue; // skip DNP
-        const espnId = athleteEntry.athlete?.id;
-        if (!espnId) continue;
+        }
+        else {
+  if (Array.isArray(cat.keys)) {
+    statNames = cat.keys;
+  } else if (Array.isArray(cat.descriptions)) {
+    statNames = cat.descriptions;
+  } else {
+    statNames = cat.names || [];
+  }
+}
 
-        // 5a) Fetch more player details if needed
-        const detailedAthlete = await fetchPlayerDetails(espnId, leagueSlug).catch(() => null);
-        const fallbackName = athleteEntry.athlete.displayName || "Unknown";
+          const athletes = cat.athletes || [];
+          for (const athleteEntry of athletes) {
+            if (athleteEntry.didNotPlay) continue; // skip DNP
+            const espnId = athleteEntry.athlete?.id;
+            if (!espnId) continue;
 
-        const playerObj = {
-          id: detailedAthlete?.id || espnId,
-          name: detailedAthlete?.displayName || fallbackName,
-          position:
-            detailedAthlete?.position?.abbreviation ||
-            athleteEntry.athlete.position?.abbreviation ||
-            null,
-          height: detailedAthlete?.displayHeight || "N/A",
-          weight: detailedAthlete?.displayWeight || "N/A",
-          birthdate: detailedAthlete?.displayDOB || "N/A",
-          image_url: detailedAthlete?.headshot?.href || null,
-          draftinfo: detailedAthlete?.displayDraft || "Undrafted",
-          jerseynum: detailedAthlete?.jersey || athleteEntry.athlete.jersey || null,
-          birthplace: detailedAthlete?.displayBirthPlace || null,
-          age: detailedAthlete?.age || null,
-        };
-        // 5b) Upsert the player
-        const playerId = await upsertPlayer(client, playerObj, teamIdForPlayer, leagueSlug);
-
-        // 5c) Build raw stats object and map it
-        const rawStatsObj = { gameid: gameId };
-        const statValues = athleteEntry.stats || [];
-        statNames.forEach((label, idx) => {
-          if (!label) return;
-          rawStatsObj[label.trim()] = statValues[idx] === "" ? null : statValues[idx];
-        });
-        const mappedStats = mapStatsToSchema(rawStatsObj, leagueSlug);
-        console.log(mappedStats);
-        // 5d) Upsert the stat row
-        await upsertStat(client, gameId, playerId, mappedStats);
+            // 5a) Fetch more player details if needed
+            const detailedAthlete = await fetchPlayerDetails(
+              espnId,
+              leagueSlug
+            ).catch(() => null);
+            const fallbackName = athleteEntry.athlete.displayName || "Unknown";
+            const playerObj = {
+              id: detailedAthlete?.id || espnId,
+              name: detailedAthlete?.displayName || fallbackName,
+              position:
+                detailedAthlete?.position?.abbreviation ||
+                athleteEntry.athlete.position?.abbreviation ||
+                null,
+              height: detailedAthlete?.displayHeight || "N/A",
+              weight: detailedAthlete?.displayWeight || "N/A",
+              birthdate: detailedAthlete?.displayDOB || "N/A",
+              image_url: detailedAthlete?.headshot?.href || "https://www.press-seal.com/wp-content/uploads/2016/10/img-team-GENERIC.jpg",
+              draftinfo: detailedAthlete?.displayDraft || "Undrafted",
+              jerseynum:
+                detailedAthlete?.jersey || athleteEntry.athlete.jersey || null,
+              birthplace: detailedAthlete?.displayBirthPlace || null,
+              age: detailedAthlete?.age || null,
+            };
+            // 5b) Upsert the player
+            const playerId = await upsertPlayer(
+              client,
+              playerObj,
+              teamIdForPlayer,
+              leagueSlug
+            );
+            // 5c) Build raw stats object and map it
+            const rawStatsObj = { gameid: gameId };
+            const statValues = athleteEntry.stats || [];
+            statNames.forEach((label, idx) => {
+              if (!label) return;
+              rawStatsObj[label.trim()] =
+                statValues[idx] === "" ? null : statValues[idx];
+            });
+            const mappedStats = mapStatsToSchema(rawStatsObj, leagueSlug);
+            // 5d) Upsert the stat row
+            await upsertStat(client, gameId, playerId, mappedStats);
+          }
+        }
       }
+      // Everything succeeded → commit
+      await client.query("COMMIT");
+      return gameId;
+    } catch (err) {
+      console.log(err);
+      await client.query("ROLLBACK");
+      return null;
     }
-
-    // Everything succeeded → commit
-    await client.query("COMMIT");
-    return gameId;
   } catch (err) {
+    console.log(err);
     await client.query("ROLLBACK");
     return null;
   }
@@ -314,7 +368,9 @@ export async function processEvent(client, leagueSlug, event) {
  *    (historical script will call this repeatedly for each date)
  */
 export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
-  console.log(`▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`);
+  console.log(
+    `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`
+  );
   for (let i = 0; i < dateStrings.length; i++) {
     const date = dateStrings[i];
     const events = await getEventsByDate(date, leagueSlug);

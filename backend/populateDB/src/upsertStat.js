@@ -21,11 +21,9 @@ export default async function upsertStat(client, gameId, playerId, stats) {
       interceptions,
       g,
       a,
-      pts,
-      plus_minus,
       saves,
-      save_pct,
-      gaa,
+      savePct,
+      ga,
       toi,
       shots,
       sm,
@@ -39,9 +37,9 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7,
       $8, $9, $10, $11, $12, $13,
-      $14, $15, $16, $17, $18, $19, $20,
+      $14, $15::INTEGER, $16, $17, $18, $19, $20,
       $21, $22, $23, $24, $25, $26, $27,
-      $28, $29, $30, $31, $32, $33, $34, $35
+      $28, $29, $30, $31, $32, $33
     )
     ON CONFLICT (gameid, playerid) DO UPDATE SET
       points       = EXCLUDED.points,
@@ -62,11 +60,9 @@ export default async function upsertStat(client, gameId, playerId, stats) {
       interceptions = EXCLUDED.interceptions,
       g            = EXCLUDED.g,
       a            = EXCLUDED.a,
-      pts          = EXCLUDED.pts,
-      plus_minus   = EXCLUDED.plus_minus,
       saves        = EXCLUDED.saves,
-      save_pct     = EXCLUDED.save_pct,
-      gaa          = EXCLUDED.gaa,
+      savePct     = EXCLUDED.savePct,
+      ga          = EXCLUDED.ga,
       toi          = EXCLUDED.toi,
       shots        = EXCLUDED.shots,
       sm           = EXCLUDED.sm,
@@ -95,17 +91,17 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     stats.plusminus || null,    // $12
     stats.minutes || null,      // $13
     stats.cmpatt || null,       // $14
-    stats.yds || null,          // $15
+    stats.yds !== null && stats.yds !== undefined ? Number(stats.yds) : null,    
     stats.sacks || null,        // $16
-    stats.td || null,           // $17
-    stats.interceptions || null,// $18
+stats.td !== null && stats.td !== undefined 
+  ? Number(stats.td.split('/')[0])  // Takes the first number from "2/2"
+  : null,     
+  stats.interceptions || null,// $18
     stats.g || null,            // $19
     stats.a || null,            // $20
-    stats.pts || null,          // $21
-    stats.plus_minus || null,   // $22
     stats.saves || null,        // $23
-    stats.save_pct || null,     // $24
-    stats.gaa || null,          // $25
+    stats.savePct || null,     // $24
+    stats.ga || null,          // $25
     stats.toi || null,          // $26
     stats.shots || null,        // $27
     stats.sm || null,           // $28
