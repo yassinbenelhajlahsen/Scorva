@@ -14,4 +14,3 @@ router.get("/players", async (req, res) => {
 });
 
 export default router;
-
