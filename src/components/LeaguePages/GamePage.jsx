@@ -4,7 +4,7 @@ import nflGames from "../../mock/mockNflData/nflGames";
 import nhlGames from "../../mock/mockNhlData/nhlGames";
 
 import nbaStats from "../../mock/mockNbaData/nbaStats.js";
-import getLogoFromTeam from "../../HelperFunctions/getLogoFromTeam.js";
+//import getLogoFromTeam from "../../HelperFunctions/getLogoFromTeam.js";
 import BoxScore from "../BoxScore.jsx";
 import slugify from "../../HelperFunctions/slugify.js"
 import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
@@ -53,7 +53,7 @@ export default function GamePage() {
   {/* Home Team */}
   <div className="flex items-center gap-3 sm:gap-4">
     <img
-      src={getLogoFromTeam(game.homeTeam)}
+      //src={getLogoFromTeam(game.homeTeam)}
       alt={`${game.homeTeam} logo`}
       className="w-30 h-30 sm:w-40 sm:h-40 object-contain"
       onError={(e) => {
@@ -86,7 +86,7 @@ export default function GamePage() {
   {/* Away Team */}
   <div className="flex items-center gap-3 sm:gap-4">
     <img
-      src={getLogoFromTeam(game.awayTeam)}
+      //src={getLogoFromTeam(game.awayTeam)}
       alt={`${game.awayTeam} logo`}
       className="w-30 h-30 sm:w-40 sm:h-40 object-contain"
       onError={(e) => {

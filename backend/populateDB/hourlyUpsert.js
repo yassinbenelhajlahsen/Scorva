@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
-import { runTodayProcessing } from "./eventProcessor.js";
+import { runTodayProcessing } from "./src/eventProcessor.js";
 
 dotenv.config();
 

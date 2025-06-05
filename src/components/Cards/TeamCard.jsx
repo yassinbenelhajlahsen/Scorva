@@ -4,7 +4,7 @@ function slugify(name) {
   return name.toLowerCase().replace(/\s+/g, "-");
 }
 
-export default function TeamCard({ team, league}) {
+export default function TeamCard({team, league}) {
   return (
     <Link to={`/${league}/teams/${slugify(team.name)}`}>
       <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer max-w-md min-w-[200px] h-48 flex flex-col items-center justify-center">

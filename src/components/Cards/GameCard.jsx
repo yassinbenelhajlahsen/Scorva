@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
-import getLogo from "../../HelperFunctions/getLogoFromTeam.js";
-import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
+import formatDate from "../../HelperFunctions/formatDate";
 
 export default function GameCard({ game }) {
   const isFinal = game.status.includes("Final");
-  const homeWon = isFinal && game.homeScore > game.awayScore;
-  const awayWon = isFinal && game.awayScore > game.homeScore;
-
-  const league = getLeague(game.homeTeam);
+  const homeWon = isFinal && game.hometeamid === game.winnerid;
+  const awayWon = isFinal && game.awayteamid === game.winnerid;
+  const league = game.league;
   if (!league) return null;
 
   const nhl = league == "nhl";
@@ -23,7 +21,7 @@ export default function GameCard({ game }) {
           {/* Home */}
           <div className="flex flex-col items-center">
             <img
-              src={getLogo(game.homeTeam) || "/backupTeamLogo.png"}
+              src={game.home_logo || "/backupTeamLogo.png"}
               alt={`${game.homeTeam} logo`}
               className="w-16 h-16 object-contain"
               onError={(e) => {
@@ -40,14 +38,14 @@ export default function GameCard({ game }) {
                   homeWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-                {game.homeScore}
+                {game.homescore}
               </div>
             )}
           </div>
 
           {/* Center */}
           <div className="flex flex-col items-center flex-1">
-            <span className="text-sm text-gray-400 mb-1">{game.date}</span>
+            <span className="text-sm text-gray-400 mb-1">{formatDate(game.date)}</span>
             <div className="text-sm text-gray-300">vs</div>
             <p className="mt-1 text-sm text-gray-300">
               Status: <span className="text-white">{game.status}</span>
@@ -57,7 +55,7 @@ export default function GameCard({ game }) {
           {/* Away */}
           <div className="flex flex-col items-center">
             <img
-              src={getLogo(game.awayTeam) || "/backupTeamLogo.png"}
+              src={game.away_logo || "/backupTeamLogo.png"}
               alt={`${game.awayTeam} logo`}
               className="w-16 h-16 object-contain"
               onError={(e) => {
@@ -74,7 +72,7 @@ export default function GameCard({ game }) {
                   awayWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-                {game.awayScore}
+                {game.awayscore}
               </div>
             )}
           </div>
@@ -85,6 +83,7 @@ export default function GameCard({ game }) {
             <li className="text-white text-sm font-bold text-center">
               {game.status}
             </li>{" "}
+
             {/* HEADER ROW */}{" "}
             <li className="flex justify-between text-xs text-gray-400 px-2">
               {" "}
@@ -106,16 +105,16 @@ export default function GameCard({ game }) {
             <li className="flex justify-between px-2 text-sm">
               {" "}
               <span className="w-12 font-bold text-left">
-                {game.awayTeam}
+                {game.away_shortname}
               </span>{" "}
               <span className="w-8 text-center">
-                {game.firstQtr?.split("-")[1]}
+                {game.firstqtr?.split("-")[1]}
               </span>{" "}
               <span className="w-8 text-center">
-                {game.secondQtr?.split("-")[1]}
+                {game.secondqtr?.split("-")[1]}
               </span>{" "}
               <span className="w-8 text-center">
-                {game.thirdQtr?.split("-")[1]}
+                {game.thirdqtr?.split("-")[1]}
               </span>{" "}
               {/* Dynamic OT scores */}{" "}
               {["OT", "OT2", "OT3", "OT4"].map((key) =>
@@ -132,23 +131,23 @@ export default function GameCard({ game }) {
                 }`}
               >
                 {" "}
-                {game.awayScore}{" "}
+                {game.awayscore}{" "}
               </span>{" "}
             </li>{" "}
             {/* HOME TEAM ROW */}{" "}
             <li className="flex justify-between px-2 text-sm">
               {" "}
               <span className="w-12 font-bold text-left">
-                {game.homeTeam}
+                {game.home_shortname}
               </span>{" "}
               <span className="w-8 text-center">
-                {game.firstQtr?.split("-")[0]}
+                {game.firstqtr?.split("-")[0]}
               </span>{" "}
               <span className="w-8 text-center">
-                {game.secondQtr?.split("-")[0]}
+                {game.secondqtr?.split("-")[0]}
               </span>{" "}
               <span className="w-8 text-center">
-                {game.thirdQtr?.split("-")[0]}
+                {game.thirdqtr?.split("-")[0]}
               </span>{" "}
               {["OT", "OT2", "OT3", "OT4"].map((key) =>
                 game[key] ? (
@@ -164,7 +163,7 @@ export default function GameCard({ game }) {
                 }`}
               >
                 {" "}
-                {game.homeScore}{" "}
+                {game.homescore}{" "}
               </span>{" "}
             </li>{" "}
           </ul>
@@ -199,18 +198,18 @@ export default function GameCard({ game }) {
 
             {/* AWAY TEAM ROW */}
             <li className="flex justify-between px-2 text-sm">
-              <span className="w-12 font-bold text-left">{game.awayTeam}</span>
+              <span className="w-12 font-bold text-left">{game.away_shortname}</span>
               <span className="w-8 text-center">
-                {game.firstQtr?.split("-")[1]}
+                {game.firstqtr?.split("-")[1]}
               </span>
               <span className="w-8 text-center">
-                {game.secondQtr?.split("-")[1]}
+                {game.secondqtr?.split("-")[1]}
               </span>
               <span className="w-8 text-center">
-                {game.thirdQtr?.split("-")[1]}
+                {game.thirdqtr?.split("-")[1]}
               </span>
               <span className="w-8 text-center">
-                {game.fourthQtr?.split("-")[1]}
+                {game.fourthqtr?.split("-")[1]}
               </span>
 
               {/* Dynamic OT scores */}
@@ -227,24 +226,24 @@ export default function GameCard({ game }) {
                   awayWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-                {game.awayScore}
+                {game.awayscore}
               </span>
             </li>
 
             {/* HOME TEAM ROW */}
             <li className="flex justify-between px-2 text-sm">
-              <span className="w-12 font-bold text-left">{game.homeTeam}</span>
+              <span className="w-12 font-bold text-left">{game.home_shortname}</span>
               <span className="w-8 text-center">
-                {game.firstQtr?.split("-")[0]}
+                {game.firstqtr?.split("-")[0]}
               </span>
               <span className="w-8 text-center">
-                {game.secondQtr?.split("-")[0]}
+                {game.secondqtr?.split("-")[0]}
               </span>
               <span className="w-8 text-center">
-                {game.thirdQtr?.split("-")[0]}
+                {game.thirdqtr?.split("-")[0]}
               </span>
               <span className="w-8 text-center">
-                {game.fourthQtr?.split("-")[0]}
+                {game.fourthqtr?.split("-")[0]}
               </span>
 
               {["OT", "OT2", "OT3", "OT4"].map((key) =>
@@ -260,7 +259,7 @@ export default function GameCard({ game }) {
                   homeWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-                {game.homeScore}
+                {game.homescore}
               </span>
             </li>
           </ul>

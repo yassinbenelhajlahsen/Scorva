@@ -1,5 +1,4 @@
 import axios from "axios";
-import { Pool } from "pg";
 import mapStatsToSchema from "./mapStatsToSchema.js";
 
 import upsertTeam from "./upsertTeam.js";
@@ -230,11 +229,25 @@ export async function processEvent(client, leagueSlug, event) {
       }
     });
 
-    const startYear = event.season.year; // e.g. 2024
-    const endYear = startYear + 1; // e.g. 2024
-    const endTwoDigits = String(endYear).slice(-2); // "25"
-    const seasonText = `${startYear}-${endTwoDigits}`; // "2024-25"
+    let endYear;
+let startYear;
+let endTwoDigits;
+let seasonText;
 
+if (leagueSlug !== 'nfl') {
+    // For most sports (NBA, NHL, etc.) - season spans calendar years (2023-24)
+    endYear = event.season.year;       // e.g., 2024
+    startYear = endYear - 1;           // e.g., 2023
+    endTwoDigits = String(endYear).slice(-2);  // "24"
+    seasonText = `${startYear}-${endTwoDigits}`;  // "2023-24"
+} else {
+    // For NFL - season spans single calendar year (2023)
+    // Or if you want to show as 2023-24 season (starts 2023, ends 2024)
+    startYear = event.season.year;     // e.g., 2023
+    endYear = startYear + 1;           // e.g., 2024
+    endTwoDigits = String(endYear).slice(-2);  // "24"
+    seasonText = `${startYear}-${endTwoDigits}`;  // "2023-24"
+}
     // 5.4.10) Upsert into games
     const gamePayload = {
       eventid: espnEventId,
@@ -250,6 +263,7 @@ export async function processEvent(client, leagueSlug, event) {
       seasonText,
     };
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
+  
     const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
       leagueSlug
     )}/${leagueSlug}/summary?event=${espnEventId}`;
@@ -371,21 +385,34 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
   console.log(
     `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`
   );
+
+  const EVENT_BATCH_SIZE = 5;
+
   for (let i = 0; i < dateStrings.length; i++) {
     const date = dateStrings[i];
     const events = await getEventsByDate(date, leagueSlug);
+    for (let j = 0; j < events.length; j += EVENT_BATCH_SIZE) {
+      const batch = events.slice(j, j + EVENT_BATCH_SIZE);
 
-    for (const event of events) {
-      const client = await pool.connect();
-      try {
-        await processEvent(client, leagueSlug, event);
-      } finally {
-        client.release();
-      }
+      await Promise.all(
+        batch.map(async (event) => {
+          const client = await pool.connect();
+          try {
+            await processEvent(client, leagueSlug, event);
+          } catch (err) {
+            console.error(`❌ Error processing event ${event.id}:`, err.message);
+          } finally {
+            client.release();
+          }
+        })
+      );
     }
   }
-  console.log(`✅ Finished import for ${leagueSlug}`);
+const now = new Date();
+
+  console.log(`✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`);
 }
+
 
 /**
  * 7) Convenience: process “today’s” events for one league

@@ -1,20 +1,19 @@
-// ── historicalUpsert.js ──
-
 import dotenv from "dotenv";
+import path from 'path';
 import { Pool } from "pg";
-  // or inline your own function, whichever you prefer
 import {
   runDateRangeProcessing,
-  getSportPath,       // if needed
-  processEvent,       // if ever used directly
+  getSportPath,
+  processEvent,
 } from "./src/eventProcessor.js";
 
-dotenv.config();
+dotenv.config({ path: path.resolve('../.env') });
 
 const pool = new Pool({
   connectionString: process.env.DB_URL,
-  // you may set global timeouts here if desired
 });
+
+
 function getAllDatesInRange(startISO, endISO) {
   const dates = [];
   const curr = new Date(startISO);
@@ -29,25 +28,22 @@ function getAllDatesInRange(startISO, endISO) {
   }
   return dates;
 }
-// Example date ranges; adjust to your actual season dates
+
 const leagues = [
-        { slug: "nhl", seasonStart: "2024-10-01", seasonEnd: "2025-05-31" },
-
-        { slug: "nba", seasonStart: "2024-10-22", seasonEnd: "2025-05-31" },
-
-            { slug: "nfl", seasonStart: "2024-09-03", seasonEnd: "2024-12-31" },
-
-
-      { slug: "nhl", seasonStart: "2024-10-01", seasonEnd: "2025-05-31" },
-
+  { slug: "nfl", seasonStart: "2024-09-03", seasonEnd: "2024-12-31" },
+  { slug: "nba", seasonStart: "2024-10-22", seasonEnd: "2025-05-31" },
+  { slug: "nhl", seasonStart: "2024-10-01", seasonEnd: "2025-05-31" },
 ];
 
 (async () => {
   try {
-    for (const { slug, seasonStart, seasonEnd } of leagues) {
-      const dates = getAllDatesInRange(seasonStart, seasonEnd);
-      await runDateRangeProcessing(slug, dates, pool);
-    }
+    // Run all leagues in parallel to save time
+    await Promise.all(
+      leagues.map(async ({ slug, seasonStart, seasonEnd }) => {
+        const dates = getAllDatesInRange(seasonStart, seasonEnd);
+        await runDateRangeProcessing(slug, dates, pool);
+      })
+    );
   } catch (err) {
     console.error("❌ [historicalUpsert] Fatal error:", err);
   } finally {
