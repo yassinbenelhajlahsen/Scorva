@@ -1,5 +1,3 @@
-import getLeague  from "./getLeagueFromTeam";
-
 function parsePlusMinus(pm) {
   if (typeof pm === "number") return pm;
   if (!pm) return 0;
@@ -7,67 +5,57 @@ function parsePlusMinus(pm) {
   return sign * parseInt(pm.replace(/[^\d]/g, ""), 10);
 }
 
-// define how we score performance & scoring for each league
 const leagueMetrics = {
   nba: {
-    // a rough “all-around” stat line
     performanceScore: s =>
-      (s.points   || 0) +
-      (s.rebounds || 0) +
-      (s.assists  || 0) +
-      (s.steals   || 0) +
-      (s.blocks   || 0),
-    // pure scoring
-    score: s => s.points || 0
+      (s.PTS || 0) +
+      (s.REB || 0) +
+      (s.AST || 0) +
+      (s.STL || 0) +
+      (s.BLK || 0),
+    score: s => s.PTS || 0
   },
   nfl: {
-    // passing & rushing volume + touchdown weight
     performanceScore: s =>
-      (s.CMP       || 0) +  // completions
-      (s.ATT       || 0) +  // attempts
-      (s.YDS       || 0) +  // yards
-      ((s.TD        || 0) * 6),
-    // points produced by touchdowns
+      (s.CMP || 0) +
+      (s.ATT || 0) +
+      (s.YDS || 0) +
+      ((s.TD || 0) * 6),
     score: s => (s.TD || 0) * 6
   },
   nhl: {
-    // basic puck-handling and chance creation
     performanceScore: s =>
-      (s.goals    || 0) +
-      (s.assists  || 0) +
-      (s.shots    || 0),
-    // pure goal scoring
-    score: s => s.goals || 0
+      (s.G || 0) +
+      (s.A || 0) +
+      (s.SHOTS || 0),
+    score: s => s.G || 0
   }
 };
 
-export default function computeTopPlayers(game, stats) {
-  // build a flat list of only those players who have stats for this game
-  const playersInGame = stats.flatMap(p => {
-    const stat = p.recentGames?.find(g => g.id === game.id);
-    if (!stat) return [];
-    const league = getLeague(p.team).toLowerCase();
-    return [{
-      name:     p.name,
-      position: p.position,
-      image:    p.image || "/defaultPlayer.png",
-      league,
-      stats:    stat
-    }];
-  });
+export default function computeTopPlayers(game, stats ,league) {
+  const playersInGame = stats
+    .filter(p => p.stats && typeof p.stats === "object")
+    .map(p => {
+      return {
+        name:     p.name,
+        position: p.position,
+        imageUrl:    p.imageUrl,
+        league,
+        stats:    p.stats
+      };
+    });
 
   if (playersInGame.length === 0) {
     return { topPerformer: null, topScorer: null, impactPlayer: null };
   }
 
-  // grab the right metrics for this league (all players will share it)
   const { league: firstLeague } = playersInGame[0];
   const metrics = leagueMetrics[firstLeague];
   if (!metrics) {
     throw new Error(`Unsupported league: ${firstLeague}`);
   }
 
-  const impactScore = p => parsePlusMinus(p.stats.plusMinus);
+  const impactScore = p => parsePlusMinus(p.stats["+/-"]);
 
   const topPerformer = playersInGame.reduce((best, p) =>
     !best || metrics.performanceScore(p.stats) > metrics.performanceScore(best.stats)

@@ -30,7 +30,7 @@ export default function GameCard({ game }) {
               }}
             />
             <div className="text-lg font-bold text-white mt-2">
-              {game.homeTeam}
+              {game.home_shortname}
             </div>
             {isFinal && (
               <div
@@ -56,7 +56,7 @@ export default function GameCard({ game }) {
           <div className="flex flex-col items-center">
             <img
               src={game.away_logo || "/backupTeamLogo.png"}
-              alt={`${game.awayTeam} logo`}
+              alt={`${game.awayteam} logo`}
               className="w-16 h-16 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
@@ -64,7 +64,7 @@ export default function GameCard({ game }) {
               }}
             />
             <div className="text-lg font-bold text-white mt-2">
-              {game.awayTeam}
+              {game.away_shortname}
             </div>
             {isFinal && (
               <div

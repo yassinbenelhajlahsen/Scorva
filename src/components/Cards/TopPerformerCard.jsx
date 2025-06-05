@@ -1,36 +1,35 @@
 import { Link } from "react-router-dom";
 import slugify from "../../HelperFunctions/slugify.js";
-import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
 
 const statFormatMap = {
   nba: (stats) => [
-    stats.points && `${stats.points} PTS`,
-    stats.rebounds && `${stats.rebounds} REB`,
-    stats.assists && `${stats.assists} AST`,
-
+    stats.PTS && `${stats.PTS} PTS`,
+    stats.REB && `${stats.REB} REB`,
+    stats.AST && `${stats.AST} AST`,
   ].filter(Boolean),
 
   nfl: (stats) => [
-    stats.yards && `${stats.yards} YDS`,
-    stats.touchdowns && `${stats.touchdowns} TD`,
-    stats.tackles && `${stats.tackles} TKL`,
-    stats.interceptions && `${stats.interceptions} INT`,
+    stats.YDS && `${stats.YDS} YDS`,
+    stats.TD && `${stats.TD} TD`,
+    stats.SCKS && `${stats.SCKS} SCK`,
+    stats.INT && `${stats.INT} INT`,
   ].filter(Boolean),
 
   nhl: (stats) => [
-    stats.goals && `${stats.goals} G`,
-    stats.assists && `${stats.assists} A`,
-    stats.points && `${stats.points} P`,
-    stats.hits && `${stats.hits} HIT`,
-    stats.blocks && `${stats.blocks} BLK`,
+    stats.G && `${stats.G} G`,
+    stats.A && `${stats.A} A`,
+    stats.SAVES && `${stats.SAVES} SAVES`,
+    stats.HT && `${stats.HT} HIT`,
+    stats.BS && `${stats.BS} BLK`,
   ].filter(Boolean),
 };
+
 
 export default function TopPerformerCard({ player, title = "Top Performer", league }) {
   if (!player) return null;
 
-  const { name, position, image, stats } = player;
-  const currentLeague = league || getLeague(player.team);
+  const { name, position, imageUrl, stats } = player;
+  const currentLeague = league;
   const path = `/${currentLeague}/players/${slugify(name)}`;
 
   const formattedStats = statFormatMap[currentLeague]?.(stats) || [];
@@ -40,7 +39,7 @@ export default function TopPerformerCard({ player, title = "Top Performer", leag
       className="group flex items-center gap-4 bg-white/5 hover:bg-white/10 p-4 rounded-xl shadow transition w-full hover:scale-105"
     >
       <img
-        src={image || "/defaultPhoto.png"}
+        src={imageUrl || "/defaultPhoto.png"}
         alt={name}
         className="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-full"
         onError={(e) => {

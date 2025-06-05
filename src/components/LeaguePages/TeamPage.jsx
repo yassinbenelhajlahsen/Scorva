@@ -27,13 +27,18 @@ export default function TeamPage() {
           (t) =>
             slugify(t.name) === teamId || slugify(t.shortname || "") === teamId
         );
-        
+
         if (!foundTeam) throw new Error("Team not found.");
         setTeam(foundTeam);
 
-        const games = await (await fetch (`/api/${league}/games?teamId=${foundTeam.id}`)).json();
-        setGames(games);
-        console.log(games);
+        const games = await (
+          await fetch(`/api/${league}/games?teamId=${foundTeam.id}`)
+        ).json();
+        const last10 = games
+          .slice()
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 10);
+        setGames(last10);
         setLoading(false);
       } catch (err) {
         setError(err.message || "Failed to load data.");
@@ -44,7 +49,12 @@ export default function TeamPage() {
     fetchTeamData();
   }, [league, teamId]);
 
-  if (loading) return <div><LoadingPage></LoadingPage></div>;
+  if (loading)
+    return (
+      <div>
+        <LoadingPage></LoadingPage>
+      </div>
+    );
   if (error || !team)
     return <div className="text-red-500 p-4">{error || "Team not found."}</div>;
 
@@ -56,30 +66,35 @@ export default function TeamPage() {
       >
         Return to Teams Page
       </Link>
-      <div className="flex flex-col items-center md:flex-row gap-8 p-8 text-white">
-        <div className="flex-1 flex flex-col">
-          <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
-          <img
-            src={team.logo_url || "/images/placeholder.png"}
-            alt={team.name}
-            className="w-80 h-80 object-contain rounded-b-4xl mb-4"
-          />
-        </div>
+      <div className="flex flex-col md:flex-row justify-center md:justify-between items-center gap-10 p-6 text-white">
+  {/* Image + Title */}
+  <div className="flex flex-col items-center md:items-start w-full md:w-1/2 m-10">
+    <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
+    <img
+      src={team.logo_url || "/images/placeholder.png"}
+      alt={team.name}
+      className="w-80 h-80 object-contain m-6 drop-shadow-[0_0_2px_white]"
+    />
+  </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-12 text-lg p-6">
-          <p>Location</p>
-          <p className="font-semibold">{team.location}</p>
-         
-          <p>Record</p>
-          <p className="font-semibold">{team.record}</p>
-          <p>Home Record</p>
-          <p className="font-semibold">{team.homerecord}</p>
-          <p>Away Record</p>
-          <p className="font-semibold">{team.awayrecord}</p>
-        </div>
-      </div>
+  {/* Stats */}
+  <div className="w-full md:w-[40%]">
+    <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-lg">
+      <div className="text-gray-400 mb-6">Location</div>
+      <div className="font-semibold">{team.location}</div>
+      <div className="text-gray-400 mb-6">Record</div>
+      <div className="font-semibold">{team.record}</div>
+      <div className="text-gray-400 mb-6">Home Record</div>
+      <div className="font-semibold">{team.homerecord}</div>
+      <div className="text-gray-400 mb-6">Away Record</div>
+      <div className="font-semibold">{team.awayrecord}</div>
+    </div>
+  </div>
+</div>
 
-      <h2 className="text-5xl font-bold mb-4 p-8 text-center">Recent Games</h2>
+
+
+      <h2 className="text-5xl font-bold mb-4 p-8 text-center">Last 10 Games</h2>
 
       {games.length > 0 ? (
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">

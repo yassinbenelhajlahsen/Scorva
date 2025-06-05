@@ -1,51 +1,54 @@
 import { Link, useParams } from "react-router-dom";
-import nbaGames from "../../mock/mockNbaData/nbaGames.js";
-import nflGames from "../../mock/mockNflData/nflGames";
-import nhlGames from "../../mock/mockNhlData/nhlGames";
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
-import nbaStats from "../../mock/mockNbaData/nbaStats.js";
-//import getLogoFromTeam from "../../HelperFunctions/getLogoFromTeam.js";
 import BoxScore from "../BoxScore.jsx";
 import slugify from "../../HelperFunctions/slugify.js"
-import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
 import computeTopPlayers from "../../HelperFunctions/topPlayers.js";
 import TopPerformerCard from "../Cards/TopPerformerCard.jsx";
-import nflStats from "../../mock/mockNflData/nflStats.js";
-import nhlStats from "../../mock/mockNhlData/nhlStats.js";
 
-const statsMap = {
-  nba: nbaStats,
-  nfl: nflStats,
-  nhl: nhlStats,
-};
-
-const leagueMap = {
-  nba: nbaGames,
-  nfl: nflGames,
-  nhl: nhlGames,
-};
-
+import LoadingPage from "../LoadingPage.jsx"
 
 export default function GamePage() {
 
-  const { league, gameId } = useParams();
-  const games = leagueMap[league.toLowerCase()] || [];
-  const game  = games.find(g => String(g.id) === String(gameId));
-  if (!game) return <div>Game not found</div>;
-
-  const allPlayerStats = statsMap[league.toLowerCase()] || [];
-
-  const { topPerformer, topScorer, impactPlayer } =
-    computeTopPlayers(game, allPlayerStats);
+ const { league, gameId } = useParams();
 
 
 
+  const [gameData, setGameData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  if (!game) return <div className="text-white">Game not found</div>;
+  useEffect(() => {
+    async function fetchGame() {
+      try {
+        const res = await axios.get(`/api/${league}/games/${gameId}`);
+        setGameData(res.data);
+      } catch (err) {
+        console.error("Error fetching game:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchGame();
+  }, [league, gameId]);
 
-  const isFinal = game.status.includes("Final");
-  const homeWon = isFinal && game.homeScore > game.awayScore;
-  const awayWon = isFinal && game.awayScore > game.homeScore;
+ if (loading) return <LoadingPage />;
+if (error || !gameData?.json_build_object) return <div>Game not found</div>;
+
+const { game, homeTeam, awayTeam } = gameData.json_build_object;
+
+const isFinal = game.status === "Final";
+const homeWon = isFinal && game.winnerId === homeTeam.info.id;
+const awayWon = isFinal && game.winnerId === awayTeam.info.id;
+
+const allPlayerStats = [
+  ...(homeTeam?.players || []),
+  ...(awayTeam?.players || [])
+];
+
+const { topPerformer, topScorer, impactPlayer } = computeTopPlayers(game, allPlayerStats, league);
   return (
     <>
    {/* Team matchup section with scores */}
@@ -53,8 +56,8 @@ export default function GamePage() {
   {/* Home Team */}
   <div className="flex items-center gap-3 sm:gap-4">
     <img
-      //src={getLogoFromTeam(game.homeTeam)}
-      alt={`${game.homeTeam} logo`}
+      src={(homeTeam.info.logoUrl)}
+      alt={`${homeTeam.info.name} logo`}
       className="w-30 h-30 sm:w-40 sm:h-40 object-contain"
       onError={(e) => {
         e.target.onerror = null;
@@ -63,10 +66,10 @@ export default function GamePage() {
     />
     <div className="text-left">
       <Link
-        to={`/${league}/teams/${slugify(game.homeTeamFull)}`}
+        to={`/${league}/teams/${slugify(homeTeam.info.name)}`}
         className="text-xl sm:text-6xl font-bold hover:text-orange-400 transition"
       >
-        {game.homeTeam}
+        {homeTeam.info.shortName}
       </Link>
       {isFinal && (
         <div
@@ -74,7 +77,7 @@ export default function GamePage() {
             homeWon ? "text-green-400" : "text-red-400"
           }`}
         >
-          {game.homeScore}
+          {game.score.home}
         </div>
       )}
     </div>
@@ -85,21 +88,13 @@ export default function GamePage() {
 
   {/* Away Team */}
   <div className="flex items-center gap-3 sm:gap-4">
-    <img
-      //src={getLogoFromTeam(game.awayTeam)}
-      alt={`${game.awayTeam} logo`}
-      className="w-30 h-30 sm:w-40 sm:h-40 object-contain"
-      onError={(e) => {
-        e.target.onerror = null;
-        e.target.src = "/backupTeamLogo.png";
-      }}
-    />
+    
     <div className="text-left">
       <Link
-        to={`/${league}/teams/${slugify(game.awayTeamFull)}`}
+        to={`/${league}/teams/${slugify(awayTeam.info.name)}`}
         className="text-xl sm:text-6xl font-bold hover:text-orange-400 transition"
       >
-        {game.awayTeam}
+        {awayTeam.info.shortName}
       </Link>
       {isFinal && (
         <div
@@ -107,10 +102,19 @@ export default function GamePage() {
             awayWon ? "text-green-400" : "text-red-400"
           }`}
         >
-          {game.awayScore}
+          {game.score.away}
         </div>
       )}
     </div>
+    <img
+      src={(awayTeam.info.logoUrl)}
+      alt={`${awayTeam.info.name} logo`}
+      className="w-30 h-30 sm:w-40 sm:h-40 object-contain"
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = "/backupTeamLogo.png";
+      }}
+    />
   </div>
 </div>
 
@@ -122,11 +126,10 @@ export default function GamePage() {
     <p className="text-lg">Status</p>
     <p className="font-semibold">{game.status}</p>
     <p className="text-lg">Location</p>
-    <p className="font-semibold">{game.venue} ({game.homeTeam})</p>
+    <p className="font-semibold">{game.venue}</p>
     <p className="text-lg">Broadcast</p>
     <p className="font-semibold">{game.broadcast}</p>
   </div>
-
   {/* Top performers on the right */}
   <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 max-w-6xl mx-auto">
   <TopPerformerCard title="Top Performer" player={topPerformer} league={league} />
@@ -135,10 +138,13 @@ export default function GamePage() {
 </div>
 </div>
         <BoxScore 
-          game = {game}
-          stats = {allPlayerStats}
-          league = {getLeague(game.homeTeam)}
+          homeTeam = {homeTeam}
+          awayTeam={awayTeam}
+          league = {league}
           ></BoxScore>
+          
+        
 </>
   );
+  
 }
