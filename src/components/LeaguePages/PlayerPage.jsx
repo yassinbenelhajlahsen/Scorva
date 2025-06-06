@@ -1,74 +1,102 @@
 import { useParams, Link } from "react-router-dom";
-import nbaPlayers from "../../mock/mockNbaData/nbaPlayers.js";
-import nflPlayers from "../../mock/mockNflData/nflPlayers.js";
-import nhlPlayers from "../../mock/mockNhlData/nhlPlayers.js";
+import { useEffect, useState } from "react";
+import LoadingPage from "../LoadingPage.jsx";
+
 import PlayerAvgCard from "../Cards/PlayerAvgCard.jsx";
-import nbaStats from "../../mock/mockNbaData/nbaStats.js";
+import slugify from "../../HelperFunctions/slugify.js";
+import formatDate from "../../HelperFunctions/formatDate.js";
 import StatCard from "../Cards/StatCard.jsx";
-import nflStats from "../../mock/mockNflData/nflStats.js";
-import nhlStats from "../../mock/mockNhlData/nhlStats.js";
-
-const slugify = name => name.toLowerCase().replace(/\s+/g, "-");
-
 const statConfigs = {
   nba: [
     { key: "points",    label: "PTS" },
     { key: "rebounds",  label: "REB" },
     { key: "assists",   label: "AST" },
     { key: "fg",        label: "FG" },
-    { key: "threePt",   label: "3PT" },
+    { key: "threept",   label: "3PT" },
     { key: "ft",        label: "FT" },
     { key: "turnovers", label: "TO" },
-    { key: "plusMinus", label: "+/-" },
+    { key: "plusminus", label: "+/-" },
     { key: "minutes",   label: "MINS" }
   ],
   nfl: [
     { key: "YDS",      label: "YDS" },
     { key: "TD",       label: "TD"  },
     { key: "INT",        label: "INT"  },
-    { key: "CMPpct",    label: "CMP%"   },
+    { key: "CMPATT",    label: "CMPATT"   },
     { key: "SACK",       label: "SACK"  },
-    { key: "ATT", label: "ATT"  },
   ],
   nhl: [
     { key: "G",       label: "G"   },
     { key: "A",     label: "A"   },
-    { key: "S",       label: "SOG" },
-    { key: "plusMinus",   label: "+/-" },
-    { key: "MOI", label: "PIM" }
+    { key: "HT",       label: "HT" },
+    { key: "plusminus",   label: "+/-" },
+    { key: "TOI", label: "TOI" }
   ]
 };
 
 export default function PlayerPage() {
-  const { league, playerId } = useParams();
-  const key = league?.toLowerCase();
+ const { league, playerId: slug } = useParams();
+const [playerData, setPlayerData] = useState(null);
+const [loading, setLoading] = useState(true);
 
-  // map each league code to its data sources
-  const playersMap = { nba: nbaPlayers, nfl: nflPlayers, nhl: nhlPlayers };
-  const statsMap   = { nba: nbaStats,   nfl: nflStats,   nhl: nhlStats   };
+useEffect(() => {
+  async function fetchPlayerData() {
+    try {
+      const res = await fetch(`/api/${league}/players`);
+      const players = await res.json();
 
-  const players  = playersMap[key] || [];
-  const allStats = statsMap[key]   || [];
+      const match = players.find(p => slugify(p.name, { lower: true }) === slug);
+      if (!match) {
+        setPlayerData(null);
+        return;
+      }
 
-  // find the player by slugified name
-  const player = players.find(p => slugify(p.name) === playerId);
+      // 2. Use the player's id to fetch the full data
+      const fullRes = await fetch(`/api/${league}/players/${match.id}`);
+      const fullData = await fullRes.json();
 
-  if (!player) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-4xl font-bold">Player not found</h1>
-        <Link
-          to={`/${league}/players`}
-          className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
-        >
-          Return to Players
-        </Link>
-      </div>
-    );
+      setPlayerData(fullData.player); // you return { player: { ... } }
+    } catch (err) {
+      console.error("Error fetching player:", err);
+      setPlayerData(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const stats = allStats.find(s => s.id === player.id);
+  fetchPlayerData();
+}, [league, slug]);
 
+
+if (loading) return <LoadingPage />;
+
+if (!playerData) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-4xl font-bold text-white">Player not found</h1>
+      <Link
+        to={`/${league}/players`}
+        className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+      >
+        Return to Players
+      </Link>
+    </div>
+  );
+}
+
+const {
+  name,
+  position,
+  jerseyNumber,
+  height,
+  weight,
+  imageUrl,
+  seasonAverages,
+  team,
+  dob,
+  draftInfo,
+  games
+} = playerData;
   return (
     <>
       <Link
@@ -81,10 +109,10 @@ export default function PlayerPage() {
       <div className="flex flex-col md:flex-row gap-8 p-8 text-white">
         {/* Player Info */}
         <div className="flex-1">
-          <h1 className="text-6xl font-bold mb-4">{player.name}</h1>
+          <h1 className="text-6xl font-bold mb-4">{name}</h1>
           <img
-            src={player.image || "/images/placeholder.png"}
-            alt={player.name}
+            src={imageUrl || "/images/placeholder.png"}
+            alt={name}
             className="w-80 h-80 object-cover rounded-b-4xl mb-4"
           />
         </div>
@@ -92,34 +120,34 @@ export default function PlayerPage() {
         <div className="grid grid-cols-[max-content_auto] gap-x-20">
           <p>Height/Weight</p>
           <p className="font-semibold">
-            {player.height} / {player.weight}
+            {height} / {weight}
           </p>
           <p>Position</p>
-          <p className="font-semibold">{player.position}</p>
+          <p className="font-semibold">{position}</p>
           <p>Jersey Number</p>
           <p>
-            <span className="font-bold">#{player.jerseyNum}</span>
+            <span className="font-bold">#{jerseyNumber}</span>
           </p>
           <p>Birthdate</p>
-          <p className="font-semibold">{player.birthdate}</p>
+          <p className="font-semibold">{formatDate(dob)}</p>
           <p>Draft Info</p>
-          <p className="font-semibold">{player.draftInfo}</p>
+          <p className="font-semibold">{draftInfo}</p>
           <p>Team</p>
           <Link
-            to={`/${league}/teams/${slugify(player.team)}`}
+            to={`/${league}/teams/${slugify(team.name)}`}
             className="hover:text-orange-300 transition underline text-orange-400 font-semibold"
           >
-            {player.team}
+            {team.name}
           </Link>
         </div>
 
-        {stats && (
+        {games && (
           <div className="mt-20">
             <PlayerAvgCard
               league={league}
-              position={player.position}
-              averages={stats.averages}
-              season={stats.season}
+              position={position}
+              averages={seasonAverages}
+              season={games.season}
             />
           </div>
         )}
@@ -127,24 +155,31 @@ export default function PlayerPage() {
 
       <h1 className="font-semibold text-4xl mt-6 p-6">Recent Performances</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-6">
-        {stats?.recentGames?.map((game, i) => {
-          // build stats props from config
-          const config = statConfigs[key] || [];
-          const statsProps = config.map(({ key: statKey, label }) => ({
-            label,
-            value: game[statKey] ?? "-"
-          }));
-          return (
-            <StatCard
-              key={i}
-              stats={statsProps}
-              opponent={game.opponent}
-              date={game.date}
-              gameId={game.id}
-            />
-          );
-        })}
-      </div>
+  {playerData?.games?.map((game, i) => {
+    const key = league?.toLowerCase(); 
+    const config = statConfigs[key] || [];
+    const statsProps = config.map(({ key: statKey, label }) => ({
+  label,
+  value: game[statKey] ?? "-"
+}));
+return (
+
+  
+      
+      <StatCard
+        key={i}
+        league={league}
+        stats={statsProps}
+        opponent={game.opponent}
+        date={formatDate(game.date)}
+        gameId={game.gameid}
+        isHome={game.ishome}
+        opponentLogo = {game.opponentlogo}
+        result= {game.result}
+      />
+);
+  })}
+</div>
     </>
   );
 }

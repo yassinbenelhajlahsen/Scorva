@@ -18,7 +18,6 @@ router.get('/:league/games/:gameId', async (req, res) => {
   }
 });
 
-//sql queries for each league to avoid null values in box score
 async function handleNbaGame(req, res) {
   const { gameId } = req.params;
   try {

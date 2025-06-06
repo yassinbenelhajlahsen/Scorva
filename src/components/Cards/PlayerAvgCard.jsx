@@ -20,23 +20,16 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
       { label: "PTS", value: averages.points },
       { label: "REB", value: averages.rebounds },
       { label: "AST", value: averages.assists },
-      { label: "FG%", value: averages.fgPct*100 },
+      { label: "FG%", value: averages.fgPct },
     ];
   } else if (league === "nfl") {
-    if (position === "QB") {
       statsToDisplay = [
-        { label: "Pass YDS", value: averages.passYds },
-        { label: "TD", value: averages.tds },
-        { label: "INT", value: averages.ints }
-      ];
-    } else if (["RB", "WR"].includes(position)) {
-      statsToDisplay = [
-        { label: "Rush YDS", value: averages.rushYards },
-        { label: "REC", value: averages.receptions },
-        { label: "TD", value: averages.touchdowns }
+        { label: "YDS", value: averages.yards },
+        { label: "TD", value: averages.td },
+        { label: "INT", value: averages.interceptions }
       ];
     }
-  } else if (league === "nhl") {
+   else if (league === "nhl") {
     if (position === "G") {
       statsToDisplay = [
         { label: "Saves", value: averages.saves },
@@ -56,7 +49,7 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
    <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-screen">
   {/* Orange title bar */}
   <div className="w-full bg-orange-400 text-center text-sm sm:text-md font-bold uppercase py-2 px-4">
-    {season} Regular Season Stats
+    2024-25 Regular Season Stats
   </div>
 
   {/* Card body */}

@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
-import getLeague from "../../HelperFunctions/getLeagueFromTeam.js";
 
-export default function StatCard({ stats = [], opponent, date, gameId }) {
+export default function StatCard({ stats = [], opponent, date, gameId, league, isHome, opponentLogo, result}) {
   if (!stats.length) {
     return (
       <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-3xl p-6 text-center">
@@ -10,7 +9,6 @@ export default function StatCard({ stats = [], opponent, date, gameId }) {
     );
   }
 
-  const league = getLeague(opponent);
 
   return (
     <Link to={`/${league}/games/${gameId}`} className="group block">
@@ -19,11 +17,36 @@ export default function StatCard({ stats = [], opponent, date, gameId }) {
       text-center mb-6 rounded-xl shadow-lg transition-all duration-300 
       hover:scale-105 cursor-pointer max-w-sm mx-auto overflow-hidden">
         {/* Game info */}
-        {(opponent || date) && (
-          <div className="text-gray-400 text-sm mb-4">
-            vs. {opponent} {date && <>on {date}</>}
-          </div>
-        )}
+       {(opponent || date) && (
+  <div className="text-gray-400 text-sm mb-4 text-center flex items-center justify-center gap-2">
+    {result && (
+      <span
+        className={`font-bold px-2 py-0.5 rounded-full text-s ${
+          result === "W" ? "text-green-500" : "text-red-500"
+        }`}
+      >
+        {result}
+      </span>
+    )}
+   <span className="flex items-center gap-1">
+  {isHome ? "vs." : "@"}
+  
+  {opponentLogo && (
+    <img
+      src={opponentLogo}
+      alt={`${opponent} logo`}
+      className="w-5 h-5 object-contain drop-shadow-[0_0_2px_white] m-2"
+    />
+  )}
+  
+  {opponent}
+  
+  {date && <> on {date}</>}
+</span>
+
+  </div>
+)}
+
 
         {/* All stats, default max-height hides overflow */}
         <ul className="

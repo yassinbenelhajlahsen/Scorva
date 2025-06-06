@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
 import { runTodayProcessing } from "./src/eventProcessor.js";
+import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: path.resolve('../.env') });
 
 const pool = new Pool({
   connectionString: process.env.DB_URL,

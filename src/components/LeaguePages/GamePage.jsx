@@ -8,6 +8,7 @@ import computeTopPlayers from "../../HelperFunctions/topPlayers.js";
 import TopPerformerCard from "../Cards/TopPerformerCard.jsx";
 
 import LoadingPage from "../LoadingPage.jsx"
+import formatDate from "../../HelperFunctions/formatDate.js";
 
 export default function GamePage() {
 
@@ -118,11 +119,11 @@ const { topPerformer, topScorer, impactPlayer } = computeTopPlayers(game, allPla
   </div>
 </div>
 
-        <div className="flex flex-col lg:flex-row justify-center px-6 sm:px-6 mb-12">
+  <div className="flex flex-col lg:flex-row justify-center px-6 sm:px-6 mb-12">
   {/* Game info on the left */}
   <div className="grid grid-cols-2 gap-y-4 text-left max-w-md w-full">
     <p className="text-lg">Date</p>
-    <p className="font-semibold">{game.date}</p>
+    <p className="font-semibold">{formatDate(game.date)}</p>
     <p className="text-lg">Status</p>
     <p className="font-semibold">{game.status}</p>
     <p className="text-lg">Location</p>
@@ -137,6 +138,80 @@ const { topPerformer, topScorer, impactPlayer } = computeTopPlayers(game, allPla
   <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
 </div>
 </div>
+
+{isFinal && (
+  <ul className="mt-6 text-lg text-gray-300 font-mono space-y-2">
+    {/* Header Row */}
+    <li className="flex items-center justify-center gap-x-6 text-gray-400">
+      <span className="w-24" /> {/* Spacer for team names */}
+      <span className="w-10 text-center">1</span>
+      <span className="w-10 text-center">2</span>
+      <span className="w-10 text-center">3</span>
+      <span className="w-10 text-center">4</span>
+      {game.score.quarters.ot.map(
+        (val, i) =>
+          val && (
+            <span key={`OT${i + 1}`} className="w-10 text-center">
+              OT{i + 1}
+            </span>
+          )
+      )}
+      <span className="w-10 text-center">T</span>
+    </li>
+
+    {/* Home Team Row */}
+    <li className="flex items-center justify-center gap-x-6">
+      <span className="w-24 font-bold text-left">{homeTeam.info.shortName}</span>
+      {["q1", "q2", "q3", "q4"].map((q) => (
+        <span key={q} className="w-10 text-center">
+          {game.score.quarters[q]?.split("-")[0] ?? "-"}
+        </span>
+      ))}
+      {game.score.quarters.ot.map(
+        (val, i) =>
+          val && (
+            <span key={`home-OT${i + 1}`} className="w-10 text-center">
+              {val.split("-")[0]}
+            </span>
+          )
+      )}
+      <span
+        className={`w-10 text-center font-semibold ${
+          homeWon ? "text-green-400" : "text-red-400"
+        }`}
+      >
+        {game.score.home}
+      </span>
+    </li>
+
+    {/* Away Team Row */}
+    <li className="flex items-center justify-center gap-x-6">
+      <span className="w-24 font-bold text-left">{awayTeam.info.shortName}</span>
+      {["q1", "q2", "q3", "q4"].map((q) => (
+        <span key={q} className="w-10 text-center">
+          {game.score.quarters[q]?.split("-")[1] ?? "-"}
+        </span>
+      ))}
+      {game.score.quarters.ot.map(
+        (val, i) =>
+          val && (
+            <span key={`away-OT${i + 1}`} className="w-10 text-center">
+              {val.split("-")[1]}
+            </span>
+          )
+      )}
+      <span
+        className={`w-10 text-center font-semibold ${
+          awayWon ? "text-green-400" : "text-red-400"
+        }`}
+      >
+        {game.score.away}
+      </span>
+    </li>
+  </ul>
+)}
+
+
         <BoxScore 
           homeTeam = {homeTeam}
           awayTeam={awayTeam}

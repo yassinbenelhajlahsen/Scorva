@@ -30,6 +30,7 @@ export default async function upsertGame(client, league, gamePayload) {
           RETURNING id;
   `;
 
+
   const values = [
     gamePayload.date,         // e.g. '2025-05-30'
     gamePayload.homeTeamId,
@@ -51,5 +52,16 @@ export default async function upsertGame(client, league, gamePayload) {
     gamePayload.seasonText     // '2024-reg' / '2024-post'
   ];
  const result = await client.query(text, values);
-  return result.rows[0].id;
+  const gameId = result.rows[0].id;
+
+   await client.query(`
+  UPDATE games
+  SET winnerid = CASE
+    WHEN homescore > awayscore THEN hometeamid
+    WHEN awayscore > homescore THEN awayteamid
+    ELSE NULL
+  END
+  WHERE id = $1
+`, [gameId]);
+  return gameId;
 }

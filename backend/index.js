@@ -4,6 +4,8 @@ import teamsRouter from './routes/teams.js';
 import standingsRouter from './routes/standings.js';
 import teamsGameRoute from './routes/teamGames.js';
 import gamesRoute from "./routes/games.js";
+import playersRoute from "./routes/players.js";
+import playerInfoRoute from "./routes/playerInfo.js";
 
 dotenv.config();
 const app = express();
@@ -13,6 +15,8 @@ app.use('/api', teamsRouter);
 app.use('/api', standingsRouter);
 app.use('/api', teamsGameRoute);
 app.use('/api', gamesRoute);
+app.use('/api', playersRoute);
+app.use('/api', playerInfoRoute);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log('✅ Server running on port 3000');
