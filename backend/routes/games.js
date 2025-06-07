@@ -1,45 +1,44 @@
-import express from 'express';
-import pool from '../db.js';
+// routes/games.js
+import express from "express";
+import db from "../db.js";
 
 const router = express.Router();
 
-router.get('/:league/games', async (req, res) => {
-  const leagueParam = req.params.league.toLowerCase();
+router.get("/:league/games", async (req, res) => {
+  const { league } = req.params;
+  const { teamId } = req.query;
 
   try {
-    const { rows } = await pool.query(
-      `
-      SELECT
-        g.id,
-        g.date,
-        g.status,
-        g.homescore,
-        g.awayscore,
+    let query = `
+      SELECT 
         g.*,
   th.name AS home_team_name,
   th.shortname AS home_shortname,
-  th.location AS home_location,
   th.logo_url AS home_logo,
   ta.name AS away_team_name,
   ta.shortname AS away_shortname,
-  ta.location AS away_location,
-  ta.logo_url AS away_logo
+=  ta.logo_url AS away_logo
       FROM games g
-      JOIN teams th
-        ON g.hometeamid = th.id
-      JOIN teams ta
-        ON g.awayteamid = ta.id
-      WHERE lower(g.league) = $1
-      ORDER BY g.date DESC
-      LIMIT 16;
-      `,
-      [leagueParam]
-    );
+      JOIN teams th ON g.hometeamid = th.id
+      JOIN teams ta ON g.awayteamid = ta.id
+      WHERE g.league = $1
+    `;
 
+    const params = [league];
+
+    // Add team filter if teamId exists
+    if (teamId) {
+      query += ` AND ($2::integer IN (g.hometeamid, g.awayteamid))`;
+      params.push(teamId);
+    }
+
+    query += ` ORDER BY g.date DESC`;
+
+    const { rows } = await db.query(query, params);
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching games:', err);
-    res.status(500).send('Server error');
+    console.error("Error fetching games:", err);
+    res.status(500).json({ error: "Failed to fetch games." });
   }
 });
 
