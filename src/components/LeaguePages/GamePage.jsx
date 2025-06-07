@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -11,10 +11,13 @@ import LoadingPage from "../LoadingPage.jsx";
 import formatDate from "../../HelperFunctions/formatDate.js";
 
 export default function GamePage() {
+    const location = useLocation();
   const { league, gameId } = useParams();
   const [gameData, setGameData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+
 
   useEffect(() => {
     async function fetchGame() {
@@ -30,6 +33,44 @@ export default function GamePage() {
     }
     fetchGame();
   }, [league, gameId]);
+
+useEffect(() => {
+  if (!gameData || !location.hash) return;
+
+  const id = location.hash.slice(1);
+  requestAnimationFrame(() => {
+    const row = document.getElementById(id);
+    if (!row) return;
+
+    // Target the <Link> inside the row (player name)
+    const link = row.querySelector('a'); // or use more specific selector
+
+    // Add transitions to both row and link
+    row.classList.add("transition-colors", "duration-300", "ease-in-out");
+    link?.classList.add("transition-colors", "duration-300", "ease-in-out");
+
+    // Scroll into view
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Force reflow to enable transitions
+    void row.offsetWidth;
+
+    // Apply highlight
+    row.classList.add("bg-orange-400"); // Highlight entire row
+    link?.classList.add("!text-white"); // Force white text on name
+
+    setTimeout(() => {
+      row.classList.remove("bg-orange-400");
+      link?.classList.remove("!text-white");
+
+      // Optional: Remove transitions after animation
+      setTimeout(() => {
+        row.classList.remove("transition-colors", "duration-300", "ease-in-out");
+        link?.classList.remove("transition-colors", "duration-300", "ease-in-out");
+      }, 300);
+    }, 2000);
+  });
+}, [gameData, location.hash]);
 
   if (loading) return <LoadingPage />;
   if (error || !gameData?.json_build_object) return <div>Game not found</div>;

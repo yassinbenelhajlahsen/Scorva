@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export default function StatCard({ stats = [], opponent, date, gameId, league, isHome, opponentLogo, result}) {
+export default function StatCard({ stats = [], opponent, date, gameId, league, isHome, opponentLogo, result, id}) {
   if (!stats.length) {
     return (
       <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-3xl p-6 text-center">
@@ -9,9 +9,10 @@ export default function StatCard({ stats = [], opponent, date, gameId, league, i
     );
   }
 
+  const to = `/${league}/games/${gameId}#player-${id}`;
 
   return (
-    <Link to={`/${league}/games/${gameId}`} className="group block">
+    <Link to={to} className="group block">
       <div className="
       relative border border-zinc-700 bg-zinc-800 p-6 
       text-center mb-6 rounded-xl shadow-lg transition-all duration-300 

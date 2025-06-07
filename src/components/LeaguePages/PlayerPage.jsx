@@ -85,6 +85,7 @@ if (!playerData) {
 }
 
 const {
+  id,
   name,
   position,
   jerseyNumber,
@@ -176,6 +177,7 @@ return (
         isHome={game.ishome}
         opponentLogo = {game.opponentlogo}
         result= {game.result}
+        id = {id}
       />
 );
   })}

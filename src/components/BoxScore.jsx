@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import slugify from "../HelperFunctions/slugify.js";
 
-export default function BoxScore({ league, game, homeTeam, awayTeam }) {
+export default function BoxScore({ league, homeTeam, awayTeam }) {
   // 1. Extract stat keys from first available player with stats
   const extractStatHeaders = (players) => {
     const sample = players.find((p) => p?.stats && typeof p.stats === "object");
@@ -33,7 +33,7 @@ export default function BoxScore({ league, game, homeTeam, awayTeam }) {
           </thead>
           <tbody>
             {players.map((p) => (
-              <tr key={p.id} className="text-white text-xs sm:text-sm">
+              <tr  id={`player-${p.id}`} key={p.id} className="text-xs sm:text-sm">
                 <td className="py-1 px-2 font-medium">
                   <Link
                     to={`/${league}/players/${slugify(p.name)}`}
