@@ -7,10 +7,6 @@ router.get("/:league/games", async (req, res) => {
   const { league } = req.params;
   const { teamId } = req.query;
 
-  if (!teamId) {
-    return res.status(400).json({ error: "Missing teamId in query." });
-  }
-
   try {
     const { rows } = await db.query(
       `
