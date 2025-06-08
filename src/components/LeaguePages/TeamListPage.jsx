@@ -24,7 +24,6 @@ export default function StandingsPage() {
         return res.json();
       })
       .then((teams) => {
-        console.log("✅ Standings response:", teams);
         const isNFL = league === "nfl";
         const east = teams.filter(
           (t) => t.conf.toLowerCase() === (isNFL ? "afc" : "east")

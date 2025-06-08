@@ -17,7 +17,7 @@ router.get("/:league/games", async (req, res) => {
   th.logo_url AS home_logo,
   ta.name AS away_team_name,
   ta.shortname AS away_shortname,
-=  ta.logo_url AS away_logo
+  ta.logo_url AS away_logo
       FROM games g
       JOIN teams th ON g.hometeamid = th.id
       JOIN teams ta ON g.awayteamid = ta.id

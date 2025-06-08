@@ -30,9 +30,9 @@ function getAllDatesInRange(startISO, endISO) {
 }
 
 const leagues = [
-  { slug: "nfl", seasonStart: "2024-12-31", seasonEnd: "2024-02-09" },
-  { slug: "nba", seasonStart: "2025-05-31", seasonEnd: "2025-06-06" },
-  { slug: "nhl", seasonStart: "2025-05-31", seasonEnd: "2025-06-06" },
+  { slug: "nfl", seasonStart: "2024-12-31", seasonEnd: "2025-02-09" },
+  { slug: "nba", seasonStart: "2025-05-31", seasonEnd: "2025-06-07" },
+  { slug: "nhl", seasonStart: "2025-05-31", seasonEnd: "2025-06-07" },
 ];
 
 (async () => {

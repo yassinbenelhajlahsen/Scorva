@@ -1,12 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/favicon.png";
 import SearchBar from "./SearchBar.jsx";
 
 export default function Navbar() {
-  //const [query, setQuery] = useState("");
+  const [query, setQuery] = useState("");
+  const [allItems, setAllItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    if (!query) {
+      setAllItems([]);
+      return;
+    }
 
+    const fetchResults = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data } = await axios.get('/api/search', {
+          params: { term: query }
+        });
+        setAllItems(data);
+      } catch (err) {
+        console.error('Search error:', err);
+        setError('Failed to fetch search results');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchResults, 300);
+    return () => clearTimeout(debounce);
+  }, [query]);
 
   return (
     <nav className="bg-zinc-900 text-white flex flex-col sm:flex-row items-center justify-between px-6 py-4 shadow-md gap-4">
@@ -19,9 +47,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* pass allItems down 
-      <SearchBar allItems={allItems} query={query} setQuery={setQuery} />
-*/}
+      <SearchBar allItems={allItems} query={query} setQuery={setQuery} loading={loading} error={error} />
+
       <div className="flex gap-4">
         <Link to="/nba" className="hover:text-orange-400 transition">
           NBA

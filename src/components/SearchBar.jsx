@@ -6,18 +6,16 @@ export default function SearchBar({ allItems, query, setQuery }) {
   const navigate = useNavigate();
   const wrapperRef = useRef();
 
-  // close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setQuery("");     // clear the query (and therefore the dropdown)
+        setQuery("");     
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [setQuery]);
 
-  // derive a deduped, limited list every time `query` or `allItems` changes
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -64,13 +62,13 @@ export default function SearchBar({ allItems, query, setQuery }) {
             >
               {item.type !== "game" && (
                 <img
-  src={item.image}
+  src={item.imageUrl}
   alt={item.name}
   className={`
     mr-3
     ${item.type === "team"
-      ? "w-12 h-12 rounded-md object-contain"      // square logo
-      : "w-10 h-14 rounded-full object-cover"}    // taller, circular headshot
+      ? "w-12 h-12 rounded-md object-contain"      
+      : "w-10 h-14 rounded-full object-cover"}   
   `}
 />
 
