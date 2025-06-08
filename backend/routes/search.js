@@ -54,16 +54,13 @@ router.get('/search', async (req, res) => {
     ];
 
     results.sort((a, b) => {
-  // pick shortname for teams, otherwise the full name
   const aText = (a.shortname ?? a.name).toLowerCase();
   const bText = (b.shortname ?? b.name).toLowerCase();
 
-  // 1) match quality on the chosen text
   const ma = scoreMatch(aText, rawTerm);
   const mb = scoreMatch(bText, rawTerm);
   if (ma !== mb) return ma - mb;
 
-  // 2) type priority
   const ta = TYPE_PRIORITY[a.type];
   const tb = TYPE_PRIORITY[b.type];
   if (ta !== tb) return ta - tb;

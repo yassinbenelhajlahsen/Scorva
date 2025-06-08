@@ -63,7 +63,6 @@ useEffect(() => {
       row.classList.remove("bg-orange-400");
       link?.classList.remove("!text-white");
 
-      // Optional: Remove transitions after animation
       setTimeout(() => {
         row.classList.remove("transition-colors", "duration-300", "ease-in-out");
         link?.classList.remove("transition-colors", "duration-300", "ease-in-out");

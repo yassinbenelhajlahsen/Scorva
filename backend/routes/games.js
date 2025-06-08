@@ -1,4 +1,3 @@
-// routes/games.js
 import express from "express";
 import db from "../db.js";
 
@@ -26,7 +25,7 @@ router.get("/:league/games", async (req, res) => {
 
     const params = [league];
 
-    // Add team filter if teamId exists
+    // Add team filter if teamId exists to search just THAT teams games
     if (teamId) {
       query += ` AND ($2::integer IN (g.hometeamid, g.awayteamid))`;
       params.push(teamId);

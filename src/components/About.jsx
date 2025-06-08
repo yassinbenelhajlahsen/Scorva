@@ -2,12 +2,7 @@ import { motion } from "framer-motion";
 
 export default function About() {
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.5 }}
-    >
+  
       <div className="max-w-3xl mx-auto px-6 py-12 text-white">
         <h1 className="text-4xl font-bold mb-10">About This Project</h1>
 
@@ -68,6 +63,5 @@ export default function About() {
           or simply making the interface feel intuitive.
         </p>
       </div>
-    </motion.section>
   );
 }

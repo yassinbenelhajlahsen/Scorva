@@ -198,7 +198,7 @@ GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;`
       return res.status(404).send("Player not found");
     }
 
-    res.json(result.rows[0]); // returns { player: { ... } }
+    res.json(result.rows[0]); 
   } catch (err) {
     console.error("Error fetching player with games:", err);
     res.status(500).send("Server error");

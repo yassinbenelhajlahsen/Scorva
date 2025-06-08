@@ -12,6 +12,7 @@ export default function LeaguePage() {
   const [games, setGames]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+const [displayData, setDisplayData] = useState(false);
 
   useEffect(() => {
     if (!data) {
@@ -24,6 +25,7 @@ export default function LeaguePage() {
 
     async function fetchGames() {
       setLoading(true);
+      setDisplayData(false);
       setError(null);
 
       try {
@@ -33,6 +35,8 @@ export default function LeaguePage() {
         }
         const allGames = await res.json();
         setGames(allGames);
+        await new Promise(r => setTimeout(r, 50));
+    setDisplayData(true);
       } catch (err) {
         if (err.name !== "AbortError") {
           console.error("Failed to fetch games:", err);
@@ -46,7 +50,7 @@ export default function LeaguePage() {
     fetchGames();
     return () => controller.abort();
   }, [league, data]);
-
+console.log(loading);
   if (!data) {
     return (
       <div className="flex-col items-center justify-center mx-auto block sm:mx-0 sm:absolute sm:top-4 sm:left-4 min-h-screen">
@@ -61,8 +65,7 @@ export default function LeaguePage() {
     );
   }
 
-  if (loading) return <LoadingPage />;
-  if (error)   return <div className="p-6 text-red-500">{error}</div>;
+  if (error)  return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <>
@@ -96,7 +99,12 @@ export default function LeaguePage() {
             </Link>
           ))}
         </div>
-
+{loading || !displayData ? (
+        <LoadingPage />
+      ) : error ? (
+        <div className="p-6 text-red-500">{error}</div>
+      ) : (
+        <>
         <h2 className="text-4xl font-bold text-center mt-20 mb-20">Games</h2>
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
           {games.map((game) => (
@@ -105,7 +113,9 @@ export default function LeaguePage() {
             </div>
           ))}
         </div>
-      </div>
+      </>
+        )}
+        </div>
     </>
   );
 }

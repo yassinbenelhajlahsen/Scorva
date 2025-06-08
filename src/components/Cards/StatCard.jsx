@@ -49,7 +49,6 @@ export default function StatCard({ stats = [], opponent, date, gameId, league, i
 )}
 
 
-        {/* All stats, default max-height hides overflow */}
         <ul className="
           flex flex-wrap justify-center gap-10 
           max-h-18 group-hover:max-h-[500px] 

@@ -7,8 +7,6 @@ import LoadingPage from "../LoadingPage.jsx"
 
 import PlayerCard from "../Cards/PlayerCard";
 
-
-
 const leagueLogos = {
   nba: "/NBAlogo.png",
   nfl: "/NFLlogo.png",
@@ -28,7 +26,6 @@ const popularPlayerIds = [
   49537, 49540, 47, 20320, 48546, 115, 872, 49420, 1096, 20100,
   20166, 20386, 20385, 49470, 48611 // NHL
 ];
-console.log(popularPlayerIds.length)
 
 
 export default function PlayerListPage() {

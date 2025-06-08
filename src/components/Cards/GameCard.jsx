@@ -87,7 +87,7 @@ export default function GameCard({ game }) {
             {/* HEADER ROW */}{" "}
             <li className="flex justify-between text-xs text-gray-400 px-2">
               {" "}
-              <span className="w-12" /> {/* spacer */}{" "}
+              <span className="w-12" /> {" "}
               <span className="w-8 text-center">1</span>{" "}
               <span className="w-8 text-center">2</span>{" "}
               <span className="w-8 text-center">3</span>{" "}

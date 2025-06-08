@@ -51,11 +51,10 @@ useEffect(() => {
         return;
       }
 
-      // 2. Use the player's id to fetch the full data
       const fullRes = await fetch(`/api/${league}/players/${match.id}`);
       const fullData = await fullRes.json();
 
-      setPlayerData(fullData.player); // you return { player: { ... } }
+      setPlayerData(fullData.player); 
     } catch (err) {
       console.error("Error fetching player:", err);
       setPlayerData(null);

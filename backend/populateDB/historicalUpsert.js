@@ -2,9 +2,7 @@ import dotenv from "dotenv";
 import path from 'path';
 import { Pool } from "pg";
 import {
-  runDateRangeProcessing,
-  getSportPath,
-  processEvent,
+  runDateRangeProcessing
 } from "./src/eventProcessor.js";
 
 dotenv.config({ path: path.resolve('../.env') });
