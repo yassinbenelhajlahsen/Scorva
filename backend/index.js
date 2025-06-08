@@ -20,6 +20,6 @@ app.use('/api', playersRoute);
 app.use('/api', playerInfoRoute);
 app.use('/api', searchRoute);
 
-app.listen(process.env.PORT || 3000, () => {
+app.listen(process.env.PORT, () => {
   console.log('✅ Server running on port 3000');
 });
