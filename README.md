@@ -66,6 +66,15 @@ Scorva
 - 🔔 Live game alerts, final scores, and push notifications  
 - 📱 Mobile app (React Native or PWA)
 
+## 🧩 Challenges Faced
+
+- **Real-time Data from Unofficial APIs:**  
+  ESPN's APIs are not officially documented and often return inconsistent formats across leagues. Mapping raw stat categories to a uniform schema required extensive trial, error, and debugging.
+
+- **Deployment Coordination:**  
+  Deploying a decoupled frontend (Vercel) and backend (Railway) introduced CORS and routing issues. I resolved this by managing environment variables carefully and testing endpoint latency.
+
+
 ## 🧠 Author
 
 Made by **Yassin Benelhajlahsen** — Computer Science @ Brooklyn College  
