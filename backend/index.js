@@ -7,10 +7,13 @@ import playersRoute from "./routes/players.js";
 import playerInfoRoute from "./routes/playerInfo.js";
 import gamesRoute from "./routes/games.js";
 import searchRoute from "./routes/search.js";
+import cors from "cors";
 
 dotenv.config();
 const app = express();
-
+app.use(cors({
+  origin: "https://scorva.vercel.app",
+}));
 app.use(express.json());
 app.use('/api', teamsRouter);
 app.use('/api', standingsRouter);
