@@ -12,7 +12,7 @@ export default async function upsertGame(client, league, gamePayload) {
        $9,       $10,        $11,         $12,
        $13,      $14,        $15,         $16,
        $17,      $18)
-    ON CONFLICT (date, hometeamid, awayteamid, league) DO UPDATE
+    ON CONFLICT ON CONSTRAINT unique_game_combo DO UPDATE
       SET homescore  = EXCLUDED.homescore,
           awayscore  = EXCLUDED.awayscore,
           venue      = EXCLUDED.venue,

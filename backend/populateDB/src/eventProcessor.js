@@ -5,6 +5,7 @@ import upsertTeam from "./upsertTeam.js";
 import upsertPlayer from "./upsertPlayer.js";
 import upsertStat from "./upsertStat.js";
 import upsertGame from "./upsertGame.js";
+import { DateTime } from "luxon";
 
 export function getSportPath(leagueSlug) {
   switch (leagueSlug.toLowerCase()) {
@@ -92,7 +93,11 @@ export async function processEvent(client, leagueSlug, event) {
   }
 
   // Extract date portion YYYY-MM-DD
-  const isoDateOnly = event.date.slice(0, 10);
+  const rawDate = event.date; // "2025-06-09T00:00Z"
+const localDate = DateTime
+  .fromISO(rawDate, { zone: 'utc' })
+  .setZone('America/New_York')
+  .toFormat('yyyy-MM-dd');
   const comps = event.competitions?.[0]?.competitors || [];
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
@@ -247,10 +252,11 @@ if (leagueSlug !== 'nfl') {
     endTwoDigits = String(endYear).slice(-2);  // "24"
     seasonText = `${startYear}-${endTwoDigits}`;  // "2023-24"
 }
+
     // 5.4.10) Upsert into games
     const gamePayload = {
       eventid: espnEventId,
-      date: isoDateOnly,
+      date: localDate,
       homeTeamId,
       awayTeamId,
       homeScore,
