@@ -29,7 +29,7 @@ const [displayData, setDisplayData] = useState(false);
       setError(null);
 
       try {
-        const res = await fetch(`/api/${league}/games`, { signal });
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games`, { signal });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }

@@ -39,7 +39,7 @@ useEffect(() => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/${league}/players`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/players`);
       const allPlayers = await res.json();
 const popularPlayers = allPlayers.filter(p => popularPlayerIds.includes(p.id));
       

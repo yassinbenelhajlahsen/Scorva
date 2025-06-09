@@ -2,6 +2,7 @@ import { Link, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+
 import BoxScore from "../BoxScore.jsx";
 import slugify from "../../HelperFunctions/slugify.js";
 import computeTopPlayers from "../../HelperFunctions/topPlayers.js";
@@ -22,7 +23,7 @@ export default function GamePage() {
   useEffect(() => {
     async function fetchGame() {
       try {
-        const res = await axios.get(`/api/${league}/games/${gameId}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/${league}/games/${gameId}`);
         setGameData(res.data);
       } catch (err) {
         console.error("Error fetching game:", err);

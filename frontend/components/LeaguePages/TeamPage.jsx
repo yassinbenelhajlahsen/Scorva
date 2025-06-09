@@ -18,7 +18,7 @@ export default function TeamPage() {
   useEffect(() => {
     async function fetchTeamData() {
       try {
-        const res = await fetch(`/api/${league}/teams`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/teams`);
         if (!res.ok) throw new Error("Failed to fetch teams.");
         const teamList = await res.json();
 
@@ -32,7 +32,7 @@ export default function TeamPage() {
         setTeam(foundTeam);
 
         const games = await (
-          await fetch(`/api/${league}/games?teamId=${foundTeam.id}`)
+          await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${foundTeam.id}`)
         ).json();
         const last10 = games
           .slice()
