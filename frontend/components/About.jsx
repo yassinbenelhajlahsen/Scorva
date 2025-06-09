@@ -2,64 +2,71 @@ export default function About() {
   return (
   
       <div className="max-w-3xl mx-auto px-6 py-12 text-white">
-        <h1 className="text-4xl font-bold mb-10">About This Project</h1>
+  <h1 className="text-4xl font-bold mb-10">About This Project</h1>
 
-        <p className="text-lg mb-6">
-          <strong>Scorva</strong> is a personal project born out of my passion
-          for basketball and sports in general. As someone who follows the NBA,
-          NFL, and NHL closely, I’ve always wanted a clean, centralized place to
-          quickly check upcoming games and analyze past box scores — without the
-          clutter or ads that often come with commercial apps.
-        </p>
+  <p className="text-lg mb-6">
+    <strong>Scorva</strong> is a full-stack web app I built to combine my love for sports
+    — especially the NBA, NFL, and NHL — with my interest in software development. I wanted
+    a clean, ad-free platform where I could track games, view box scores, and dive into player stats
+    across multiple leagues in real time.
+  </p>
 
-        <p className="text-lg mb-6">
-          This app is my way of combining my love for sports with my growing
-          skills in software development. It’s not just a scoreboard — it’s a
-          learning platform where I push myself to build responsive UIs,
-          integrate real APIs, and design a smooth user experience.
-        </p>
+  <p className="text-lg mb-6">
+    This project was developed from scratch using a React frontend, Node/Express backend, and a PostgreSQL database.
+    I used ESPN-style APIs to ingest live and historical game data, structured it with custom mapping logic, and deployed
+    the app using Vercel (frontend) and Railway (backend). From stat syncing to slug-based routing and responsive UI components,
+    every part of Scorva has been a learning experience and a showcase of my technical growth.
+  </p>
 
-        <p>
-          <small>
-            <em>
-              Note: This project is not intended for commercial use or profit.
-              Any similarities in names, features, or design to other platforms
-              are purely coincidental and unintentional.
-            </em>
-          </small>
-        </p>
+  <p className="text-lg mb-6">
+    The app supports multi-league browsing, top performer highlights, dynamic box scores, and detailed player pages.
+    Whether you're checking the latest NHL matchup or reviewing an NBA player's season averages, Scorva aims to make that
+    experience fast, responsive, and easy to navigate.
+  </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">Tech Stack</h2>
-        <ul className="list-disc list-inside text-lg space-y-2">
-          <li>⚛️ React (with React Router)</li>
-          <li>🎨 Tailwind CSS for styling and responsive layout</li>
-          <li>⚙️ Vite for fast development builds</li>
-          <li>🌐 Sports API integration (NBA, NFL, NHL data)</li>
-          <li>🚀 Deployment with Vercel</li>
-          <li>🧠 Version control with Git + GitHub</li>
-          <li>
-            🧑‍💻{" "}
-            <strong>
-              <a
-                href="https://github.com/yassinbenelhajlahsen/Scorva"
-                className="text-blue-400 underline hover:text-blue-600"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Source on GitHub
-              </a>
-            </strong>
-          </li>
-        </ul>
+  <p>
+    <small>
+      <em>
+        Note: This project is for educational and personal use only. Any similarity in branding,
+        features, or structure to other sports platforms is unintentional and non-commercial.
+      </em>
+    </small>
+  </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">The Vision</h2>
-        <p className="text-lg">
-          My goal is to make Scorva a polished app that not only showcases my
-          technical skills, but also reflects who I am as a sports fan and
-          future software engineer. It’s a work in progress, but each feature is
-          built with intention — whether it’s filtering by team, checking stats,
-          or simply making the interface feel intuitive.
-        </p>
-      </div>
+  <h2 className="text-2xl font-semibold mt-8 mb-4">Tech Stack</h2>
+  <ul className="list-disc list-inside text-lg space-y-2">
+    <li>⚛️ React with React Router for frontend routing</li>
+    <li>🎨 Tailwind CSS for styling and responsive layout</li>
+    <li>🎞️ Framer Motion for smooth page transitions</li>
+    <li>⚙️ Vite for fast frontend builds</li>
+    <li>🛠️ Node.js and Express for backend REST APIs</li>
+    <li>🐘 PostgreSQL (hosted on Railway) for structured stat and game data</li>
+    <li>🌐 External sports APIs (NBA, NFL, NHL from ESPN-style endpoints)</li>
+    <li>🚀 Deployment via Vercel (frontend) and Railway (backend)</li>
+    <li>🧠 Version control with Git + GitHub</li>
+    <li>
+      🧑‍💻{" "}
+      <strong>
+        <a
+          href="https://github.com/yassinbenelhajlahsen/Scorva"
+          className="text-blue-400 underline hover:text-blue-600"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View Source on GitHub
+        </a>
+      </strong>
+    </li>
+  </ul>
+
+  <h2 className="text-2xl font-semibold mt-8 mb-4">The Vision</h2>
+  <p className="text-lg">
+    My goal with Scorva is to create a sleek, multi-sport stats platform that highlights both my technical
+    skills and my passion for sports. It’s more than just a project — it’s an evolving app where I’m exploring
+    everything from live data syncing to mobile responsiveness. Whether you’re a recruiter, a developer, or a sports fan,
+    I hope you enjoy exploring it as much as I enjoyed building it.
+  </p>
+</div>
+
   );
 }
