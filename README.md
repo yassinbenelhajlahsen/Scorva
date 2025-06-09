@@ -1,19 +1,72 @@
-# 🏀 Scorva
+# Scorva 🏀🏒
 
-_IN-PROGRESS_
+**Scorva** is a full-stack sports statistics platform that lets users explore game results, player performances, and team data across NBA, NFL, and NHL leagues. It includes a React frontend, an Express backend, and a PostgreSQL database, deployed using Vercel and Railway.
 
-**Scorva** is a full-stack sports tracking web app built with React and Tailwind CSS. It allows users to view upcoming NBA, NFL, and NHL games, and explore stats from past box scores.
+---
 
-## 🚀 Features
+## 🚀 Live Demo
 
-- Responsive UI with Tailwind CSS
-- Clean navigation and mobile support
-- Dynamic layout ready for sports API integration
-- Component-based structure using React
+- **Frontend (Vercel):** https://scorva.vercel.app  
+- **Backend API (Railway):** https://scorva-production.up.railway.app
+
+---
 
 ## 🛠️ Tech Stack
 
-- React + Vite
-- Tailwind CSS
-- JavaScript (ES6+)
-- (Planned) Node.js + Express + Sports APIs + Vercel (Deployment)
+- **Frontend:** React, React Router, Tailwind CSS, Axios, Framer Motion, Vite  
+- **Backend:** Node.js, Express, pg (PostgreSQL)  
+- **Database:** PostgreSQL (hosted on Railway)  
+- **Deployment:**  
+  - Frontend: [Vercel](https://vercel.com)  
+  - Backend: [Railway](https://railway.app)
+
+---
+
+## Project Structure
+
+```
+Scorva
+├── backend
+│   ├── index.js              # Entry point for Express server
+│   ├── db.js                 # PostgreSQL connection setup
+│   ├── routes/               # API routes
+│   │   ├── games.js
+│   │   ├── teams.js
+│   │   └── ...
+│   ├── populateDB/           # Scripts to fetch and insert data into DB
+│   ├── package.json          # Backend dependencies
+│   └── .env                  # Local environment variables (not committed)
+└── frontend
+    ├── src/
+    │   ├── main.jsx          # Entry point for React app
+    │   ├── components/       # Reusable UI components
+    │   └── ...
+    ├── index.html            # HTML template
+    ├── package.json          # Frontend dependencies
+    └── tailwind.config.js    # Tailwind CSS configuration
+```
+
+
+## 🔥 Features
+
+- ✅ Fetch and display real-time game and player data  
+- 🏅 Highlight top performers dynamically  
+- 📊 Responsive box score and game breakdowns  
+- 🎞️ Smooth UI transitions with Framer Motion  
+- 🔗 Interactive routing with React Router  
+- 🌐 Multi-league support (NBA, NFL, NHL)
+
+---
+
+## 📌 Future Improvements
+
+- 🕒 Daily stat syncing via cron jobs or background workers  
+- 👤 User accounts with saved teams, players, and preferences  
+- 📅 Multi-season history and archival access  
+- 🔔 Live game alerts, final scores, and push notifications  
+- 📱 Mobile app (React Native or PWA)
+
+## 🧠 Author
+
+Made by **Yassin Benelhajlahsen** — Computer Science @ Brooklyn College  
+[GitHub](https://github.com/yassinbenelhajlahsen) • [LinkedIn](https://www.linkedin.com/in/yassinbenelhajlahsen/)
