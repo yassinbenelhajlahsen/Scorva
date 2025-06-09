@@ -48,9 +48,8 @@ export async function getEventsByDate(dateString, leagueSlug) {
     const resp = await axios.get(url);
     return resp.data.events || [];
   } catch (err) {
-    console.error(
-      `🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}: ${err.message}`
-    );
+        console.error(`🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}:`, err.message || err.response?.status || err);
+
     return [];
   }
 }

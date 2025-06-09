@@ -13,7 +13,7 @@ const pool = new Pool({
   try {
     // For each league, fetch and process today’s events
     await runTodayProcessing("nba", pool);
-    await runTodayProcessing("nfl", pool);
+    //await runTodayProcessing("nfl", pool); commented out to avoid unwanted updates to database
     await runTodayProcessing("nhl", pool);
   } catch (err) {
     console.error("❌ [hourlyUpsert] fatal error:", err);
