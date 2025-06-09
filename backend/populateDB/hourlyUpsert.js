@@ -6,7 +6,10 @@ import path from 'path';
 dotenv.config({ path: path.resolve('../.env') });
 
 const pool = new Pool({
-  connectionString: process.env.DB_URL,
+  connectionString: process.env.DATABASE_URL || process.env.DB_URL,
+  ssl: process.env.NODE_ENV === "production"
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 (async () => {
