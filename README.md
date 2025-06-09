@@ -19,7 +19,6 @@
 - **Deployment:**  
   - Frontend: [Vercel](https://vercel.com)  
   - Backend: [Railway](https://railway.app)
-
 ---
 
 ## Project Structure
@@ -68,12 +67,12 @@ Scorva
 
 ## 🧩 Challenges Faced
 
-- **Real-time Data from Unofficial APIs:**  
-  ESPN's APIs are not officially documented and often return inconsistent formats across leagues. Mapping raw stat categories to a uniform schema required extensive trial, error, and debugging.
+- **Inconsistent Data from Unofficial APIs:**  
+  ESPN’s APIs are not publicly documented and return different structures for each league (NBA, NFL, NHL). Normalizing player and game stats into a consistent PostgreSQL schema required extensive reverse-engineering and custom mapping logic.  
+  → External API reference: [akeaswaran/espn-api gist](https://gist.github.com/akeaswaran/b48b02f1c94f873c6655e7129910fc3b)
 
-- **Deployment Coordination:**  
-  Deploying a decoupled frontend (Vercel) and backend (Railway) introduced CORS and routing issues. I resolved this by managing environment variables carefully and testing endpoint latency.
-
+- **Frontend–Backend Deployment Sync:**  
+  Hosting the frontend on **Vercel** and backend on **Railway** caused CORS, routing, and environment variable issues during deployment. I resolved these by explicitly managing allowed origins, rewriting API routes, and validating endpoints across both environments.
 
 ## 🧠 Author
 
