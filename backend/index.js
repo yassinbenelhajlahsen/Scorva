@@ -15,6 +15,7 @@ const app = express();
 app.use(cors({
   origin: "https://scorva.vercel.app",
 }));
+
 app.use(express.json());
 app.use('/api', teamsRouter);
 app.use('/api', standingsRouter);

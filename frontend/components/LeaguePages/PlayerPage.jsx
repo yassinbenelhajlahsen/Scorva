@@ -42,9 +42,7 @@ const [loading, setLoading] = useState(true);
 useEffect(() => {
   async function fetchPlayerData() {
     try {
-const url = `${import.meta.env.VITE_API_URL}/api/${league}/players`;
-console.log("Fetching:", url);
-const res = await fetch(url);
+const res = await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/players`);
       const players = await res.json();
 
       const match = players.find(p => slugify(p.name, { lower: true }) === slug);
@@ -53,7 +51,7 @@ const res = await fetch(url);
         return;
       }
 
-      const fullRes = await fetch(`/api/${league}/players/${match.id}`);
+      const fullRes = await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/players/${match.id}`);
       const fullData = await fullRes.json();
 
       setPlayerData(fullData.player); 
