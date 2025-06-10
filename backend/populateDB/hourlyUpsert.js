@@ -18,6 +18,7 @@ const pool = new Pool({
     await runTodayProcessing("nba", pool);
     //await runTodayProcessing("nfl", pool); commented out to avoid unwanted updates to database
     await runTodayProcessing("nhl", pool);
+    console.log(`[✔️ ${new Date().toISOString()}] Hourly upsert ran successfully.`);
   } catch (err) {
     console.error("❌ [hourlyUpsert] fatal error:", err);
   } finally {
