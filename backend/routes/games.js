@@ -31,8 +31,9 @@ router.get("/:league/games", async (req, res) => {
       params.push(teamId);
     }
 
-    query += ` ORDER BY g.date DESC`;
-
+    query += ` ORDER BY g.date DESC
+                LIMIT 16`;
+    
     const { rows } = await db.query(query, params);
     res.json(rows);
   } catch (err) {
