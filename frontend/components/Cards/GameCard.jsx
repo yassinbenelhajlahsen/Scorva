@@ -3,7 +3,9 @@ import formatDate from "../../HelperFunctions/formatDate";
 
 export default function GameCard({ game }) {
   const isFinal = game.status.includes("Final");
-  const inProgress = game.status.includes("In Progress") || game.status.includes("End of Period");
+  const inProgress =
+    game.status.includes("In Progress") ||
+    game.status.includes("End of Period");
   const homeWon = isFinal && game.hometeamid === game.winnerid;
   const awayWon = isFinal && game.awayteamid === game.winnerid;
   const league = game.league;
@@ -36,11 +38,12 @@ export default function GameCard({ game }) {
             {(isFinal || inProgress) && (
               <div
                 className={`text-lg font-semibold ${
-game.homescore === game.awayscore
-  ? "text-gray-400"
-  : game.homescore > game.awayscore
-    ? "text-green-400"
-    : "text-red-400"                }`}
+                  game.homescore === game.awayscore
+                    ? "text-gray-400"
+                    : game.homescore > game.awayscore
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
               >
                 {game.homescore}
               </div>
@@ -49,7 +52,9 @@ game.homescore === game.awayscore
 
           {/* Center */}
           <div className="flex flex-col items-center flex-1">
-            <span className="text-sm text-gray-400 mb-1">{formatDate(game.date)}</span>
+            <span className="text-sm text-gray-400 mb-1">
+              {formatDate(game.date)}
+            </span>
             <div className="text-sm text-gray-300">vs</div>
             <p className="mt-1 text-sm text-gray-300">
               Status: <span className="text-white">{game.status}</span>
@@ -73,11 +78,12 @@ game.homescore === game.awayscore
             {(isFinal || inProgress) && (
               <div
                 className={`text-lg font-semibold ${
-game.homescore === game.awayscore
-  ? "text-gray-400"
-  : game.homescore < game.awayscore
-    ? "text-green-400"
-    : "text-red-400"                }`}
+                  game.homescore === game.awayscore
+                    ? "text-gray-400"
+                    : game.homescore < game.awayscore
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
               >
                 {game.awayscore}
               </div>
@@ -90,11 +96,10 @@ game.homescore === game.awayscore
             <li className="text-white text-sm font-bold text-center">
               {game.status}
             </li>{" "}
-
             {/* HEADER ROW */}{" "}
             <li className="flex justify-between text-xs text-gray-400 px-2">
               {" "}
-              <span className="w-12" /> {" "}
+              <span className="w-12" />{" "}
               <span className="w-8 text-center">1</span>{" "}
               <span className="w-8 text-center">2</span>{" "}
               <span className="w-8 text-center">3</span>{" "}
@@ -138,7 +143,11 @@ game.homescore === game.awayscore
                 }`}
               >
                 {" "}
-                {game.awayscore}{" "}
+                {isFinal && (
+        <span className="w-8 text-center">
+          {game.awayscore}
+        </span>
+      )}
               </span>{" "}
             </li>{" "}
             {/* HOME TEAM ROW */}{" "}
@@ -170,8 +179,11 @@ game.homescore === game.awayscore
                 }`}
               >
                 {" "}
-                {game.homescore}{" "}
-              </span>{" "}
+{isFinal && (
+        <span className="w-8 text-center">
+          {game.homescore}
+        </span>
+      )}              </span>{" "}
             </li>{" "}
           </ul>
         )}
@@ -205,7 +217,9 @@ game.homescore === game.awayscore
 
             {/* AWAY TEAM ROW */}
             <li className="flex justify-between px-2 text-sm">
-              <span className="w-12 font-bold text-left">{game.away_shortname}</span>
+              <span className="w-12 font-bold text-left">
+                {game.away_shortname}
+              </span>
               <span className="w-8 text-center">
                 {game.firstqtr?.split("-")[1]}
               </span>
@@ -233,13 +247,18 @@ game.homescore === game.awayscore
                   awayWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-                {game.awayscore}
-              </span>
+{isFinal && (
+        <span className="w-8 text-center">
+          {game.awayscore}
+        </span>
+      )}              </span>
             </li>
 
             {/* HOME TEAM ROW */}
             <li className="flex justify-between px-2 text-sm">
-              <span className="w-12 font-bold text-left">{game.home_shortname}</span>
+              <span className="w-12 font-bold text-left">
+                {game.home_shortname}
+              </span>
               <span className="w-8 text-center">
                 {game.firstqtr?.split("-")[0]}
               </span>
@@ -266,8 +285,11 @@ game.homescore === game.awayscore
                   homeWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-                {game.homescore}
-              </span>
+{isFinal && (
+        <span className="w-8 text-center">
+          {game.homescore}
+        </span>
+      )}              </span>
             </li>
           </ul>
         )}
