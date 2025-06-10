@@ -35,7 +35,7 @@ export default function GameCard({ game }) {
             <div className="text-lg font-bold text-white mt-2">
               {game.home_shortname}
             </div>
-            {(isFinal || inProgress) && (
+            
               <div
                 className={`text-lg font-semibold ${
                   game.homescore === game.awayscore
@@ -47,7 +47,7 @@ export default function GameCard({ game }) {
               >
                 {game.homescore}
               </div>
-            )}
+        
           </div>
 
           {/* Center */}
@@ -75,7 +75,7 @@ export default function GameCard({ game }) {
             <div className="text-lg font-bold text-white mt-2">
               {game.away_shortname}
             </div>
-            {(isFinal || inProgress) && (
+            
               <div
                 className={`text-lg font-semibold ${
                   game.homescore === game.awayscore
@@ -87,7 +87,6 @@ export default function GameCard({ game }) {
               >
                 {game.awayscore}
               </div>
-            )}
           </div>
         </div>
         {nhl && (

@@ -34,13 +34,8 @@ const [displayData, setDisplayData] = useState(false);
           throw new Error(`HTTP ${res.status}`);
         }
         const allGames = await res.json();
-        const last16 = allGames
-          .slice()
-          .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .slice(0, 16);
+        setGames(allGames);
         await new Promise(r => setTimeout(r, 50));
-                setGames(last16);
-
     setDisplayData(true);
       } catch (err) {
         if (err.name !== "AbortError") {
