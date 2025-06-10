@@ -3,6 +3,7 @@ import formatDate from "../../HelperFunctions/formatDate";
 
 export default function GameCard({ game }) {
   const isFinal = game.status.includes("Final");
+  const inProgress = game.status.includes("In Progress") || game.status.includes("End of Period");
   const homeWon = isFinal && game.hometeamid === game.winnerid;
   const awayWon = isFinal && game.awayteamid === game.winnerid;
   const league = game.league;
@@ -32,11 +33,14 @@ export default function GameCard({ game }) {
             <div className="text-lg font-bold text-white mt-2">
               {game.home_shortname}
             </div>
-            {isFinal && (
+            {(isFinal || inProgress) && (
               <div
                 className={`text-lg font-semibold ${
-                  homeWon ? "text-green-400" : "text-red-400"
-                }`}
+game.homescore === game.awayscore
+  ? "text-gray-400"
+  : game.homescore > game.awayscore
+    ? "text-green-400"
+    : "text-red-400"                }`}
               >
                 {game.homescore}
               </div>
@@ -66,11 +70,14 @@ export default function GameCard({ game }) {
             <div className="text-lg font-bold text-white mt-2">
               {game.away_shortname}
             </div>
-            {isFinal && (
+            {(isFinal || inProgress) && (
               <div
                 className={`text-lg font-semibold ${
-                  awayWon ? "text-green-400" : "text-red-400"
-                }`}
+game.homescore === game.awayscore
+  ? "text-gray-400"
+  : game.homescore < game.awayscore
+    ? "text-green-400"
+    : "text-red-400"                }`}
               >
                 {game.awayscore}
               </div>
@@ -169,7 +176,7 @@ export default function GameCard({ game }) {
           </ul>
         )}
         {/* Quarter breakdown */}
-        {isFinal && !nhl && (
+        {(isFinal || inProgress) && !nhl && (
           <ul
             className="mt-4 text-sm text-gray-300 font-mono 
     max-h-0 min-h-[0px] group-hover:max-h-[300px] 

@@ -30,7 +30,7 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(nowEST.day)}, ${n
     await runTodayProcessing("nba", pool);
     //await runTodayProcessing("nfl", pool); commented out to avoid unwanted updates to database
     await runTodayProcessing("nhl", pool);
-    console.log(`[ ${formattedTime} ✅ Hourly upsert ran successfully.`);
+    console.log(`[ ${formattedTime} ] ✅ Hourly upsert ran successfully.`);
   } catch (err) {
     console.error("❌ [hourlyUpsert] fatal error:", err);
   } finally {
