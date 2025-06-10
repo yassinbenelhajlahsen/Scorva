@@ -128,9 +128,9 @@ export default function GamePage() {
             {(isFinal || inProgress) && (
               <div
                 className={`text-lg sm:text-4xl font-semibold ${
-                  game.homescore === game.awayscore
+                  game.score.home === game.score.away
                     ? "text-gray-400"
-                    : game.homescore > game.awayscore
+                    : game.score.home > game.score.away
                     ? "text-green-400"
                     : "text-red-400"
                 }`}
@@ -156,9 +156,9 @@ export default function GamePage() {
             {(isFinal || inProgress) && (
               <div
                 className={`text-lg sm:text-4xl font-semibold ${
-                  game.homescore === game.awayscore
+                  game.score.home === game.score.away
                     ? "text-gray-400"
-                    : game.homescore < game.awayscore
+                    : game.score.home < game.score.away
                     ? "text-green-400"
                     : "text-red-400"
                 }`}
@@ -211,7 +211,7 @@ export default function GamePage() {
         </div>
       </div>
 
-      {isFinal && (
+      {(isFinal || inProgress) && (
         <ul className="mt-6 text-lg text-gray-300 font-mono space-y-2">
           {/* Header Row */}
           <li className="flex items-center justify-center gap-x-6 text-gray-400">
@@ -251,11 +251,13 @@ export default function GamePage() {
                 )
             )}
             <span
-              className={`w-10 text-center font-semibold ${
+              className={`w-8 text-center ${
                 homeWon ? "text-green-400" : "text-red-400"
               }`}
             >
-              {game.score.home}
+              {isFinal && (
+                <span className="w-8 text-center">{game.score.home}</span>
+              )}{" "}
             </span>
           </li>
 
@@ -278,22 +280,24 @@ export default function GamePage() {
                 )
             )}
             <span
-              className={`w-10 text-center font-semibold ${
+              className={`w-8 text-center ${
                 awayWon ? "text-green-400" : "text-red-400"
               }`}
             >
-              {game.score.away}
+              {isFinal && (
+                <span className="w-8 text-center">{game.score.away}</span>
+              )}{" "}
             </span>
           </li>
         </ul>
       )}
 
-      {isFinal ? (
+      {isFinal || inProgress ? (
         <BoxScore homeTeam={homeTeam} awayTeam={awayTeam} league={league} />
       ) : (
         <div className="text-center text-gray-400 my-8">
           {" "}
-          No box score available{" "}
+          No box score available, check back when the game starts.{" "}
         </div>
       )}
     </>
