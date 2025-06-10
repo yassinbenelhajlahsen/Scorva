@@ -424,9 +424,8 @@ const now = new Date();
  *    (hourly script will call this once per league)
  */
 export async function runTodayProcessing(leagueSlug, pool) {
-  console.log(`▶ Starting “today’s” import for ${leagueSlug}`);
   const events = await getTodayEvents(leagueSlug);
-  console.log(`  • Found ${events.length} events for today (${leagueSlug})`);
+  console.log(`Upserting ${events.length} events for today (${leagueSlug})`);
 
   for (const event of events) {
     const client = await pool.connect();
@@ -436,5 +435,4 @@ export async function runTodayProcessing(leagueSlug, pool) {
       client.release();
     }
   }
-  console.log(`✅ Finished “today’s” import for ${leagueSlug}`);
 }
