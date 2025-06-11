@@ -1,4 +1,4 @@
-export default function PlayerAvgCard({ league, position, averages, season}) {
+export default function PlayerAvgCard({ league, averages, season}) {
   let statsToDisplay = [];
 
  if (!averages || Object.keys(averages).length === 0 || averages == null) {
@@ -36,8 +36,7 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
         { label: "Saves", value: averages.saves}
       ];
     }
-  console.log("LEAGUE:", league);
-console.log("AVERAGES:", averages);
+
   return (
    <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-screen">
   {/* Orange title bar */}

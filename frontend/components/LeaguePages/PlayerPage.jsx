@@ -97,7 +97,9 @@ const {
   draftInfo,
   games
 } = playerData;
+console.log(playerData);
   return (
+    
     <>
       <Link
         to={`/${league}/players`}
@@ -145,7 +147,6 @@ const {
           <div className="mt-20">
             <PlayerAvgCard
               league={league}
-              position={position}
               averages={seasonAverages}
               season={games.season}
             />
