@@ -11,7 +11,7 @@ import PlayerPage from './components/LeaguePages/PlayerPage.jsx';
 import TeamPage from './components/LeaguePages/TeamPage.jsx';
 import GamePage from './components/LeaguePages/GamePage.jsx';
 import ErrorPage from './components/ErrorPage.jsx';
-import Navbar from './components/navbar.jsx';
+import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import ScrollToTop from './ScrollToTop.jsx';
 

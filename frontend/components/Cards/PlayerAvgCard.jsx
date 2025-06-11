@@ -29,21 +29,14 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
         { label: "INT", value: averages.interceptions }
       ];
     }
-   else if (league === "nhl") {
-    if (position === "G") {
-      statsToDisplay = [
-        { label: "Saves", value: averages.saves },
-        { label: "SV%", value: averages.savePct },
-        { label: "GAA", value: averages.GAA }
-      ];
-    } else {
+   else {
       statsToDisplay = [
         { label: "Goals", value: averages.G },
         { label: "Assists", value: averages.A },
-        { label: "Points", value: averages.pts }
+        { label: "Points", value: averages.saves}
       ];
     }
-  }
+  
 
   return (
    <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-screen">

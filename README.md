@@ -48,18 +48,19 @@ Scorva
 
 ## 🔥 Features
 
-- ✅ Fetch and display real-time game and player data  
-- 🏅 Highlight top performers dynamically  
-- 📊 Responsive box score and game breakdowns  
-- 🎞️ Smooth UI transitions with Framer Motion  
-- 🔗 Interactive routing with React Router  
-- 🌐 Multi-league support (NBA, NFL, NHL)
+- 🏀 Multi-league support: NBA, NFL, NHL
+- 🔍 Search by player or team with autocomplete
+- 📊 Live stats, box scores, and game details
+- 🧠 Ability to hover on game and stat cards for advanced details
+- 🔄 Real-time and historical ESPN API integration
+- 🎨 Responsive UI built with Tailwind and Framer Motion
+- 🔗 RESTful backend with Express and PostgreSQL
+- ⚡ Deployed on Vercel (frontend) and Railway (backend)
 
 ---
 
 ## 📌 Future Improvements
 
-- 🕒 Daily stat syncing via cron jobs or background workers  
 - 👤 User accounts with saved teams, players, and preferences  
 - 📅 Multi-season history and archival access  
 - 🔔 Live game alerts, final scores, and push notifications  
@@ -73,6 +74,40 @@ Scorva
 
 - **Frontend–Backend Deployment Sync:**  
   Hosting the frontend on **Vercel** and backend on **Railway** caused CORS, routing, and environment variable issues during deployment. I resolved these by explicitly managing allowed origins, rewriting API routes, and validating endpoints across both environments.
+
+  ## 🧑‍💻 Getting Started
+
+To run Scorva locally:
+
+### 1. Clone the repo
+```
+git clone https://github.com/yassinbenelhajlahsen/scorva
+cd scorva
+```
+### 2. Install dependencies
+```
+cd backend && npm install
+cd ../frontend && npm install
+```
+
+### 3. Setup environment variables
+
+```
+cd backend
+cp .env.example .env
+```
+
+### 4. Start the app
+Open two terminals:
+```
+# Terminal 1 (backend)
+cd backend
+npm run dev
+
+# Terminal 2 (frontend)
+cd frontend
+npm run dev
+```
 
 ## 🧠 Author
 
