@@ -75,7 +75,7 @@ Scorva
 - **Frontend–Backend Deployment Sync:**  
   Hosting the frontend on **Vercel** and backend on **Railway** caused CORS, routing, and environment variable issues during deployment. I resolved these by explicitly managing allowed origins, rewriting API routes, and validating endpoints across both environments.
 
-  ## 🧑‍💻 Getting Started
+## 🧑‍💻 Getting Started
 
 To run Scorva locally:
 
