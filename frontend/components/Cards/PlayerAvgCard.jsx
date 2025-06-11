@@ -51,7 +51,7 @@ export default function PlayerAvgCard({ league, averages, season}) {
         <li key={i} className="flex flex-col items-center min-w-[80px]">
           <span className="text-xs sm:text-sm">{stat.label}</span>
           <span className="font-semibold text-3xl sm:text-4xl mt-1">
-            {stat.value}
+        {stat.value ?? "--"}
             {stat.label.includes("%") && "%"}
           </span>
         </li>

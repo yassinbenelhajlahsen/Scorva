@@ -97,7 +97,6 @@ const {
   draftInfo,
   games
 } = playerData;
-console.log(playerData);
   return (
     
     <>
