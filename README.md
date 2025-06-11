@@ -79,8 +79,8 @@ Scorva
 ### 🧑‍🤝‍🧑 NBA Player Information
 ![Player Information](screenshots/PlayerDetails.png)
 
-### 📈 Recent Performance Card
-![Recent Performance](./assets/StatCard.png)
+### 📈 Recent Performance Card & Hover for Advanced Stats
+![Recent Performance](screenshots/StatCard.png)
 
 
 ## 📌 Future Improvements
