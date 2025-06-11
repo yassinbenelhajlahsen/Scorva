@@ -48,49 +48,51 @@ Scorva
 
 ## 🔥 Features
 
-- 🏀 Multi-league support: NBA, NFL, NHL
-- 🔍 Search by player or team with autocomplete
-- 📊 Live stats, box scores, and game details
-- 🧠 Ability to hover on game and stat cards for advanced details
-- 🔄 Real-time and historical ESPN API integration
-- 🎨 Responsive UI built with Tailwind and Framer Motion
-- 🔗 RESTful backend with Express and PostgreSQL
-- ⚡ Deployed on Vercel (frontend) and Railway (backend)
+-  Multi-league support: NBA, NFL, NHL
+-  Search by player or team with autocomplete
+-  Live stats, box scores, and game details
+-  Ability to hover on game and stat cards for advanced details
+-  Real-time and historical ESPN API integration
+-  Responsive UI built with Tailwind and Framer Motion
+-  RESTful backend with Express and PostgreSQL
+-  Deployed on Vercel (frontend) and Railway (backend)
 
 ---
+<details>
+  <summary>📸 Screenshots (click to expand)</summary>
 
-## 📸 Screenshots
-
-### 🏀 NBA Standings
+###  NBA Standings
 ![NBA Standings](screenshots/Standings.png)
 
-### 📊 NFL Game 
+###  NFL Game 
 ![NFL Game](screenshots/Game.png)
 
-### 🏈 NFL Box Score
+###  NFL Box Score
 ![NFL Boxscore](screenshots/Boxscore.png)
 
-### 🧑‍💼 Game Cards & Hover for Quarter Breakdown
+###  Game Cards & Hover for Quarter Breakdown
 ![Game Card](screenshots/GameCard.png)
 
-### 🧑‍🤝‍🧑 NFL Player List
-![NBA Player List](screenshots/playersList.png)
+###  NFL Player List
+![NFL Player List](screenshots/playersList.png)
 
-### 🧑‍🤝‍🧑 NBA Player Information
+###  NBA Player Information
 ![Player Information](screenshots/PlayerDetails.png)
 
-### 📈 Recent Performance Card & Hover for Advanced Stats
+###  Recent Performance Card & Hover for Advanced Stats
 ![Recent Performance](screenshots/StatCard.png)
 
-### 🔎 Search Bar with Dynamic Results & Autofill for teams, games, and players
+###  Search Bar with Dynamic Results & Autofill for teams, games, and players
 ![Search Bar](screenshots/Searchbar.png)
+
+</details>
 
 ## 📌 Future Improvements
 
-- 👤 User accounts with saved teams, players, and preferences  
-- 📅 Multi-season history and archival access  
-- 🔔 Live game alerts, final scores, and push notifications  
-- 📱 Mobile app (React Native or PWA)
+-  User accounts with saved teams, players, and preferences  
+-  Multi-season history and archival access  
+-  Live game alerts, final scores, and push notifications  
+-  Mobile app (React Native or PWA)
 
 ## 🧩 Challenges Faced
 
