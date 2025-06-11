@@ -58,8 +58,12 @@ Scorva
 -  Deployed on Vercel (frontend) and Railway (backend)
 
 ---
+
+### 📸 Screenshots
+
+
 <details>
-  <summary>📸 Screenshots (click to expand)</summary>
+  <summary>(click to expand)</summary>
 
 ###  NBA Standings
 ![NBA Standings](screenshots/Standings.png)
@@ -107,6 +111,10 @@ Scorva
 
 To run Scorva locally:
 
+<details>
+  <summary>(click to expand)</summary>
+
+
 ### 1. Clone the repo
 ```
 git clone https://github.com/yassinbenelhajlahsen/scorva
@@ -136,6 +144,7 @@ npm run dev
 cd frontend
 npm run dev
 ```
+</details>
 
 ## 🧠 Author
 
