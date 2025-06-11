@@ -59,6 +59,30 @@ Scorva
 
 ---
 
+## 📸 Screenshots
+
+### 🏀 NBA Standings
+![NBA Standings](screenshots/Standings.png)
+
+### 📊 NFL Game 
+![NFL Game](screenshots/Game.png)
+
+### 🏈 NFL Box Score
+![NFL Boxscore](screenshots/Boxscore.png)
+
+### 🧑‍💼 Game Cards & Hover for Quarter Breakdown
+![Game Card](screenshots/GameCard.png)
+
+### 🧑‍🤝‍🧑 NFL Player List
+![NBA Player List](screenshots/playersList.png)
+
+### 🧑‍🤝‍🧑 NBA Player Information
+![Player Information](screenshots/PlayerDetails.png)
+
+### 📈 Recent Performance Card
+![Recent Performance](./assets/StatCard.png)
+
+
 ## 📌 Future Improvements
 
 - 👤 User accounts with saved teams, players, and preferences  
