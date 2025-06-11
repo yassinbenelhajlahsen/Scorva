@@ -31,13 +31,12 @@ export default function PlayerAvgCard({ league, position, averages, season}) {
     }
    else {
       statsToDisplay = [
-        { label: "Goals", value: averages.G },
-        { label: "Assists", value: averages.A },
-        { label: "Points", value: averages.saves}
+        { label: "Goals", value: averages.goals},
+        { label: "Assists", value: averages.assists},
+        { label: "Saves", value: averages.saves}
       ];
     }
   
-
   return (
    <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-screen">
   {/* Orange title bar */}
