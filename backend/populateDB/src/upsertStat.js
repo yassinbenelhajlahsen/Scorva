@@ -1,3 +1,8 @@
+function parseInteger(value) {
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
 export default async function upsertStat(client, gameId, playerId, stats) {
   const query = `
     INSERT INTO stats (
@@ -52,7 +57,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
       ft           = EXCLUDED.ft,
       turnovers    = EXCLUDED.turnovers,
       plusminus    = EXCLUDED.plusminus,
-      minutes      = EXCLUDED.minutes,
+      parseInteger(minutes)  = EXCLUDED.minutes,
       cmpatt       = EXCLUDED.cmpatt,
       yds          = EXCLUDED.yds,
       sacks        = EXCLUDED.sacks,
