@@ -57,7 +57,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
       ft           = EXCLUDED.ft,
       turnovers    = EXCLUDED.turnovers,
       plusminus    = EXCLUDED.plusminus,
-      parseInteger(minutes)  = EXCLUDED.minutes,
+      minutes  = EXCLUDED.minutes,
       cmpatt       = EXCLUDED.cmpatt,
       yds          = EXCLUDED.yds,
       sacks        = EXCLUDED.sacks,
@@ -94,7 +94,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     stats.ft || null,           // $10
     stats.turnovers || null,    // $11
     stats.plusminus || null,    // $12
-    stats.minutes || null,      // $13
+    parseInteger(stats.minutes), // $13      // $13
     stats.cmpatt || null,       // $14
     stats.yds !== null && stats.yds !== undefined ? Number(stats.yds) : null,    
     stats.sacks || null,        // $16
