@@ -16,7 +16,7 @@ export default function Footer() {
           🧑‍💻 View Source on GitHub
         </a>
         <a
-          href="https://www.linkedin.com/in/yassinbenelhajlahsen/"
+          href="https://www.linkedin.com/in/yassin-benelhajlahsen/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-400 hover:text-blue-600"

@@ -23,7 +23,6 @@ export default function Homepage() {
           )
         );
 
-        // check each response and parse JSON
         const data = await Promise.all(
           responses.map((res, i) => {
             if (!res.ok) {
