@@ -6,8 +6,8 @@
 
 ## 🚀 Live Demo
 
-- **Frontend (Vercel):** https://scorva.vercel.app  
-- **Backend API (Railway):** https://scorva-production.up.railway.app
+https://scorva.vercel.app  
+
 
 ---
 
