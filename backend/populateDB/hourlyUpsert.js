@@ -7,7 +7,7 @@ import { DateTime } from "luxon";
 dotenv.config({ path: path.resolve('../.env') });
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.DB_URL,
+  connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === "production"
     ? { rejectUnauthorized: false }
     : false,
@@ -28,7 +28,7 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(nowEST.day)}, ${n
   try {
     // For each league, fetch and process today’s events
     await runTodayProcessing("nba", pool);
-    //await runTodayProcessing("nfl", pool); commented out to avoid unwanted updates to database
+    await runTodayProcessing("nfl", pool); 
     await runTodayProcessing("nhl", pool);
     console.log(`[ ${formattedTime} ] ✅ Hourly upsert ran successfully.`);
   } catch (err) {

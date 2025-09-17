@@ -13,7 +13,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: "https://scorva.vercel.app",
+  origin: ["http://localhost:5173", "https://scorva.vercel.app"],
 }));
 
 app.use(express.json());

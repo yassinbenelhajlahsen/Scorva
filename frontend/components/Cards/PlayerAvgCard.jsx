@@ -41,7 +41,7 @@ export default function PlayerAvgCard({ league, averages, season}) {
    <div className="border border-zinc-700 bg-zinc-800 text-white rounded-lg shadow-md w-full max-w-screen">
   {/* Orange title bar */}
   <div className="w-full bg-orange-400 text-center text-sm sm:text-md font-bold uppercase py-2 px-4">
-    2024-25 Regular Season Stats
+    2025-26 Regular Season Stats
   </div>
 
   {/* Card body */}

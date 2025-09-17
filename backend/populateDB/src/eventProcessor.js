@@ -418,7 +418,6 @@ const now = new Date();
   console.log(`✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`);
 }
 
-
 /**
  * 7) Convenience: process “today’s” events for one league
  *    (hourly script will call this once per league)
