@@ -1,9 +1,11 @@
 import dotenv from "dotenv";
-import path from "path";
 import { Pool } from "pg";
 import { runDateRangeProcessing } from "./src/eventProcessor.js";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 
-dotenv.config({ path: path.resolve("../.env") });
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../.env") });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -29,9 +31,9 @@ function getAllDatesInRange(startISO, endISO) {
 }
 
 const leagues = [
-  { slug: "nfl", seasonStart: "2024-09-05", seasonEnd: "2025-02-09" },
-  { slug: "nba", seasonStart: "2025-03-01", seasonEnd: "2025-06-10" },
-  { slug: "nhl", seasonStart: "2025-03-01", seasonEnd: "2025-06-10" },
+  { slug: "nfl", seasonStart: "2025-09-05", seasonEnd: "2025-09-18" },
+  //{ slug: "nba", seasonStart: "2025-03-01", seasonEnd: "2025-06-10" },
+  //{ slug: "nhl", seasonStart: "2025-03-01", seasonEnd: "2025-06-10" },
 ];
 
 (async () => {

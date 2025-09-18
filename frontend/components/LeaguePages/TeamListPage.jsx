@@ -25,12 +25,14 @@ export default function StandingsPage() {
       })
       .then((teams) => {
         const isNFL = league === "nfl";
+
         const east = teams.filter(
-          (t) => t.conf.toLowerCase() === (isNFL ? "afc" : "east")
+          (t) => t.conf?.toLowerCase() === (isNFL ? "afc" : "east")
         );
         const west = teams.filter(
-          (t) => t.conf.toLowerCase() === (isNFL ? "nfc" : "west")
+          (t) => t.conf?.toLowerCase() === (isNFL ? "nfc" : "west")
         );
+
         setEastOrAFC(east);
         setWestOrNFC(west);
         setLoading(false);
@@ -52,9 +54,9 @@ export default function StandingsPage() {
       <div className="w-full flex justify-center sm:justify-start sm:ml-5">
         <Link
           to={`/${league}`}
-          className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+          className="mt-6 inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 ml-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
         >
-          Return to {leagueName}
+          ← Return to {leagueName}
         </Link>
       </div>
 

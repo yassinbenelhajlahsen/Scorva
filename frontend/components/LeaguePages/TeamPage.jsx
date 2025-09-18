@@ -18,7 +18,9 @@ export default function TeamPage() {
   useEffect(() => {
     async function fetchTeamData() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/teams`);
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/${league}/teams`
+        );
         if (!res.ok) throw new Error("Failed to fetch teams.");
         const teamList = await res.json();
 
@@ -32,7 +34,11 @@ export default function TeamPage() {
         setTeam(foundTeam);
 
         const games = await (
-          await fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${foundTeam.id}`)
+          await fetch(
+            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${
+              foundTeam.id
+            }`
+          )
         ).json();
         const last10 = games
           .slice()
@@ -62,37 +68,36 @@ export default function TeamPage() {
     <>
       <Link
         to={`/${league}/teams`}
-        className="mt-6 inline-block bg-white text-red-500 font-semibold py-4 px-8 ml-6 rounded-lg shadow transform transition-transform duration-300 hover:bg-gray-200 hover:scale-105"
+        className="mt-6 inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 ml-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
       >
-        Return to Teams Page
+        ← Return to Teams Page
       </Link>
+
       <div className="flex flex-col md:flex-row justify-center md:justify-between items-center gap-10 p-6 text-white">
-  {/* Image + Title */}
-  <div className="flex flex-col items-center md:items-start w-full md:w-1/2 m-10">
-    <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
-    <img
-      src={team.logo_url || "/images/placeholder.png"}
-      alt={team.name}
-      className="w-80 h-80 object-contain m-6 drop-shadow-[0_0_2px_white]"
-    />
-  </div>
+        {/* Image + Title */}
+        <div className="flex flex-col items-center md:items-start w-full md:w-1/2 m-10">
+          <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
+          <img
+            src={team.logo_url || "/images/placeholder.png"}
+            alt={team.name}
+            className="w-80 h-80 object-contain m-6 drop-shadow-[0_0_2px_white]"
+          />
+        </div>
 
-  {/* Stats */}
-  <div className="w-full md:w-[40%]">
-    <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-lg">
-      <div className="text-gray-400 mb-6">Location</div>
-      <div className="font-semibold">{team.location}</div>
-      <div className="text-gray-400 mb-6">Record</div>
-      <div className="font-semibold">{team.record}</div>
-      <div className="text-gray-400 mb-6">Home Record</div>
-      <div className="font-semibold">{team.homerecord}</div>
-      <div className="text-gray-400 mb-6">Away Record</div>
-      <div className="font-semibold">{team.awayrecord}</div>
-    </div>
-  </div>
-</div>
-
-
+        {/* Stats */}
+        <div className="w-full md:w-[40%]">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-lg">
+            <div className="text-gray-400 mb-6">Location</div>
+            <div className="font-semibold">{team.location}</div>
+            <div className="text-gray-400 mb-6">Record</div>
+            <div className="font-semibold">{team.record}</div>
+            <div className="text-gray-400 mb-6">Home Record</div>
+            <div className="font-semibold">{team.homerecord}</div>
+            <div className="text-gray-400 mb-6">Away Record</div>
+            <div className="font-semibold">{team.awayrecord}</div>
+          </div>
+        </div>
+      </div>
 
       <h2 className="text-5xl font-bold mb-4 p-8 text-center">Last 10 Games</h2>
 

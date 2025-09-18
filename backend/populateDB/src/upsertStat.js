@@ -81,45 +81,50 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     RETURNING id;
   `;
 
-  const values = [
-    gameId,              // $1
-    playerId,            // $2
-    stats.points || null,       // $3
-    stats.assists || null,      // $4
-    stats.rebounds || null,     // $5
-    stats.blocks || null,       // $6
-    stats.steals || null,       // $7
-    stats.fg || null,           // $8
-    stats.threept || null,      // $9
-    stats.ft || null,           // $10
-    stats.turnovers || null,    // $11
-    stats.plusminus || null,    // $12
-    parseInteger(stats.minutes), // $13      // $13
-    stats.cmpatt || null,       // $14
-    stats.yds !== null && stats.yds !== undefined ? Number(stats.yds) : null,    
-    stats.sacks || null,        // $16
-stats.td !== null && stats.td !== undefined 
-  ? Number(stats.td.split('/')[0])  // Takes the first number from "2/2"
-  : null,     
-  stats.interceptions || null,// $18
-    stats.g || null,            // $19
-    stats.a || null,            // $20
-    stats.saves || null,        // $23
-    stats.savePct || null,     // $24
-    stats.ga || null,          // $25
-    stats.toi || null,          // $26
-    stats.shots || null,        // $27
-    stats.sm || null,           // $28
-    stats.bs || null,           // $29
-    stats.pn || null,           // $30
-    stats.pim || null,          // $31
-    stats.ht || null,           // $32
-    stats.tk || null,           // $33
-    stats.gv || null,           // $34
-    stats.fouls || null,        // $35
-  ];
+  let tdValue = null;
+  if (stats.td !== null && stats.td !== undefined) {
+    if (typeof stats.td === "string" && stats.td.includes("/")) {
+      tdValue = Number(stats.td.split("/")[0]);
+    } else {
+      tdValue = Number(stats.td);
+    }
+  }
 
-  
+  const values = [
+    gameId,
+    playerId,
+    stats.points || null,
+    stats.assists || null,
+    stats.rebounds || null,
+    stats.blocks || null,
+    stats.steals || null,
+    stats.fg || null,
+    stats.threept || null,
+    stats.ft || null,
+    stats.turnovers || null,
+    stats.plusminus || null,
+    parseInteger(stats.minutes),
+    stats.cmpatt || null,
+    stats.yds !== null && stats.yds !== undefined ? Number(stats.yds) : null,
+    stats.sacks || null,
+    tdValue, // fixed!
+    stats.interceptions || null,
+    stats.g || null,
+    stats.a || null,
+    stats.saves || null,
+    stats.savePct || null,
+    stats.ga || null,
+    stats.toi || null,
+    stats.shots || null,
+    stats.sm || null,
+    stats.bs || null,
+    stats.pn || null,
+    stats.pim || null,
+    stats.ht || null,
+    stats.tk || null,
+    stats.gv || null,
+    stats.fouls || null,
+  ];
 
   try {
     const res = await client.query(query, values);
