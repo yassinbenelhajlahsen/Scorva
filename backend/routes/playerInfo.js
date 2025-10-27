@@ -4,7 +4,7 @@ import pool from "../db.js";
 const router = express.Router();
 
 // Change this when a new season starts
-const currentSeason = "2025-2026";
+const currentSeason = "2025-26";
 
 /**
  * Resolve ":slug" (or numeric string) to a numeric player id for a given league.
