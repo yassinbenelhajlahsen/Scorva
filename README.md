@@ -17,8 +17,8 @@ https://scorva.vercel.app
 - **Backend:** Node.js, Express, pg (PostgreSQL)  
 - **Database:** PostgreSQL (hosted on Railway)  
 - **Deployment:**  
-  - Frontend: [Vercel](https://vercel.com)  
-  - Backend: [Railway](https://railway.app)
+  - Frontend: Vercel
+  - Backend: Railway
 ---
 
 ## Project Structure
@@ -26,23 +26,61 @@ https://scorva.vercel.app
 ```
 Scorva
 ├── backend
-│   ├── index.js              # Entry point for Express server
-│   ├── db.js                 # PostgreSQL connection setup
-│   ├── routes/               # API routes
-│   │   ├── games.js
-│   │   ├── teams.js
-│   │   └── ...
-│   ├── populateDB/           # Scripts to fetch and insert data into DB
-│   ├── package.json          # Backend dependencies
-│   └── .env                  # Local environment variables (not committed)
-└── frontend
-    ├── src/
-    │   ├── main.jsx          # Entry point for React app
-    │   ├── components/       # Reusable UI components
-    │   └── ...
-    ├── index.html            # HTML template
-    ├── package.json          # Frontend dependencies
-    └── tailwind.config.js    # Tailwind CSS configuration
+│   ├── src/
+│   │   ├── index.js              # Express server entry point
+│   │   ├── db/
+│   │   │   └── db.js             # PostgreSQL connection setup
+│   │   ├── routes/               # API route handlers
+│   │   │   ├── games.js
+│   │   │   ├── teams.js
+│   │   │   ├── players.js
+│   │   │   ├── search.js
+│   │   │   ├── standings.js
+│   │   │   └── ...
+│   │   ├── config/
+│   │   │   └── env.js            # dotenv initialization and environment setup
+│   │   ├── utils/                # Shared helpers (e.g., logger, validation)
+│   │   └── populate/             # Database seeding and update scripts
+│   │       ├── historicalUpsert.js
+│   │       ├── hourlyUpsert.js
+│   │       └── src/
+│   │           ├── commonMappings.js
+│   │           ├── mapStatsToSchema.js
+│   │           ├── eventProcessor.js
+│   │           ├── upsertGame.js
+│   │           ├── upsertPlayer.js
+│   │           ├── upsertStat.js
+│   │           └── upsertTeam.js
+│   ├── package.json              # Backend dependencies
+│   ├── package-lock.json
+│   ├── backend.env.example       # Example backend environment variables
+│   └── .env                      # Local backend environment (ignored by Git)
+│
+├── frontend
+│   └── src/
+│       ├── App.jsx               # Root React component
+│       ├── main.jsx              # Entry point for Vite
+│       ├── assets/               # Static assets (images, icons, etc.)
+│       ├── components/           # Reusable UI components
+│       │   ├── cards/            # GameCard, PlayerCard, etc.
+│       │   ├── layout/           # Navbar, Footer, PageWrapper, ScrollToTop
+│       │   └── ui/               # BoxScore, Hero, SearchBar
+│       ├── pages/                # Page-level React components (routes)
+│       ├── utilities/            # Helper functions and formatters
+│       └── index.css             # Global styles
+│
+├── public/                       # Static public assets for Vite
+├── screenshots/                  # Showcase images for documentation
+├── .env                          # Frontend environment variables
+├── .env.local                    # Local frontend overrides
+├── eslint.config.js              # ESLint configuration
+├── vite.config.js                # Vite configuration
+├── package.json                  # Root scripts (frontend + backend)
+├── vercel.json                   # Deployment configuration
+├── index.html                    # Root HTML template for Vite
+├── LICENSE
+└── README.md
+
 ```
 
 
