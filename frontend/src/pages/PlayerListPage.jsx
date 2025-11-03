@@ -1,9 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 
-import LoadingPage from "../LoadingPage.jsx";
+import LoadingPage from "./LoadingPage.jsx";
 
-import PlayerCard from "../Cards/PlayerCard";
+import PlayerCard from "../components/cards/PlayerCard.jsx";
 
 const leagueLogos = {
   nba: "/NBAlogo.png",

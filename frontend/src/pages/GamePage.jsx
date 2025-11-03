@@ -2,13 +2,13 @@ import { Link, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-import BoxScore from "../BoxScore.jsx";
-import slugify from "../../HelperFunctions/slugify.js";
-import computeTopPlayers from "../../HelperFunctions/topPlayers.js";
-import TopPerformerCard from "../Cards/TopPerformerCard.jsx";
+import BoxScore from "../components/ui/BoxScore.jsx";
+import slugify from "../utilities/slugify.js";
+import computeTopPlayers from "../utilities/topPlayers.js";
+import TopPerformerCard from "../components/Cards/TopPerformerCard.jsx";
 
-import LoadingPage from "../LoadingPage.jsx";
-import formatDate from "../../HelperFunctions/formatDate.js";
+import LoadingPage from "./LoadingPage.jsx";
+import formatDate from "../utilities/formatDate.js";
 
 export default function GamePage() {
   const location = useLocation();

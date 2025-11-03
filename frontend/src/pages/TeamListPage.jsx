@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import LoadingPage from "../LoadingPage.jsx";
-import slugify from "../../HelperFunctions/slugify.js";
+import LoadingPage from "./LoadingPage.jsx";
+import slugify from "../utilities/slugify.js";
 
 const leagueLogos = {
   nba: "/NBAlogo.png",

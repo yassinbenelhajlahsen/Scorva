@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import logo from "../assets/favicon.png";
-import SearchBar from "./SearchBar.jsx";
+import logo from "../../assets/favicon.png";
+import SearchBar from "../ui/SearchBar.jsx";
 
 export default function Navbar() {
   const [query, setQuery] = useState("");

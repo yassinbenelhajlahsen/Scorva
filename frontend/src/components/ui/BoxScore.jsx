@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import slugify from "../HelperFunctions/slugify.js";
+import slugify from "../../utilities/slugify.js";
 
 export default function BoxScore({ league, homeTeam, awayTeam }) {
   // 1. Extract stat keys from first available player with stats
@@ -18,7 +18,9 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
 
   const renderTable = (team, players) => (
     <div className="w-full bg-white/5 rounded-xl p-4 shadow">
-      <h4 className="text-xl font-semibold mb-4 text-center">{team.info.name}</h4>
+      <h4 className="text-xl font-semibold mb-4 text-center">
+        {team.info.name}
+      </h4>
       <div className="overflow-x-auto">
         <table className="min-w-[600px] sm:min-w-full text-left border-separate border-spacing-y-2">
           <thead className="text-gray-400 text-xs sm:text-sm">
@@ -33,7 +35,11 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
           </thead>
           <tbody>
             {players.map((p) => (
-              <tr  id={`player-${p.id}`} key={p.id} className="text-xs sm:text-sm">
+              <tr
+                id={`player-${p.id}`}
+                key={p.id}
+                className="text-xs sm:text-sm"
+              >
                 <td className="py-1 px-2 font-medium">
                   <Link
                     to={`/${league}/players/${slugify(p.name)}`}
@@ -58,7 +64,8 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
   if (statHeaders.length === 0) {
     return (
       <div className="text-center text-gray-400 mt-8">
-        No box score available for this game. Check back once the game has finished.
+        No box score available for this game. Check back once the game has
+        finished.
       </div>
     );
   }

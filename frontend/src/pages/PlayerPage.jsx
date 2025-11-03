@@ -1,11 +1,11 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import LoadingPage from "../LoadingPage.jsx";
+import LoadingPage from "./LoadingPage.jsx";
 
-import PlayerAvgCard from "../Cards/PlayerAvgCard.jsx";
-import slugify from "../../HelperFunctions/slugify.js";
-import formatDate from "../../HelperFunctions/formatDate.js";
-import StatCard from "../Cards/StatCard.jsx";
+import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
+import slugify from "../utilities/slugify.js";
+import formatDate from "../utilities/formatDate.js";
+import StatCard from "../components/cards/StatCard.jsx";
 const statConfigs = {
   nba: [
     { key: "points", label: "PTS" },

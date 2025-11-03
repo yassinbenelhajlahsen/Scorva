@@ -1,31 +1,37 @@
 import { Link } from "react-router-dom";
-import slugify from "../../HelperFunctions/slugify.js";
+import slugify from "../../utilities/slugify.js";
 
 const statFormatMap = {
-  nba: (stats) => [
-    stats.PTS && `${stats.PTS} PTS`,
-    stats.REB && `${stats.REB} REB`,
-    stats.AST && `${stats.AST} AST`,
-  ].filter(Boolean),
+  nba: (stats) =>
+    [
+      stats.PTS && `${stats.PTS} PTS`,
+      stats.REB && `${stats.REB} REB`,
+      stats.AST && `${stats.AST} AST`,
+    ].filter(Boolean),
 
-  nfl: (stats) => [
-    stats.YDS && `${stats.YDS} YDS`,
-    stats.TD && `${stats.TD} TD`,
-    stats.SCKS && `${stats.SCKS} SCK`,
-    stats.INT && `${stats.INT} INT`,
-  ].filter(Boolean),
+  nfl: (stats) =>
+    [
+      stats.YDS && `${stats.YDS} YDS`,
+      stats.TD && `${stats.TD} TD`,
+      stats.SCKS && `${stats.SCKS} SCK`,
+      stats.INT && `${stats.INT} INT`,
+    ].filter(Boolean),
 
-  nhl: (stats) => [
-    stats.G && `${stats.G} G`,
-    stats.A && `${stats.A} A`,
-    stats.SAVES && `${stats.SAVES} SAVES`,
-    stats.HT && `${stats.HT} HIT`,
-    stats.BS && `${stats.BS} BLK`,
-  ].filter(Boolean),
+  nhl: (stats) =>
+    [
+      stats.G && `${stats.G} G`,
+      stats.A && `${stats.A} A`,
+      stats.SAVES && `${stats.SAVES} SAVES`,
+      stats.HT && `${stats.HT} HIT`,
+      stats.BS && `${stats.BS} BLK`,
+    ].filter(Boolean),
 };
 
-
-export default function TopPerformerCard({ player, title = "Top Performer", league }) {
+export default function TopPerformerCard({
+  player,
+  title = "Top Performer",
+  league,
+}) {
   if (!player) return null;
 
   const { name, position, imageUrl, stats } = player;
@@ -48,8 +54,12 @@ export default function TopPerformerCard({ player, title = "Top Performer", leag
         }}
       />
       <div className="flex-1">
-        <div className="text-sm text-gray-400 uppercase tracking-wide">{title}</div>
-        <div className="text-lg font-bold text-orange-400 group-hover:underline">{name}</div>
+        <div className="text-sm text-gray-400 uppercase tracking-wide">
+          {title}
+        </div>
+        <div className="text-lg font-bold text-orange-400 group-hover:underline">
+          {name}
+        </div>
         <div className="text-sm text-gray-300">{position}</div>
         <div className="mt-1 text-sm text-gray-200">
           {formattedStats.join(" • ")}

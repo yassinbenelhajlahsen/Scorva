@@ -1,19 +1,19 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import PageWrapper from './components/pageWrapper.jsx';
-import Hero from './components/Hero.jsx';
-import Homepage from './components/Homepage.jsx';
-import About from './components/About.jsx';
-import LeaguePage from './components/LeaguePages/LeaguePage.jsx';
-import PlayerListPage from './components/LeaguePages/PlayerListPage.jsx';
-import TeamListPage from './components/LeaguePages/TeamListPage.jsx';
-import PlayerPage from './components/LeaguePages/PlayerPage.jsx';
-import TeamPage from './components/LeaguePages/TeamPage.jsx';
-import GamePage from './components/LeaguePages/GamePage.jsx';
-import ErrorPage from './components/ErrorPage.jsx';
-import Navbar from './components/Navbar.jsx';
-import Footer from './components/Footer.jsx';
-import ScrollToTop from './ScrollToTop.jsx';
+import PageWrapper from './components/layout/pageWrapper.jsx';
+import Hero from './components/ui/Hero.jsx';
+import Homepage from './pages/Homepage.jsx';
+import About from './pages/About.jsx';
+import LeaguePage from './pages/LeaguePage.jsx';
+import PlayerListPage from './pages/PlayerListPage.jsx';
+import TeamListPage from './pages/TeamListPage.jsx';
+import PlayerPage from './pages/PlayerPage.jsx';
+import TeamPage from './pages/TeamPage.jsx';
+import GamePage from './pages/GamePage.jsx';
+import ErrorPage from './pages/ErrorPage.jsx';
+import Navbar from './components/layout/Navbar.jsx';
+import Footer from './components/layout/Footer.jsx';
+import ScrollToTop from './components/layout/ScrollToTop.jsx';
 
 function AnimatedRoutes() {
   const location = useLocation();

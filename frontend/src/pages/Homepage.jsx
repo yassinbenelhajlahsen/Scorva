@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import GameCard from "./Cards/GameCard.jsx";
+import GameCard from "../components/cards/GameCard.jsx";
 import LoadingPage from "./LoadingPage.jsx";
 
 export default function Homepage() {

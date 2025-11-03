@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import formatDate from "../../HelperFunctions/formatDate";
+import formatDate from "../../utilities/formatDate";
 
 export default function GameCard({ game }) {
   const isFinal = game.status.includes("Final");
@@ -35,19 +35,18 @@ export default function GameCard({ game }) {
             <div className="text-lg font-bold text-white mt-2">
               {game.home_shortname}
             </div>
-            
-              <div
-                className={`text-lg font-semibold ${
-                  game.homescore === game.awayscore
-                    ? "text-gray-400"
-                    : game.homescore > game.awayscore
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {game.homescore}
-              </div>
-        
+
+            <div
+              className={`text-lg font-semibold ${
+                game.homescore === game.awayscore
+                  ? "text-gray-400"
+                  : game.homescore > game.awayscore
+                  ? "text-green-400"
+                  : "text-red-400"
+              }`}
+            >
+              {game.homescore}
+            </div>
           </div>
 
           {/* Center */}
@@ -75,18 +74,18 @@ export default function GameCard({ game }) {
             <div className="text-lg font-bold text-white mt-2">
               {game.away_shortname}
             </div>
-            
-              <div
-                className={`text-lg font-semibold ${
-                  game.homescore === game.awayscore
-                    ? "text-gray-400"
-                    : game.homescore < game.awayscore
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {game.awayscore}
-              </div>
+
+            <div
+              className={`text-lg font-semibold ${
+                game.homescore === game.awayscore
+                  ? "text-gray-400"
+                  : game.homescore < game.awayscore
+                  ? "text-green-400"
+                  : "text-red-400"
+              }`}
+            >
+              {game.awayscore}
+            </div>
           </div>
         </div>
         {nhl && (
@@ -143,10 +142,8 @@ export default function GameCard({ game }) {
               >
                 {" "}
                 {isFinal && (
-        <span className="w-8 text-center">
-          {game.awayscore}
-        </span>
-      )}
+                  <span className="w-8 text-center">{game.awayscore}</span>
+                )}
               </span>{" "}
             </li>{" "}
             {/* HOME TEAM ROW */}{" "}
@@ -178,11 +175,10 @@ export default function GameCard({ game }) {
                 }`}
               >
                 {" "}
-{isFinal && (
-        <span className="w-8 text-center">
-          {game.homescore}
-        </span>
-      )}              </span>{" "}
+                {isFinal && (
+                  <span className="w-8 text-center">{game.homescore}</span>
+                )}{" "}
+              </span>{" "}
             </li>{" "}
           </ul>
         )}
@@ -246,11 +242,10 @@ export default function GameCard({ game }) {
                   awayWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-{isFinal && (
-        <span className="w-8 text-center">
-          {game.awayscore}
-        </span>
-      )}              </span>
+                {isFinal && (
+                  <span className="w-8 text-center">{game.awayscore}</span>
+                )}{" "}
+              </span>
             </li>
 
             {/* HOME TEAM ROW */}
@@ -284,11 +279,10 @@ export default function GameCard({ game }) {
                   homeWon ? "text-green-400" : "text-red-400"
                 }`}
               >
-{isFinal && (
-        <span className="w-8 text-center">
-          {game.homescore}
-        </span>
-      )}              </span>
+                {isFinal && (
+                  <span className="w-8 text-center">{game.homescore}</span>
+                )}{" "}
+              </span>
             </li>
           </ul>
         )}

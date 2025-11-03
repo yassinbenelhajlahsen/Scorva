@@ -1,9 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import GameCard from "../Cards/GameCard";
-import leagueData from "../../HelperFunctions/LeagueData";
-import LoadingPage from "../LoadingPage.jsx";
+import GameCard from "../components/cards/GameCard.jsx";
+import leagueData from "../utilities/LeagueData";
+import LoadingPage from "./LoadingPage.jsx";
 
 export default function LeaguePage() {
   const { league } = useParams();

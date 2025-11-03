@@ -1,9 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import GameCard from "../Cards/GameCard";
-import LoadingPage from "../LoadingPage.jsx";
-import slugify from "../../HelperFunctions/slugify.js";
+import GameCard from "../components/cards/GameCard";
+import LoadingPage from "./LoadingPage.jsx";
+import slugify from "../utilities/slugify.js";
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();

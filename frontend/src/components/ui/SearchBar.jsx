@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import slugify from "../HelperFunctions/slugify.js";
+import slugify from "../../utilities/slugify.js";
 
 export default function SearchBar({ allItems, query, setQuery }) {
   const navigate = useNavigate();
@@ -9,7 +9,7 @@ export default function SearchBar({ allItems, query, setQuery }) {
   useEffect(() => {
     function handleClickOutside(e) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setQuery("");     
+        setQuery("");
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -23,10 +23,7 @@ export default function SearchBar({ allItems, query, setQuery }) {
     const matches = [];
     for (const item of allItems) {
       if (matches.length >= 10) break;
-      if (
-        item.name.toLowerCase().includes(q) &&
-        !seenIds.has(item.id)
-      ) {
+      if (item.name.toLowerCase().includes(q) && !seenIds.has(item.id)) {
         seenIds.add(item.id);
         matches.push(item);
       }
@@ -36,9 +33,10 @@ export default function SearchBar({ allItems, query, setQuery }) {
 
   function handleSelect(item) {
     setQuery(item.name);
-    const base = item.type === "game"
-      ? `/${item.league}/games/${item.id}`
-      : `/${item.league}/${item.type}s/${slugify(item.name)}`;
+    const base =
+      item.type === "game"
+        ? `/${item.league}/games/${item.id}`
+        : `/${item.league}/${item.type}s/${slugify(item.name)}`;
     navigate(base);
   }
 
@@ -47,14 +45,14 @@ export default function SearchBar({ allItems, query, setQuery }) {
       <input
         type="text"
         value={query}
-        onChange={e => setQuery(e.target.value)}
+        onChange={(e) => setQuery(e.target.value)}
         placeholder="Search players, teams, games..."
         className="w-full px-4 py-2 rounded-full bg-zinc-800 text-white placeholder-gray-400 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
       />
 
       {suggestions.length > 0 && (
         <ul className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md max-h-60 overflow-auto">
-          {suggestions.map(item => (
+          {suggestions.map((item) => (
             <li
               key={item.id}
               onClick={() => handleSelect(item)}
@@ -62,16 +60,17 @@ export default function SearchBar({ allItems, query, setQuery }) {
             >
               {item.type !== "game" && (
                 <img
-  src={item.imageUrl}
-  alt={item.name}
-  className={`
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className={`
     mr-3
-    ${item.type === "team"
-      ? "w-12 h-12 rounded-md object-contain"      
-      : "w-10 h-14 rounded-full object-cover"}   
+    ${
+      item.type === "team"
+        ? "w-12 h-12 rounded-md object-contain"
+        : "w-10 h-14 rounded-full object-cover"
+    }   
   `}
-/>
-
+                />
               )}
               <span>{item.name}</span>
             </li>
