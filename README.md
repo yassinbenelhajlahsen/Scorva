@@ -4,22 +4,27 @@
 
 ---
 
-## 🚀 Live Demo
+## 🚀 Live
 
-https://scorva.vercel.app  
-
+https://scorva.vercel.app
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React, React Router, Tailwind CSS, Axios, Framer Motion, Vite  
-- **Backend:** Node.js, Express, pg (PostgreSQL)  
-- **Database:** PostgreSQL (hosted on Railway)  
-- **Deployment:**  
+- **Frontend:** React, React Router, Tailwind CSS, Axios, Framer Motion, Vite
+- **Backend:** Node.js, Express, pg (PostgreSQL)
+- **Database:** PostgreSQL (hosted on Railway)
+- **Deployment:**
   - Frontend: Vercel
   - Backend: Railway
+
 ---
+## 🔒 API Security & Proxy Validation
+
+- All frontend requests now route through backend-managed `/api/proxy/*` endpoints, preventing exposure of sensitive keys in the browser.
+- The backend enforces an `x-api-key` check on every direct `/api/*` request, returning `403 Forbidden` when the header is missing or invalid.
+- Proxy routes inject the server-side credential (`process.env.API_KEY`) when contacting internal services, keeping secrets confined to the backend environment.
 
 ## Project Structure
 
@@ -72,7 +77,6 @@ Scorva
 ├── public/                       # Static public assets for Vite
 ├── screenshots/                  # Showcase images for documentation
 ├── .env                          # Frontend environment variables
-├── .env.local                    # Local frontend overrides
 ├── eslint.config.js              # ESLint configuration
 ├── vite.config.js                # Vite configuration
 ├── package.json                  # Root scripts (frontend + backend)
@@ -83,58 +87,64 @@ Scorva
 
 ```
 
-
 ## 🔥 Features
 
--  Multi-league support: NBA, NFL, NHL
--  Search by player or team with autocomplete
--  Live stats, box scores, and game details
--  Ability to hover on game and stat cards for advanced details
--  Real-time and historical ESPN API integration
--  Responsive UI built with Tailwind and Framer Motion
--  RESTful backend with Express and PostgreSQL
--  Deployed on Vercel (frontend) and Railway (backend)
+- Multi-league support: NBA, NFL, NHL
+- Search by player or team with autocomplete
+- Live stats, box scores, and game details
+- Ability to hover on game and stat cards for advanced details
+- Real-time and historical ESPN API integration
+- Responsive UI built with Tailwind and Framer Motion
+- RESTful backend with Express and PostgreSQL
+- Deployed on Vercel (frontend) and Railway (backend)
 
 ---
 
 ### 📸 Screenshots
 
-
 <details>
   <summary>(click to expand)</summary>
 
-###  NBA Standings
+### NBA Standings
+
 ![NBA Standings](screenshots/Standings.png)
 
-###  NFL Game 
+### NFL Game
+
 ![NFL Game](screenshots/Game.png)
 
-###  NFL Box Score
+### NFL Box Score
+
 ![NFL Boxscore](screenshots/Boxscore.png)
 
-###  Game Cards & Hover for Quarter Breakdown
+### Game Cards & Hover for Quarter Breakdown
+
 ![Game Card](screenshots/GameCard.png)
 
-###  NFL Player List
+### NFL Player List
+
 ![NFL Player List](screenshots/playersList.png)
 
-###  NBA Player Information
+### NBA Player Information
+
 ![Player Information](screenshots/PlayerDetails.png)
 
-###  Recent Performance Card & Hover for Advanced Stats
+### Recent Performance Card & Hover for Advanced Stats
+
 ![Recent Performance](screenshots/StatCard.png)
 
-###  Search Bar with Dynamic Results & Autofill for teams, games, and players
+### Search Bar with Dynamic Results & Autofill for teams, games, and players
+
 ![Search Bar](screenshots/Searchbar.png)
 
 </details>
 
 ## 📌 Future Improvements
 
--  User accounts with saved teams, players, and preferences  
--  Multi-season history and archival access  
--  Live game alerts, final scores, and push notifications  
--  Mobile app (React Native or PWA)
+- User accounts with saved teams, players, and preferences
+- Multi-season history and archival access
+- Live game alerts, final scores, and push notifications
+- Mobile app (React Native or PWA)
 
 ## 🧩 Challenges Faced
 
@@ -145,44 +155,6 @@ Scorva
 - **Frontend–Backend Deployment Sync:**  
   Hosting the frontend on **Vercel** and backend on **Railway** caused CORS, routing, and environment variable issues during deployment. I resolved these by explicitly managing allowed origins, rewriting API routes, and validating endpoints across both environments.
 
-## 🧑‍💻 Getting Started
-
-To run Scorva locally:
-
-<details>
-  <summary>(click to expand)</summary>
-
-
-### 1. Clone the repo
-```
-git clone https://github.com/yassinbenelhajlahsen/scorva
-cd scorva
-```
-### 2. Install dependencies
-```
-cd backend && npm install
-cd ../frontend && npm install
-```
-
-### 3. Setup environment variables
-
-```
-cd backend
-cp .env.example .env
-```
-
-### 4. Start the app
-Open two terminals:
-```
-# Terminal 1 (backend)
-cd backend
-npm run dev
-
-# Terminal 2 (frontend)
-cd frontend
-npm run dev
-```
-</details>
 
 ## 🧠 Author
 
