@@ -5,7 +5,7 @@ import axios from "axios";
 import BoxScore from "../components/ui/BoxScore.jsx";
 import slugify from "../utilities/slugify.js";
 import computeTopPlayers from "../utilities/topPlayers.js";
-import TopPerformerCard from "../components/Cards/TopPerformerCard.jsx";
+import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
 
 import LoadingPage from "./LoadingPage.jsx";
 import formatDate from "../utilities/formatDate.js";
