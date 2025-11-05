@@ -49,7 +49,10 @@ export async function getEventsByDate(dateString, leagueSlug) {
     const resp = await axios.get(url);
     return resp.data.events || [];
   } catch (err) {
-        console.error(`🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}:`, err.message || err.response?.status || err);
+    console.error(
+      `🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}:`,
+      err.message || err.response?.status || err
+    );
 
     return [];
   }
@@ -94,10 +97,9 @@ export async function processEvent(client, leagueSlug, event) {
 
   // Extract date portion YYYY-MM-DD
   const rawDate = event.date; // "2025-06-09T00:00Z"
-const localDate = DateTime
-  .fromISO(rawDate, { zone: 'utc' })
-  .setZone('America/New_York')
-  .toFormat('yyyy-MM-dd');
+  const localDate = DateTime.fromISO(rawDate, { zone: "utc" })
+    .setZone("America/New_York")
+    .toFormat("yyyy-MM-dd");
   const comps = event.competitions?.[0]?.competitors || [];
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
@@ -234,24 +236,24 @@ const localDate = DateTime
     });
 
     let endYear;
-let startYear;
-let endTwoDigits;
-let seasonText;
+    let startYear;
+    let endTwoDigits;
+    let seasonText;
 
-if (leagueSlug !== 'nfl') {
-    // For most sports (NBA, NHL, etc.) - season spans calendar years (2023-24)
-    endYear = event.season.year;       // e.g., 2024
-    startYear = endYear - 1;           // e.g., 2023
-    endTwoDigits = String(endYear).slice(-2);  // "24"
-    seasonText = `${startYear}-${endTwoDigits}`;  // "2023-24"
-} else {
-    // For NFL - season spans single calendar year (2023)
-    // Or if you want to show as 2023-24 season (starts 2023, ends 2024)
-    startYear = event.season.year;     // e.g., 2023
-    endYear = startYear + 1;           // e.g., 2024
-    endTwoDigits = String(endYear).slice(-2);  // "24"
-    seasonText = `${startYear}-${endTwoDigits}`;  // "2023-24"
-}
+    if (leagueSlug !== "nfl") {
+      // For most sports (NBA, NHL, etc.) - season spans calendar years (2023-24)
+      endYear = event.season.year; // e.g., 2024
+      startYear = endYear - 1; // e.g., 2023
+      endTwoDigits = String(endYear).slice(-2); // "24"
+      seasonText = `${startYear}-${endTwoDigits}`; // "2023-24"
+    } else {
+      // For NFL - season spans single calendar year (2023)
+      // Or if you want to show as 2023-24 season (starts 2023, ends 2024)
+      startYear = event.season.year; // e.g., 2023
+      endYear = startYear + 1; // e.g., 2024
+      endTwoDigits = String(endYear).slice(-2); // "24"
+      seasonText = `${startYear}-${endTwoDigits}`; // "2023-24"
+    }
 
     // 5.4.10) Upsert into games
     const gamePayload = {
@@ -268,7 +270,7 @@ if (leagueSlug !== 'nfl') {
       seasonText,
     };
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
-  
+
     const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
       leagueSlug
     )}/${leagueSlug}/summary?event=${espnEventId}`;
@@ -298,24 +300,23 @@ if (leagueSlug !== 'nfl') {
         const statCategories = group.statistics || [];
 
         for (const cat of statCategories) {
-                     let statNames;
+          let statNames;
 
-        if (leagueSlug === 'nfl') {
-    statNames = Array.isArray(group.statistics?.[0]?.keys)
-  ? group.statistics[0].labels
-  : Array.isArray(group.statistics?.[0]?.descriptions)
-    ? group.statistics[0].descriptions
-    : group.statistics?.[0]?.names || [];
-        }
-        else {
-  if (Array.isArray(cat.keys)) {
-    statNames = cat.keys;
-  } else if (Array.isArray(cat.descriptions)) {
-    statNames = cat.descriptions;
-  } else {
-    statNames = cat.names || [];
-  }
-}
+          if (leagueSlug === "nfl") {
+            statNames = Array.isArray(group.statistics?.[0]?.keys)
+              ? group.statistics[0].labels
+              : Array.isArray(group.statistics?.[0]?.descriptions)
+              ? group.statistics[0].descriptions
+              : group.statistics?.[0]?.names || [];
+          } else {
+            if (Array.isArray(cat.keys)) {
+              statNames = cat.keys;
+            } else if (Array.isArray(cat.descriptions)) {
+              statNames = cat.descriptions;
+            } else {
+              statNames = cat.names || [];
+            }
+          }
 
           const athletes = cat.athletes || [];
           for (const athleteEntry of athletes) {
@@ -339,7 +340,9 @@ if (leagueSlug !== 'nfl') {
               height: detailedAthlete?.displayHeight || "N/A",
               weight: detailedAthlete?.displayWeight || "N/A",
               birthdate: detailedAthlete?.displayDOB || "N/A",
-              image_url: detailedAthlete?.headshot?.href || "https://www.press-seal.com/wp-content/uploads/2016/10/img-team-GENERIC.jpg",
+              image_url:
+                detailedAthlete?.headshot?.href ||
+                "https://www.press-seal.com/wp-content/uploads/2016/10/img-team-GENERIC.jpg",
               draftinfo: detailedAthlete?.displayDraft || "Undrafted",
               jerseynum:
                 detailedAthlete?.jersey || athleteEntry.athlete.jersey || null,
@@ -405,7 +408,10 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
           try {
             await processEvent(client, leagueSlug, event);
           } catch (err) {
-            console.error(`❌ Error processing event ${event.id}:`, err.message);
+            console.error(
+              `❌ Error processing event ${event.id}:`,
+              err.message
+            );
           } finally {
             client.release();
           }
@@ -413,9 +419,11 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
       );
     }
   }
-const now = new Date();
+  const now = new Date();
 
-  console.log(`✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`);
+  console.log(
+    `✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`
+  );
 }
 
 /**

@@ -33,7 +33,7 @@ export default async function upsertPlayer(client, player, teamId, league) {
     player.birthdate || null,
     player.draftinfo || null,
     league,
-    player.id // ESPN player ID
+    player.id, // ESPN player ID
   ];
 
   const res = await client.query(query, values);

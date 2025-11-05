@@ -1,5 +1,5 @@
 import express from "express";
-import db from "../db.js";
+import db from "../db/db.js";
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ router.get("/:league/games", async (req, res) => {
 
     query += ` ORDER BY g.date DESC
                 LIMIT 16`;
-    
+
     const { rows } = await db.query(query, params);
     res.json(rows);
   } catch (err) {

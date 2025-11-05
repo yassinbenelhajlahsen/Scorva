@@ -1,18 +1,18 @@
-import express from 'express';
-import pool from '../db.js';
+import express from "express";
+import pool from "../db/db.js";
 
 const router = express.Router();
 
-router.get('/:league/games/:gameId', async (req, res) => {
+router.get("/:league/games/:gameId", async (req, res) => {
   const { league } = req.params;
 
   switch (league.toLowerCase()) {
-    case 'nba':
+    case "nba":
       return handleNbaGame(req, res);
-    case 'nfl':
-      return handleNflGame(req, res); 
-    case 'nhl':
-      return handleNhlGame(req, res); 
+    case "nfl":
+      return handleNflGame(req, res);
+    case "nhl":
+      return handleNhlGame(req, res);
     default:
       return res.status(400).send("Invalid league");
   }
@@ -137,7 +137,7 @@ FROM games g
 JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
 WHERE g.id = $1 AND g.league = $2;`,
-      [gameId, 'nba']
+      [gameId, "nba"]
     );
 
     if (result.rows.length === 0) {
@@ -207,7 +207,7 @@ async function handleNhlGame(req, res) {
             'G', s.g,
             'A', s.a,
             'SAVES', s.saves,
-            'SPCT', s.savepct, 
+            'SPCT', s.savepct,
             'GA', s.ga,
             'TOI', s.toi,
             'SHOTS', s.shots,
@@ -253,7 +253,7 @@ WHERE s.gameid = g.id AND p.teamid = g.hometeamid
             'G', s.g,
             'A', s.a,
             'SAVES', s.saves,
-            'SPCT', s.savepct, 
+            'SPCT', s.savepct,
             'GA', s.ga,
             'TOI', s.toi,
             'SHOTS', s.shots,
@@ -277,7 +277,7 @@ JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
 WHERE g.id = $1 AND g.league = $2;
     `,
-      [gameId, 'nhl']
+      [gameId, "nhl"]
     );
 
     if (result.rows.length === 0) {
@@ -397,7 +397,7 @@ FROM games g
 JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
 WHERE g.id = $1 AND g.league = $2`,
-      [gameId, 'nfl']
+      [gameId, "nfl"]
     );
 
     if (result.rows.length === 0) {

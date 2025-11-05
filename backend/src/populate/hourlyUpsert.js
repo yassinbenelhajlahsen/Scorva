@@ -1,16 +1,19 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
 import { runTodayProcessing } from "./src/eventProcessor.js";
-import path from 'path';
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
 
-dotenv.config({ path: path.resolve('../.env') });
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../../.env") });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production"
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 const nowEST = DateTime.now().setZone("America/New_York");
@@ -22,13 +25,15 @@ function addOrdinal(day) {
 }
 
 // Build formatted timestamp string
-const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(nowEST.day)}, ${nowEST.toFormat("yyyy")} @ ${nowEST.toFormat("h:mma").toLowerCase()}`;
+const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
+  nowEST.day
+)}, ${nowEST.toFormat("yyyy")} @ ${nowEST.toFormat("h:mma").toLowerCase()}`;
 
 (async () => {
   try {
     // For each league, fetch and process today’s events
     await runTodayProcessing("nba", pool);
-    await runTodayProcessing("nfl", pool); 
+    await runTodayProcessing("nfl", pool);
     await runTodayProcessing("nhl", pool);
     console.log(`[ ${formattedTime} ] ✅ Hourly upsert ran successfully.`);
   } catch (err) {

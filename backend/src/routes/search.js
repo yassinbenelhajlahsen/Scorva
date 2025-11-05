@@ -1,5 +1,5 @@
 import express from "express";
-import db from "../db.js";
+import db from "../db/db.js";
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ function scoreMatch(name, rawTerm) {
   return 3;
 }
 
-router.get('/search', async (req, res) => {
+router.get("/search", async (req, res) => {
   const { term } = req.query;
   if (!term) return res.json([]);
   const q = `%${term}%`;
@@ -44,34 +44,34 @@ router.get('/search', async (req, res) => {
          WHERE ht.name ILIKE $1 OR at.name ILIKE $1
          LIMIT 10`,
         [q]
-      )
+      ),
     ]);
 
     let results = [
-      ...players.rows.map(r => ({ ...r, type: 'player' })),
-      ...teams.rows.map(r => ({ ...r, type: 'team' })),
-      ...games.rows.map(r => ({ ...r, imageUrl: null, type: 'game' }))
+      ...players.rows.map((r) => ({ ...r, type: "player" })),
+      ...teams.rows.map((r) => ({ ...r, type: "team" })),
+      ...games.rows.map((r) => ({ ...r, imageUrl: null, type: "game" })),
     ];
 
     results.sort((a, b) => {
-  const aText = (a.shortname ?? a.name).toLowerCase();
-  const bText = (b.shortname ?? b.name).toLowerCase();
+      const aText = (a.shortname ?? a.name).toLowerCase();
+      const bText = (b.shortname ?? b.name).toLowerCase();
 
-  const ma = scoreMatch(aText, rawTerm);
-  const mb = scoreMatch(bText, rawTerm);
-  if (ma !== mb) return ma - mb;
+      const ma = scoreMatch(aText, rawTerm);
+      const mb = scoreMatch(bText, rawTerm);
+      if (ma !== mb) return ma - mb;
 
-  const ta = TYPE_PRIORITY[a.type];
-  const tb = TYPE_PRIORITY[b.type];
-  if (ta !== tb) return ta - tb;
+      const ta = TYPE_PRIORITY[a.type];
+      const tb = TYPE_PRIORITY[b.type];
+      if (ta !== tb) return ta - tb;
 
-  return aText.localeCompare(bText);
-});
+      return aText.localeCompare(bText);
+    });
 
     res.json(results);
   } catch (error) {
-    console.error('Error in /search:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in /search:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

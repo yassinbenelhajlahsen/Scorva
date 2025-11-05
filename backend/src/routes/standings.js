@@ -1,13 +1,14 @@
-import express from 'express';
-import pool from '../db.js';
+import express from "express";
+import pool from "../db/db.js";
 
 const router = express.Router();
 
-router.get('/:league/standings', async (req, res) => {
+router.get("/:league/standings", async (req, res) => {
   const { league } = req.params;
 
   try {
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT
         id,
         name,
@@ -20,7 +21,9 @@ router.get('/:league/standings', async (req, res) => {
       FROM teams
       WHERE league = $1
       ORDER BY conf, wins DESC, losses ASC
-    `, [league]);
+    `,
+      [league]
+    );
 
     res.json(result.rows);
   } catch (err) {

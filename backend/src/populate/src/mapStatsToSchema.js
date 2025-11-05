@@ -23,7 +23,12 @@ export default function mapStatsToSchema(statsObj, leagueSlug) {
   // League-specific mappings
   const leagueMappings = {
     nba: {
-      fgPct: ["fgPct", "fieldGoalPercentage", "FG", "fieldGoalsMade-fieldGoalsAttempted"],
+      fgPct: [
+        "fgPct",
+        "fieldGoalPercentage",
+        "FG",
+        "fieldGoalsMade-fieldGoalsAttempted",
+      ],
       threePtPct: ["threePointFieldGoalsMade", "3FGM", "3PT"],
       ftPct: ["freeThrowPercentage", "FT"],
     },

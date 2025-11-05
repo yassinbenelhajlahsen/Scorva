@@ -1,12 +1,11 @@
 import express from "express";
-import db from "../db.js";
+import db from "../db/db.js";
 
 const router = express.Router();
 
 router.get("/:league/games", async (req, res) => {
   const { league } = req.params;
   const { teamId } = req.query;
-
 
   try {
     const { rows } = await db.query(
