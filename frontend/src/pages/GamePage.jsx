@@ -21,7 +21,7 @@ export default function GamePage() {
     async function fetchGame() {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/${league}/games/${gameId}`
+          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/games/${gameId}`
         );
         setGameData(res.data);
       } catch (err) {

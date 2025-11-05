@@ -20,7 +20,7 @@ export default function Navbar() {
       setLoading(true);
       setError(null);
       try {
-        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/search`, {
+        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/proxy/search`, {
           params: { term: query }
         });
         setAllItems(data);
