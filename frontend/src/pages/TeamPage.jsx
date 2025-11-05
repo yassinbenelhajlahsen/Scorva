@@ -9,7 +9,6 @@ export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
 
-  const [teams, setTeams] = useState([]);
   const [team, setTeam] = useState(null);
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,12 +18,10 @@ export default function TeamPage() {
     async function fetchTeamData() {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/teams`
+          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/teams`
         );
         if (!res.ok) throw new Error("Failed to fetch teams.");
         const teamList = await res.json();
-
-        setTeams(teamList);
         const foundTeam = teamList.find(
           (t) =>
             slugify(t.name) === teamId || slugify(t.shortname || "") === teamId
@@ -35,7 +32,7 @@ export default function TeamPage() {
 
         const games = await (
           await fetch(
-            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${
+            `${import.meta.env.VITE_API_URL}/api/proxy/${league}/games?teamId=${
               foundTeam.id
             }`
           )

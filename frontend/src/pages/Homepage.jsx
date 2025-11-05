@@ -19,7 +19,9 @@ export default function Homepage() {
         const leagues = ["nba", "nhl", "nfl"];
         const responses = await Promise.all(
           leagues.map((league) =>
-            fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games`, { signal: controller.signal })
+            fetch(`${import.meta.env.VITE_API_URL}/api/proxy/${league}/games`, {
+              signal: controller.signal,
+            })
           )
         );
 
@@ -54,11 +56,10 @@ export default function Homepage() {
   }, []);
 
   if (loading) return <LoadingPage />;
-  if (error)
-    return <div className="p-6 text-red-500">{error}</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-     <div className="flex flex-col w-full px-8">
+    <div className="flex flex-col w-full px-8">
       {/* Mobile-only title */}
       <div className="flex lg:hidden justify-center">
         <h2 className="text-3xl font-bold text-center mt-10 mb-6">
@@ -75,7 +76,12 @@ export default function Homepage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
         {/* NBA Column */}
-        <LeagueColumn league="NBA" games={games.nba} to="/nba" logo="/NBAlogo.png" />
+        <LeagueColumn
+          league="NBA"
+          games={games.nba}
+          to="/nba"
+          logo="/NBAlogo.png"
+        />
 
         {/* NHL Column */}
         <LeagueColumn
@@ -86,16 +92,19 @@ export default function Homepage() {
         />
 
         {/* NFL Column */}
-        <LeagueColumn league="NFL" games={games.nfl} to="/nfl" logo="/NFLlogo.png" />
+        <LeagueColumn
+          league="NFL"
+          games={games.nfl}
+          to="/nfl"
+          logo="/NFLlogo.png"
+        />
       </div>
     </div>
   );
 }
 
 function LeagueColumn({ league, games, to, logo }) {
-
-  const displayedGames = games.slice(0,3);
-
+  const displayedGames = games.slice(0, 3);
 
   return (
     <div className="flex-1 flex flex-col items-center">

@@ -30,8 +30,10 @@ export default function LeaguePage() {
 
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/games`,
-          { signal }
+          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/games`,
+          {
+            signal,
+          }
         );
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);

@@ -18,7 +18,7 @@ export default function StandingsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${import.meta.env.VITE_API_URL}/api/${league}/standings`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/proxy/${league}/standings`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch standings");
         return res.json();
