@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import PageWrapper from './components/layout/pageWrapper.jsx';
+import PageWrapper from './components/layout/PageWrapper.jsx';
 import Hero from './components/ui/Hero.jsx';
 import Homepage from './pages/Homepage.jsx';
 import About from './pages/About.jsx';
