@@ -50,7 +50,7 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
                 </td>
                 {statHeaders.map((stat) => (
                   <td key={stat} className="py-1 px-2 text-right">
-                    {p.stats?.[stat] ?? "-"}
+                    {p.stats?.[stat] ?? "0"}
                   </td>
                 ))}
               </tr>
