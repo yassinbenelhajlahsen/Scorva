@@ -1,7 +1,34 @@
 @import "tailwindcss";
 
 @layer base {
-  html, body {
+  html,
+  body {
     @apply bg-zinc-900 text-white;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar for webkit browsers (Chrome, Safari, Edge) */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-zinc-800 rounded-r-md;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-zinc-600 rounded-full;
+    transition: background-color 0.2s;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-500;
+  }
+
+  /* For Firefox */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #52525b #27272a; /* zinc-600 zinc-800 */
   }
 }

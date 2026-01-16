@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import logo from "../../assets/favicon.png";
@@ -8,33 +8,54 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const abortControllerRef = useRef(null);
+
+  const fetchResults = useCallback(async (searchTerm) => {
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/proxy/search`,
+        {
+          params: { term: searchTerm },
+          signal: abortControllerRef.current.signal,
+        }
+      );
+      setAllItems(data);
+    } catch (err) {
+      if (err.name !== "CanceledError") {
+        console.error("Search error:", err);
+        setAllItems([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!query) {
+    const trimmedQuery = query.trim();
+
+    if (!trimmedQuery) {
       setAllItems([]);
+      setLoading(false);
       return;
     }
 
-    const fetchResults = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/proxy/search`, {
-          params: { term: query }
-        });
-        setAllItems(data);
-      } catch (err) {
-        console.error('Search error:', err);
-        setError('Failed to fetch search results');
-      } finally {
-        setLoading(false);
-      }
-    };
+    const debounce = setTimeout(() => {
+      fetchResults(trimmedQuery);
+    }, 200);
 
-    const debounce = setTimeout(fetchResults, 300);
-    return () => clearTimeout(debounce);
-  }, [query]);
+    return () => {
+      clearTimeout(debounce);
+    };
+  }, [query, fetchResults]);
 
   return (
     <nav className="bg-zinc-900 text-white flex flex-col sm:flex-row items-center justify-between px-6 py-4 shadow-md gap-4">
@@ -47,7 +68,12 @@ export default function Navbar() {
         </div>
       </div>
 
-      <SearchBar allItems={allItems} query={query} setQuery={setQuery} loading={loading} error={error} />
+      <SearchBar
+        allItems={allItems}
+        query={query}
+        setQuery={setQuery}
+        loading={loading}
+      />
 
       <div className="flex gap-4">
         <Link to="/nba" className="hover:text-orange-400 transition">
