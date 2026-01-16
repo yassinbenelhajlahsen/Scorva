@@ -1,19 +1,16 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import PageWrapper from './components/layout/PageWrapper.jsx';
-import Hero from './components/ui/Hero.jsx';
-import Homepage from './pages/Homepage.jsx';
-import About from './pages/About.jsx';
-import LeaguePage from './pages/LeaguePage.jsx';
-import PlayerListPage from './pages/PlayerListPage.jsx';
-import TeamListPage from './pages/TeamListPage.jsx';
-import PlayerPage from './pages/PlayerPage.jsx';
-import TeamPage from './pages/TeamPage.jsx';
-import GamePage from './pages/GamePage.jsx';
-import ErrorPage from './pages/ErrorPage.jsx';
-import Navbar from './components/layout/Navbar.jsx';
-import Footer from './components/layout/Footer.jsx';
-import ScrollToTop from './components/layout/ScrollToTop.jsx';
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import PageWrapper from "./components/layout/PageWrapper.jsx";
+import Homepage from "./pages/Homepage.jsx";
+import About from "./pages/About.jsx";
+import LeaguePage from "./pages/LeaguePage.jsx";
+import PlayerPage from "./pages/PlayerPage.jsx";
+import TeamPage from "./pages/TeamPage.jsx";
+import GamePage from "./pages/GamePage.jsx";
+import ErrorPage from "./pages/ErrorPage.jsx";
+import Navbar from "./components/layout/Navbar.jsx";
+import Footer from "./components/layout/Footer.jsx";
+import ScrollToTop from "./components/layout/ScrollToTop.jsx";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -25,7 +22,6 @@ function AnimatedRoutes() {
           path="/"
           element={
             <PageWrapper>
-              <Hero />
               <Homepage />
             </PageWrapper>
           }
@@ -43,22 +39,6 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <LeaguePage />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/:league/players"
-          element={
-            <PageWrapper>
-              <PlayerListPage />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/:league/teams"
-          element={
-            <PageWrapper>
-              <TeamListPage />
             </PageWrapper>
           }
         />
@@ -102,13 +82,12 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
- <div className="bg-zinc-900 text-white min-h-screen">
-      <Navbar />
-       <ScrollToTop/>      
-       <AnimatedRoutes />
-       <Footer/>
-
-           </div>
+      <div className="bg-zinc-900 text-white min-h-screen">
+        <Navbar />
+        <ScrollToTop />
+        <AnimatedRoutes />
+        <Footer />
+      </div>
     </BrowserRouter>
   );
 }
