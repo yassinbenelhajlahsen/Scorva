@@ -16,28 +16,28 @@ export default function GameCard({ game }) {
   return (
     <Link
       to={`/${league}/games/${game.id}`}
-      className="group block no-underline"
+      className="group block no-underline h-full"
     >
-      <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center mb-6 rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer max-w-md mx-auto overflow-hidden">
+      <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer h-full flex flex-col overflow-hidden">
         {/* Teams & Scores */}
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex items-center justify-between gap-6 min-h-[120px]">
           {/* Home */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center flex-1">
             <img
               src={game.home_logo || "/backupTeamLogo.png"}
               alt={`${game.homeTeam} logo`}
-              className="w-16 h-16 object-contain"
+              className="w-16 h-16 object-contain flex-shrink-0"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = "/backupTeamLogo.png";
               }}
             />
-            <div className="text-lg font-bold text-white mt-2">
+            <div className="text-lg font-bold text-white mt-2 line-clamp-1 min-h-[28px]">
               {game.home_shortname}
             </div>
 
             <div
-              className={`text-lg font-semibold ${
+              className={`text-lg font-semibold min-h-[28px] ${
                 game.homescore === game.awayscore
                   ? "text-gray-400"
                   : game.homescore > game.awayscore
@@ -50,33 +50,33 @@ export default function GameCard({ game }) {
           </div>
 
           {/* Center */}
-          <div className="flex flex-col items-center flex-1">
-            <span className="text-sm text-gray-400 mb-1">
+          <div className="flex flex-col items-center flex-1 justify-center">
+            <span className="text-sm text-gray-400 mb-1 line-clamp-1">
               {formatDate(game.date)}
             </span>
             <div className="text-sm text-gray-300">vs</div>
-            <p className="mt-1 text-sm text-gray-300">
-              Status: <span className="text-white">{game.status}</span>
+            <p className="mt-1 text-sm text-gray-300 text-center px-1">
+              <span className="text-white">{game.status}</span>
             </p>
           </div>
 
           {/* Away */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center flex-1">
             <img
               src={game.away_logo || "/backupTeamLogo.png"}
               alt={`${game.awayteam} logo`}
-              className="w-16 h-16 object-contain"
+              className="w-16 h-16 object-contain flex-shrink-0"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = "/backupTeamLogo.png";
               }}
             />
-            <div className="text-lg font-bold text-white mt-2">
+            <div className="text-lg font-bold text-white mt-2 line-clamp-1 min-h-[28px]">
               {game.away_shortname}
             </div>
 
             <div
-              className={`text-lg font-semibold ${
+              className={`text-lg font-semibold min-h-[28px] ${
                 game.homescore === game.awayscore
                   ? "text-gray-400"
                   : game.homescore < game.awayscore

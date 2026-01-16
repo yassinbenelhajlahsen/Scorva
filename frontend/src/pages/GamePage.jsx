@@ -80,7 +80,22 @@ export default function GamePage() {
   }, [gameData, location.hash]);
 
   if (loading) return <LoadingPage />;
-  if (error || !gameData?.json_build_object) return <div>Game not found</div>;
+  if (error || !gameData?.json_build_object) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h1 className="text-4xl font-bold mb-4">Game Not Found</h1>
+        <p className="text-gray-400 mb-8 text-center max-w-md">
+          The game you're looking for doesn't exist or hasn't been added yet.
+        </p>
+        <Link
+          to={`/${league}`}
+          className="inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+        >
+          Back to {league?.toUpperCase()} Games
+        </Link>
+      </div>
+    );
+  }
 
   const { game, homeTeam, awayTeam } = gameData.json_build_object;
 

@@ -58,18 +58,25 @@ export default function TeamPage() {
         <LoadingPage></LoadingPage>
       </div>
     );
-  if (error || !team)
-    return <div className="text-red-500 p-4">{error || "Team not found."}</div>;
+  if (error || !team) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h1 className="text-4xl font-bold mb-4">Team Not Found</h1>
+        <p className="text-gray-400 mb-8 text-center max-w-md">
+          The team you're looking for doesn't exist or hasn't been added yet.
+        </p>
+        <Link
+          to={`/${league}`}
+          className="inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+        >
+           {league?.toUpperCase()}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
-      <Link
-        to={`/${league}/teams`}
-        className="mt-6 inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 ml-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
-      >
-        ← Return to Teams Page
-      </Link>
-
       <div className="flex flex-col md:flex-row justify-center md:justify-between items-center gap-10 p-6 text-white">
         {/* Image + Title */}
         <div className="flex flex-col items-center md:items-start w-full md:w-1/2 m-10">

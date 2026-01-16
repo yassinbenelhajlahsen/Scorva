@@ -78,13 +78,16 @@ export default function PlayerPage() {
 
   if (!playerData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900">
-        <h1 className="text-4xl font-bold text-white">Player not found</h1>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h1 className="text-4xl font-bold mb-4">Player Not Found</h1>
+        <p className="text-gray-400 mb-8 text-center max-w-md">
+          The player you're looking for doesn't exist or hasn't been added yet.
+        </p>
         <Link
           to={`/${league}/players`}
-          className="mt-6 inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+          className="inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
         >
-          ← Return to Players
+          Back to {league?.toUpperCase()} Players
         </Link>
       </div>
     );
@@ -106,13 +109,6 @@ export default function PlayerPage() {
   } = playerData;
   return (
     <>
-      <Link
-        to={`/${league}/players`}
-        className="mt-6 inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 ml-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
-      >
-        ← Return to Players Page
-      </Link>
-
       <div className="flex flex-col md:flex-row gap-8 p-8 text-white">
         {/* Player Info */}
         <div className="flex-1">

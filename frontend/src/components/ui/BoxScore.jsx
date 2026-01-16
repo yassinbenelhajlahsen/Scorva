@@ -17,17 +17,20 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
   ];
 
   const renderTable = (team, players) => (
-    <div className="w-full bg-white/5 rounded-xl p-4 shadow">
+    <div className="w-full bg-white/5 rounded-xl p-4 shadow flex flex-col h-full">
       <h4 className="text-xl font-semibold mb-4 text-center">
         {team.info.name}
       </h4>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-thin flex-1 flex flex-col">
         <table className="min-w-[600px] sm:min-w-full text-left border-separate border-spacing-y-2">
           <thead className="text-gray-400 text-xs sm:text-sm">
             <tr>
               <th className="py-1 px-2">Player</th>
               {statHeaders.map((stat) => (
-                <th key={stat} className="py-1 px-2 text-right">
+                <th
+                  key={stat}
+                  className="py-1 px-2 text-right whitespace-nowrap"
+                >
                   {stat}
                 </th>
               ))}
@@ -40,7 +43,7 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
                 key={p.id}
                 className="text-xs sm:text-sm"
               >
-                <td className="py-1 px-2 font-medium">
+                <td className="py-1 px-2 font-medium whitespace-nowrap">
                   <Link
                     to={`/${league}/players/${slugify(p.name)}`}
                     className="hover:text-orange-300 transition underline underline-offset-2 text-orange-400"
@@ -49,7 +52,10 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
                   </Link>
                 </td>
                 {statHeaders.map((stat) => (
-                  <td key={stat} className="py-1 px-2 text-right">
+                  <td
+                    key={stat}
+                    className="py-1 px-2 text-right whitespace-nowrap"
+                  >
                     {p.stats?.[stat] ?? "0"}
                   </td>
                 ))}
@@ -75,7 +81,10 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
       <h3 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
         Box Score
       </h3>
-      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2">
+      <div
+        className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start"
+        style={{ gridAutoRows: "1fr" }}
+      >
         {renderTable(homeTeam, homeTeam.players)}
         {renderTable(awayTeam, awayTeam.players)}
       </div>
