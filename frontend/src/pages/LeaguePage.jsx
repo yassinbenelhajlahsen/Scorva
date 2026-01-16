@@ -33,7 +33,7 @@ export default function LeaguePage() {
       try {
         // Fetch games
         const gamesRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/games`,
+          `${import.meta.env.VITE_API_URL}/api/${league}/games`,
           { signal }
         );
         if (!gamesRes.ok) {
@@ -44,7 +44,7 @@ export default function LeaguePage() {
 
         // Fetch standings
         const standingsRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/standings`,
+          `${import.meta.env.VITE_API_URL}/api/${league}/standings`,
           { signal }
         );
         if (!standingsRes.ok) {

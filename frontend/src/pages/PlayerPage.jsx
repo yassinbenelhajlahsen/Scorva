@@ -43,7 +43,7 @@ export default function PlayerPage() {
     async function fetchPlayerData() {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/players`
+          `${import.meta.env.VITE_API_URL}/api/${league}/players`
         );
         const players = await res.json();
 
@@ -56,9 +56,7 @@ export default function PlayerPage() {
         }
 
         const fullRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/players/${
-            match.id
-          }`
+          `${import.meta.env.VITE_API_URL}/api/${league}/players/${match.id}`
         );
         const fullData = await fullRes.json();
 

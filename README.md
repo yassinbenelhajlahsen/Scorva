@@ -19,12 +19,6 @@ https://scorva.vercel.app
   - Frontend: Vercel
   - Backend: Railway
 
----
-## 🔒 API Security & Proxy Validation
-
-- All frontend requests now route through backend-managed `/api/proxy/*` endpoints, preventing exposure of sensitive keys in the browser.
-- The backend enforces an `x-api-key` check on every direct `/api/*` request, returning `403 Forbidden` when the header is missing or invalid.
-- Proxy routes inject the server-side credential (`process.env.API_KEY`) when contacting internal services, keeping secrets confined to the backend environment.
 
 ## Project Structure
 

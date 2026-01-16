@@ -18,7 +18,7 @@ export default function TeamPage() {
     async function fetchTeamData() {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/proxy/${league}/teams`
+          `${import.meta.env.VITE_API_URL}/api/${league}/teams`
         );
         if (!res.ok) throw new Error("Failed to fetch teams.");
         const teamList = await res.json();
@@ -32,9 +32,7 @@ export default function TeamPage() {
 
         const games = await (
           await fetch(
-            `${import.meta.env.VITE_API_URL}/api/proxy/${league}/games?teamId=${
-              foundTeam.id
-            }`
+            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${foundTeam.id}`
           )
         ).json();
         const last10 = games
@@ -69,7 +67,7 @@ export default function TeamPage() {
           to={`/${league}`}
           className="inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
         >
-           {league?.toUpperCase()}
+          {league?.toUpperCase()}
         </Link>
       </div>
     );

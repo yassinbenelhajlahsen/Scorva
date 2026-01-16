@@ -22,7 +22,7 @@ export default function Navbar() {
     setLoading(true);
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/proxy/search`,
+        `${import.meta.env.VITE_API_URL}/api/search`,
         {
           params: { term: searchTerm },
           signal: abortControllerRef.current.signal,

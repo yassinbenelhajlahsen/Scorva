@@ -20,7 +20,7 @@ export default function Homepage() {
         const leagues = ["nba", "nhl", "nfl"];
         const responses = await Promise.all(
           leagues.map((league) =>
-            fetch(`${import.meta.env.VITE_API_URL}/api/proxy/${league}/games`, {
+            fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games`, {
               signal: controller.signal,
             })
           )
