@@ -134,6 +134,7 @@ npm run test:coverage    # Generate coverage report
 - ✅ **Data Services** - Stats mapping, player upserts, transformations
 - ✅ **Integration Tests** - Full Express app behavior
 
+
 ---
 
 ## 📌 Future Improvements
@@ -159,4 +160,4 @@ npm run test:coverage    # Generate coverage report
 ## 🧠 Author
 
 Made by **Yassin Benelhajlahsen** — Computer Science @ Brooklyn College  
-[GitHub](https://github.com/yassinbenelhajlahsen) • [LinkedIn](https://www.linkedin.com/in/yassinbenelhajlahsen/)
+[GitHub](https://github.com/yassinbenelhajlahsen) • [LinkedIn](https://www.linkedin.com/in/yassin-benelhajlahsen/)
