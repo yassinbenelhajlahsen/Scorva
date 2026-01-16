@@ -119,13 +119,15 @@ export default function LeaguePage() {
           <span className="text-lg font-medium">Back to Home</span>
         </Link>
 
-        <div className="flex items-center gap-6 mb-4 ml-4">
+        <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-6 mb-4 md:ml-4">
           <img
             src={data.logo}
             alt={`${league} logo`}
             className="w-20 h-20 object-contain"
           />
-          <h1 className="text-6xl font-bold text-left uppercase">{league}</h1>
+          <h1 className="text-6xl font-bold text-center md:text-left uppercase">
+            {league}
+          </h1>
         </div>
 
         {loading || !displayData ? (

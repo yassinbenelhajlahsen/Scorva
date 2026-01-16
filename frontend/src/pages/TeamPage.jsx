@@ -32,7 +32,9 @@ export default function TeamPage() {
 
         const games = await (
           await fetch(
-            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${foundTeam.id}`
+            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${
+              foundTeam.id
+            }`
           )
         ).json();
         const last10 = games
@@ -78,7 +80,9 @@ export default function TeamPage() {
       <div className="flex flex-col md:flex-row justify-center md:justify-between items-center gap-10 p-6 text-white">
         {/* Image + Title */}
         <div className="flex flex-col items-center md:items-start w-full md:w-1/2 m-10">
-          <h1 className="text-6xl font-bold mb-4">{team.name}</h1>
+          <h1 className="text-6xl font-bold mb-4 text-center md:text-left">
+            {team.name}
+          </h1>
           <img
             src={team.logo_url || "/images/placeholder.png"}
             alt={team.name}

@@ -109,8 +109,10 @@ export default function PlayerPage() {
     <>
       <div className="flex flex-col md:flex-row gap-8 p-8 text-white">
         {/* Player Info */}
-        <div className="flex-1">
-          <h1 className="text-6xl font-bold mb-4">{name}</h1>
+        <div className="flex-1 flex flex-col items-center md:items-start">
+          <h1 className="text-6xl font-bold mb-4 text-center md:text-left">
+            {name}
+          </h1>
           <img
             src={imageUrl || "/images/placeholder.png"}
             alt={name}
