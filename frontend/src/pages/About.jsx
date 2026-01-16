@@ -1,72 +1,91 @@
 export default function About() {
   return (
-  
-      <div className="max-w-3xl mx-auto px-6 py-12 text-white">
-  <h1 className="text-4xl font-bold mb-10">About This Project</h1>
+    <div className="max-w-4xl mx-auto px-6 py-16 text-white">
+      <h1 className="text-4xl font-bold mb-8 tracking-tight">
+        About Scorva
+      </h1>
 
-  <p className="text-lg mb-6">
-    <strong>Scorva</strong> is a full-stack web app I built to combine my love for sports
-    — especially the NBA, NFL, and NHL — with my interest in software development. I wanted
-    a clean, ad-free platform where I could track games, view box scores, and dive into player stats
-    across multiple leagues in real time.
-  </p>
+      <p className="text-lg leading-relaxed mb-6 text-gray-200">
+        <strong>Scorva</strong> is a full-stack sports analytics platform designed to deliver fast,
+        reliable, and structured access to live and historical data for the NBA, NFL, and NHL.
+        I built it as a production-style application to demonstrate real-world software engineering
+        skills across frontend development, backend API design, database modeling, and deployment.
+      </p>
 
-  <p className="text-lg mb-6">
-    This project was developed from scratch using a React frontend, Node/Express backend, and a PostgreSQL database.
-    I used ESPN-style APIs to ingest live and historical game data, structured it with custom mapping logic, and deployed
-    the app using Vercel (frontend) and Railway (backend). From stat syncing to slug-based routing and responsive UI components,
-    every part of Scorva has been a learning experience and a showcase of my technical growth.
-  </p>
+      <p className="text-lg leading-relaxed mb-6 text-gray-200">
+        The system is built on a React and TypeScript frontend and a Node.js + Express backend,
+        backed by PostgreSQL for structured and relational sports data. Scorva consumes external
+        sports APIs, normalizes raw responses into a consistent schema, and exposes clean REST
+        endpoints to power dynamic UI features such as live box scores, player profiles, and
+        multi-league browsing.
+      </p>
 
-  <p className="text-lg mb-6">
-    The app supports multi-league browsing, top performer highlights, dynamic box scores, and detailed player pages.
-    Whether you're checking the latest NHL matchup or reviewing an NBA player's season averages, Scorva aims to make that
-    experience fast, responsive, and easy to navigate.
-  </p>
+      <p className="text-lg leading-relaxed mb-6 text-gray-200">
+        The application focuses on performance, maintainability, and scalability. This includes
+        efficient API calls, slug-based routing, modular service layers, reusable UI components,
+        and responsive design. The goal was to build something that feels closer to a production
+        system than a demo project.
+      </p>
 
-  <p>
-    <small>
-      <em>
-        Note: This project is for educational and personal use only. Any similarity in branding,
-        features, or structure to other sports platforms is unintentional and non-commercial.
-      </em>
-    </small>
-  </p>
+      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="bg-white/5 rounded-lg p-5">
+          <h3 className="text-lg font-semibold mb-2">What it demonstrates</h3>
+          <ul className="text-gray-300 space-y-2">
+            <li>• Full-stack architecture and API design</li>
+            <li>• Data ingestion and transformation pipelines</li>
+            <li>• Relational database modeling with PostgreSQL</li>
+            <li>• Frontend performance and UX optimization</li>
+            <li>• Production deployment and environment separation</li>
+          </ul>
+        </div>
 
-  <h2 className="text-2xl font-semibold mt-8 mb-4">Tech Stack</h2>
-  <ul className="list-disc list-inside text-lg space-y-2">
-    <li>⚛️ React with React Router for frontend routing</li>
-    <li>🎨 Tailwind CSS for styling and responsive layout</li>
-    <li>🎞️ Framer Motion for smooth page transitions</li>
-    <li>⚙️ Vite for fast frontend builds</li>
-    <li>🛠️ Node.js and Express for backend REST APIs</li>
-    <li>🐘 PostgreSQL (hosted on Railway) for structured stat and game data</li>
-    <li>🌐 External sports APIs (NBA, NFL, NHL from ESPN-style endpoints)</li>
-    <li>🚀 Deployment via Vercel (frontend) and Railway (backend)</li>
-    <li>🧠 Version control with Git + GitHub</li>
-    <li>
-      🧑‍💻{" "}
-      <strong>
+        <div className="bg-white/5 rounded-lg p-5">
+          <h3 className="text-lg font-semibold mb-2">Who it is for</h3>
+          <p className="text-gray-300">
+            Scorva is built for engineers, recruiters, and sports fans who want to explore a
+            real application that mirrors how modern full-stack systems are designed and shipped.
+          </p>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-semibold mt-12 mb-4">Tech Stack</h2>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-200">
+        <li>⚛️ React + TypeScript</li>
+        <li>🧭 React Router for client-side routing</li>
+        <li>🎨 Tailwind CSS for responsive UI</li>
+        <li>🎞️ Framer Motion for UI transitions</li>
+        <li>⚡ Vite for fast builds and dev experience</li>
+        <li>🛠️ Node.js + Express REST APIs</li>
+        <li>🐘 PostgreSQL for relational data modeling</li>
+        <li>🌐 External Sports APIs (NBA, NFL, NHL)</li>
+        <li>🚀 Vercel for frontend deployment</li>
+        <li>🚆 Railway for backend and database hosting</li>
+        <li>🧠 Git + GitHub for version control</li>
+      </ul>
+
+      <div className="mt-6">
         <a
           href="https://github.com/yassinbenelhajlahsen/Scorva"
-          className="text-blue-400 underline hover:text-blue-600"
+          className="inline-block text-blue-400 hover:text-blue-300 underline font-medium"
           target="_blank"
           rel="noopener noreferrer"
         >
-          View Source on GitHub
+          View the source code on GitHub
         </a>
-      </strong>
-    </li>
-  </ul>
+      </div>
 
-  <h2 className="text-2xl font-semibold mt-8 mb-4">The Vision</h2>
-  <p className="text-lg">
-    My goal with Scorva is to create a sleek, multi-sport stats platform that highlights both my technical
-    skills and my passion for sports. It’s more than just a project — it’s an evolving app where I’m exploring
-    everything from live data syncing to mobile responsiveness. Whether you’re a recruiter, a developer, or a sports fan,
-    I hope you enjoy exploring it as much as I enjoyed building it.
-  </p>
-</div>
+      <h2 className="text-2xl font-semibold mt-12 mb-4">The Vision</h2>
+      <p className="text-lg leading-relaxed text-gray-200">
+        Scorva represents my approach to building clean, maintainable, and scalable software.
+        As a new graduate software engineer, I use this project to showcase how I think about
+        system design, API architecture, data flow, and frontend performance. It reflects the
+        same principles I aim to bring into a professional engineering team.
+      </p>
 
+      <p className="mt-6 text-sm text-gray-400">
+        This project is for educational and portfolio purposes only and is not affiliated with
+        any professional sports league or data provider.
+      </p>
+    </div>
   );
 }
