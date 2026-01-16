@@ -112,6 +112,28 @@ Scorva includes an **AI-powered game analysis system** that generates intelligen
 - 30-second timeout with error handling
 - Clean UI integration between quarter-by-quarter scores and box score
 - Responsive design with animated bullet points and loading skeletons
+
+---
+
+## 🧪 Testing
+
+Scorva includes a comprehensive test suite for the backend with 100% coverage of all API endpoints, database operations, and data transformation utilities.
+
+### Quick Start
+
+```bash
+cd backend
+npm test                  # Run all tests
+npm run test:coverage    # Generate coverage report
+```
+
+### Test Coverage
+
+- ✅ **All API Routes** - Teams, players, games, standings, search, game info, player info
+- ✅ **Database Layer** - Connection, queries, error handling
+- ✅ **Data Services** - Stats mapping, player upserts, transformations
+- ✅ **Integration Tests** - Full Express app behavior
+
 ---
 
 ## 📌 Future Improvements

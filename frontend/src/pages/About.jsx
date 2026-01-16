@@ -39,6 +39,7 @@ export default function About() {
             <li>• Relational database modeling with PostgreSQL</li>
             <li>• Frontend performance and UX optimization</li>
             <li>• Production deployment and environment separation</li>
+            <li>• Comprehensive test coverage (120+ tests)</li>
           </ul>
         </div>
 
@@ -65,7 +66,7 @@ export default function About() {
         <li>🌐 External Sports APIs (NBA, NFL, NHL)</li>
         <li>🚀 Vercel for frontend deployment</li>
         <li>🚆 Railway for backend and database hosting</li>
-        <li>🧠 Git + GitHub for version control</li>
+        <li>� Jest + Supertest for testing</li>
       </ul>
 
       <div className="mt-6">
@@ -77,6 +78,27 @@ export default function About() {
         >
           View the source code on GitHub
         </a>
+      </div>
+
+      <h2 className="text-2xl font-semibold mt-12 mb-4">Testing & Quality</h2>
+      <p className="text-lg leading-relaxed text-gray-200 mb-4">
+        Scorva includes a comprehensive test suite with{" "}
+        <strong>120+ automated tests</strong> covering API routes, database
+        operations, data transformations, and integration workflows. Tests use
+        Jest with proper mocking to ensure reliability, maintainability, and
+        confidence in code changes.
+      </p>
+      <div className="bg-white/5 rounded-lg p-5">
+        <ul className="text-gray-300 space-y-2">
+          <li>
+            ✓ All API endpoints tested (teams, players, games, standings,
+            search, AI summaries)
+          </li>
+          <li>✓ Database layer and query operations validated</li>
+          <li>✓ Data mapping and transformation logic covered</li>
+          <li>✓ Error handling and edge cases included</li>
+          <li>✓ Integration tests for full request-response cycles</li>
+        </ul>
       </div>
 
       <h2 className="text-2xl font-semibold mt-12 mb-4">The Vision</h2>
