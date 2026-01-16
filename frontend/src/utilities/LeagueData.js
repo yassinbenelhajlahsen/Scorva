@@ -1,24 +1,15 @@
 const leagueData = {
   nba: {
     logo: "/NBAlogo.png",
-    links: [
-      { label: "Players", to: "/nba/players" },
-      { label: "Teams", to: "/nba/teams" },
-    ],
+    links: [{ label: "Players", to: "/nba/players" }],
   },
   nfl: {
     logo: "NFLlogo.png",
-    links: [
-      { label: "Players", to: "/nfl/players" },
-      { label: "Teams", to: "/nfl/teams" },
-    ],
+    links: [{ label: "Players", to: "/nfl/players" }],
   },
   nhl: {
     logo: "NHLlogo.png",
-    links: [
-      { label: "Players", to: "/nhl/players" },
-      { label: "Teams", to: "/nhl/teams" },
-    ],
+    links: [{ label: "Players", to: "/nhl/players" }],
   },
 };
 
