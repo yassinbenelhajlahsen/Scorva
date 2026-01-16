@@ -32,7 +32,7 @@ router.get("/:league/games", async (req, res) => {
     }
 
     query += ` ORDER BY g.date DESC
-                LIMIT 16`;
+                LIMIT 12`;
 
     const { rows } = await db.query(query, params);
     res.json(rows);

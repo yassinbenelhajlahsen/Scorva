@@ -13,7 +13,15 @@ import searchRoute from "./routes/search.js";
 const app = express();
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://scorva.vercel.app"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "https://scorva.vercel.app",
+      "http://192.168.1.68:5173",
+      "http://192.168.1.68:5174",
+      "http://192.168.1.68:5175",
+    ],
   })
 );
 
@@ -38,6 +46,6 @@ app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", searchRoute);
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("✅ Server running on port: ", process.env.PORT);
+app.listen(process.env.PORT || 3000, "0.0.0.0", () => {
+  console.log("✅ Server running on port: ", process.env.PORT || 3000);
 });
