@@ -8,6 +8,7 @@ import playersRoute from "./routes/players.js";
 import playerInfoRoute from "./routes/playerInfo.js";
 import gamesRoute from "./routes/games.js";
 import searchRoute from "./routes/search.js";
+import aiSummaryRoute from "./routes/aiSummary.js";
 
 const app = express();
 app.use(
@@ -32,6 +33,7 @@ app.use("/api", gamesInfoRoute);
 app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", searchRoute);
+app.use("/api", aiSummaryRoute);
 
 app.listen(process.env.PORT || 3000, "0.0.0.0", () => {
   console.log("✅ Server running on port: ", process.env.PORT || 3000);

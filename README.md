@@ -19,7 +19,6 @@ https://scorva.vercel.app
   - Frontend: Vercel
   - Backend: Railway
 
-
 ## Project Structure
 
 ```
@@ -83,21 +82,44 @@ Scorva
 
 ## 🔥 Features
 
-- Multi-league support: NBA, NFL, NHL
-- Search by player or team with autocomplete
-- Live stats, box scores, and game details
-- Ability to hover on game and stat cards for advanced details
-- Real-time and historical ESPN API integration
-- Responsive UI built with Tailwind and Framer Motion
-- RESTful backend with Express and PostgreSQL
-- Deployed on Vercel (frontend) and Railway (backend)
+- **Multi-league support:** NBA, NFL, NHL with consistent data structure
+- **Intelligent search:** Player and team autocomplete with real-time results
+- **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
+- **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages (lazy-generated and permanently cached for cost efficiency)
+- **Interactive UI:** Hover effects on game and stat cards for advanced details
+- **Real-time data:** Hourly updates via ESPN API integration
+- **Responsive design:** Built with Tailwind CSS and Framer Motion for smooth animations
+- **RESTful API:** Clean Express backend with PostgreSQL
+- **Production deployment:** Frontend on Vercel, backend on Railway
 
+## 🤖 AI Game Summary Feature
+
+Scorva includes an **AI-powered game analysis system** that generates intelligent summaries for completed games:
+
+- **Smart Generation:** Summaries are generated on-demand when a user views a game (lazy loading)
+- **Permanent Caching:** Each summary is stored in the database and never regenerated (cost-controlled)
+- **Structured Insights:** Uses OpenAI's GPT-4o-mini to analyze game data and produce 3-4 bullet points covering:
+  - Why the winning team won (key moments or advantages)
+  - Top player performances with statistics
+  - Crucial statistical differences or momentum shifts
+- **Cost Efficient:** ~$0.0001 per summary, cached permanently (approximately $3/month for 1,000 games)
+- **Graceful Degradation:** Handles API timeouts and errors with fallback messages
+
+**Technical Implementation:**
+
+- Backend endpoint: `GET /api/games/:id/ai-summary`
+- Cache-first architecture: checks database before calling OpenAI
+- 30-second timeout with error handling
+- Clean UI integration between quarter-by-quarter scores and box score
+- Responsive design with animated bullet points and loading skeletons
+---
 
 ## 📌 Future Improvements
 
 - User accounts with saved teams, players, and preferences
 - Multi-season history and archival access
 - Live game alerts, final scores, and push notifications
+- Multi-language AI summaries
 - Mobile app (React Native or PWA)
 
 ## 🧩 Challenges Faced
@@ -109,6 +131,8 @@ Scorva
 - **Frontend–Backend Deployment Sync:**  
   Hosting the frontend on **Vercel** and backend on **Railway** caused CORS, routing, and environment variable issues during deployment. I resolved these by explicitly managing allowed origins, rewriting API routes, and validating endpoints across both environments.
 
+- **Cost-Controlled LLM Integration:**  
+  Integrating OpenAI for game summaries required careful architecture to prevent runaway costs. I implemented a lazy-generation system with permanent database caching, ensuring each game summary is generated exactly once and served from cache on all subsequent requests. This reduced potential costs from thousands of dollars to just a few dollars per month while maintaining instant load times for cached summaries.
 
 ## 🧠 Author
 

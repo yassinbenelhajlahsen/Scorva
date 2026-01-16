@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 import BoxScore from "../components/ui/BoxScore.jsx";
+import AISummary from "../components/ui/AISummary.jsx";
 import slugify from "../utilities/slugify.js";
 import computeTopPlayers from "../utilities/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
@@ -203,8 +204,12 @@ export default function GamePage() {
           <p className="font-semibold">{game.status}</p>
           <p className="text-lg">Location</p>
           <p className="font-semibold">{game.venue}</p>
-          <p className="text-lg">Broadcast</p>
-          <p className="font-semibold">{game.broadcast}</p>
+          {game.broadcast && (
+            <>
+              <p className="text-lg">Broadcast</p>
+              <p className="font-semibold">{game.broadcast}</p>
+            </>
+          )}
         </div>
         {/* Top performers on the right */}
         <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 max-w-6xl mx-auto">
@@ -306,6 +311,9 @@ export default function GamePage() {
           </li>
         </ul>
       )}
+
+      {/* AI Game Summary - placed between quarter-by-quarter and box score */}
+      {isFinal && <AISummary gameId={gameId} />}
 
       {isFinal || inProgress ? (
         <BoxScore homeTeam={homeTeam} awayTeam={awayTeam} league={league} />
