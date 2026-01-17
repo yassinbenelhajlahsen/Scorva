@@ -66,7 +66,7 @@ export default function About() {
         <li>🌐 External Sports APIs (NBA, NFL, NHL)</li>
         <li>🚀 Vercel for frontend deployment</li>
         <li>🚆 Railway for backend and database hosting</li>
-        <li>� Jest + Supertest for testing</li>
+        <li> 🧪 Jest + Supertest for testing</li>
       </ul>
 
       <div className="mt-6">
