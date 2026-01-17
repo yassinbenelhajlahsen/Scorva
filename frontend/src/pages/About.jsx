@@ -80,27 +80,6 @@ export default function About() {
         </a>
       </div>
 
-      <h2 className="text-2xl font-semibold mt-12 mb-4">Testing & Quality</h2>
-      <p className="text-lg leading-relaxed text-gray-200 mb-4">
-        Scorva includes a comprehensive test suite with{" "}
-        <strong>120+ automated tests</strong> covering API routes, database
-        operations, data transformations, and integration workflows. Tests use
-        Jest with proper mocking to ensure reliability, maintainability, and
-        confidence in code changes.
-      </p>
-      <div className="bg-white/5 rounded-lg p-5">
-        <ul className="text-gray-300 space-y-2">
-          <li>
-            ✓ All API endpoints tested (teams, players, games, standings,
-            search, AI summaries)
-          </li>
-          <li>✓ Database layer and query operations validated</li>
-          <li>✓ Data mapping and transformation logic covered</li>
-          <li>✓ Error handling and edge cases included</li>
-          <li>✓ Integration tests for full request-response cycles</li>
-        </ul>
-      </div>
-
       <h2 className="text-2xl font-semibold mt-12 mb-4">The Vision</h2>
       <p className="text-lg leading-relaxed text-gray-200">
         Scorva represents my approach to building clean, maintainable, and
