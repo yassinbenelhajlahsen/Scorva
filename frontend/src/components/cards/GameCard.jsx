@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import formatDate from "../../utilities/formatDate";
+import { formatDateShort } from "../../utilities/formatDate";
 
 export default function GameCard({ game }) {
   const isFinal = game.status.includes("Final");
@@ -41,8 +41,8 @@ export default function GameCard({ game }) {
                 game.homescore === game.awayscore
                   ? "text-gray-400"
                   : game.homescore > game.awayscore
-                  ? "text-green-400"
-                  : "text-red-400"
+                    ? "text-green-400"
+                    : "text-red-400"
               }`}
             >
               {game.homescore}
@@ -52,7 +52,7 @@ export default function GameCard({ game }) {
           {/* Center */}
           <div className="flex flex-col items-center flex-1 justify-center">
             <span className="text-sm text-gray-400 mb-1 line-clamp-1">
-              {formatDate(game.date)}
+              {formatDateShort(game.date)}
             </span>
             <div className="text-sm text-gray-300">vs</div>
             <p className="mt-1 text-sm text-gray-300 text-center px-1">
@@ -80,8 +80,8 @@ export default function GameCard({ game }) {
                 game.homescore === game.awayscore
                   ? "text-gray-400"
                   : game.homescore < game.awayscore
-                  ? "text-green-400"
-                  : "text-red-400"
+                    ? "text-green-400"
+                    : "text-red-400"
               }`}
             >
               {game.awayscore}
@@ -107,7 +107,7 @@ export default function GameCard({ game }) {
                   <span key={key} className="w-10 text-center">
                     {key}
                   </span>
-                ) : null
+                ) : null,
               )}{" "}
               <span className="w-8 text-center">T</span>{" "}
             </li>{" "}
@@ -133,7 +133,7 @@ export default function GameCard({ game }) {
                     {" "}
                     {game[key].split("-")[1]}{" "}
                   </span>
-                ) : null
+                ) : null,
               )}{" "}
               <span
                 className={`w-8 text-center ${
@@ -167,7 +167,7 @@ export default function GameCard({ game }) {
                     {" "}
                     {game[key].split("-")[0]}{" "}
                   </span>
-                ) : null
+                ) : null,
               )}{" "}
               <span
                 className={`w-8 text-center ${
@@ -205,7 +205,7 @@ export default function GameCard({ game }) {
                   <span key={key} className="w-10 text-center">
                     {key}
                   </span>
-                ) : null
+                ) : null,
               )}
               <span className="w-8 text-center">T</span>
             </li>
@@ -234,7 +234,7 @@ export default function GameCard({ game }) {
                   <span key={key} className="w-10 text-center">
                     {game[key].split("-")[1]}
                   </span>
-                ) : null
+                ) : null,
               )}
 
               <span
@@ -271,7 +271,7 @@ export default function GameCard({ game }) {
                   <span key={key} className="w-10 text-center">
                     {game[key].split("-")[0]}
                   </span>
-                ) : null
+                ) : null,
               )}
 
               <span
