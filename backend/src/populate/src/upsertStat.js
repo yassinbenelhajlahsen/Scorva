@@ -42,7 +42,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7,
       $8, $9, $10, $11, $12, $13,
-      $14, $15::INTEGER, $16, $17, $18, $19, $20,
+      $14, $15, $16, $17, $18, $19, $20,
       $21, $22, $23, $24, $25, $26, $27,
       $28, $29, $30, $31, $32, $33
     )
@@ -105,7 +105,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     stats.plusminus || null,
     parseInteger(stats.minutes),
     stats.cmpatt || null,
-    stats.yds !== null && stats.yds !== undefined ? Number(stats.yds) : null,
+    parseInteger(stats.yds),
     stats.sacks || null,
     tdValue, // fixed!
     stats.interceptions || null,
