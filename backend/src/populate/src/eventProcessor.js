@@ -32,7 +32,7 @@ export async function fetchPlayerDetails(espnId, leagueSlug) {
   } catch (err) {
     // If ESPN returns 404 or similar, skip details
     console.warn(
-      `⚠️ [fetchPlayerDetails] could not fetch athlete ${espnId}: ${err.message}`
+      `⚠️ [fetchPlayerDetails] could not fetch athlete ${espnId}: ${err.message}`,
     );
     return null;
   }
@@ -51,7 +51,7 @@ export async function getEventsByDate(dateString, leagueSlug) {
   } catch (err) {
     console.error(
       `🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}:`,
-      err.message || err.response?.status || err
+      err.message || err.response?.status || err,
     );
 
     return [];
@@ -70,7 +70,7 @@ export async function getTodayEvents(leagueSlug) {
     return resp.data.events || [];
   } catch (err) {
     console.error(
-      `🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`
+      `🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`,
     );
     return [];
   }
@@ -90,22 +90,22 @@ export async function processEvent(client, leagueSlug, event) {
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
     console.warn(
-      `⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`
+      `⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`,
     );
     return null;
   }
 
-  // Extract date portion YYYY-MM-DD
+  // Extract date portion YYYY-MM-DD in UTC
   const rawDate = event.date; // "2025-06-09T00:00Z"
-  const localDate = DateTime.fromISO(rawDate, { zone: "utc" })
-    .setZone("America/New_York")
-    .toFormat("yyyy-MM-dd");
+  const localDate = DateTime.fromISO(rawDate, { zone: "utc" }).toFormat(
+    "yyyy-MM-dd",
+  );
   const comps = event.competitions?.[0]?.competitors || [];
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
   if (!homeComp || !awayComp) {
     console.warn(
-      `⚠️ [processEvent] missing home/away for event ${espnEventId}`
+      `⚠️ [processEvent] missing home/away for event ${espnEventId}`,
     );
     return null;
   }
@@ -144,7 +144,7 @@ export async function processEvent(client, leagueSlug, event) {
       client,
       parseInt(homeComp.team.id, 10),
       leagueSlug,
-      homeTeamData
+      homeTeamData,
     );
 
     // ── Upsert AWAY team ──
@@ -152,7 +152,7 @@ export async function processEvent(client, leagueSlug, event) {
       client,
       parseInt(awayComp.team.id, 10),
       leagueSlug,
-      awayTeamData
+      awayTeamData,
     );
 
     // 5.4.5) Extract scores (if present)
@@ -272,7 +272,7 @@ export async function processEvent(client, leagueSlug, event) {
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
 
     const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
-      leagueSlug
+      leagueSlug,
     )}/${leagueSlug}/summary?event=${espnEventId}`;
 
     let statsResp;
@@ -280,7 +280,7 @@ export async function processEvent(client, leagueSlug, event) {
       statsResp = await axios.get(boxscoreUrl);
     } catch (err) {
       console.warn(
-        `⚠️ [processEvent] no boxscore for ${espnEventId}: ${err.message}`
+        `⚠️ [processEvent] no boxscore for ${espnEventId}: ${err.message}`,
       );
       await client.query("COMMIT");
       return gameId;
@@ -306,8 +306,8 @@ export async function processEvent(client, leagueSlug, event) {
             statNames = Array.isArray(group.statistics?.[0]?.keys)
               ? group.statistics[0].labels
               : Array.isArray(group.statistics?.[0]?.descriptions)
-              ? group.statistics[0].descriptions
-              : group.statistics?.[0]?.names || [];
+                ? group.statistics[0].descriptions
+                : group.statistics?.[0]?.names || [];
           } else {
             if (Array.isArray(cat.keys)) {
               statNames = cat.keys;
@@ -327,7 +327,7 @@ export async function processEvent(client, leagueSlug, event) {
             // 5a) Fetch more player details if needed
             const detailedAthlete = await fetchPlayerDetails(
               espnId,
-              leagueSlug
+              leagueSlug,
             ).catch(() => null);
             const fallbackName = athleteEntry.athlete.displayName || "Unknown";
             const playerObj = {
@@ -354,7 +354,7 @@ export async function processEvent(client, leagueSlug, event) {
               client,
               playerObj,
               teamIdForPlayer,
-              leagueSlug
+              leagueSlug,
             );
             // 5c) Build raw stats object and map it
             const rawStatsObj = { gameid: gameId };
@@ -391,7 +391,7 @@ export async function processEvent(client, leagueSlug, event) {
  */
 export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
   console.log(
-    `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`
+    `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`,
   );
 
   const EVENT_BATCH_SIZE = 5;
@@ -410,19 +410,19 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
           } catch (err) {
             console.error(
               `❌ Error processing event ${event.id}:`,
-              err.message
+              err.message,
             );
           } finally {
             client.release();
           }
-        })
+        }),
       );
     }
   }
   const now = new Date();
 
   console.log(
-    `✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`
+    `✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`,
   );
 }
 
