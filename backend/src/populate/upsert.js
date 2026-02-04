@@ -35,7 +35,7 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
 
 (async () => {
   console.log(`\n${"=".repeat(60)}`);
-  console.log(`🚀 Starting hourly upsert at ${formattedTime}`);
+  console.log(`🚀 Starting upsert at ${formattedTime}`);
   console.log(`${"=".repeat(60)}`);
 
   try {
@@ -67,11 +67,9 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
     // Clear the player cache to free memory after run completes
     clearPlayerCache();
 
-    console.log(
-      `\n✅ Hourly upsert completed successfully at ${formattedTime}\n`,
-    );
+    console.log(`\n✅ Upsert completed successfully at ${formattedTime}\n`);
   } catch (err) {
-    console.error("❌ [hourlyUpsert] fatal error:", err);
+    console.error("❌ [upsert] fatal error:", err);
   } finally {
     // Always clear cache on exit to prevent memory leaks
     clearPlayerCache();

@@ -40,7 +40,7 @@ Scorva
 │   │   ├── utils/                # Shared helpers (e.g., logger, validation)
 │   │   └── populate/             # Database seeding and update scripts
 │   │       ├── historicalUpsert.js
-│   │       ├── hourlyUpsert.js
+│   │       ├── upsert.js
 │   │       └── src/
 │   │           ├── commonMappings.js
 │   │           ├── mapStatsToSchema.js
@@ -87,7 +87,7 @@ Scorva
 - **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
 - **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages (lazy-generated and permanently cached for cost efficiency)
 - **Interactive UI:** Hover effects on game and stat cards for advanced details
-- **Real-time data:** Hourly updates via ESPN API integration
+- **Real-time data:** Updates every 5 minutes via ESPN API integration
 - **Responsive design:** Built with Tailwind CSS and Framer Motion for smooth animations
 - **RESTful API:** Clean Express backend with PostgreSQL
 - **Production deployment:** Frontend on Vercel, backend on Railway
@@ -133,7 +133,6 @@ npm run test:coverage    # Generate coverage report
 - ✅ **Database Layer** - Connection, queries, error handling
 - ✅ **Data Services** - Stats mapping, player upserts, transformations
 - ✅ **Integration Tests** - Full Express app behavior
-
 
 ---
 
