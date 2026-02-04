@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
-import { runTodayProcessing } from "./src/eventProcessor.js";
+import {
+  runTodayProcessing,
+  clearPlayerCache,
+  getPlayerCacheStats,
+} from "./src/eventProcessor.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
@@ -26,19 +30,51 @@ function addOrdinal(day) {
 
 // Build formatted timestamp string
 const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
-  nowEST.day
+  nowEST.day,
 )}, ${nowEST.toFormat("yyyy")} @ ${nowEST.toFormat("h:mma").toLowerCase()}`;
 
 (async () => {
+  console.log(`\n${"=".repeat(60)}`);
+  console.log(`🚀 Starting hourly upsert at ${formattedTime}`);
+  console.log(`${"=".repeat(60)}`);
+
   try {
-    // For each league, fetch and process today’s events
+    // For each league, fetch and process today's events
+    console.log(`\n📋 Processing NBA...`);
     await runTodayProcessing("nba", pool);
+
+    console.log(`\n📋 Processing NFL...`);
     await runTodayProcessing("nfl", pool);
+
+    console.log(`\n📋 Processing NHL...`);
     await runTodayProcessing("nhl", pool);
-    console.log(`[ ${formattedTime} ] ✅ Hourly upsert ran successfully.`);
+
+    // Log optimization stats before clearing (useful for monitoring impact)
+    const stats = getPlayerCacheStats();
+
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`📊 RUN SUMMARY`);
+    console.log(`${"=".repeat(60)}`);
+    console.log(`   Games processed:     ${stats.gamesProcessed}`);
+    console.log(`   FINAL games skipped: ${stats.skippedFinalGames}`);
+    console.log(`   Players upserted:    ${stats.playersUpserted}`);
+    console.log(`   Stats upserted:      ${stats.statsUpserted}`);
+    console.log(`   ESPN API calls:      ${stats.espnApiCalls}`);
+    console.log(`   Cache hits:          ${stats.cacheHits}`);
+    console.log(`   DB hits:             ${stats.dbHits}`);
+    console.log(`${"=".repeat(60)}`);
+
+    // Clear the player cache to free memory after run completes
+    clearPlayerCache();
+
+    console.log(
+      `\n✅ Hourly upsert completed successfully at ${formattedTime}\n`,
+    );
   } catch (err) {
     console.error("❌ [hourlyUpsert] fatal error:", err);
   } finally {
+    // Always clear cache on exit to prevent memory leaks
+    clearPlayerCache();
     await pool.end();
     process.exit(0);
   }

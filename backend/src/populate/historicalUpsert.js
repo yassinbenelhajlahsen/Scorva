@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
-import { runDateRangeProcessing } from "./src/eventProcessor.js";
+import {
+  runDateRangeProcessing,
+  clearPlayerCache,
+  getPlayerCacheStats,
+} from "./src/eventProcessor.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
@@ -43,11 +47,22 @@ const leagues = [
       leagues.map(async ({ slug, seasonStart, seasonEnd }) => {
         const dates = getAllDatesInRange(seasonStart, seasonEnd);
         await runDateRangeProcessing(slug, dates, pool);
-      })
+      }),
     );
+
+    // Log cache stats before clearing (useful for monitoring optimization impact)
+    const cacheStats = getPlayerCacheStats();
+    console.log(
+      `📊 Player cache size: ${cacheStats.size} entries (avoided that many ESPN API re-calls)`,
+    );
+
+    // Clear the player cache to free memory after run completes
+    clearPlayerCache();
   } catch (err) {
     console.error("❌ [historicalUpsert] Fatal error:", err);
   } finally {
+    // Always clear cache on exit to prevent memory leaks
+    clearPlayerCache();
     await pool.end();
     process.exit(0);
   }

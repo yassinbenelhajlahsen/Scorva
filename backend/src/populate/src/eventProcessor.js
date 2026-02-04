@@ -7,6 +7,59 @@ import upsertStat from "./upsertStat.js";
 import upsertGame from "./upsertGame.js";
 import { DateTime } from "luxon";
 
+// ============================================================================
+// OPTIMIZATION 1: In-memory cache for player details
+// ============================================================================
+// Keyed by `${leagueSlug}:${espnId}` to avoid cross-league collisions.
+// Cleared at the end of each run via clearPlayerCache().
+// This prevents duplicate ESPN API calls for the same player within a single run.
+const playerDetailsCache = new Map();
+
+// ============================================================================
+// OPTIMIZATION 2: Track skipped FINAL games for logging
+// ============================================================================
+let skippedFinalGamesCount = 0;
+
+// ============================================================================
+// LOGGING: Track statistics for the current run
+// ============================================================================
+let runStats = {
+  espnApiCalls: 0,
+  cacheHits: 0,
+  dbHits: 0,
+  playersUpserted: 0,
+  statsUpserted: 0,
+  gamesProcessed: 0,
+};
+
+/**
+ * Clear the in-memory player cache.
+ * Call this at the end of each hourly/historical run to free memory.
+ */
+export function clearPlayerCache() {
+  playerDetailsCache.clear();
+  skippedFinalGamesCount = 0;
+  runStats = {
+    espnApiCalls: 0,
+    cacheHits: 0,
+    dbHits: 0,
+    playersUpserted: 0,
+    statsUpserted: 0,
+    gamesProcessed: 0,
+  };
+}
+
+/**
+ * Get cache statistics for logging/debugging.
+ */
+export function getPlayerCacheStats() {
+  return {
+    size: playerDetailsCache.size,
+    skippedFinalGames: skippedFinalGamesCount,
+    ...runStats,
+  };
+}
+
 export function getSportPath(leagueSlug) {
   switch (leagueSlug.toLowerCase()) {
     case "nba":
@@ -20,22 +73,151 @@ export function getSportPath(leagueSlug) {
   }
 }
 
+// ============================================================================
+// OPTIMIZATION 1 (cont.): Check DB for existing player with complete details
+// ============================================================================
+/**
+ * Check if a player already exists in the database with non-null core fields.
+ * Returns the player details formatted like ESPN response, or null if not found/incomplete.
+ */
+async function getExistingPlayerFromDB(client, espnId, leagueSlug) {
+  const query = `
+    SELECT 
+      espn_playerid as id,
+      name,
+      position,
+      height,
+      weight,
+      image_url,
+      jerseynum,
+      dob,
+      draftinfo
+    FROM players
+    WHERE espn_playerid = $1 AND league = $2
+      AND name IS NOT NULL
+      AND position IS NOT NULL
+      AND height IS NOT NULL
+      AND weight IS NOT NULL
+      AND image_url IS NOT NULL
+  `;
+  const result = await client.query(query, [espnId, leagueSlug]);
+  if (result.rows.length === 0) {
+    return null;
+  }
+  const row = result.rows[0];
+  // Return in a format compatible with ESPN athlete response
+  return {
+    id: row.id,
+    displayName: row.name,
+    position: { abbreviation: row.position },
+    displayHeight: row.height,
+    displayWeight: row.weight,
+    headshot: { href: row.image_url },
+    jersey: row.jerseynum,
+    displayDOB: row.dob,
+    displayDraft: row.draftinfo,
+    _fromDB: true, // marker to indicate this came from DB
+  };
+}
+
+// ============================================================================
+// OPTIMIZATION 2: Check if game is already FINAL in database
+// ============================================================================
+/**
+ * Check if a game already exists with FINAL status.
+ * Returns { exists: boolean, isFinal: boolean, gameId: number | null }
+ */
+async function getExistingGameStatus(
+  client,
+  homeTeamId,
+  awayTeamId,
+  date,
+  league,
+) {
+  const query = `
+    SELECT id, status
+    FROM games
+    WHERE hometeamid = $1 
+      AND awayteamid = $2 
+      AND date = $3 
+      AND league = $4
+  `;
+  const result = await client.query(query, [
+    homeTeamId,
+    awayTeamId,
+    date,
+    league,
+  ]);
+  if (result.rows.length === 0) {
+    return { exists: false, isFinal: false, gameId: null };
+  }
+  const row = result.rows[0];
+  return {
+    exists: true,
+    isFinal: row.status === "Final",
+    gameId: row.id,
+  };
+}
+
 /**
  * 3) Utility: fetch detailed player info from ESPN API
  */
 export async function fetchPlayerDetails(espnId, leagueSlug) {
   const path = getSportPath(leagueSlug);
   const url = `https://site.web.api.espn.com/apis/common/v3/sports/${path}/${leagueSlug}/athletes/${espnId}`;
+  runStats.espnApiCalls++;
+  console.log(`    📡 [ESPN API] Fetching player ${espnId} details`);
   try {
     const resp = await axios.get(url);
     return resp.data.athlete || null;
   } catch (err) {
     // If ESPN returns 404 or similar, skip details
     console.warn(
-      `⚠️ [fetchPlayerDetails] could not fetch athlete ${espnId}: ${err.message}`
+      `    ⚠️  [ESPN API] Could not fetch athlete ${espnId}: ${err.message}`,
     );
     return null;
   }
+}
+
+// ============================================================================
+// OPTIMIZATION 1 (cont.): Cached player fetch with DB fallback
+// ============================================================================
+/**
+ * Get player details with caching strategy:
+ * 1. Check in-memory cache first (fastest)
+ * 2. Check database for existing player with complete details
+ * 3. Only call ESPN API if both cache and DB miss
+ *
+ * This eliminates redundant ESPN calls within a run and across hourly runs.
+ */
+async function getCachedPlayerDetails(client, espnId, leagueSlug) {
+  const cacheKey = `${leagueSlug}:${espnId}`;
+
+  // Step 1: Check in-memory cache (same-run deduplication)
+  if (playerDetailsCache.has(cacheKey)) {
+    runStats.cacheHits++;
+    return playerDetailsCache.get(cacheKey);
+  }
+
+  // Step 2: Check database for existing player with complete details
+  // This prevents re-fetching players that were imported in previous runs
+  const dbPlayer = await getExistingPlayerFromDB(client, espnId, leagueSlug);
+  if (dbPlayer) {
+    runStats.dbHits++;
+    // Store in cache for potential re-use within this run
+    playerDetailsCache.set(cacheKey, dbPlayer);
+    return dbPlayer;
+  }
+
+  // Step 3: Cache miss - fetch from ESPN API
+  const espnPlayer = await fetchPlayerDetails(espnId, leagueSlug).catch(
+    () => null,
+  );
+
+  // Store result in cache (even if null, to avoid repeated failed requests)
+  playerDetailsCache.set(cacheKey, espnPlayer);
+
+  return espnPlayer;
 }
 
 /**
@@ -51,7 +233,7 @@ export async function getEventsByDate(dateString, leagueSlug) {
   } catch (err) {
     console.error(
       `🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}:`,
-      err.message || err.response?.status || err
+      err.message || err.response?.status || err,
     );
 
     return [];
@@ -70,7 +252,7 @@ export async function getTodayEvents(leagueSlug) {
     return resp.data.events || [];
   } catch (err) {
     console.error(
-      `🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`
+      `🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`,
     );
     return [];
   }
@@ -90,7 +272,7 @@ export async function processEvent(client, leagueSlug, event) {
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
     console.warn(
-      `⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`
+      `⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`,
     );
     return null;
   }
@@ -105,10 +287,16 @@ export async function processEvent(client, leagueSlug, event) {
   const awayComp = comps.find((c) => c.homeAway === "away");
   if (!homeComp || !awayComp) {
     console.warn(
-      `⚠️ [processEvent] missing home/away for event ${espnEventId}`
+      `⚠️ [processEvent] missing home/away for event ${espnEventId}`,
     );
     return null;
   }
+
+  // Log game info
+  const homeName = homeComp.team?.abbreviation || homeComp.team?.name || "???";
+  const awayName = awayComp.team?.abbreviation || awayComp.team?.name || "???";
+  const gameStatus = event.status?.type?.description || "Unknown";
+  console.log(`  🎮 ${awayName} @ ${homeName} (${gameStatus})`);
 
   // BEGIN a transaction
   await client.query("BEGIN");
@@ -144,7 +332,7 @@ export async function processEvent(client, leagueSlug, event) {
       client,
       parseInt(homeComp.team.id, 10),
       leagueSlug,
-      homeTeamData
+      homeTeamData,
     );
 
     // ── Upsert AWAY team ──
@@ -152,7 +340,7 @@ export async function processEvent(client, leagueSlug, event) {
       client,
       parseInt(awayComp.team.id, 10),
       leagueSlug,
-      awayTeamData
+      awayTeamData,
     );
 
     // 5.4.5) Extract scores (if present)
@@ -269,24 +457,68 @@ export async function processEvent(client, leagueSlug, event) {
       status,
       seasonText,
     };
+
+    // ========================================================================
+    // OPTIMIZATION 2: Skip finished games
+    // ========================================================================
+    // Check if this game already exists in the DB with FINAL status.
+    // If so, skip boxscore fetch and player/stat upserts since data is immutable.
+    // This allows: initial insert of final games, and status transitions (IN → FINAL).
+    const existingGame = await getExistingGameStatus(
+      client,
+      homeTeamId,
+      awayTeamId,
+      localDate,
+      leagueSlug,
+    );
+
+    // Always upsert the game first to capture metadata updates (broadcast, status, etc.)
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
+    runStats.gamesProcessed++;
+    console.log(`    ✓ Game upserted (id: ${gameId})`);
 
-    const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
-      leagueSlug
-    )}/${leagueSlug}/summary?event=${espnEventId}`;
-
-    let statsResp;
-    try {
-      statsResp = await axios.get(boxscoreUrl);
-    } catch (err) {
-      console.warn(
-        `⚠️ [processEvent] no boxscore for ${espnEventId}: ${err.message}`
+    // ========================================================================
+    // OPTIMIZATION 2: Skip finished games (boxscore/player/stat processing only)
+    // ========================================================================
+    // If the game was already FINAL in DB, skip expensive boxscore fetch and
+    // player/stat upserts since that data is immutable once the game ends.
+    // We still ran upsertGame above to capture any metadata changes.
+    if (existingGame.exists && existingGame.isFinal) {
+      skippedFinalGamesCount++;
+      console.log(
+        `    ⏭️  Already FINAL in DB — skipping boxscore/players/stats`,
       );
       await client.query("COMMIT");
       return gameId;
     }
 
+    // Game is new OR not final yet - proceed with boxscore/player/stat processing
+    console.log(`    📡 Fetching boxscore from ESPN...`);
+    const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
+      leagueSlug,
+    )}/${leagueSlug}/summary?event=${espnEventId}`;
+
+    let statsResp;
+    try {
+      statsResp = await axios.get(boxscoreUrl);
+      console.log(`    ✓ Boxscore retrieved`);
+    } catch (err) {
+      console.warn(`    ⚠️  No boxscore available: ${err.message}`);
+      await client.query("COMMIT");
+      return gameId;
+    }
+
     const playerGroups = statsResp.data.boxscore?.players || [];
+    const totalPlayers = playerGroups.reduce((sum, g) => {
+      return (
+        sum +
+        (g.statistics || []).reduce(
+          (s, cat) => s + (cat.athletes?.length || 0),
+          0,
+        )
+      );
+    }, 0);
+    console.log(`    👥 Processing ${totalPlayers} players...`);
 
     try {
       for (const group of playerGroups) {
@@ -306,8 +538,8 @@ export async function processEvent(client, leagueSlug, event) {
             statNames = Array.isArray(group.statistics?.[0]?.keys)
               ? group.statistics[0].labels
               : Array.isArray(group.statistics?.[0]?.descriptions)
-              ? group.statistics[0].descriptions
-              : group.statistics?.[0]?.names || [];
+                ? group.statistics[0].descriptions
+                : group.statistics?.[0]?.names || [];
           } else {
             if (Array.isArray(cat.keys)) {
               statNames = cat.keys;
@@ -324,11 +556,18 @@ export async function processEvent(client, leagueSlug, event) {
             const espnId = athleteEntry.athlete?.id;
             if (!espnId) continue;
 
-            // 5a) Fetch more player details if needed
-            const detailedAthlete = await fetchPlayerDetails(
+            // ================================================================
+            // OPTIMIZATION 1: Use cached player fetch
+            // ================================================================
+            // getCachedPlayerDetails checks:
+            // 1. In-memory cache (same-run deduplication)
+            // 2. Database (cross-run persistence)
+            // 3. ESPN API only if both miss
+            const detailedAthlete = await getCachedPlayerDetails(
+              client,
               espnId,
-              leagueSlug
-            ).catch(() => null);
+              leagueSlug,
+            );
             const fallbackName = athleteEntry.athlete.displayName || "Unknown";
             const playerObj = {
               id: detailedAthlete?.id || espnId,
@@ -354,8 +593,10 @@ export async function processEvent(client, leagueSlug, event) {
               client,
               playerObj,
               teamIdForPlayer,
-              leagueSlug
+              leagueSlug,
             );
+            runStats.playersUpserted++;
+
             // 5c) Build raw stats object and map it
             const rawStatsObj = { gameid: gameId };
             const statValues = athleteEntry.stats || [];
@@ -367,10 +608,14 @@ export async function processEvent(client, leagueSlug, event) {
             const mappedStats = mapStatsToSchema(rawStatsObj, leagueSlug);
             // 5d) Upsert the stat row
             await upsertStat(client, gameId, playerId, mappedStats);
+            runStats.statsUpserted++;
           }
         }
       }
       // Everything succeeded → commit
+      console.log(
+        `    ✓ Committed (${runStats.playersUpserted} players, ${runStats.statsUpserted} stats total this run)`,
+      );
       await client.query("COMMIT");
       return gameId;
     } catch (err) {
@@ -391,7 +636,7 @@ export async function processEvent(client, leagueSlug, event) {
  */
 export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
   console.log(
-    `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`
+    `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`,
   );
 
   const EVENT_BATCH_SIZE = 5;
@@ -410,19 +655,19 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
           } catch (err) {
             console.error(
               `❌ Error processing event ${event.id}:`,
-              err.message
+              err.message,
             );
           } finally {
             client.release();
           }
-        })
+        }),
       );
     }
   }
   const now = new Date();
 
   console.log(
-    `✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`
+    `✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`,
   );
 }
 
