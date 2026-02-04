@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import "./config/env.js";
 import teamsRouter from "./routes/teams.js";
 import standingsRouter from "./routes/standings.js";
@@ -11,6 +12,34 @@ import searchRoute from "./routes/search.js";
 import aiSummaryRoute from "./routes/aiSummary.js";
 
 const app = express();
+
+// Trust proxy for accurate IP detection behind reverse proxies (Railway, Vercel, etc.)
+app.set("trust proxy", 1);
+
+// General rate limiter for all API endpoints
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: {
+    error: "Too many requests, please try again later.",
+    retryAfter: "15 minutes",
+  },
+});
+
+// Stricter rate limiter for AI summary endpoint (more expensive operation)
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 AI requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many AI summary requests, please try again later.",
+    retryAfter: "15 minutes",
+  },
+});
+
 app.use(
   cors({
     origin: [
@@ -22,10 +51,16 @@ app.use(
       "http://192.168.1.68:5174",
       "http://192.168.1.68:5175",
     ],
-  })
+  }),
 );
 
 app.use(express.json());
+
+// Apply stricter rate limiter to AI summary endpoint (more expensive operation)
+app.use("/api", aiLimiter, aiSummaryRoute);
+
+// Apply general rate limiter to all other /api routes
+app.use("/api", generalLimiter);
 app.use("/api", teamsRouter);
 app.use("/api", standingsRouter);
 app.use("/api", gamesRoute);
@@ -33,7 +68,6 @@ app.use("/api", gamesInfoRoute);
 app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", searchRoute);
-app.use("/api", aiSummaryRoute);
 
 app.listen(process.env.PORT || 3000, "0.0.0.0", () => {
   console.log("✅ Server running on port: ", process.env.PORT || 3000);
