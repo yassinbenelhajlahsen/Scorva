@@ -47,22 +47,24 @@ export const requestLogger = (req, res, next) => {
   next();
 };
 
+const isProd = process.env.NODE_ENV === "production";
+console.log(isProd)
 // General rate limiter for all API endpoints
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3000, // Limit each IP to 3,000 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  max: isProd ? 3000 : 1000000,
+  standardHeaders: true, 
+  legacyHeaders: false, 
   message: {
     error: "Too many requests, please try again later.",
     retryAfter: "15 minutes",
   },
 });
 
-// Stricter rate limiter for AI summary endpoint (more expensive operation)
+// Stricter rate limiter for AI summary endpoint 
 export const aiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Limit each IP to 50 AI requests per windowMs
+  windowMs: 15 * 60 * 1000, 
+  max: isProd ? 50: 1000, 
   standardHeaders: true,
   legacyHeaders: false,
   message: {
