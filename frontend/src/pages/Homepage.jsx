@@ -22,19 +22,19 @@ export default function Homepage() {
           leagues.map((league) =>
             fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games`, {
               signal: controller.signal,
-            })
-          )
+            }),
+          ),
         );
 
         const data = await Promise.all(
           responses.map((res, i) => {
             if (!res.ok) {
               throw new Error(
-                `Failed to fetch ${leagues[i]} games (status ${res.status})`
+                `Failed to fetch ${leagues[i]} games (status ${res.status})`,
               );
             }
             return res.json();
-          })
+          }),
         );
 
         setGames({
@@ -167,7 +167,7 @@ export default function Homepage() {
         </div>
 
         {/* Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
           {games[activeLeague].slice(0, 6).map((game) => (
             <div key={game.id} className="w-full">
               <GameCard game={game} />

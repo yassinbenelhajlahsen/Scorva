@@ -34,7 +34,7 @@ export default function LeaguePage() {
         // Fetch games
         const gamesRes = await fetch(
           `${import.meta.env.VITE_API_URL}/api/${league}/games`,
-          { signal }
+          { signal },
         );
         if (!gamesRes.ok) {
           throw new Error(`HTTP ${gamesRes.status}`);
@@ -45,7 +45,7 @@ export default function LeaguePage() {
         // Fetch standings
         const standingsRes = await fetch(
           `${import.meta.env.VITE_API_URL}/api/${league}/standings`,
-          { signal }
+          { signal },
         );
         if (!standingsRes.ok) {
           throw new Error(`HTTP ${standingsRes.status}`);
@@ -54,10 +54,10 @@ export default function LeaguePage() {
 
         const isNFL = league === "nfl";
         const east = teams.filter(
-          (t) => t.conf?.toLowerCase() === (isNFL ? "afc" : "east")
+          (t) => t.conf?.toLowerCase() === (isNFL ? "afc" : "east"),
         );
         const west = teams.filter(
-          (t) => t.conf?.toLowerCase() === (isNFL ? "nfc" : "west")
+          (t) => t.conf?.toLowerCase() === (isNFL ? "nfc" : "west"),
         );
 
         setStandings({ eastOrAFC: east, westOrNFC: west });
@@ -208,7 +208,7 @@ export default function LeaguePage() {
             <h2 className="text-4xl font-bold text-center mt-20 mb-20">
               Games
             </h2>
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center items-start">
               {games.map((game) => (
                 <div key={game.id} className="w-full max-w-md">
                   <GameCard game={game} />

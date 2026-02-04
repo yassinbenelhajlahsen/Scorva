@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { formatDateShort } from "../../utilities/formatDate";
 
 export default function GameCard({ game }) {
+  const [isHovered, setIsHovered] = useState(false);
   const isFinal = game.status.includes("Final");
   const inProgress =
     game.status.includes("In Progress") ||
@@ -16,9 +18,11 @@ export default function GameCard({ game }) {
   return (
     <Link
       to={`/${league}/games/${game.id}`}
-      className="group block no-underline h-full"
+      className="block no-underline"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer h-full flex flex-col overflow-hidden">
+      <div className="relative border border-zinc-700 bg-zinc-800 p-6 text-center rounded-xl shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer flex flex-col overflow-hidden">
         {/* Teams & Scores */}
         <div className="flex items-center justify-between gap-6 min-h-[120px]">
           {/* Home */}
@@ -89,7 +93,9 @@ export default function GameCard({ game }) {
           </div>
         </div>
         {nhl && (
-          <ul className="mt-4 text-sm text-gray-300 font-mono max-h-0 min-h-[0px] group-hover:max-h-[300px] overflow-hidden transition-[max-height] duration-700 ease-in-out space-y-1">
+          <ul
+            className={`mt-4 text-sm text-gray-300 font-mono overflow-hidden transition-[max-height] duration-700 ease-in-out space-y-1 ${isHovered ? "max-h-[300px]" : "max-h-0 min-h-[0px]"}`}
+          >
             {" "}
             <li className="text-white text-sm font-bold text-center">
               {game.status}
@@ -185,9 +191,8 @@ export default function GameCard({ game }) {
         {/* Quarter breakdown */}
         {(isFinal || inProgress) && !nhl && (
           <ul
-            className="mt-4 text-sm text-gray-300 font-mono 
-    max-h-0 min-h-[0px] group-hover:max-h-[300px] 
-    overflow-hidden transition-[max-height] duration-700 ease-in-out space-y-1"
+            className={`mt-4 text-sm text-gray-300 font-mono 
+    overflow-hidden transition-[max-height] duration-700 ease-in-out space-y-1 ${isHovered ? "max-h-[300px]" : "max-h-0 min-h-[0px]"}`}
           >
             <li className="text-white text-sm font-bold text-center">
               {game.status}

@@ -18,13 +18,13 @@ export default function TeamPage() {
     async function fetchTeamData() {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/teams`
+          `${import.meta.env.VITE_API_URL}/api/${league}/teams`,
         );
         if (!res.ok) throw new Error("Failed to fetch teams.");
         const teamList = await res.json();
         const foundTeam = teamList.find(
           (t) =>
-            slugify(t.name) === teamId || slugify(t.shortname || "") === teamId
+            slugify(t.name) === teamId || slugify(t.shortname || "") === teamId,
         );
 
         if (!foundTeam) throw new Error("Team not found.");
@@ -34,7 +34,7 @@ export default function TeamPage() {
           await fetch(
             `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${
               foundTeam.id
-            }`
+            }`,
           )
         ).json();
         const last10 = games
@@ -108,7 +108,7 @@ export default function TeamPage() {
       <h2 className="text-5xl font-bold mb-4 p-8 text-center">Last 10 Games</h2>
 
       {games.length > 0 ? (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center items-start">
           {games.map((game) => (
             <div key={game.id} className="w-full max-w-md">
               <GameCard game={game} />
