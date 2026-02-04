@@ -48,7 +48,7 @@ export const requestLogger = (req, res, next) => {
 };
 
 const isProd = process.env.NODE_ENV === "production";
-console.log(isProd)
+console.log("environment:", process.env.NODE_ENV)
 // General rate limiter for all API endpoints
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
