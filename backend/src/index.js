@@ -19,7 +19,7 @@ app.set("trust proxy", 1);
 // General rate limiter for all API endpoints
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 2500, // Limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   message: {
@@ -31,7 +31,7 @@ const generalLimiter = rateLimit({
 // Stricter rate limiter for AI summary endpoint (more expensive operation)
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 AI requests per windowMs
+  max: 50, // Limit each IP to 20 AI requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
   message: {
