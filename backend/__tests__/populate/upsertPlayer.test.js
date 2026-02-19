@@ -208,7 +208,57 @@ describe("upsertPlayer", () => {
 
     const query = mockClient.query.mock.calls[0][0];
     expect(query).toContain("name        = EXCLUDED.name");
-    expect(query).toContain("teamid      = EXCLUDED.teamid");
+    expect(query).toContain("teamid      = CASE");
     expect(query).toContain("position    = EXCLUDED.position");
+  });
+
+  it("should preserve team id on conflict when preserveExistingTeam is enabled", async () => {
+    const player = {
+      id: "1966",
+      name: "LeBron James",
+    };
+
+    mockClient.query.mockResolvedValue({
+      rows: [{ id: 123 }],
+    });
+
+    await upsertPlayer(mockClient, player, 55, "nba", {
+      preserveExistingTeam: true,
+    });
+
+    expect(mockClient.query).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining([
+        "LeBron James",
+        null, // insert team id is intentionally blank for special events
+        "nba",
+        "1966",
+        true,
+      ]),
+    );
+  });
+
+  it("should update team id on conflict when preserveExistingTeam is disabled", async () => {
+    const player = {
+      id: "1966",
+      name: "LeBron James",
+    };
+
+    mockClient.query.mockResolvedValue({
+      rows: [{ id: 123 }],
+    });
+
+    await upsertPlayer(mockClient, player, 5, "nba");
+
+    expect(mockClient.query).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining([
+        "LeBron James",
+        5,
+        "nba",
+        "1966",
+        false,
+      ]),
+    );
   });
 });

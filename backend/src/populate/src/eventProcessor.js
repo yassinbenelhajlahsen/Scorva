@@ -73,6 +73,31 @@ export function getSportPath(leagueSlug) {
   }
 }
 
+function isSpecialEventGame(event, homeComp, awayComp) {
+  const metadataText = [
+    event.name,
+    event.shortName,
+    event.season?.slug,
+    event.season?.type?.name,
+    event.season?.type?.description,
+    event.season?.type?.abbreviation,
+    event.competitions?.[0]?.type?.text,
+    event.competitions?.[0]?.type?.abbreviation,
+    ...(event.competitions?.[0]?.notes || []).map((n) => n?.headline),
+    homeComp?.team?.displayName,
+    homeComp?.team?.name,
+    awayComp?.team?.displayName,
+    awayComp?.team?.name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return /(all[\s-]?star|special event|exhibition|pro[\s-]?bowl|skills challenge|rising stars|slam[\s-]?dunk|3[\s-]?point|three[\s-]?point)/i.test(
+    metadataText,
+  );
+}
+
 // ============================================================================
 // OPTIMIZATION 1 (cont.): Check DB for existing player with complete details
 // ============================================================================
@@ -296,7 +321,11 @@ export async function processEvent(client, leagueSlug, event) {
   const homeName = homeComp.team?.abbreviation || homeComp.team?.name || "???";
   const awayName = awayComp.team?.abbreviation || awayComp.team?.name || "???";
   const gameStatus = event.status?.type?.description || "Unknown";
+  const preserveExistingTeam = isSpecialEventGame(event, homeComp, awayComp);
   console.log(`  🎮 ${awayName} @ ${homeName} (${gameStatus})`);
+  if (preserveExistingTeam) {
+    console.log(`    🛡️  Special event detected - preserving player team ids`);
+  }
 
   // BEGIN a transaction
   await client.query("BEGIN");
@@ -594,6 +623,7 @@ export async function processEvent(client, leagueSlug, event) {
               playerObj,
               teamIdForPlayer,
               leagueSlug,
+              { preserveExistingTeam },
             );
             runStats.playersUpserted++;
 

@@ -1,4 +1,12 @@
-export default async function upsertPlayer(client, player, teamId, league) {
+export default async function upsertPlayer(
+  client,
+  player,
+  teamId,
+  league,
+  { preserveExistingTeam = false } = {},
+) {
+  const resolvedTeamId = preserveExistingTeam ? null : teamId;
+
   const query = `
     INSERT INTO players (
       name, teamid, position, height, image_url,
@@ -11,7 +19,10 @@ export default async function upsertPlayer(client, player, teamId, league) {
     )
     ON CONFLICT (espn_playerid, league) DO UPDATE SET
       name        = EXCLUDED.name,
-      teamid      = EXCLUDED.teamid,
+      teamid      = CASE
+                      WHEN $12::boolean THEN players.teamid
+                      ELSE EXCLUDED.teamid
+                    END,
       position    = EXCLUDED.position,
       height      = EXCLUDED.height,
       image_url   = EXCLUDED.image_url,
@@ -24,7 +35,7 @@ export default async function upsertPlayer(client, player, teamId, league) {
 
   const values = [
     player.name,
-    teamId,
+    resolvedTeamId,
     player.position || null,
     player.height || null,
     player.image_url || null,
@@ -34,6 +45,7 @@ export default async function upsertPlayer(client, player, teamId, league) {
     player.draftinfo || null,
     league,
     player.id, // ESPN player ID
+    preserveExistingTeam,
   ];
 
   const res = await client.query(query, values);
