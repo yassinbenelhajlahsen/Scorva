@@ -82,7 +82,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="bg-zinc-900 text-white min-h-screen">
+      <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
         <Navbar />
         <ScrollToTop />
         <AnimatedRoutes />

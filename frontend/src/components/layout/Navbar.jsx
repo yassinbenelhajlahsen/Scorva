@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import logo from "../../assets/favicon.png";
 import SearchBar from "../ui/SearchBar.jsx";
@@ -9,16 +9,13 @@ export default function Navbar() {
   const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const abortControllerRef = useRef(null);
+  const location = useLocation();
 
   const fetchResults = useCallback(async (searchTerm) => {
-    // Cancel previous request if it exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-
-    // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
-
     setLoading(true);
     try {
       const { data } = await axios.get(
@@ -41,53 +38,65 @@ export default function Navbar() {
 
   useEffect(() => {
     const trimmedQuery = query.trim();
-
     if (!trimmedQuery) {
       setAllItems([]);
       setLoading(false);
       return;
     }
-
     const debounce = setTimeout(() => {
       fetchResults(trimmedQuery);
     }, 200);
-
-    return () => {
-      clearTimeout(debounce);
-    };
+    return () => clearTimeout(debounce);
   }, [query, fetchResults]);
 
+  const navLinks = [
+    { to: "/nba", label: "NBA" },
+    { to: "/nfl", label: "NFL" },
+    { to: "/nhl", label: "NHL" },
+    { to: "/about", label: "About" },
+  ];
+
   return (
-    <nav className="bg-zinc-900 text-white flex flex-col sm:flex-row items-center justify-between px-6 py-4 shadow-md gap-4">
-      <div className="flex items-center gap-2">
-        <Link to="/">
-          <img src={logo} alt="Logo" className="w-10 h-10" />
+    <nav className="sticky top-0 z-50 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06]">
+      <div className="relative flex items-center px-5 py-3">
+        {/* Left: Brand */}
+        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+          <img src={logo} alt="Scorva" className="w-7 h-7" />
+          <span className="text-base font-semibold tracking-tight text-text-primary hover:text-accent transition-colors duration-200">
+            Scorva
+          </span>
         </Link>
-        <div className="text-2xl font-bold hover:text-orange-400 transition">
-          <Link to="/">Scorva</Link>
+
+        {/* Center: Search — truly centered on the page */}
+        <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-xs sm:max-w-sm px-4">
+          <SearchBar
+            allItems={allItems}
+            query={query}
+            setQuery={setQuery}
+            loading={loading}
+          />
         </div>
-      </div>
 
-      <SearchBar
-        allItems={allItems}
-        query={query}
-        setQuery={setQuery}
-        loading={loading}
-      />
-
-      <div className="flex gap-4">
-        <Link to="/nba" className="hover:text-orange-400 transition">
-          NBA
-        </Link>
-        <Link to="/nfl" className="hover:text-orange-400 transition">
-          NFL
-        </Link>
-        <Link to="/nhl" className="hover:text-orange-400 transition">
-          NHL
-        </Link>
-        <Link to="/about" className="hover:text-orange-400 transition">
-          About
-        </Link>
+        {/* Right: Nav links */}
+        <div className="ml-auto flex items-center gap-5 shrink-0">
+          {navLinks.map(({ to, label }) => {
+            const isActive =
+              label !== "About" && location.pathname.startsWith(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  isActive
+                    ? "text-accent"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
