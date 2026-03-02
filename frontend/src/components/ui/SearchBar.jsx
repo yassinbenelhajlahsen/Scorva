@@ -1,20 +1,8 @@
-import { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import slugify from "../../utilities/slugify.js";
 
 export default function SearchBar({ allItems, query, setQuery, loading }) {
   const navigate = useNavigate();
-  const wrapperRef = useRef();
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setQuery("");
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [setQuery]);
 
   function handleSelect(item) {
     const base =
@@ -28,7 +16,7 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
   const showDropdown = query.trim().length > 0 && (allItems.length > 0 || loading);
 
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-sm flex-grow">
+    <div className="relative w-full max-w-sm flex-grow">
       <div className="relative">
         <input
           type="text"

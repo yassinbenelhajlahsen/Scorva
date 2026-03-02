@@ -9,7 +9,18 @@ export default function Navbar() {
   const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const abortControllerRef = useRef(null);
+  const navRef = useRef(null);
   const location = useLocation();
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (navRef.current && !navRef.current.contains(e.target)) {
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchResults = useCallback(async (searchTerm) => {
     if (abortControllerRef.current) {
@@ -57,7 +68,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06]">
+    <nav ref={navRef} className="sticky top-0 z-50 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06]">
       {/* Main row */}
       <div className="relative flex items-center px-5 py-3">
         {/* Left: Brand */}
