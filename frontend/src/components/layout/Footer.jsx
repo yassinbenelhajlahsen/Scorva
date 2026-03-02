@@ -7,7 +7,7 @@ export default function Footer() {
         </p>
         <div className="flex items-center gap-6">
           <a
-            href="https://github.com/yassinbenelhajlahsen/Scorva"
+            href="https://github.com/yassinbenelhajlahsen"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
@@ -20,7 +20,7 @@ export default function Footer() {
           </a>
           <span className="w-px h-3 bg-white/[0.12]" />
           <a
-            href="https://www.linkedin.com/in/yassin-benelhajlahsen/"
+            href="https://www.linkedin.com/in/yassin-benelhajlahsen"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="LinkedIn"
