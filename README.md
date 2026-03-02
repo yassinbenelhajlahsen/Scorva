@@ -112,6 +112,41 @@ Scorva includes an **AI-powered game analysis system** that generates intelligen
 - Clean UI integration between quarter-by-quarter scores and box score
 - Responsive design with animated bullet points and loading skeletons
 
+## 📊 Top Players Analysis
+
+Each game page surfaces three player highlight cards computed entirely on the frontend from box score data (`frontend/src/utilities/topPlayers.js`):
+
+| Card | What it measures |
+|---|---|
+| **Top Performer** | Best all-around game via a weighted composite score |
+| **Top Scorer** | Highest output in the primary scoring category |
+| **Impact Player** | Best on-off differential or defensive contribution |
+
+Players are **deduplicated** across slots — if the top performer is also the top scorer, the next best scorer is shown instead, ensuring each card highlights a different player.
+
+### Scoring formulas by league
+
+**NBA** — inspired by Hollinger's Game Score:
+```
+Performance = PTS + (0.4 × REB) + (0.7 × AST) + STL + BLK − TOV
+Impact      = +/− + (1.5 × STL) + BLK
+```
+Rebounds and assists are discounted vs. points since they accumulate more easily; turnovers subtract from the composite.
+
+**NFL** — position-agnostic composite:
+```
+Performance = (YDS × 0.05) + (CMP × 0.3) + (TD × 10) − (INT × 4) + (SCKS × 5)
+Impact      = (SCKS × 5) + (INT × 6) + (YDS × 0.02)
+```
+QBs earn through yardage and completion rate; skill players through yards and touchdowns; defensive players through sacks. The Impact slot specifically surfaces the defensive standout.
+
+**NHL** — goals weighted above assists:
+```
+Performance = (G × 2.0) + (A × 1.5) + (SHOTS × 0.15) + (SAVES × 0.1) + (BS × 0.4) + (HT × 0.2)
+Impact      = (+/− × 1.5) + G + A
+```
+Saves are included so goalies can appear when they carry their team. The Impact formula combines on-ice differential with point production to reduce noise from short ice-time.
+
 ---
 
 ## 🧪 Testing
