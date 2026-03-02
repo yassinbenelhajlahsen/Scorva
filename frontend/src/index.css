@@ -1,34 +1,70 @@
 @import "tailwindcss";
 
+@theme {
+  /* ── Surfaces: warm near-black, arena-dark feel ── */
+  --color-surface-base:     #0a0a0c;
+  --color-surface-primary:  #111114;
+  --color-surface-elevated: #1a1a1f;
+  --color-surface-overlay:  #222228;
+  --color-surface-subtle:   #2a2a32;
+
+  /* ── Text hierarchy ── */
+  --color-text-primary:   #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary:  #6e6e73;
+
+  /* ── Accent: scoreboard amber ── */
+  --color-accent:       #e8863a;
+  --color-accent-hover: #f0974d;
+
+  /* ── Semantic: broadcast colors ── */
+  --color-win:  #34c759;
+  --color-loss: #ff453a;
+  --color-live: #ff453a;
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'Segoe UI', Roboto, sans-serif;
+}
+
 @layer base {
-  html,
-  body {
-    @apply bg-zinc-900 text-white;
+  html, body {
+    @apply bg-surface-primary text-text-primary font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: rgba(232, 134, 58, 0.2);
+    color: #f5f5f7;
   }
 }
 
 @layer utilities {
-  /* Custom scrollbar for webkit browsers (Chrome, Safari, Edge) */
+  /* Custom scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-zinc-800 rounded-r-md;
+    background: #1a1a1f;
+    border-radius: 999px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-zinc-600 rounded-full;
-    transition: background-color 0.2s;
+    background: #2a2a32;
+    border-radius: 999px;
+    transition: background 0.2s;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-zinc-500;
+    background: #3a3a44;
   }
 
-  /* For Firefox */
+  /* Firefox */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #52525b #27272a; /* zinc-600 zinc-800 */
+    scrollbar-color: #2a2a32 #1a1a1f;
   }
 }
