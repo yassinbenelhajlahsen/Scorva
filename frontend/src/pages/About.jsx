@@ -1,51 +1,72 @@
 export default function About() {
+  const techStack = [
+    "React + Vite",
+    "React Router",
+    "Tailwind CSS",
+    "Framer Motion",
+    "Node.js + Express",
+    "PostgreSQL",
+    "OpenAI GPT-4o-mini",
+    "External Sports APIs",
+    "Vercel (frontend)",
+    "Railway (backend + DB)",
+    "Jest + Supertest",
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-16 text-white">
-      <h1 className="text-4xl font-bold mb-8 tracking-tight">About Scorva</h1>
+    <div className="max-w-3xl mx-auto px-6 py-16">
+      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary mb-8">
+        About Scorva
+      </h1>
 
-      <p className="text-lg leading-relaxed mb-6 text-gray-200">
-        <strong>Scorva</strong> is a full-stack sports analytics platform
-        designed to deliver fast, reliable, and structured access to live and
-        historical data for the NBA, NFL, and NHL. I built it as a
-        production-style application to demonstrate real-world software
-        engineering skills across frontend development, backend API design,
-        database modeling, and deployment.
-      </p>
+      <div className="space-y-5 text-text-secondary text-base leading-relaxed">
+        <p>
+          <strong className="text-text-primary font-semibold">Scorva</strong> is a full-stack sports analytics platform
+          designed to deliver fast, reliable, and structured access to live and
+          historical data for the NBA, NFL, and NHL. Built as a production-style
+          application to demonstrate real-world software engineering skills across
+          frontend development, backend API design, database modeling, and deployment.
+        </p>
 
-      <p className="text-lg leading-relaxed mb-6 text-gray-200">
-        The system is built on a React and TypeScript frontend and a Node.js +
-        Express backend, backed by PostgreSQL for structured and relational
-        sports data. Scorva consumes external sports APIs, normalizes raw
-        responses into a consistent schema, and exposes clean REST endpoints to
-        power dynamic UI features such as live box scores, player profiles, and
-        multi-league browsing.
-      </p>
+        <p>
+          The system is built on a React frontend and a Node.js + Express backend,
+          backed by PostgreSQL for structured sports data. Scorva consumes external
+          sports APIs, normalizes raw responses into a consistent schema, and exposes
+          clean REST endpoints to power features like live box scores, player profiles,
+          and AI-generated game summaries.
+        </p>
 
-      <p className="text-lg leading-relaxed mb-6 text-gray-200">
-        The application focuses on performance, maintainability, and
-        scalability. This includes efficient API calls, slug-based routing,
-        modular service layers, reusable UI components, and responsive design.
-        The goal was to build something that feels closer to a production system
-        than a demo project.
-      </p>
+        <p>
+          The application focuses on performance, maintainability, and scalability —
+          efficient API calls, slug-based routing, modular service layers, reusable UI
+          components, and responsive design throughout.
+        </p>
+      </div>
 
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="bg-white/5 rounded-lg p-5">
-          <h3 className="text-lg font-semibold mb-2">What it demonstrates</h3>
-          <ul className="text-gray-300 space-y-2">
-            <li>• Full-stack architecture and API design</li>
-            <li>• AI/LLM integration with cost-controlled caching</li>
-            <li>• Data ingestion and transformation pipelines</li>
-            <li>• Relational database modeling with PostgreSQL</li>
-            <li>• Frontend performance and UX optimization</li>
-            <li>• Production deployment and environment separation</li>
-            <li>• Comprehensive test coverage (120+ tests)</li>
+      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4">What it demonstrates</h3>
+          <ul className="text-text-secondary text-sm space-y-2.5">
+            {[
+              "Full-stack architecture and API design",
+              "AI/LLM integration with cost-controlled caching",
+              "Data ingestion and transformation pipelines",
+              "Relational database modeling with PostgreSQL",
+              "Frontend performance and UX optimization",
+              "Production deployment and environment separation",
+              "Comprehensive test coverage (120+ tests)",
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="w-1 h-1 bg-accent rounded-full mt-2 flex-shrink-0" />
+                {item}
+              </li>
+            ))}
           </ul>
         </div>
 
-        <div className="bg-white/5 rounded-lg p-5">
-          <h3 className="text-lg font-semibold mb-2">Who it is for</h3>
-          <p className="text-gray-300">
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4">Who it is for</h3>
+          <p className="text-text-secondary text-sm leading-relaxed">
             Scorva is built for engineers, recruiters, and sports fans who want
             to explore a real application that mirrors how modern full-stack
             systems are designed and shipped.
@@ -53,45 +74,44 @@ export default function About() {
         </div>
       </div>
 
-      <h2 className="text-2xl font-semibold mt-12 mb-4">Tech Stack</h2>
-      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-gray-200">
-        <li>⚛️ React + TypeScript</li>
-        <li>🧭 React Router for client-side routing</li>
-        <li>🎨 Tailwind CSS for responsive UI</li>
-        <li>🎞️ Framer Motion for UI transitions</li>
-        <li>⚡ Vite for fast builds and dev experience</li>
-        <li>🛠️ Node.js + Express REST APIs</li>
-        <li>🐘 PostgreSQL for relational data modeling</li>
-        <li>🤖 OpenAI GPT-4o-mini for AI summaries</li>
-        <li>🌐 External Sports APIs (NBA, NFL, NHL)</li>
-        <li>🚀 Vercel for frontend deployment</li>
-        <li>🚆 Railway for backend and database hosting</li>
-        <li> 🧪 Jest + Supertest for testing</li>
-      </ul>
+      <div className="mt-12">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-6">Tech Stack</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {techStack.map((item, i) => (
+            <div key={i} className="flex items-center gap-2.5 text-sm text-text-secondary">
+              <span className="w-1 h-1 bg-surface-subtle rounded-full flex-shrink-0" />
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <div className="mt-6">
+      <div className="mt-10">
         <a
           href="https://github.com/yassinbenelhajlahsen/Scorva"
-          className="inline-block text-blue-400 hover:text-blue-300 underline font-medium"
+          className="inline-flex items-center gap-2 text-accent hover:text-accent-hover transition-colors duration-200 text-sm font-medium"
           target="_blank"
           rel="noopener noreferrer"
         >
-          View the source code on GitHub
+          View source on GitHub
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
         </a>
       </div>
 
-      <h2 className="text-2xl font-semibold mt-12 mb-4">The Vision</h2>
-      <p className="text-lg leading-relaxed text-gray-200">
-        Scorva represents my approach to building clean, maintainable, and
-        scalable software. As a new graduate software engineer, I use this
-        project to showcase how I think about system design, API architecture,
-        data flow, and frontend performance. It reflects the same principles I
-        aim to bring into a professional engineering team.
-      </p>
+      <div className="mt-12 pt-8 border-t border-white/[0.06]">
+        <h2 className="text-xl font-bold tracking-tight text-text-primary mb-4">The Vision</h2>
+        <p className="text-text-secondary text-sm leading-relaxed">
+          Scorva represents an approach to building clean, maintainable, and
+          scalable software. It showcases system design thinking, API architecture,
+          data flow, and frontend performance — the same principles that drive
+          production engineering teams.
+        </p>
+      </div>
 
-      <p className="mt-6 text-sm text-gray-400">
-        This project is for educational and portfolio purposes only and is not
-        affiliated with any professional sports league or data provider.
+      <p className="mt-8 text-xs text-text-tertiary">
+        For educational and portfolio purposes only. Not affiliated with any professional sports league or data provider.
       </p>
     </div>
   );

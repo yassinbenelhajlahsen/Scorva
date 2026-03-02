@@ -1,9 +1,20 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
 import LoadingPage from "./LoadingPage.jsx";
 import slugify from "../utilities/slugify.js";
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+};
+
+const itemVariants = {
+  hidden:  { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+};
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
@@ -18,13 +29,13 @@ export default function TeamPage() {
     async function fetchTeamData() {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/teams`,
+          `${import.meta.env.VITE_API_URL}/api/${league}/teams`
         );
         if (!res.ok) throw new Error("Failed to fetch teams.");
         const teamList = await res.json();
         const foundTeam = teamList.find(
           (t) =>
-            slugify(t.name) === teamId || slugify(t.shortname || "") === teamId,
+            slugify(t.name) === teamId || slugify(t.shortname || "") === teamId
         );
 
         if (!foundTeam) throw new Error("Team not found.");
@@ -32,9 +43,7 @@ export default function TeamPage() {
 
         const games = await (
           await fetch(
-            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${
-              foundTeam.id
-            }`,
+            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${foundTeam.id}`
           )
         ).json();
         const last10 = games
@@ -48,78 +57,95 @@ export default function TeamPage() {
         setLoading(false);
       }
     }
-
     fetchTeamData();
   }, [league, teamId]);
 
-  if (loading)
-    return (
-      <div>
-        <LoadingPage></LoadingPage>
-      </div>
-    );
+  if (loading) return <LoadingPage />;
   if (error || !team) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <h1 className="text-4xl font-bold mb-4">Team Not Found</h1>
-        <p className="text-gray-400 mb-8 text-center max-w-md">
-          The team you're looking for doesn't exist or hasn't been added yet.
+        <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3">Team Not Found</h1>
+        <p className="text-text-secondary text-sm mb-8 text-center max-w-md">
+          The team you&apos;re looking for doesn&apos;t exist or hasn&apos;t been added yet.
         </p>
         <Link
           to={`/${league}`}
-          className="inline-block bg-gradient-to-r from-red-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform transition-transform duration-300 hover:scale-105 hover:shadow-lg"
+          className="bg-accent text-white font-semibold py-3 px-6 rounded-full text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent-hover hover:shadow-[0_0_20px_rgba(232,134,58,0.3)]"
         >
-          {league?.toUpperCase()}
+          {league?.toUpperCase()} Teams
         </Link>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="flex flex-col md:flex-row justify-center md:justify-between items-center gap-10 p-6 text-white">
-        {/* Image + Title */}
-        <div className="flex flex-col items-center md:items-start w-full md:w-1/2 m-10">
-          <h1 className="text-6xl font-bold mb-4 text-center md:text-left">
+    <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
+      {/* Back link */}
+      <Link
+        to={`/${league}`}
+        className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 mb-8 text-sm"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        <span>{league?.toUpperCase()}</span>
+      </Link>
+
+      {/* Team header + info */}
+      <div className="flex flex-col md:flex-row gap-10 mb-12">
+        {/* Logo + name */}
+        <div className="flex flex-col items-center md:items-start gap-4">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary text-center md:text-left">
             {team.name}
           </h1>
           <img
             src={team.logo_url || "/images/placeholder.png"}
             alt={team.name}
-            className="w-80 h-80 object-contain m-6 drop-shadow-[0_0_2px_white]"
+            className="w-44 h-44 object-contain"
           />
         </div>
 
-        {/* Stats */}
-        <div className="w-full md:w-[40%]">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-lg">
-            <div className="text-gray-400 mb-6">Location</div>
-            <div className="font-semibold">{team.location}</div>
-            <div className="text-gray-400 mb-6">Record</div>
-            <div className="font-semibold">{team.record}</div>
-            <div className="text-gray-400 mb-6">Home Record</div>
-            <div className="font-semibold">{team.homerecord}</div>
-            <div className="text-gray-400 mb-6">Away Record</div>
-            <div className="font-semibold">{team.awayrecord}</div>
+        {/* Stats card */}
+        <div className="flex-1">
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+              <span className="text-sm text-text-tertiary">Location</span>
+              <span className="text-sm font-medium text-text-primary">{team.location}</span>
+              <span className="text-sm text-text-tertiary">Record</span>
+              <span className="text-sm font-semibold text-text-primary tabular-nums">{team.record}</span>
+              <span className="text-sm text-text-tertiary">Home Record</span>
+              <span className="text-sm font-medium text-text-primary tabular-nums">{team.homerecord}</span>
+              <span className="text-sm text-text-tertiary">Away Record</span>
+              <span className="text-sm font-medium text-text-primary tabular-nums">{team.awayrecord}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <h2 className="text-5xl font-bold mb-4 p-8 text-center">Last 10 Games</h2>
-
-      {games.length > 0 ? (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center items-start">
-          {games.map((game) => (
-            <div key={game.id} className="w-full max-w-md">
-              <GameCard game={game} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-center text-xl mt-8 text-gray-300">
-          No recent games to show.
-        </p>
-      )}
-    </>
+      {/* Last 10 games */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-8">
+          Last 10 Games
+        </h2>
+        {games.length > 0 ? (
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {games.map((game) => (
+              <motion.div key={game.id} variants={itemVariants} className="w-full">
+                <GameCard game={game} />
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <p className="text-center text-text-tertiary text-sm mt-8">
+            No recent games to show.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
