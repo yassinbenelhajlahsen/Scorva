@@ -22,7 +22,7 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search players, teams, games..."
+          placeholder="Search players, teams, games, dates..."
           className="w-full px-4 py-2 pr-10 rounded-full bg-surface-elevated text-text-primary placeholder-text-tertiary border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/30 transition-all duration-200 text-sm"
           autoComplete="off"
         />
@@ -70,6 +70,9 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
                   </div>
                   <div className="text-[10px] text-text-tertiary uppercase tracking-wider mt-0.5">
                     {item.type} · {item.league}
+                    {item.type === "game" && item.date && (
+                      <> · {new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</>
+                    )}
                   </div>
                 </div>
               </li>

@@ -82,7 +82,7 @@ Scorva
 ## 🔥 Features
 
 - **Multi-league support:** NBA, NFL, NHL with consistent data structure
-- **Intelligent search:** Player and team autocomplete with real-time results
+- **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
 - **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
 - **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages (lazy-generated and permanently cached for cost efficiency)
 - **Interactive UI:** Hover effects on game and stat cards for advanced details
@@ -90,6 +90,17 @@ Scorva
 - **Responsive design:** Built with Tailwind CSS and Framer Motion for smooth animations
 - **RESTful API:** Clean Express backend with PostgreSQL
 - **Production deployment:** Frontend on Vercel, backend on Railway
+
+## 🔎 Search Experience
+
+The global search bar returns mixed results across players, teams, and games from a single backend query.
+
+- **Game search by team names:** Finds matchups from home or away team names and abbreviations
+- **Date-aware game search:** Supports exact dates like `2025-01-15`, common US formats like `1/15/2025`, and partial in-season lookups like `12/25` or `Jan 15`
+- **Season-aware partial dates:** Inputs without a year resolve against the current app season (`2025-26`), so `12/25` maps to December 25, 2025 while `Jan 15` maps to January 15, 2026
+- **Relevance-ranked results:** Exact and prefix matches are ranked ahead of looser matches, with players, teams, and games returned in a single dropdown
+
+Game results in the search dropdown also show a formatted game date to make matchup results easier to scan.
 
 ## 🤖 AI Game Summary Feature
 

@@ -158,6 +158,7 @@ Test full request-response cycles with middleware.
 - ✅ Returns appropriate errors for failures
 - ✅ Works with different league parameters
 - ✅ Validates query parameters
+- ✅ Covers search-specific behavior such as SQL ordering and date parsing for exact and partial game-date lookups
 
 ### Service Tests
 

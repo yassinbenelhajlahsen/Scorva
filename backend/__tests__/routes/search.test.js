@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { createMockPool, fixtures } from "../helpers/testHelpers.js";
+import { createMockPool } from "../helpers/testHelpers.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
@@ -82,30 +82,19 @@ describe("Search Route - GET /search", () => {
     expect(response.status).toBe(200);
     expect(mockPool.query).toHaveBeenCalledWith(
       expect.stringContaining("UNION ALL"),
-      ["%lakers%"]
+      ["%lakers%", "lakers", null]
     );
   });
 
-  it("should limit results to 15 items", async () => {
-    const mockResults = Array(20)
-      .fill(null)
-      .map((_, i) => ({
-        id: i + 1,
-        name: `Result ${i}`,
-        league: "nba",
-        imageUrl: null,
-        shortname: null,
-        type: "player",
-      }));
+  it("should delegate limiting to SQL (query contains LIMIT 15)", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
 
-    mockPool.query.mockResolvedValue({ rows: mockResults });
+    await request(app).get("/api/search").query({ term: "test" });
 
-    const response = await request(app)
-      .get("/api/search")
-      .query({ term: "test" });
-
-    expect(response.status).toBe(200);
-    expect(response.body.length).toBeLessThanOrEqual(15);
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.stringContaining("LIMIT 15"),
+      expect.any(Array)
+    );
   });
 
   it("should prioritize exact matches in sorting", async () => {
@@ -128,6 +117,7 @@ describe("Search Route - GET /search", () => {
       },
     ];
 
+    // DB returns results in DB-ranked order; handler passes them through unchanged
     mockPool.query.mockResolvedValue({ rows: mockResults });
 
     const response = await request(app)
@@ -156,7 +146,7 @@ describe("Search Route - GET /search", () => {
 
     expect(mockPool.query).toHaveBeenCalledWith(
       expect.stringContaining("ILIKE"),
-      ["%LAKERS%"]
+      ["%LAKERS%", "LAKERS", null]
     );
   });
 
@@ -167,6 +157,8 @@ describe("Search Route - GET /search", () => {
 
     expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [
       "%lakers%",
+      "lakers",
+      null,
     ]);
   });
 
@@ -192,41 +184,68 @@ describe("Search Route - GET /search", () => {
     expect(response.body[0].type).toBe("game");
   });
 
-  it("should sort by type priority (team > player > game)", async () => {
-    const mockResults = [
-      {
-        id: 1,
-        name: "Game 1",
-        type: "game",
-        league: "nba",
-        imageUrl: null,
-        shortname: null,
-      },
-      {
-        id: 2,
-        name: "Player 1",
-        type: "player",
-        league: "nba",
-        imageUrl: null,
-        shortname: null,
-      },
-      {
-        id: 3,
-        name: "Team 1",
-        type: "team",
-        league: "nba",
-        imageUrl: null,
-        shortname: "T1",
-      },
-    ];
+  it("should use SQL ORDER BY for type and match-quality ranking", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
 
-    mockPool.query.mockResolvedValue({ rows: mockResults });
+    await request(app).get("/api/search").query({ term: "test" });
 
-    const response = await request(app)
-      .get("/api/search")
-      .query({ term: "test" });
+    const queryArg = mockPool.query.mock.calls[0][0];
+    expect(queryArg).toContain("ORDER BY");
+    expect(queryArg).toContain("similarity");
+  });
 
-    expect(response.status).toBe(200);
-    // Response should be sorted by type priority
+  it("should pass parsed ISO dates through to the game search query", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
+
+    await request(app).get("/api/search").query({ term: "2025-01-15" });
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.stringContaining("g.date = $3::date"),
+      ["%2025-01-15%", "2025-01-15", "2025-01-15"]
+    );
+  });
+
+  it("should parse US-style dates for game search", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
+
+    await request(app).get("/api/search").query({ term: "1/15/2025" });
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.any(String),
+      ["%1/15/2025%", "1/15/2025", "2025-01-15"]
+    );
+  });
+
+  it("should infer the current season year for slash dates without a year", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
+
+    await request(app).get("/api/search").query({ term: "12/25" });
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.any(String),
+      ["%12/25%", "12/25", "2025-12-25"]
+    );
+  });
+
+  it("should infer the current season year for month-name dates without a year", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
+
+    await request(app).get("/api/search").query({ term: "Jan 15" });
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.any(String),
+      ["%Jan 15%", "Jan 15", "2026-01-15"]
+    );
+  });
+
+  it("should not treat a bare year as a date search", async () => {
+    mockPool.query.mockResolvedValue({ rows: [] });
+
+    await request(app).get("/api/search").query({ term: "2026" });
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.any(String),
+      ["%2026%", "2026", null]
+    );
   });
 });
