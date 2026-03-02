@@ -12,7 +12,7 @@ https://scorva.vercel.app
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React, React Router, Tailwind CSS, Axios, Framer Motion, Vite
+- **Frontend:** React, React Router, Tailwind  v4, Axios, Framer Motion, Vite
 - **Backend:** Node.js, Express, pg (PostgreSQL)
 - **Database:** PostgreSQL (hosted on Railway)
 - **Deployment:**
