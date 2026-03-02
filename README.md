@@ -68,7 +68,6 @@ Scorva
 │       └── index.css             # Global styles
 │
 ├── public/                       # Static public assets for Vite
-├── screenshots/                  # Showcase images for documentation
 ├── .env                          # Frontend environment variables
 ├── eslint.config.js              # ESLint configuration
 ├── vite.config.js                # Vite configuration
