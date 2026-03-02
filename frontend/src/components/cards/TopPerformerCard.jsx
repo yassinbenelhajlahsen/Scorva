@@ -11,58 +11,51 @@ const statFormatMap = {
 
   nfl: (stats) =>
     [
-      stats.YDS && `${stats.YDS} YDS`,
-      stats.TD && `${stats.TD} TD`,
+      stats.YDS  && `${stats.YDS} YDS`,
+      stats.TD   && `${stats.TD} TD`,
       stats.SCKS && `${stats.SCKS} SCK`,
-      stats.INT && `${stats.INT} INT`,
+      stats.INT  && `${stats.INT} INT`,
     ].filter(Boolean),
 
   nhl: (stats) =>
     [
-      stats.G && `${stats.G} G`,
-      stats.A && `${stats.A} A`,
-      stats.SAVES && `${stats.SAVES} SAVES`,
-      stats.HT && `${stats.HT} HIT`,
-      stats.BS && `${stats.BS} BLK`,
+      stats.G     && `${stats.G} G`,
+      stats.A     && `${stats.A} A`,
+      stats.SAVES && `${stats.SAVES} SV`,
+      stats.HT    && `${stats.HT} HIT`,
+      stats.BS    && `${stats.BS} BLK`,
     ].filter(Boolean),
 };
 
-export default function TopPerformerCard({
-  player,
-  title = "Top Performer",
-  league,
-}) {
+export default function TopPerformerCard({ player, title = "Top Performer", league }) {
   if (!player) return null;
 
   const { name, position, imageUrl, stats } = player;
-  const currentLeague = league;
-  const path = `/${currentLeague}/players/${slugify(name)}`;
+  const path = `/${league}/players/${slugify(name)}`;
+  const formattedStats = statFormatMap[league]?.(stats) || [];
 
-  const formattedStats = statFormatMap[currentLeague]?.(stats) || [];
   return (
     <Link
       to={path}
-      className="group flex items-center gap-4 bg-white/5 hover:bg-white/10 p-4 rounded-xl shadow transition w-full hover:scale-105"
+      className="group flex items-center gap-4 bg-surface-elevated border border-white/[0.08] p-4 rounded-2xl transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 w-full"
     >
       <img
         src={imageUrl || "/defaultPhoto.png"}
         alt={name}
-        className="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-full"
+        className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-full flex-shrink-0 ring-2 ring-white/[0.06]"
         onError={(e) => {
           e.target.onerror = null;
           e.target.src = "/defaultPhoto.png";
         }}
       />
-      <div className="flex-1">
-        <div className="text-sm text-gray-400 uppercase tracking-wide">
-          {title}
-        </div>
-        <div className="text-lg font-bold text-orange-400 group-hover:underline">
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium">{title}</div>
+        <div className="text-sm font-semibold text-accent group-hover:text-accent-hover transition-colors duration-200 truncate mt-0.5">
           {name}
         </div>
-        <div className="text-sm text-gray-300">{position}</div>
-        <div className="mt-1 text-sm text-gray-200">
-          {formattedStats.join(" • ")}
+        <div className="text-xs text-text-secondary mt-0.5">{position}</div>
+        <div className="mt-1 text-xs text-text-tertiary">
+          {formattedStats.join("  ·  ")}
         </div>
       </div>
     </Link>
