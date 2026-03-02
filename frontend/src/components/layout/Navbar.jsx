@@ -58,6 +58,7 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06]">
+      {/* Main row */}
       <div className="relative flex items-center px-5 py-3">
         {/* Left: Brand */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
@@ -67,8 +68,8 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center: Search — truly centered on the page */}
-        <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-xs sm:max-w-sm px-4">
+        {/* Center: Search — desktop only, truly centered */}
+        <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 w-full max-w-sm px-4">
           <SearchBar
             allItems={allItems}
             query={query}
@@ -97,6 +98,16 @@ export default function Navbar() {
             );
           })}
         </div>
+      </div>
+
+      {/* Mobile search row */}
+      <div className="sm:hidden px-5 pb-3 flex justify-center">
+        <SearchBar
+          allItems={allItems}
+          query={query}
+          setQuery={setQuery}
+          loading={loading}
+        />
       </div>
     </nav>
   );
