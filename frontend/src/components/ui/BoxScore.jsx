@@ -1,6 +1,66 @@
 import { Link } from "react-router-dom";
 import slugify from "../../utilities/slugify.js";
 
+// Parse time strings like "35:34" or "20:34" into total seconds, or pass through numbers
+function parseTime(val) {
+  if (val == null) return 0;
+  if (typeof val === "number") return val;
+  const str = String(val);
+  if (str.includes(":")) {
+    const [m, s] = str.split(":").map(Number);
+    return (m || 0) * 60 + (s || 0);
+  }
+  return parseFloat(str) || 0;
+}
+
+const NFL_OFFENSE = new Set(["QB", "RB", "FB", "WR", "TE", "OL", "OT", "OG", "C", "T", "G"]);
+const NFL_DEFENSE = new Set(["DE", "DT", "NT", "LB", "OLB", "ILB", "MLB", "CB", "S", "FS", "SS", "DB", "SAF"]);
+const NFL_SPECIAL = new Set(["K", "P", "LS", "KR", "PR", "PK"]);
+
+const NHL_FORWARDS = new Set(["C", "LW", "RW", "F", "W"]);
+const NHL_DEFENSE = new Set(["D", "LD", "RD"]);
+
+function nflPositionRank(pos) {
+  if (!pos) return 3;
+  const p = pos.toUpperCase();
+  if (NFL_OFFENSE.has(p)) return 0;
+  if (NFL_DEFENSE.has(p)) return 1;
+  if (NFL_SPECIAL.has(p)) return 2;
+  return 3;
+}
+
+function nhlPositionRank(pos) {
+  if (!pos) return 3;
+  const p = pos.toUpperCase();
+  if (NHL_FORWARDS.has(p)) return 0;
+  if (NHL_DEFENSE.has(p)) return 1;
+  if (p === "G") return 2;
+  return 3;
+}
+
+function sortPlayers(players, league) {
+  if (!players) return players;
+  const sorted = [...players];
+
+  if (league === "nba") {
+    sorted.sort((a, b) => parseTime(b.stats?.MIN) - parseTime(a.stats?.MIN));
+  } else if (league === "nhl") {
+    sorted.sort((a, b) => {
+      const rankDiff = nhlPositionRank(a.position) - nhlPositionRank(b.position);
+      if (rankDiff !== 0) return rankDiff;
+      return parseTime(b.stats?.TOI) - parseTime(a.stats?.TOI);
+    });
+  } else if (league === "nfl") {
+    sorted.sort((a, b) => {
+      const rankDiff = nflPositionRank(a.position) - nflPositionRank(b.position);
+      if (rankDiff !== 0) return rankDiff;
+      return (Number(a.jerseyNumber) || 99) - (Number(b.jerseyNumber) || 99);
+    });
+  }
+
+  return sorted;
+}
+
 export default function BoxScore({ league, homeTeam, awayTeam }) {
   const extractStatHeaders = (players) => {
     const sample = players.find((p) => p?.stats && typeof p.stats === "object");
@@ -85,8 +145,8 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
         className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start"
         style={{ gridAutoRows: "1fr" }}
       >
-        {renderTable(homeTeam, homeTeam.players)}
-        {renderTable(awayTeam, awayTeam.players)}
+        {renderTable(homeTeam, sortPlayers(homeTeam.players, league))}
+        {renderTable(awayTeam, sortPlayers(awayTeam.players, league))}
       </div>
     </div>
   );
