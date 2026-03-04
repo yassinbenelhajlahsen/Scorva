@@ -21,10 +21,10 @@ const statConfigs = {
     { key: "minutes",   label: "MINS" },
   ],
   nfl: [
+    { key: "CMPATT", label: "CMPATT" },
     { key: "YDS",    label: "YDS" },
     { key: "TD",     label: "TD" },
     { key: "INT",    label: "INT" },
-    { key: "CMPATT", label: "CMPATT" },
     { key: "SACK",   label: "SACK" },
   ],
   nhl: [
@@ -34,6 +34,27 @@ const statConfigs = {
     { key: "plusminus", label: "+/-" },
     { key: "TOI",       label: "TOI" },
   ],
+};
+
+// Which NFL stats are relevant per position group
+const nflStatsByPosition = {
+  QB:  ["CMPATT", "YDS", "TD", "INT"],
+  RB:  ["YDS", "TD"],
+  FB:  ["YDS", "TD"],
+  WR:  ["YDS", "TD"],
+  TE:  ["YDS", "TD"],
+  DE:  ["SACK"],
+  DT:  ["SACK"],
+  LB:  ["SACK", "INT"],
+  OLB: ["SACK", "INT"],
+  ILB: ["SACK"],
+  MLB: ["SACK"],
+  CB:  ["INT"],
+  S:   ["INT"],
+  FS:  ["INT"],
+  SS:  ["INT"],
+  DB:  ["INT"],
+  SAF: ["INT"],
 };
 
 const containerVariants = {
@@ -170,10 +191,14 @@ export default function PlayerPage() {
         >
           {playerData?.games?.map((game, i) => {
             const key = league?.toLowerCase();
-            const config = statConfigs[key] || [];
+            let config = statConfigs[key] || [];
+            if (key === "nfl" && position) {
+              const relevant = nflStatsByPosition[position.toUpperCase()];
+              if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
+            }
             const statsProps = config.map(({ key: statKey, label }) => ({
               label,
-              value: game[statKey] ?? "–",
+              value: game[statKey] ?? "0",
             }));
             return (
               <motion.div key={i} variants={itemVariants}>
