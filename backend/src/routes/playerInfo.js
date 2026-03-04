@@ -209,7 +209,7 @@ async function handleNflPlayer(req, res, league) {
                 s2.gameid,
                 s2.cmpatt AS "CMPATT",
                 s2.yds    AS "YDS",
-                s2.sacks  AS "SCKS",
+                s2.sacks  AS "SACK",
                 s2.td     AS "TD",
                 s2.interceptions AS "INT",
                 CASE WHEN g.hometeamid = p.teamid THEN at.shortname ELSE ht.shortname END AS opponent,
