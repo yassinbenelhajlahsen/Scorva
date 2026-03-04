@@ -1,21 +1,25 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PageWrapper from "./components/layout/PageWrapper.jsx";
-import Homepage from "./pages/Homepage.jsx";
-import About from "./pages/About.jsx";
-import LeaguePage from "./pages/LeaguePage.jsx";
-import PlayerPage from "./pages/PlayerPage.jsx";
-import TeamPage from "./pages/TeamPage.jsx";
-import GamePage from "./pages/GamePage.jsx";
-import ErrorPage from "./pages/ErrorPage.jsx";
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ScrollToTop from "./components/layout/ScrollToTop.jsx";
+import LoadingPage from "./pages/LoadingPage.jsx";
+
+const Homepage   = lazy(() => import("./pages/Homepage.jsx"));
+const About      = lazy(() => import("./pages/About.jsx"));
+const LeaguePage = lazy(() => import("./pages/LeaguePage.jsx"));
+const PlayerPage = lazy(() => import("./pages/PlayerPage.jsx"));
+const TeamPage   = lazy(() => import("./pages/TeamPage.jsx"));
+const GamePage   = lazy(() => import("./pages/GamePage.jsx"));
+const ErrorPage  = lazy(() => import("./pages/ErrorPage.jsx"));
 
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
+    <Suspense fallback={<LoadingPage />}>
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route
@@ -76,6 +80,7 @@ function AnimatedRoutes() {
         />
       </Routes>
     </AnimatePresence>
+    </Suspense>
   );
 }
 
