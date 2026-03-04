@@ -20,6 +20,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "luxon": "^3.6.1",
+    "nodemon": "^3.1.14",
     "openai": "^6.16.0",
     "pg": "^8.16.0"
   },
