@@ -242,7 +242,7 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
               role: "user",
             }),
           ]),
-          temperature: 0.7,
+          temperature: 0.9,
           max_tokens: 250,
         })
       );

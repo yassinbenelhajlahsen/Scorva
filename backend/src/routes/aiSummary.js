@@ -161,16 +161,46 @@ router.get("/games/:id/ai-summary", async (req, res) => {
 function buildGameData(game, stats) {
   const league = game.league.toUpperCase();
 
-  // Build quarter-by-quarter scores
-  const quarters = [];
-  if (game.firstqtr) quarters.push({ period: "Q1", score: game.firstqtr });
-  if (game.secondqtr) quarters.push({ period: "Q2", score: game.secondqtr });
-  if (game.thirdqtr) quarters.push({ period: "Q3", score: game.thirdqtr });
-  if (game.fourthqtr) quarters.push({ period: "Q4", score: game.fourthqtr });
-  if (game.ot1) quarters.push({ period: "OT1", score: game.ot1 });
-  if (game.ot2) quarters.push({ period: "OT2", score: game.ot2 });
-  if (game.ot3) quarters.push({ period: "OT3", score: game.ot3 });
-  if (game.ot4) quarters.push({ period: "OT4", score: game.ot4 });
+  // Build quarter-by-quarter scores split by home/away
+  const parseScore = (scoreStr) => {
+    if (!scoreStr) return null;
+    const parts = scoreStr.split("-");
+    return { home: parseInt(parts[0]) || 0, away: parseInt(parts[1]) || 0 };
+  };
+
+  const hadOT = !!(game.ot1 || game.ot2 || game.ot3 || game.ot4);
+  const quarterPeriods = [
+    { key: "firstqtr", label: "Q1" },
+    { key: "secondqtr", label: "Q2" },
+    { key: "thirdqtr", label: "Q3" },
+    { key: "fourthqtr", label: "Q4" },
+    { key: "ot1", label: "OT1" },
+    { key: "ot2", label: "OT2" },
+    { key: "ot3", label: "OT3" },
+    { key: "ot4", label: "OT4" },
+  ];
+
+  const quarterByQuarter = { home: [], away: [], periods: [] };
+  for (const { key, label } of quarterPeriods) {
+    const parsed = parseScore(game[key]);
+    if (parsed) {
+      quarterByQuarter.home.push(parsed.home);
+      quarterByQuarter.away.push(parsed.away);
+      quarterByQuarter.periods.push(label);
+    }
+  }
+
+  const margin = Math.abs(game.homescore - game.awayscore);
+  let storyType;
+  if (hadOT) {
+    storyType = "overtime";
+  } else if (margin <= 5) {
+    storyType = "nail-biter";
+  } else if (margin >= 25) {
+    storyType = "blowout";
+  } else {
+    storyType = "standard";
+  }
 
   // Get top performers by league
   const topPerformers = getTopPerformers(stats, league);
@@ -196,7 +226,10 @@ function buildGameData(game, stats) {
       game.homescore > game.awayscore
         ? game.home_team_name
         : game.away_team_name,
-    quarterByQuarter: quarters,
+    margin,
+    storyType,
+    hadOT,
+    quarterByQuarter,
     topPerformers,
     teamStats: {
       home: homeStats,
@@ -334,14 +367,14 @@ async function generateAISummary(gameData, league) {
           {
             role: "system",
             content:
-              "You are a sports analyst who writes concise, factual game summaries for knowledgeable fans. Format your response as 3 bullet points. Each bullet point should be one clear insight. Focus on: why the winner won, standout player performances, and key statistical advantages. Be factual and concise. No hype.",
+              "You are a sports analyst who writes concise, factual game summaries for knowledgeable fans. Format your response as 3 bullet points. Each bullet point should be one clear insight. Be factual and concise. No hype. Vary your sentence structure and opening words. Never start two bullets the same way.",
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.7,
+        temperature: 0.9,
         max_tokens: 250,
       }),
       // 30 second timeout
@@ -361,16 +394,24 @@ async function generateAISummary(gameData, league) {
  * Build OpenAI prompt with structured game data
  */
 function buildPrompt(gameData, league) {
-  return `Summarize this ${league} game for a knowledgeable fan using 3-4 bullet points.
+  const storyFrames = {
+    "nail-biter": `This was a nail-biter decided by ${gameData.margin} point(s). Focus on what separated the teams in the final moments.`,
+    overtime: `This game went to overtime. Focus on what forced OT and how ${gameData.winner} ultimately pulled ahead.`,
+    blowout: `This was a blowout — ${gameData.winner} won by ${gameData.margin}. Focus on when and why the game got away from the loser.`,
+    standard: `${gameData.winner} won by ${gameData.margin}. Focus on the key advantages that drove the result.`,
+  };
 
-Format each bullet point with a dash (-) or bullet (•) at the start.
+  const frame = storyFrames[gameData.storyType] || storyFrames.standard;
 
-Include:
-- Why the winning team won (key moment or advantage)
-- Top 1-2 standout player performances with stats
-- A crucial statistical difference or momentum shift
+  return `Summarize this ${league} game for a knowledgeable fan using exactly 3 bullet points.
 
-Be factual and concise. No hype or commentary.
+Narrative frame: ${frame}
+
+Rules:
+- Start each bullet with a dash (-)
+- Do NOT restate the final score as a bullet — the reader already knows it
+- Anchor each bullet to something specific from the game data: a player performance, a quarter swing, or a statistical gap
+- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;
