@@ -33,7 +33,14 @@ const statConfigs = {
     { key: "HT",        label: "HT" },
     { key: "plusminus", label: "+/-" },
     { key: "TOI",       label: "TOI" },
+    { key: "SAVES",     label: "SV" },
+    { key: "SPCT",      label: "SV%" },
+    { key: "GA",        label: "GA" },
   ],
+};
+
+const nhlStatsByPosition = {
+  G: ["SAVES", "SPCT", "GA", "TOI"],
 };
 
 // Which NFL stats are relevant per position group
@@ -194,6 +201,9 @@ export default function PlayerPage() {
             let config = statConfigs[key] || [];
             if (key === "nfl" && position) {
               const relevant = nflStatsByPosition[position.toUpperCase()];
+              if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
+            } else if (key === "nhl" && position) {
+              const relevant = nhlStatsByPosition[position.toUpperCase()];
               if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
             }
             const statsProps = config.map(({ key: statKey, label }) => ({
