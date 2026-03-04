@@ -4,30 +4,30 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 1. Quick start (dev)
 
-- Frontend (Vite + React): from repo root run `npm run dev` (uses Vite, serves `frontend/src` via root config).
+- Frontend (Vite + React): `cd frontend && npm run dev` (serves `frontend/src`).
 - Backend (Express): in a second terminal `cd backend && npm run start` (runs `node src/index.js`).
 - Populate envs:
-  - Copy `backend/backend.env.example` -> `.env` in `backend/` and set `DATABASE_URL`
-  - Copy `env.example` (root) -> `.env` and set `VITE_API_URL` (backend URL)
+  - Copy `backend/backend.env.example` -> `backend/.env` and set `DATABASE_URL`
+  - Copy `frontend/.env.example` -> `frontend/.env` and set `VITE_API_URL` (backend URL)
 
 2. Big-picture architecture
 
 - Frontend: `frontend/src/` — React + Vite. Entry: `frontend/src/main.jsx`. Routing + UI components live under `components/` and `pages/`.
 - Backend: `backend/src/` — Express app. Entry: `backend/src/index.js`. DB layer: `backend/src/db/db.js` (Postgres via `pg`).
 - Data ingestion: `backend/src/populate/` and `backend/src/populate/src/` contain normalization and upsert helpers (e.g., `mapStatsToSchema.js`, `upsertPlayer.js`). These implement the logic for transforming ESPN-like responses into the DB.
-- Deployment: frontend on Vercel, backend on Railway (see `vercel.json` and README notes).
+- Deployment: frontend on Vercel (Root Directory set to `frontend/`), backend on Railway (see `frontend/vercel.json` and README notes).
 
 3. Important conventions and patterns (do NOT break these)
 
 - API routing: all backend routers live in `backend/src/routes/` and are mounted under `/api` in `backend/src/index.js`.
 - Frontend API calls: the frontend makes direct API calls to the backend. All endpoints are publicly accessible (no authentication required).
-- Frontend dev proxy: `vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development. In production, `VITE_API_URL` should point to the deployed backend URL.
+- Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development. In production, `VITE_API_URL` should point to the deployed backend URL.
 - DB upserts and schema normalization live in `backend/src/populate/src/`. When ingesting new league or endpoint data, follow the mapping and `upsert*` patterns.
 - CORS: backend whitelist includes `http://localhost:5173` and `https://scorva.vercel.app` — update `backend/src/index.js` if you add new origins.
 
 4. Common developer workflows
 
-- Run frontend only: `npm run dev` (root). Requires backend to be running and `.env` with `VITE_API_URL` configured.
+- Run frontend only: `cd frontend && npm run dev`. Requires backend to be running and `frontend/.env` with `VITE_API_URL` configured.
 - Run backend only: `cd backend && npm run start`. Requires `.env` with `DATABASE_URL` configured.
 - Run tests: `cd backend && npm test` (runs full Jest suite with 120+ tests covering all routes, DB operations, and data transformations).
 - To run both locally: open two terminals (frontend + backend). The frontend will proxy `/api` requests to the backend URL specified in `vite.config.js`.
@@ -47,7 +47,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - `backend/src/routes/` — route patterns and examples.
 - `backend/src/populate/src/` — mapping & upsert utilities for normalization.
 - `frontend/src/main.jsx` and `frontend/src/App.jsx` — entry points and where API calls originate.
-- `vite.config.js` — local dev proxy to backend.
+- `frontend/vite.config.js` — local dev proxy to backend.
 - `backend/__tests__/` — comprehensive test suite with 120+ tests covering all routes, DB operations, and data transformations.
 
 7. Testing approach

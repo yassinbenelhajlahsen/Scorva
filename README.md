@@ -55,25 +55,25 @@ Scorva
 │   └── .env                      # Local backend environment (ignored by Git)
 │
 ├── frontend
-│   └── src/
-│       ├── App.jsx               # Root React component
-│       ├── main.jsx              # Entry point for Vite
-│       ├── assets/               # Static assets (images, icons, etc.)
-│       ├── components/           # Reusable UI components
-│       │   ├── cards/            # GameCard, PlayerCard, etc.
-│       │   ├── layout/           # Navbar, Footer, PageWrapper, ScrollToTop
-│       │   └── ui/               # BoxScore, Hero, SearchBar
-│       ├── pages/                # Page-level React components (routes)
-│       ├── utilities/            # Helper functions and formatters
-│       └── index.css             # Global styles
+│   ├── src/
+│   │   ├── App.jsx               # Root React component
+│   │   ├── main.jsx              # Entry point for Vite
+│   │   ├── assets/               # Static assets (images, icons, etc.)
+│   │   ├── components/           # Reusable UI components
+│   │   │   ├── cards/            # GameCard, PlayerCard, etc.
+│   │   │   ├── layout/           # Navbar, Footer, PageWrapper, ScrollToTop
+│   │   │   └── ui/               # BoxScore, Hero, SearchBar
+│   │   ├── pages/                # Page-level React components (routes)
+│   │   ├── utilities/            # Helper functions and formatters
+│   │   └── index.css             # Global styles
+│   ├── public/                   # Static public assets for Vite
+│   ├── index.html                # HTML template for Vite
+│   ├── vite.config.js            # Vite configuration
+│   ├── eslint.config.js          # ESLint configuration
+│   ├── package.json              # Frontend dependencies
+│   ├── vercel.json               # Vercel deployment configuration
+│   └── .env                      # Frontend environment variables (ignored by Git)
 │
-├── public/                       # Static public assets for Vite
-├── .env                          # Frontend environment variables
-├── eslint.config.js              # ESLint configuration
-├── vite.config.js                # Vite configuration
-├── package.json                  # Root scripts (frontend + backend)
-├── vercel.json                   # Deployment configuration
-├── index.html                    # Root HTML template for Vite
 ├── LICENSE
 └── README.md
 
