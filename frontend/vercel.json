@@ -1,8 +1,8 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-
-"rewrites": [
+  "ignoreCommand": "git diff HEAD^ HEAD --name-only -- . | grep -qE '.'",
+  "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ]
 }
