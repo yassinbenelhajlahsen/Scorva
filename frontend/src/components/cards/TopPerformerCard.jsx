@@ -40,12 +40,12 @@ export default function TopPerformerCard({ player, title = "Top Performer", leag
       className="group flex items-center gap-4 bg-surface-elevated border border-white/[0.08] p-4 rounded-2xl transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 w-full"
     >
       <img
-        src={imageUrl || "/defaultPhoto.png"}
+        src={imageUrl || "/defaultPhoto.webp"}
         alt={name}
         className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-full flex-shrink-0 ring-2 ring-white/[0.06]"
         onError={(e) => {
           e.target.onerror = null;
-          e.target.src = "/defaultPhoto.png";
+          e.target.src = "/defaultPhoto.webp";
         }}
       />
       <div className="flex-1 min-w-0">

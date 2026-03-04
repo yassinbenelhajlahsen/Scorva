@@ -45,12 +45,12 @@ export default function GameCard({ game }) {
           {/* Home */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
             <img
-              src={game.home_logo || "/backupTeamLogo.png"}
+              src={game.home_logo || "/backupTeamLogo.webp"}
               alt={`${game.homeTeam} logo`}
               className="w-12 h-12 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "/backupTeamLogo.png";
+                e.target.src = "/backupTeamLogo.webp";
               }}
             />
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
@@ -77,12 +77,12 @@ export default function GameCard({ game }) {
           {/* Away */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
             <img
-              src={game.away_logo || "/backupTeamLogo.png"}
+              src={game.away_logo || "/backupTeamLogo.webp"}
               alt={`${game.awayteam} logo`}
               className="w-12 h-12 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "/backupTeamLogo.png";
+                e.target.src = "/backupTeamLogo.webp";
               }}
             />
             <div className="text-sm font-semibold text-text-primary line-clamp-1">

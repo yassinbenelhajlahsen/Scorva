@@ -6,8 +6,8 @@ import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ScrollToTop from "./components/layout/ScrollToTop.jsx";
 import LoadingPage from "./pages/LoadingPage.jsx";
+import Homepage from "./pages/Homepage.jsx";
 
-const Homepage   = lazy(() => import("./pages/Homepage.jsx"));
 const About      = lazy(() => import("./pages/About.jsx"));
 const LeaguePage = lazy(() => import("./pages/LeaguePage.jsx"));
 const PlayerPage = lazy(() => import("./pages/PlayerPage.jsx"));

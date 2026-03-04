@@ -59,9 +59,9 @@ export default function Homepage() {
   if (error) return <div className="p-6 text-loss text-sm">{error}</div>;
 
   const leagues = [
-    { id: "nba", name: "NBA", logo: "/NBAlogo.png" },
-    { id: "nhl", name: "NHL", logo: "/NHLlogo.png" },
-    { id: "nfl", name: "NFL", logo: "/NFLlogo.png" },
+    { id: "nba", name: "NBA", logo: "/NBAlogo.webp" },
+    { id: "nhl", name: "NHL", logo: "/NHLlogo.webp" },
+    { id: "nfl", name: "NFL", logo: "/NFLlogo.webp" },
   ];
 
   return (

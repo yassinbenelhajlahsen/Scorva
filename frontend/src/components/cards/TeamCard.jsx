@@ -14,7 +14,7 @@ export default function TeamCard({team, league}) {
           className="w-20 h-20 object-contain"
           onError={(e) => {
             e.target.onerror = null;
-            e.target.src = "/backupTeamLogo.png";
+            e.target.src = "/backupTeamLogo.webp";
           }}
         />
         <div className="mt-2 text-lg font-bold text-white">{team.name}</div>

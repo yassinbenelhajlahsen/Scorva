@@ -130,7 +130,7 @@ export default function GamePage() {
             src={homeTeam.info.logoUrl}
             alt={`${homeTeam.info.name} logo`}
             className="w-20 h-20 sm:w-28 sm:h-28 object-contain"
-            onError={(e) => { e.target.onerror = null; e.target.src = "/backupTeamLogo.png"; }}
+            onError={(e) => { e.target.onerror = null; e.target.src = "/backupTeamLogo.webp"; }}
           />
           <div className="text-center sm:text-left">
             <Link
@@ -179,7 +179,7 @@ export default function GamePage() {
             src={awayTeam.info.logoUrl}
             alt={`${awayTeam.info.name} logo`}
             className="w-20 h-20 sm:w-28 sm:h-28 object-contain order-1 sm:order-2"
-            onError={(e) => { e.target.onerror = null; e.target.src = "/backupTeamLogo.png"; }}
+            onError={(e) => { e.target.onerror = null; e.target.src = "/backupTeamLogo.webp"; }}
           />
         </div>
       </div>
