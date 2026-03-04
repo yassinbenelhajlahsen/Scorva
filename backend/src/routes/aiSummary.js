@@ -191,12 +191,20 @@ function buildGameData(game, stats) {
   }
 
   const margin = Math.abs(game.homescore - game.awayscore);
+
+  const thresholds = {
+    NBA: { nailBiter: 5, blowout: 20 },
+    NFL: { nailBiter: 5, blowout: 17 },
+    NHL: { nailBiter: 1, blowout: 4 },
+  };
+  const t = thresholds[league] || thresholds.NBA;
+
   let storyType;
   if (hadOT) {
     storyType = "overtime";
-  } else if (margin <= 5) {
+  } else if (margin <= t.nailBiter) {
     storyType = "nail-biter";
-  } else if (margin >= 25) {
+  } else if (margin >= t.blowout) {
     storyType = "blowout";
   } else {
     storyType = "standard";
