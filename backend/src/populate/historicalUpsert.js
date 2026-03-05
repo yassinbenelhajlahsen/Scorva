@@ -35,9 +35,9 @@ function getAllDatesInRange(startISO, endISO) {
 }
 
 const leagues = [
-  { slug: "nfl", seasonStart: "2025-09-05", seasonEnd: "2025-09-18" },
-  //{ slug: "nba", seasonStart: "2025-03-01", seasonEnd: "2025-06-10" },
-  //{ slug: "nhl", seasonStart: "2025-03-01", seasonEnd: "2025-06-10" },
+  { slug: "nba", seasonStart: "2025-04-19", seasonEnd: "2025-06-22" }, // 2024-25 playoffs → NBA Finals Game 7
+  { slug: "nhl", seasonStart: "2025-04-19", seasonEnd: "2025-06-14" }, // 2024-25 playoffs → Stanley Cup Final Game 5
+  { slug: "nfl", seasonStart: "2026-01-01", seasonEnd: "2026-01-11" }, // 2025-26 playoffs → Super Bowl LX
 ];
 
 (async () => {

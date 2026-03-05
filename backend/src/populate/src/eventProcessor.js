@@ -191,7 +191,6 @@ export async function fetchPlayerDetails(espnId, leagueSlug) {
   const path = getSportPath(leagueSlug);
   const url = `https://site.web.api.espn.com/apis/common/v3/sports/${path}/${leagueSlug}/athletes/${espnId}`;
   runStats.espnApiCalls++;
-  console.log(`    📡 [ESPN API] Fetching player ${espnId} details`);
   try {
     const resp = await axios.get(url);
     return resp.data.athlete || null;
@@ -317,15 +316,8 @@ export async function processEvent(client, leagueSlug, event) {
     return null;
   }
 
-  // Log game info
-  const homeName = homeComp.team?.abbreviation || homeComp.team?.name || "???";
-  const awayName = awayComp.team?.abbreviation || awayComp.team?.name || "???";
-  const gameStatus = event.status?.type?.description || "Unknown";
   const preserveExistingTeam = isSpecialEventGame(event, homeComp, awayComp);
-  console.log(`  🎮 ${awayName} @ ${homeName} (${gameStatus})`);
-  if (preserveExistingTeam) {
-    console.log(`    🛡️  Special event detected - preserving player team ids`);
-  }
+
 
   // BEGIN a transaction
   await client.query("BEGIN");
@@ -511,7 +503,6 @@ export async function processEvent(client, leagueSlug, event) {
     // Always upsert the game first to capture metadata updates (broadcast, status, etc.)
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
     runStats.gamesProcessed++;
-    console.log(`    ✓ Game upserted (id: ${gameId})`);
 
     // ========================================================================
     // OPTIMIZATION 2: Skip finished games (boxscore/player/stat processing only)
@@ -521,15 +512,11 @@ export async function processEvent(client, leagueSlug, event) {
     // We still ran upsertGame above to capture any metadata changes.
     if (existingGame.exists && existingGame.isFinal) {
       skippedFinalGamesCount++;
-      console.log(
-        `    ⏭️  Already FINAL in DB — skipping boxscore/players/stats`,
-      );
       await client.query("COMMIT");
       return gameId;
     }
 
     // Game is new OR not final yet - proceed with boxscore/player/stat processing
-    console.log(`    📡 Fetching boxscore from ESPN...`);
     const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
       leagueSlug,
     )}/${leagueSlug}/summary?event=${espnEventId}`;
@@ -537,7 +524,6 @@ export async function processEvent(client, leagueSlug, event) {
     let statsResp;
     try {
       statsResp = await axios.get(boxscoreUrl);
-      console.log(`    ✓ Boxscore retrieved`);
     } catch (err) {
       console.warn(`    ⚠️  No boxscore available: ${err.message}`);
       await client.query("COMMIT");
@@ -554,7 +540,6 @@ export async function processEvent(client, leagueSlug, event) {
         )
       );
     }, 0);
-    console.log(`    👥 Processing ${totalPlayers} players...`);
 
     try {
       for (const group of playerGroups) {
@@ -649,10 +634,6 @@ export async function processEvent(client, leagueSlug, event) {
           }
         }
       }
-      // Everything succeeded → commit
-      console.log(
-        `    ✓ Committed (${runStats.playersUpserted} players, ${runStats.statsUpserted} stats total this run)`,
-      );
       await client.query("COMMIT");
       return gameId;
     } catch (err) {
@@ -714,7 +695,6 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
  */
 export async function runTodayProcessing(leagueSlug, pool) {
   const events = await getTodayEvents(leagueSlug);
-  console.log(`Upserting ${events.length} events for today (${leagueSlug})`);
 
   for (const event of events) {
     const client = await pool.connect();
