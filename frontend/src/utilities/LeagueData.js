@@ -1,14 +1,14 @@
 const leagueData = {
   nba: {
-    logo: "/NBAlogo.png",
+    logo: "/NBAlogo.webp",
     links: [{ label: "Players", to: "/nba/players" }],
   },
   nfl: {
-    logo: "NFLlogo.png",
+    logo: "/NFLlogo.webp",
     links: [{ label: "Players", to: "/nfl/players" }],
   },
   nhl: {
-    logo: "NHLlogo.png",
+    logo: "/NHLlogo.webp",
     links: [{ label: "Players", to: "/nhl/players" }],
   },
 };
