@@ -5,7 +5,7 @@ export default function About() {
     "Tailwind CSS",
     "Framer Motion",
     "Node.js + Express",
-    "PostgreSQL",
+    "PostgreSQL + Prisma ORM",
     "OpenAI GPT-4o-mini",
     "External Sports APIs",
     "Vercel (frontend)",

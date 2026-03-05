@@ -13,7 +13,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 2. Big-picture architecture
 
 - Frontend: `frontend/src/` — React + Vite. Entry: `frontend/src/main.jsx`. Routing + UI components live under `components/` and `pages/`.
-- Backend: `backend/src/` — Express app. Entry: `backend/src/index.js`. DB layer: `backend/src/db/db.js` (Postgres via `pg`).
+- Backend: `backend/src/` — Express app. Entry: `backend/src/index.js`. DB layer: `backend/src/db/db.js` (Postgres via `pg`). Prisma schema at `backend/prisma/schema.prisma`; generated client at `backend/src/generated/prisma/` (run `prisma generate` after schema changes).
 - Data ingestion: `backend/src/populate/` and `backend/src/populate/src/` contain normalization and upsert helpers (e.g., `mapStatsToSchema.js`, `upsertPlayer.js`). These implement the logic for transforming ESPN-like responses into the DB.
 - Deployment: frontend on Vercel (Root Directory set to `frontend/`), backend on Railway (see `frontend/vercel.json` and README notes).
 
@@ -32,6 +32,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - Run tests: `cd backend && npm test` (runs full Jest suite with 120+ tests covering all routes, DB operations, and data transformations).
 - To run both locally: open two terminals (frontend + backend). The frontend will proxy `/api` requests to the backend URL specified in `vite.config.js`.
 - Database: Postgres connection is configured in `backend/src/db/db.js`; follow `.env` variables in `backend/backend.env.example`.
+- Schema changes: edit `backend/prisma/schema.prisma`, run `prisma migrate dev --name <desc>` locally, run `prisma migrate deploy` (or raw SQL) on production. Never edit `src/generated/prisma/` directly.
 
 5. How to add a new backend endpoint (example)
 
@@ -46,6 +47,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - `backend/src/index.js` — app boot, CORS, middleware ordering.
 - `backend/src/routes/` — route patterns and examples.
 - `backend/src/populate/src/` — mapping & upsert utilities for normalization.
+- `backend/prisma/schema.prisma` — source of truth for DB models and migrations.
 - `frontend/src/main.jsx` and `frontend/src/App.jsx` — entry points and where API calls originate.
 - `frontend/vite.config.js` — local dev proxy to backend.
 - `backend/__tests__/` — comprehensive test suite with 120+ tests covering all routes, DB operations, and data transformations.

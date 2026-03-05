@@ -12,8 +12,8 @@ https://scorva.vercel.app
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React, React Router, Tailwind  v4, Axios, Framer Motion, Vite
-- **Backend:** Node.js, Express, pg (PostgreSQL)
+- **Frontend:** React, React Router, Tailwind v4, Axios, Framer Motion, Vite
+- **Backend:** Node.js, Express, pg (PostgreSQL), Prisma ORM
 - **Database:** PostgreSQL (hosted on Railway)
 - **Deployment:**
   - Frontend: Vercel
@@ -24,10 +24,18 @@ https://scorva.vercel.app
 ```
 Scorva
 ├── backend
+│   ├── prisma/
+│   │   ├── schema.prisma         # Prisma schema (models: games, teams, players, stats)
+│   │   └── migrations/           # Migration history
+│   │       ├── 0_init/           # Baseline migration (existing schema)
+│   │       └── 20260305000000_add_game_label/
+│   ├── prisma.config.ts          # Prisma config (datasource URL, migrations path)
 │   ├── src/
 │   │   ├── index.js              # Express server entry point
 │   │   ├── db/
-│   │   │   └── db.js             # PostgreSQL connection setup
+│   │   │   └── db.js             # PostgreSQL connection (pg pool)
+│   │   ├── generated/
+│   │   │   └── prisma/           # Auto-generated Prisma client (do not edit)
 │   │   ├── routes/               # API route handlers
 │   │   │   ├── games.js
 │   │   │   ├── teams.js
@@ -37,14 +45,13 @@ Scorva
 │   │   │   └── ...
 │   │   ├── config/
 │   │   │   └── env.js            # dotenv initialization and environment setup
-│   │   ├── utils/                # Shared helpers (e.g., logger, validation)
 │   │   └── populate/             # Database seeding and update scripts
 │   │       ├── historicalUpsert.js
 │   │       ├── upsert.js
 │   │       └── src/
 │   │           ├── commonMappings.js
 │   │           ├── mapStatsToSchema.js
-│   │           ├── eventProcessor.js
+│   │           ├── eventProcessor.js # ESPN event processing + game_label extraction
 │   │           ├── upsertGame.js
 │   │           ├── upsertPlayer.js
 │   │           ├── upsertStat.js
@@ -66,7 +73,10 @@ Scorva
 │   │   ├── pages/                # Page-level React components (routes)
 │   │   ├── utilities/            # Helper functions and formatters
 │   │   └── index.css             # Global styles
-│   ├── public/                   # Static public assets for Vite
+│   ├── public/
+│   │   ├── NBA/                  # NBA logos (NBAlogo.webp, NBAPlayoff.png, NBAFinal.png)
+│   │   ├── NFL/                  # NFL logos (NFLlogo.webp, NFLPlayoff.png, NFLFinal.png)
+│   │   └── NHL/                  # NHL logos (NHLlogo.webp, NHLPlayoff.png, NHLFinal.png)
 │   ├── index.html                # HTML template for Vite
 │   ├── vite.config.js            # Vite configuration
 │   ├── eslint.config.js          # ESLint configuration
@@ -81,6 +91,7 @@ Scorva
 
 ## 🔥 Features
 
+- **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
 - **Multi-league support:** NBA, NFL, NHL with consistent data structure
 - **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
 - **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
