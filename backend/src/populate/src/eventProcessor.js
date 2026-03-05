@@ -472,6 +472,12 @@ export async function processEvent(client, leagueSlug, event) {
       seasonText = `${startYear}-${endTwoDigits}`; // "2023-24"
     }
 
+    // 5.4.9) Playoff/round label from ESPN notes (null for regular season)
+    const gameLabel =
+      event.season?.type === 3
+        ? (event.competitions?.[0]?.notes?.[0]?.headline || null)
+        : null;
+
     // 5.4.10) Upsert into games
     const gamePayload = {
       eventid: espnEventId,
@@ -485,6 +491,7 @@ export async function processEvent(client, leagueSlug, event) {
       quarters: quarterStrings,
       status,
       seasonText,
+      gameLabel,
     };
 
     // ========================================================================

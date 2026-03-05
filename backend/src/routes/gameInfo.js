@@ -42,7 +42,8 @@ async function handleNbaGame(req, res) {
     ),
     'status', g.status,
     'season', g.season,
-    'winnerId', g.winnerid
+    'winnerId', g.winnerid,
+    'gameLabel', g.game_label
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -177,7 +178,8 @@ async function handleNhlGame(req, res) {
     ),
     'status', g.status,
     'season', g.season,
-    'winnerId', g.winnerid
+    'winnerId', g.winnerid,
+    'gameLabel', g.game_label
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -316,7 +318,8 @@ async function handleNflGame(req, res) {
     ),
     'status', g.status,
     'season', g.season,
-    'winnerId', g.winnerid
+    'winnerId', g.winnerid,
+    'gameLabel', g.game_label
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(

@@ -5,13 +5,13 @@ export default async function upsertGame(client, league, gamePayload) {
        homescore, awayscore, venue, broadcast,
        firstqtr, secondqtr, thirdqtr, fourthqtr,
        ot1, ot2, ot3, ot4,
-       status, season)
+       status, season, game_label)
     VALUES
       ($1,       $2,         $3,          $4,
        $5,       $6,         $7,          $8,
        $9,       $10,        $11,         $12,
        $13,      $14,        $15,         $16,
-       $17,      $18)
+       $17,      $18,        $19)
     ON CONFLICT ON CONSTRAINT unique_game_combo DO UPDATE
       SET homescore  = EXCLUDED.homescore,
           awayscore  = EXCLUDED.awayscore,
@@ -26,7 +26,8 @@ export default async function upsertGame(client, league, gamePayload) {
           ot3        = EXCLUDED.ot3,
           ot4        = EXCLUDED.ot4,
           status     = EXCLUDED.status,
-          season     = EXCLUDED.season
+          season     = EXCLUDED.season,
+          game_label = EXCLUDED.game_label
           RETURNING id;
   `;
 
@@ -49,6 +50,7 @@ export default async function upsertGame(client, league, gamePayload) {
     gamePayload.quarters.ot4 || null,
     gamePayload.status, // 'SCHEDULED' / 'IN' / 'FINAL'
     gamePayload.seasonText, // '2024-reg' / '2024-post'
+    gamePayload.gameLabel || null, // e.g. 'NBA Finals - Game 1', null for regular season
   ];
   const result = await client.query(text, values);
   const gameId = result.rows[0].id;
