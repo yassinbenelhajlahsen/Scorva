@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model games {
+  id                            Int      @id @default(autoincrement())
+  league                        String
+  date                          DateTime @db.Date
+  hometeamid                    Int?
+  awayteamid                    Int?
+  homescore                     Int?
+  awayscore                     Int?
+  venue                         String?
+  broadcast                     String?
+  firstqtr                      String?
+  secondqtr                     String?
+  thirdqtr                      String?
+  fourthqtr                     String?
+  ot1                           String?
+  ot2                           String?
+  ot3                           String?
+  ot4                           String?
+  status                        String?
+  season                        String?
+  eventid                       Int?     @unique(map: "games_eventid_unique")
+  winnerid                      Int?
+  ai_summary                    String?
+  teams_games_awayteamidToteams teams?   @relation("games_awayteamidToteams", fields: [awayteamid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  teams_games_hometeamidToteams teams?   @relation("games_hometeamidToteams", fields: [hometeamid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stats                         stats[]
+
+  @@unique([date, hometeamid, awayteamid, league], map: "games_date_teams_league_unique")
+  @@unique([eventid, league], map: "games_eventid_league_uniq")
+  @@unique([date, hometeamid, awayteamid, league], map: "unique_game_combo")
+  @@index([awayteamid, date])
+  @@index([hometeamid, date], map: "games_teamid_date_idx")
+  @@index([awayteamid], map: "idx_games_awayteamid")
+  @@index([hometeamid], map: "idx_games_hometeamid")
+}
+
+model players {
+  id            Int     @id @default(autoincrement())
+  name          String
+  teamid        Int?
+  position      String?
+  height        String?
+  image_url     String?
+  jerseynum     Int?
+  weight        String?
+  dob           String?
+  draftinfo     String?
+  league        String
+  espn_playerid Int?
+  teams         teams?  @relation(fields: [teamid], references: [id], onUpdate: NoAction)
+  stats         stats[]
+
+  @@unique([espn_playerid, league], map: "players_espn_playerid_league_uniq")
+  @@unique([espn_playerid, league], map: "players_espnid_league_unique")
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_players_name_trgm", type: Gin)
+  @@index([teamid])
+}
+
+model stats {
+  id            Int     @default(autoincrement())
+  gameid        Int
+  playerid      Int
+  points        Int?
+  assists       Int?
+  rebounds      Int?
+  blocks        Int?
+  steals        Int?
+  fg            String?
+  threept       String?
+  ft            String?
+  turnovers     Int?
+  plusminus     Int?
+  minutes       Int?
+  yds           Int?
+  sacks         String?
+  td            Int?
+  interceptions Int?
+  g             Int?
+  a             Int?
+  saves         Int?
+  savepct       String?
+  ga            Int?
+  toi           String?
+  shots         Int?
+  sm            Int?
+  bs            Int?
+  pn            Int?
+  pim           Int?
+  ht            Int?
+  tk            Int?
+  gv            Int?
+  fouls         Int?
+  cmpatt        String?
+  games         games   @relation(fields: [gameid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  players       players @relation(fields: [playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([gameid, playerid])
+  @@unique([gameid, playerid], map: "stats_gameid_playerid_unique")
+}
+
+model teams {
+  id                            Int       @id @default(autoincrement())
+  name                          String
+  shortname                     String?
+  league                        String
+  location                      String?
+  logo_url                      String?
+  record                        String?
+  espnid                        Int?
+  homerecord                    String?
+  awayrecord                    String?
+  conf                          String?
+  games_games_awayteamidToteams games[]   @relation("games_awayteamidToteams")
+  games_games_hometeamidToteams games[]   @relation("games_hometeamidToteams")
+  players                       players[]
+
+  @@unique([espnid, league], map: "teams_espnid_league_uniq")
+  @@unique([espnid, league], map: "teams_espnid_league_unique")
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_teams_name_trgm", type: Gin)
+  @@index([shortname(ops: raw("gin_trgm_ops"))], map: "idx_teams_shortname_trgm", type: Gin)
+}

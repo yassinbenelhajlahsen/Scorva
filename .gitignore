@@ -24,6 +24,8 @@ lib-cov
 coverage
 *.lcov
 
+backend/src/generated/prisma
+
 # nyc test coverage
 .nyc_output
 
