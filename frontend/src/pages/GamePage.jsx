@@ -88,6 +88,14 @@ export default function GamePage() {
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;
   const nhl = league === "nhl";
+  const isChampionship = game.gameLabel && (
+    game.gameLabel.toLowerCase().includes("finals") ||
+    game.gameLabel.toLowerCase().includes("stanley cup") ||
+    game.gameLabel.toLowerCase().includes("super bowl")
+  );
+  const playoffLogo = game.gameLabel
+    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
+    : null;
   const quarterKeys = nhl ? ["q1", "q2", "q3"] : ["q1", "q2", "q3", "q4"];
 
   const allPlayerStats = [
@@ -148,7 +156,12 @@ export default function GamePage() {
         </div>
 
         {/* VS divider */}
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1.5">
+          {playoffLogo && (
+            <div className="h-24 w-48 flex items-center justify-center mb-0.5">
+              <img src={playoffLogo} alt={game.gameLabel} className="max-h-full max-w-full object-contain" />
+            </div>
+          )}
           <span className="text-sm font-medium text-text-tertiary">vs</span>
           {inProgress && (
             <span className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full">

@@ -14,6 +14,15 @@ export default function GameCard({ game }) {
   if (!league) return null;
 
   const nhl = league === "nhl";
+  const isPlayoff = !!game.game_label;
+  const label = game.game_label?.toLowerCase() || "";
+  const isChampionship = label.includes("finals") || label.includes("stanley cup") || label.includes("super bowl");
+  const isSuperBowl = label.includes("super bowl");
+  const isStanley = label.includes("Stanley");
+
+  const playoffLogo = isPlayoff
+    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
+    : null;
 
   const scoreColor = (isWinner, isLoser) => {
     if (!isFinal) return "text-text-primary";
@@ -71,6 +80,11 @@ export default function GameCard({ game }) {
               <p className="text-xs text-text-tertiary text-center px-1 max-w-[80px]">
                 {game.status}
               </p>
+            )}
+            {isPlayoff && (
+              <div className={`mt-1 flex items-center justify-center h-20 w-20`}>
+                <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${(isSuperBowl || isStanley) ? "p-1.5" : ""}`} />
+              </div>
             )}
           </div>
 
