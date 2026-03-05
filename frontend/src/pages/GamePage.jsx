@@ -89,7 +89,7 @@ export default function GamePage() {
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;
   const nhl = league === "nhl";
   const isChampionship = game.gameLabel && (
-    game.gameLabel.toLowerCase().includes("finals") ||
+    game.gameLabel.toLowerCase().includes("nba finals") ||
     game.gameLabel.toLowerCase().includes("stanley cup") ||
     game.gameLabel.toLowerCase().includes("super bowl")
   );
