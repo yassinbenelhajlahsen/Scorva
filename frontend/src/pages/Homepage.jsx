@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import LoadingPage from "./LoadingPage.jsx";
+import leagueData from "../utilities/LeagueData.js";
 
 const containerVariants = {
   hidden: {},
@@ -58,11 +59,11 @@ export default function Homepage() {
   if (loading) return <LoadingPage />;
   if (error) return <div className="p-6 text-loss text-sm">{error}</div>;
 
-  const leagues = [
-    { id: "nba", name: "NBA", logo: "/NBAlogo.webp" },
-    { id: "nhl", name: "NHL", logo: "/NHLlogo.webp" },
-    { id: "nfl", name: "NFL", logo: "/NFLlogo.webp" },
-  ];
+  const leagues = Object.entries(leagueData).map(([id, data]) => ({
+    id,
+    name: data.name,
+    logo: data.logo,
+  }));
 
   return (
     <div className="flex flex-col w-full max-w-[1200px] mx-auto px-5 sm:px-8 py-12">
