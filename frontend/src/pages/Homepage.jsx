@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import LoadingPage from "./LoadingPage.jsx";
@@ -8,14 +8,32 @@ import { useHomeGames } from "../hooks/useHomeGames.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavorites } from "../hooks/useFavorites.js";
+import { useUserPrefs } from "../hooks/useUserPrefs.js";
 import FavoritePlayersSection from "../components/favorites/FavoritePlayersSection.jsx";
 import FavoriteTeamsSection from "../components/favorites/FavoriteTeamsSection.jsx";
 
 export default function Homepage() {
   const { games, loading, error } = useHomeGames();
-  const [activeLeague, setActiveLeague] = useState("nba");
   const { session } = useAuth();
   const { favorites, loading: favLoading } = useFavorites();
+  const { prefs, loading: prefsLoading } = useUserPrefs();
+
+  // Resolve the active league: wait for prefs when logged in, default to "nba" when not
+  const resolvedLeague = session === undefined || (session && (prefsLoading || prefs === null))
+    ? null  // still loading — don't commit yet
+    : prefs?.default_league ?? "nba";
+
+  const [activeLeague, setActiveLeague] = useState(null);
+  const [userPicked, setUserPicked] = useState(false);
+
+  useEffect(() => {
+    if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
+  }, [resolvedLeague, userPicked]);
+
+  function pickLeague(id) {
+    setActiveLeague(id);
+    setUserPicked(true);
+  }
 
   if (loading) return <LoadingPage />;
   if (error) return <div className="p-6 text-loss text-sm">{error}</div>;
@@ -78,13 +96,13 @@ export default function Homepage() {
       )}
 
       {/* League tabs + Games */}
-      <div>
+      {activeLeague && <div>
         {/* Tab pills */}
         <div className="flex justify-center mb-8 gap-2">
           {leagues.map((league) => (
             <button
               key={league.id}
-              onClick={() => setActiveLeague(league.id)}
+              onClick={() => pickLeague(league.id)}
               className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 activeLeague === league.id
                   ? "bg-accent/15 text-accent border border-accent/25"
@@ -124,7 +142,7 @@ export default function Homepage() {
             </svg>
           </Link>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
