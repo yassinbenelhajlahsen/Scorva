@@ -1,6 +1,6 @@
 const BASE = import.meta.env.VITE_API_URL;
 
-export async function apiFetch(path, { signal, params, token, method = "GET" } = {}) {
+export async function apiFetch(path, { signal, params, token, method = "GET", body } = {}) {
   const url = new URL(`${BASE}${path}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
@@ -8,7 +8,13 @@ export async function apiFetch(path, { signal, params, token, method = "GET" } =
     });
   }
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const res = await fetch(url, { method, signal, headers });
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, {
+    method,
+    signal,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   if (res.status === 204) return null;
   return res.json();
