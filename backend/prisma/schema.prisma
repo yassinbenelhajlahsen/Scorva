@@ -43,20 +43,21 @@ model games {
 }
 
 model players {
-  id            Int     @id @default(autoincrement())
-  name          String
-  teamid        Int?
-  position      String?
-  height        String?
-  image_url     String?
-  jerseynum     Int?
-  weight        String?
-  dob           String?
-  draftinfo     String?
-  league        String
-  espn_playerid Int?
-  teams         teams?  @relation(fields: [teamid], references: [id], onUpdate: NoAction)
-  stats         stats[]
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  teamid               Int?
+  position             String?
+  height               String?
+  image_url            String?
+  jerseynum            Int?
+  weight               String?
+  dob                  String?
+  draftinfo            String?
+  league               String
+  espn_playerid        Int?
+  teams                teams?                 @relation(fields: [teamid], references: [id], onUpdate: NoAction)
+  stats                stats[]
+  user_favorite_players user_favorite_players[]
 
   @@unique([espn_playerid, league], map: "players_espn_playerid_league_uniq")
   @@unique([espn_playerid, league], map: "players_espnid_league_unique")
@@ -107,7 +108,7 @@ model stats {
 }
 
 model teams {
-  id                            Int       @id @default(autoincrement())
+  id                            Int                  @id @default(autoincrement())
   name                          String
   shortname                     String?
   league                        String
@@ -118,12 +119,44 @@ model teams {
   homerecord                    String?
   awayrecord                    String?
   conf                          String?
-  games_games_awayteamidToteams games[]   @relation("games_awayteamidToteams")
-  games_games_hometeamidToteams games[]   @relation("games_hometeamidToteams")
+  games_games_awayteamidToteams games[]              @relation("games_awayteamidToteams")
+  games_games_hometeamidToteams games[]              @relation("games_hometeamidToteams")
   players                       players[]
+  user_favorite_teams           user_favorite_teams[]
 
   @@unique([espnid, league], map: "teams_espnid_league_uniq")
   @@unique([espnid, league], map: "teams_espnid_league_unique")
   @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_teams_name_trgm", type: Gin)
   @@index([shortname(ops: raw("gin_trgm_ops"))], map: "idx_teams_shortname_trgm", type: Gin)
 }
+
+model users {
+  id                   String                 @id @db.Uuid
+  created_at           DateTime               @default(now())
+  email                String?
+  first_name           String?
+  last_name            String?
+  favorite_players     user_favorite_players[]
+  favorite_teams       user_favorite_teams[]
+}
+
+model user_favorite_players {
+  user_id    String   @db.Uuid
+  player_id  Int
+  created_at DateTime @default(now())
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  players    players  @relation(fields: [player_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, player_id])
+}
+
+model user_favorite_teams {
+  user_id    String   @db.Uuid
+  team_id    Int
+  created_at DateTime @default(now())
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  teams      teams    @relation(fields: [team_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, team_id])
+}
+
