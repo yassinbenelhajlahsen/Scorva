@@ -105,6 +105,7 @@ describe("CORS Configuration", () => {
       "http://localhost:5174",
       "http://localhost:5175",
       "https://scorva.vercel.app",
+      "https://scorva.dev",
     ];
 
     allowedOrigins.forEach((origin) => {

@@ -6,7 +6,7 @@
 
 ## 🚀 Live
 
-https://scorva.vercel.app
+https://scorva.dev
 
 ---
 

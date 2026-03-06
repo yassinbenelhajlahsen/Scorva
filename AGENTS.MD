@@ -96,7 +96,7 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
 ## Constraints and Gotchas
 - Frontend API base URL is always `VITE_API_URL`; all fetch calls use the `api/client.js` wrapper.
 - Vite dev proxy target is hardcoded to `http://192.168.1.68:3000` in `frontend/vite.config.js`.
-- Backend CORS is allowlist-based (`backend/src/middleware/index.js`): `localhost:5173–5175`, `192.168.1.68:5173–5175`, and `https://scorva.vercel.app`. Update `corsOrigins` for new origins.
+- Backend CORS is allowlist-based (`backend/src/middleware/index.js`): `localhost:5173–5175`, `192.168.1.68:5173–5175`, and `https://scorva.dev`. Update `corsOrigins` for new origins.
 - Rate limiting (`backend/src/middleware/index.js`):
   - General limiter on all `/api` routes.
   - Stricter `aiLimiter` for AI summary route (mounted first in `index.js`).

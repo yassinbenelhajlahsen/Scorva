@@ -78,6 +78,7 @@ export const corsOrigins = [
   "http://localhost:5174",
   "http://localhost:5175",
   "https://scorva.vercel.app",
+  "https://scorva.dev",
   "http://192.168.1.68:5173",
   "http://192.168.1.68:5174",
   "http://192.168.1.68:5175",
