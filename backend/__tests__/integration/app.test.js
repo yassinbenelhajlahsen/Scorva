@@ -99,23 +99,22 @@ describe("API Routes Registration", () => {
 });
 
 describe("CORS Configuration", () => {
-  it("should allow localhost origins", () => {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "https://scorva.vercel.app",
-      "https://scorva.dev",
-    ];
+  let corsOrigins;
 
-    allowedOrigins.forEach((origin) => {
-      expect(origin).toMatch(/localhost|vercel\.app/);
-    });
+  beforeAll(async () => {
+    const middleware = await import("../../src/middleware/index.js");
+    corsOrigins = middleware.corsOrigins;
   });
 
-  it("should allow production origin", () => {
-    const productionOrigin = "https://scorva.vercel.app";
-    expect(productionOrigin).toContain("vercel.app");
+  it("should include localhost dev origins", () => {
+    expect(corsOrigins).toContain("http://localhost:5173");
+    expect(corsOrigins).toContain("http://localhost:5174");
+    expect(corsOrigins).toContain("http://localhost:5175");
+  });
+
+  it("should include production origins", () => {
+    expect(corsOrigins).toContain("https://scorva.vercel.app");
+    expect(corsOrigins).toContain("https://scorva.dev");
   });
 });
 

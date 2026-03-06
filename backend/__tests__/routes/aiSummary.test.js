@@ -19,6 +19,12 @@ jest.unstable_mockModule(dbPath, () => ({
   default: mockPool,
 }));
 
+// Mock requireAuth to bypass authentication in tests
+const authPath = resolve(__dirname, "../../src/middleware/auth.js");
+jest.unstable_mockModule(authPath, () => ({
+  requireAuth: jest.fn((_req, _res, next) => next()),
+}));
+
 // Mock OpenAI
 const mockOpenAI = {
   chat: {
