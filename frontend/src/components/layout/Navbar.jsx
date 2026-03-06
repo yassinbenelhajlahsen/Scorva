@@ -3,12 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import logo from "../../assets/favicon.png";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/useSearch.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { supabase } from "../../lib/supabase.js";
 
 export default function Navbar() {
   const [query, setQuery] = useState("");
   const { results: allItems, loading } = useSearch(query);
   const navRef = useRef(null);
   const location = useLocation();
+  const { session, openAuthModal } = useAuth();
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -49,7 +52,7 @@ export default function Navbar() {
           />
         </div>
 
-        {/* Right: Nav links */}
+        {/* Right: Nav links + auth */}
         <div className="ml-auto flex items-center gap-5 shrink-0">
           {navLinks.map(({ to, label }) => {
             const isActive =
@@ -68,6 +71,21 @@ export default function Navbar() {
               </Link>
             );
           })}
+          {session === undefined ? null : session ? (
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="text-[13px] font-medium text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <button
+              onClick={openAuthModal}
+              className="text-[13px] font-medium text-text-secondary hover:text-text-primary border border-white/[0.14] hover:border-white/[0.26] hover:bg-white/[0.04] rounded-full px-3.5 py-1.5 transition-all duration-200"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </div>
 

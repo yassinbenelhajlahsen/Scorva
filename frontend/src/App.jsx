@@ -7,6 +7,8 @@ import Footer from "./components/layout/Footer.jsx";
 import ScrollToTop from "./components/layout/ScrollToTop.jsx";
 import LoadingPage from "./pages/LoadingPage.jsx";
 import Homepage from "./pages/Homepage.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import AuthCallback from "./pages/AuthCallback.jsx";
 
 const About      = lazy(() => import("./pages/About.jsx"));
 const LeaguePage = lazy(() => import("./pages/LeaguePage.jsx"));
@@ -87,12 +89,22 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
-        <Navbar />
-        <ScrollToTop />
-        <AnimatedRoutes />
-        <Footer />
-      </div>
+      <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route
+          path="*"
+          element={
+            <AuthProvider>
+              <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
+                <Navbar />
+                <ScrollToTop />
+                <AnimatedRoutes />
+                <Footer />
+              </div>
+            </AuthProvider>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }
