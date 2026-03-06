@@ -60,6 +60,13 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Data hooks | `frontend/src/hooks/` |
 | Favorites API | `frontend/src/api/favorites.js` |
 | Favorites hooks | `frontend/src/hooks/useFavorites.js`, `frontend/src/hooks/useFavoriteToggle.js` |
+| User API | `frontend/src/api/user.js` |
+| User prefs hook | `frontend/src/hooks/useUserPrefs.js` |
+| Settings page | `frontend/src/pages/SettingsPage.jsx` |
+| Settings tabs | `frontend/src/components/settings/FavoritesTab.jsx`, `frontend/src/components/settings/AccountTab.jsx` |
+| User controller | `backend/src/controllers/userController.js` |
+| User service | `backend/src/services/userService.js` |
+| User route | `backend/src/routes/user.js` |
 | Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
 | Test suite | `backend/__tests__/` |
 | Test helpers | `backend/__tests__/helpers/testHelpers.js` |
@@ -80,6 +87,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `DELETE /favorites/players/:playerId` — requires auth; removes player favorite
 - `POST /favorites/teams/:teamId` — requires auth; adds team favorite
 - `DELETE /favorites/teams/:teamId` — requires auth; removes team favorite
+- `GET /user/profile` — requires auth; returns user row (`id`, `email`, `first_name`, `last_name`, `default_league`)
+- `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; uses COALESCE so omitted fields are unchanged
+- `DELETE /user/account` — requires auth; deletes DB row (cascades favorites) then calls `supabaseAdmin.auth.admin.deleteUser()`
 - `POST /webhooks/supabase-auth` — Supabase auth webhook; verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>` header; inserts new user into `users` table on signup
 
 ## Frontend routes
@@ -88,6 +98,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `/:league/teams/:teamId` → TeamPage
 - `/:league/players/:playerId` → PlayerPage
 - `/:league/games/:gameId` → GamePage
+- `/settings` → SettingsPage (requires auth, redirects to `/` if logged out)
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 
 ## Design system
@@ -106,7 +117,12 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Google OAuth popup** flow: `skipBrowserRedirect: true` → open popup → `/auth/callback` page closes popup via `postMessage` → parent modal closes
 - **Prisma** is for schema/migrations only; runtime uses `pg` directly
 - **game_label** column holds playoff round labels (e.g. `"NBA Finals - Game 1"`), null for regular season
-- **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`. Populated via Supabase webhook (`POST /api/webhooks/supabase-auth`) on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
+- **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`, `default_league` (nullable, defaults to `"nba"` on frontend). Populated via Supabase webhook on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
+- **User preferences** (`default_league`) stored in `users` table. Fetched via `useUserPrefs` hook (`GET /api/user/profile`). Homepage defers rendering league tabs until prefs resolve to avoid NBA→preference flicker. Settings page allows editing via `PATCH /api/user/profile`.
+- **Settings page** (`/settings`) — sidebar navigation (desktop) / drill-down (mobile). Tabs: Favorites (manage favorites + default league selector) and Account (edit name, change password, delete account). Navbar shows gear icon linking to `/settings` when logged in; "Sign In" pill when logged out. Google OAuth users see "Signed in with Google" badge; password change section is hidden for them.
+- **Account deletion** — two-step: `DELETE /api/user/account` deletes DB row (cascades favorites), then calls Supabase Admin API to delete auth user. Requires `SUPABASE_SERVICE_ROLE_KEY` env var on backend.
+- **Auth modal** — fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
+- **apiFetch** (`frontend/src/api/client.js`) supports `method` and `body` params; sets `Content-Type: application/json` when body present; handles 204 (no-content) responses.
 - **Favorites** all routes require `requireAuth`; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
 
 ## Adding a new endpoint (checklist)

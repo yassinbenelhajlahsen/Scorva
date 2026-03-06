@@ -29,7 +29,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 - API routing: all routers live in `backend/src/routes/` and are mounted under `/api` in `backend/src/index.js`.
 - Layer separation: routes contain no logic; controllers contain no SQL; services return plain data only.
-- Frontend API calls: all calls go to `VITE_API_URL` via wrappers in `frontend/src/api/`. The AI summary endpoint requires a `Authorization: Bearer <token>` header — token comes from `supabase.auth.getSession()`.
+- Frontend API calls: all calls go to `VITE_API_URL` via wrappers in `frontend/src/api/`. The AI summary and all user/favorites endpoints require an `Authorization: Bearer <token>` header. `apiFetch` in `frontend/src/api/client.js` handles auth, method, body serialization, and 204 responses.
 - Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development.
 - ESM everywhere: both packages use `"type": "module"`. Always use `.js` extensions in imports.
 - CORS: allowlist in `backend/src/middleware/index.js` — update `corsOrigins` when adding new origins.
@@ -74,11 +74,16 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - **Running tests**: `cd backend && npm test` (all), `npm test -- <pattern>` (specific).
 - **Writing tests**: mock `db/db.js` with `createMockPool()`. Test success cases + error handling + edge cases + parameter variants. See `backend/__tests__/README.md` for full guide.
 
-8. Known gaps / expectations
+8. Auth-gated features & user preferences
 
-- Most API endpoints are publicly accessible. The AI summary endpoint (`GET /api/games/:id/ai-summary`) requires a valid Supabase JWT — unauthenticated requests return 401.
-- Auth is handled by Supabase. Backend env vars required: `PROJECT_URL`, `SUPABASE_SECRET_KEY`. Frontend env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
+- Most API endpoints are publicly accessible. The AI summary, favorites, and user profile endpoints require a valid Supabase JWT — unauthenticated requests return 401.
+- Auth is handled by Supabase. Backend env vars required: `PROJECT_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (for account deletion). Frontend env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - AI summaries: cache-first, persisted to `games.ai_summary`, only generated for finalized games.
 - `playerInfo` service uses a hardcoded `currentSeason = "2025-26"` constant — update when the season changes.
+- **User preferences** are stored in the `users` table (`default_league VARCHAR(10)`). Fetched on the frontend via `useUserPrefs` hook (`GET /api/user/profile`). The homepage defers rendering league tabs until prefs resolve to prevent a flash of the wrong default league.
+- **Settings page** (`/settings`): sidebar on desktop, drill-down nav on mobile. Tabs: Favorites (manage starred players/teams + default league picker) and Account (edit name, change password, delete account). Navbar shows a gear icon when logged in.
+- **Account deletion** is a two-step operation: delete the DB row first (cascades favorites), then call `supabaseAdmin.auth.admin.deleteUser()` with the service role key.
+- **Google OAuth detection**: check `user.app_metadata.providers` array for `"email"` — do not rely on the single `provider` string. Password-change UI is hidden for Google OAuth users.
+- **Auth modal**: fully centered on all screen sizes, dismissible via outside click, scrollable with `max-h-[90dvh]`.
 
 If anything here is unclear or you want the instructions tuned (more examples, specific coding style, or test templates), tell me which section to expand and I will iterate.

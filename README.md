@@ -59,7 +59,9 @@ Scorva
 ## 🔥 Features
 
 - **User Authentication:** Sign in with email/password or Google OAuth via Supabase Auth. Session state managed globally with auto-close modal on successful login.
+- **Settings page:** Gear icon in the navbar opens `/settings` — a two-tab settings panel (sidebar on desktop, drill-down on mobile). **Favorites tab** lets you search and add/remove favorite players and teams, and choose a default homepage league. **Account tab** lets you edit your name, change your password (with current-password validation), and delete your account with a confirmation prompt. Google OAuth users see a "Signed in with Google" badge and the password section is hidden.
 - **Favorites:** Star players and teams from their pages. Favorited items appear on the homepage (between the hero and today's games) with the player's recent stat lines and the team's most recent game cards. Hidden when logged out. Powered by `user_favorite_players` and `user_favorite_teams` tables with a Supabase auth webhook that auto-creates user rows on signup.
+- **Default league preference:** Logged-in users can set their preferred homepage league (NBA, NFL, or NHL) in Settings → Favorites. The homepage waits for this preference before rendering the league tabs, preventing any flash of the wrong league.
 - **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
 - **Multi-league & Multi-season history support:** NBA, NFL, NHL with consistent data structure
 - **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`

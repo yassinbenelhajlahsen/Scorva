@@ -20,23 +20,26 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - Entry: `frontend/src/main.jsx`
 - HTML template: `frontend/index.html`
 - Router: `frontend/src/App.jsx`
-- `api/` — thin fetch wrappers (one file per resource: client.js, games.js, teams.js, players.js, search.js, seasons.js, ai.js, favorites.js)
-- `hooks/` — data-fetching hooks (useGame, useTeam, usePlayer, useLeagueData, useHomeGames, useSearch, useSeasons, useAISummary, useFavorites, useFavoriteToggle)
-- `pages/` — route-level components (Homepage, LeaguePage, TeamPage, PlayerPage, GamePage, About, ErrorPage, LoadingPage)
-- `components/layout/` — Navbar, Footer, PageWrapper, ScrollToTop
+- `api/` — thin fetch wrappers: client.js (apiFetch with auth/body/204 support), games.js, teams.js, players.js, search.js, seasons.js, ai.js, favorites.js, user.js
+- `hooks/` — data-fetching hooks: useGame, useTeam, usePlayer, useLeagueData, useHomeGames, useSearch, useSeasons, useAISummary, useFavorites, useFavoriteToggle, useUserPrefs
+- `pages/` — route-level components: Homepage, LeaguePage, TeamPage, PlayerPage, GamePage, SettingsPage, About, ErrorPage, LoadingPage
+- `components/layout/` — Navbar (gear icon → /settings when logged in), Footer, PageWrapper, ScrollToTop
 - `components/cards/` — GameCard, TeamCard, PlayerCard, StatCard, TopPerformerCard, PlayerAvgCard
-- `components/ui/` — SearchBar, SeasonSelector, AISummary, BoxScore
+- `components/settings/` — FavoritesTab (favorites list + default league picker), AccountTab (name/password/delete)
+- `components/ui/` — SearchBar, SeasonSelector, AISummary, BoxScore, AuthModal, PasswordChecklist
 - `utilities/` — Normalize.js, formatDate.js, slugify.js, topPlayers.js, LeagueData.js, motion.js
 - Styles: `frontend/src/index.css` — Tailwind v4 CSS-based config via `@theme` (no `tailwind.config.js`)
 
 ## Frontend Routes
 ```
-/                           → Homepage
+/                           → Homepage (defers league tabs until user prefs resolve)
 /about                      → About
+/settings                   → SettingsPage (requires auth, redirects to / if logged out)
 /:league                    → LeaguePage
 /:league/teams/:teamId      → TeamPage
 /:league/players/:playerId  → PlayerPage
 /:league/games/:gameId      → GamePage
+/auth/callback              → AuthCallback (OAuth popup handler — no layout shell)
 *                           → ErrorPage
 ```
 
@@ -58,6 +61,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | `DELETE /favorites/players/:id` | routes/favorites.js |
 | `POST /favorites/teams/:id` | routes/favorites.js |
 | `DELETE /favorites/teams/:id` | routes/favorites.js |
+| `GET /user/profile` | routes/user.js |
+| `PATCH /user/profile` | routes/user.js |
+| `DELETE /user/account` | routes/user.js |
 | `POST /webhooks/supabase-auth` | routes/webhooks.js |
 
 ## Database Models (Prisma schema at `backend/prisma/schema.prisma`)
@@ -65,11 +71,12 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **teams**: id, name, shortname, league, location, logo_url, record, homerecord, awayrecord, conf, espnid
 - **players**: id, name, league, teamid, position, height, weight, jerseynum, dob, draftinfo, image_url, espn_playerid
 - **stats**: composite PK (gameid, playerid); sport-specific columns covering NBA/NFL/NHL stats
-- **users**: id (UUID, PK — matches Supabase auth.users.id), created_at, email, first_name, last_name
+- **users**: id (UUID, PK — matches Supabase auth.users.id), created_at, email, first_name, last_name, default_league VARCHAR(10)
 - **user_favorite_players**: composite PK (user_id, player_id); FK to users + players
 - **user_favorite_teams**: composite PK (user_id, team_id); FK to users + teams
 
 `game_label` is set for playoff games (e.g. `"NBA Finals - Game 1"`). Null for regular season.
+`default_league` stores the user's preferred homepage league (`"nba"`, `"nfl"`, or `"nhl"`). Null defaults to `"nba"` on the frontend.
 Generated client lives at `backend/src/generated/prisma/` — never edit directly; re-run `prisma generate` after schema changes.
 
 ## Verified Commands
@@ -116,8 +123,14 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
 - Backend server starts listening directly in `backend/src/index.js` (no exported app instance for tests — tests create their own Express app).
 - All imports must use `.js` extensions (both packages use ESM `"type": "module"`).
 - Prisma shadow DB requires `pg_trgm` extension; `prisma migrate dev` may fail locally — apply SQL manually then `prisma migrate resolve --applied`.
-- **Users table** stores `id`, `email`, `first_name`, `last_name`. Populated two ways: (1) Supabase webhook fires `POST /api/webhooks/supabase-auth` on new signup — verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>` header; email/password users pass name via `options.data` in `signUp()`, Google OAuth users have `full_name` split on first space from `raw_user_meta_data`; (2) `ensureUser()` in `favoritesService.js` as a fallback on first favorite action. Both use `ON CONFLICT DO UPDATE` with `COALESCE` to avoid overwriting existing values.
-- **Favorites routes** all require `requireAuth` middleware applied at the router level in `routes/favorites.js`.
+- **Users table** stores `id`, `email`, `first_name`, `last_name`, `default_league`. Populated two ways: (1) Supabase webhook `POST /api/webhooks/supabase-auth` on signup — email/password users pass name via `options.data`, Google OAuth users split `full_name`; (2) `ensureUser()` in `favoritesService.js` as fallback. Both use `ON CONFLICT DO UPDATE` with `COALESCE` — never overwrites existing values.
+- **User preferences** (`default_league`): fetched via `useUserPrefs` hook. Homepage `activeLeague` starts as `null` and only renders tabs once resolved — prevents NBA flash. Settings page updates via `PATCH /api/user/profile`. `updateUser` service uses COALESCE so omitted fields are unchanged.
+- **Settings page** (`/settings`): sidebar (desktop) / drill-down (mobile). FavoritesTab: add/remove favorites + default league picker (spring-animated sliding indicator, optimistic local state). AccountTab: edit name, change password (validates current password via `signInWithPassword`), delete account (type "DELETE" to confirm). Sign out in sidebar below tabs on desktop, at bottom of menu list on mobile.
+- **Account deletion**: `DELETE /api/user/account` → `userService.deleteUser()` (cascades favorites) → `supabaseAdmin.auth.admin.deleteUser()`. Requires `SUPABASE_SERVICE_ROLE_KEY` env var.
+- **Google OAuth detection**: use `user.app_metadata.providers.includes("email")` — not the single `provider` string. Password section hidden for OAuth users; "Signed in with Google" badge shown.
+- **Auth modal**: fully centered all screen sizes (`items-center`), outside-click dismissible, `max-h-[90dvh]` scrollable, close button always visible.
+- **apiFetch** supports `method` + `body` params; sets `Content-Type: application/json` when body present; handles 204 no-content.
+- **Favorites routes** all require `requireAuth` at the router level in `routes/favorites.js`. User routes require `requireAuth` in `routes/user.js`.
 - When mocking auth routes in tests, mock `requireAuth` to call `next()` and set `req.user = { id: "test-uuid" }`.
 
 ## Testing
