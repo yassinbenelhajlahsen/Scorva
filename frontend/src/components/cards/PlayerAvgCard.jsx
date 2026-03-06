@@ -39,7 +39,7 @@ export default function PlayerAvgCard({ league, averages, season }) {
     <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full overflow-hidden">
       {/* Tinted header */}
       <div className="bg-accent/10 text-accent text-center text-xs font-semibold uppercase tracking-widest py-2.5 px-6 border-b border-white/[0.06]">
-        2025–26 Regular Season
+        {season} Regular Season
       </div>
 
       {/* Stat row */}

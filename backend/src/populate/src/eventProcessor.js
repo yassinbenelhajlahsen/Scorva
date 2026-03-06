@@ -466,9 +466,11 @@ export async function processEvent(client, leagueSlug, event) {
 
     // 5.4.9) Playoff/round label from ESPN notes (null for regular season)
     const gameLabel =
-      event.season?.type === 3
-        ? (event.competitions?.[0]?.notes?.[0]?.headline || null)
-        : null;
+    event.season?.type === 3
+      ? (event.competitions?.[0]?.notes?.[0]?.headline || null)
+      : event.season?.type === 1
+      ? 'Preseason'
+      : null;
 
     // 5.4.10) Upsert into games
     const gamePayload = {
@@ -658,9 +660,15 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
   );
 
   const EVENT_BATCH_SIZE = 5;
+  let lastLoggedMonth = null;
 
   for (let i = 0; i < dateStrings.length; i++) {
     const date = dateStrings[i];
+    const month = date.slice(0, 6); // YYYYMM
+    if (month !== lastLoggedMonth) {
+      console.log(`  📅 [${leagueSlug}] Processing ${date.slice(0, 4)}-${date.slice(4, 6)}...`);
+      lastLoggedMonth = month;
+    }
     const events = await getEventsByDate(date, leagueSlug);
     for (let j = 0; j < events.length; j += EVENT_BATCH_SIZE) {
       const batch = events.slice(j, j + EVENT_BATCH_SIZE);

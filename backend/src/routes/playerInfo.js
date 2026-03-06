@@ -61,6 +61,7 @@ export default router;
 
 async function handleNbaPlayer(req, res, league) {
   const { slug } = req.params;
+  const season = req.query.season || currentSeason;
 
   try {
     const playerId = await getPlayerIdBySlug(slug, league);
@@ -80,6 +81,7 @@ async function handleNbaPlayer(req, res, league) {
         'draftInfo', p.draftinfo,
         'imageUrl', p.image_url,
         'espnId', p.espn_playerid,
+        'season', $3,
         'team', json_build_object(
           'id', t.id,
           'name', t.name,
@@ -136,7 +138,7 @@ async function handleNbaPlayer(req, res, league) {
               JOIN games g    ON s2.gameid = g.id
               JOIN teams ht   ON g.hometeamid = ht.id
               JOIN teams at   ON g.awayteamid = at.id
-              WHERE s2.playerid = p.id
+              WHERE s2.playerid = p.id AND g.season = $3 AND g.game_label IS NULL
               ORDER BY g.date DESC
               LIMIT 12
             ) AS game_data
@@ -145,11 +147,11 @@ async function handleNbaPlayer(req, res, league) {
       FROM players p
       JOIN teams t ON p.teamid = t.id
       LEFT JOIN stats s ON p.id = s.playerid
-      LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3
+      LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.game_label IS NULL
       WHERE p.league = $1 AND p.id = $2
       GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
       `,
-      [league, playerId, currentSeason]
+      [league, playerId, season]
     );
 
     // With LEFT JOIN, we should always get 1 row if the player exists.
@@ -168,6 +170,7 @@ async function handleNbaPlayer(req, res, league) {
 
 async function handleNflPlayer(req, res, league) {
   const { slug } = req.params;
+  const season = req.query.season || currentSeason;
 
   try {
     const playerId = await getPlayerIdBySlug(slug, league);
@@ -188,6 +191,7 @@ async function handleNflPlayer(req, res, league) {
         'draftInfo', p.draftinfo,
         'imageUrl', p.image_url,
         'espnId', p.espn_playerid,
+        'season', $3,
         'team', json_build_object(
           'id', t.id,
           'name', t.name,
@@ -224,7 +228,7 @@ async function handleNflPlayer(req, res, league) {
               JOIN games g    ON s2.gameid = g.id
               JOIN teams ht   ON g.hometeamid = ht.id
               JOIN teams at   ON g.awayteamid = at.id
-              WHERE s2.playerid = p.id
+              WHERE s2.playerid = p.id AND g.season = $3 AND g.game_label IS NULL
               ORDER BY g.date DESC
               LIMIT 12
             ) AS game_data
@@ -233,11 +237,11 @@ async function handleNflPlayer(req, res, league) {
       FROM players p
       JOIN teams t ON p.teamid = t.id
       LEFT JOIN stats s ON p.id = s.playerid
-      LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3
+      LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.game_label IS NULL
       WHERE p.league = $1 AND p.id = $2
       GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
       `,
-      [league, playerId, currentSeason]
+      [league, playerId, season]
     );
 
     if (result.rows.length === 0) {
@@ -255,6 +259,7 @@ async function handleNflPlayer(req, res, league) {
 
 async function handleNhlPlayer(req, res, league) {
   const { slug } = req.params;
+  const season = req.query.season || currentSeason;
 
   try {
     const playerId = await getPlayerIdBySlug(slug, league);
@@ -275,6 +280,7 @@ async function handleNhlPlayer(req, res, league) {
         'draftInfo', p.draftinfo,
         'imageUrl', p.image_url,
         'espnId', p.espn_playerid,
+        'season', $3,
         'team', json_build_object(
           'id', t.id,
           'name', t.name,
@@ -322,7 +328,7 @@ async function handleNhlPlayer(req, res, league) {
               JOIN games g    ON s2.gameid = g.id
               JOIN teams ht   ON g.hometeamid = ht.id
               JOIN teams at   ON g.awayteamid = at.id
-              WHERE s2.playerid = p.id
+              WHERE s2.playerid = p.id AND g.season = $3 AND g.game_label IS NULL
               ORDER BY g.date DESC
               LIMIT 12
             ) AS game_data
@@ -331,11 +337,11 @@ async function handleNhlPlayer(req, res, league) {
       FROM players p
       JOIN teams t ON p.teamid = t.id
       LEFT JOIN stats s ON p.id = s.playerid
-      LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3
+      LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.game_label IS NULL
       WHERE p.league = $1 AND p.id = $2
       GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
       `,
-      [league, playerId, currentSeason]
+      [league, playerId, season]
     );
 
     if (result.rows.length === 0) {
