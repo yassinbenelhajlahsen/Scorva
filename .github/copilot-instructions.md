@@ -7,62 +7,77 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - Frontend (Vite + React): `cd frontend && npm run dev` (serves `frontend/src`).
 - Backend (Express): in a second terminal `cd backend && npm run start` (runs `node src/index.js`).
 - Populate envs:
-  - Copy `backend/backend.env.example` -> `backend/.env` and set `DATABASE_URL`
-  - Copy `frontend/.env.example` -> `frontend/.env` and set `VITE_API_URL` (backend URL)
+  - Copy `backend/backend.env.example` -> `backend/.env` and set `DATABASE_URL` and `OPENAI_API_KEY`.
+  - Copy `frontend/.env.example` -> `frontend/.env` and set `VITE_API_URL` (backend URL).
 
 2. Big-picture architecture
 
-- Frontend: `frontend/src/` — React + Vite. Entry: `frontend/src/main.jsx`. Routing + UI components live under `components/` and `pages/`.
-- Backend: `backend/src/` — Express app. Entry: `backend/src/index.js`. DB layer: `backend/src/db/db.js` (Postgres via `pg`). Prisma schema at `backend/prisma/schema.prisma`; generated client at `backend/src/generated/prisma/` (run `prisma generate` after schema changes).
-- Data ingestion: `backend/src/populate/` and `backend/src/populate/src/` contain normalization and upsert helpers (e.g., `mapStatsToSchema.js`, `upsertPlayer.js`). These implement the logic for transforming ESPN-like responses into the DB.
-- Deployment: frontend on Vercel (Root Directory set to `frontend/`), backend on Railway (see `frontend/vercel.json` and README notes).
+- Frontend: `frontend/src/` — React + Vite. Entry: `frontend/src/main.jsx`. Routing in `frontend/src/App.jsx`. Data-fetching via hooks in `hooks/`, API wrappers in `api/`, page components in `pages/`, shared UI in `components/`.
+- Backend: `backend/src/` — Express app. Entry: `backend/src/index.js`. Four-layer request flow:
+  ```
+  Route (routes/) → Controller (controllers/) → Service (services/) → DB (db/db.js)
+  ```
+  - **Routes**: one file per resource, only delegates to controller — no logic.
+  - **Controllers**: extracts `req.params`/`req.query`, calls service, sends `res.json()` or `res.status(500)`.
+  - **Services**: runs raw SQL via `pg` Pool, returns plain data.
+  - **DB**: `backend/src/db/db.js` — `pg` Pool singleton.
+- Prisma: schema at `backend/prisma/schema.prisma`; generated client at `backend/src/generated/prisma/`. Used for schema management and migrations **only** — runtime queries use `pg` directly.
+- Data ingestion: `backend/src/populate/` — ESPN API → DB normalization and upsert helpers.
+- Deployment: frontend on Vercel (Root Directory `frontend/`), backend on Railway.
 
-3. Important conventions and patterns (do NOT break these)
+3. Important conventions (do NOT break these)
 
-- API routing: all backend routers live in `backend/src/routes/` and are mounted under `/api` in `backend/src/index.js`.
-- Frontend API calls: the frontend makes direct API calls to the backend. All endpoints are publicly accessible (no authentication required).
-- Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development. In production, `VITE_API_URL` should point to the deployed backend URL.
-- DB upserts and schema normalization live in `backend/src/populate/src/`. When ingesting new league or endpoint data, follow the mapping and `upsert*` patterns.
-- CORS: backend whitelist includes `http://localhost:5173` and `https://scorva.vercel.app` — update `backend/src/index.js` if you add new origins.
+- API routing: all routers live in `backend/src/routes/` and are mounted under `/api` in `backend/src/index.js`.
+- Layer separation: routes contain no logic; controllers contain no SQL; services return plain data only.
+- Frontend API calls: all calls go to `VITE_API_URL` via wrappers in `frontend/src/api/`. No authentication required.
+- Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development.
+- ESM everywhere: both packages use `"type": "module"`. Always use `.js` extensions in imports.
+- CORS: allowlist in `backend/src/middleware/index.js` — update `corsOrigins` when adding new origins.
+- Tailwind v4: all token/theme config is in `frontend/src/index.css` under `@theme`. There is no `tailwind.config.js`.
+- Design — hover: always use `hover:-translate-y-0.5` lift, never `hover:scale-105`.
+- Prisma: never edit `backend/src/generated/prisma/` directly; run `prisma generate` after schema changes.
 
 4. Common developer workflows
 
-- Run frontend only: `cd frontend && npm run dev`. Requires backend to be running and `frontend/.env` with `VITE_API_URL` configured.
-- Run backend only: `cd backend && npm run start`. Requires `.env` with `DATABASE_URL` configured.
-- Run tests: `cd backend && npm test` (runs full Jest suite with 120+ tests covering all routes, DB operations, and data transformations).
-- To run both locally: open two terminals (frontend + backend). The frontend will proxy `/api` requests to the backend URL specified in `vite.config.js`.
-- Database: Postgres connection is configured in `backend/src/db/db.js`; follow `.env` variables in `backend/backend.env.example`.
-- Schema changes: edit `backend/prisma/schema.prisma`, run `prisma migrate dev --name <desc>` locally, run `prisma migrate deploy` (or raw SQL) on production. Never edit `src/generated/prisma/` directly.
+- Run frontend only: `cd frontend && npm run dev`. Requires backend running and `frontend/.env` with `VITE_API_URL`.
+- Run backend only: `cd backend && npm run start`. Requires `backend/.env` with `DATABASE_URL`.
+- Run tests: `cd backend && npm test` (full Jest suite). `npm test -- <pattern>` for a specific file.
+- Coverage: `cd backend && npm run test:coverage` (reports in `backend/coverage/`).
+- Schema changes: edit `backend/prisma/schema.prisma` → `prisma migrate dev --name <desc>` locally → `prisma migrate deploy` on production. Note: shadow DB requires `pg_trgm`; if `migrate dev` fails locally, apply SQL manually then `prisma migrate resolve --applied`.
 
-5. How to add a new backend endpoint (example)
+5. How to add a new backend endpoint
 
-- Create a new router file in `backend/src/routes/` that exports an Express Router.
-- Use the DB helpers in `backend/src/db/db.js` or create a new service file under `backend/src/`.
-- Mount the router in `backend/src/index.js` under `/api`.
-- If the endpoint needs to fetch third-party data, use existing populate/ mapping utilities to normalize before upserting.
-- **Write tests**: Create a test file in `backend/__tests__/routes/` following existing patterns (see `teams.test.js` or `aiSummary.test.js` as examples). Mock the database with `createMockPool()` from test helpers.
+- Create `backend/src/routes/myRoute.js` — export an Express Router with only route + controller delegation.
+- Create `backend/src/controllers/myController.js` — extract params/query, call service, send response, catch errors.
+- Create `backend/src/services/myService.js` — SQL via `pool.query()` (raw pg), return data.
+- Mount in `backend/src/index.js` under `/api`.
+- **Write tests**: create `backend/__tests__/routes/myRoute.test.js` following existing patterns. Mock the database with `createMockPool()` from `backend/__tests__/helpers/testHelpers.js`. Use `jest.unstable_mockModule()` before importing.
 
 6. Files to inspect first (high signal)
 
-- `backend/src/index.js` — app boot, CORS, middleware ordering.
-- `backend/src/routes/` — route patterns and examples.
-- `backend/src/populate/src/` — mapping & upsert utilities for normalization.
-- `backend/prisma/schema.prisma` — source of truth for DB models and migrations.
-- `frontend/src/main.jsx` and `frontend/src/App.jsx` — entry points and where API calls originate.
-- `frontend/vite.config.js` — local dev proxy to backend.
-- `backend/__tests__/` — comprehensive test suite with 120+ tests covering all routes, DB operations, and data transformations.
+- `backend/src/index.js` — app boot, CORS, middleware ordering, route mounting.
+- `backend/src/routes/` — route patterns (thin — just delegates to controller).
+- `backend/src/controllers/` — request/response handling per resource.
+- `backend/src/services/` — DB queries and business logic.
+- `backend/src/populate/src/` — ESPN API mapping and upsert utilities.
+- `backend/prisma/schema.prisma` — source of truth for DB models.
+- `frontend/src/App.jsx` and `frontend/src/main.jsx` — entry points.
+- `frontend/src/index.css` — Tailwind v4 `@theme` design tokens.
+- `frontend/vite.config.js` — local dev proxy.
+- `backend/__tests__/` — test suite with tests covering all routes, services, DB operations, and data transformations.
 
 7. Testing approach
 
-- **Test suite**: 120+ automated tests using Jest + Supertest covering all API routes, database operations, data transformations, and integration workflows.
-- **Test structure**: Tests live in `backend/__tests__/` organized by category (routes, db, populate, integration).
-- **Running tests**: `cd backend && npm test` (runs all tests), `npm test -- <pattern>` (runs specific tests).
-- **Writing new tests**: Follow patterns in existing test files. Use `createMockPool()` from `backend/__tests__/helpers/testHelpers.js` to mock database. Use absolute paths with `resolve()` for module mocking.
-- **Key patterns**: Mock database to avoid external dependencies, test success cases + error handling + edge cases, verify query parameters and response formats.
-- See `backend/__tests__/README.md` for detailed testing guide.
+- **Framework**: Jest 29 + Supertest for HTTP assertions. ES modules — use `jest.unstable_mockModule()` for mocking.
+- **Test structure**: `backend/__tests__/routes/`, `services/`, `populate/`, `db/`, `integration/`.
+- **Test helpers**: `backend/__tests__/helpers/testHelpers.js` exports `createMockPool()`, `fixtures` (team/player/game factories), `mockRequest`, `mockResponse`.
+- **Running tests**: `cd backend && npm test` (all), `npm test -- <pattern>` (specific).
+- **Writing tests**: mock `db/db.js` with `createMockPool()`. Test success cases + error handling + edge cases + parameter variants. See `backend/__tests__/README.md` for full guide.
 
 8. Known gaps / expectations
 
-- The API is publicly accessible with no authentication. Consider adding rate limiting to prevent abuse, or implementing proper authentication (API keys, JWT, OAuth) for production use.
+- The API is publicly accessible with no authentication. Rate limiting is active (general + stricter AI limiter).
+- AI summaries: cache-first, persisted to `games.ai_summary`, only generated for finalized games.
+- `playerInfo` service uses a hardcoded `currentSeason = "2025-26"` constant — update when the season changes.
 
 If anything here is unclear or you want the instructions tuned (more examples, specific coding style, or test templates), tell me which section to expand and I will iterate.
