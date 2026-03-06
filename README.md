@@ -92,7 +92,7 @@ Scorva
 ## 🔥 Features
 
 - **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
-- **Multi-league support:** NBA, NFL, NHL with consistent data structure
+- **Multi-league & Multi-season history support:** NBA, NFL, NHL with consistent data structure
 - **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
 - **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
 - **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages (lazy-generated and permanently cached for cost efficiency)
@@ -195,7 +195,6 @@ npm run test:coverage    # Generate coverage report
 ## 📌 Future Improvements
 
 - User accounts with saved teams, players, and preferences
-- Multi-season history and archival access
 - Live game alerts, final scores, and push notifications
 - Multi-language AI summaries
 - Mobile app (React Native or PWA)
@@ -205,12 +204,6 @@ npm run test:coverage    # Generate coverage report
 - **Inconsistent Data from Unofficial APIs:**  
   ESPN’s APIs are not publicly documented and return different structures for each league (NBA, NFL, NHL). Normalizing player and game stats into a consistent PostgreSQL schema required extensive reverse-engineering and custom mapping logic.  
   → External API reference: [akeaswaran/espn-api gist](https://gist.github.com/akeaswaran/b48b02f1c94f873c6655e7129910fc3b)
-
-- **Frontend–Backend Deployment Sync:**  
-  Hosting the frontend on **Vercel** and backend on **Railway** caused CORS, routing, and environment variable issues during deployment. I resolved these by explicitly managing allowed origins, rewriting API routes, and validating endpoints across both environments.
-
-- **Cost-Controlled LLM Integration:**  
-  Integrating OpenAI for game summaries required careful architecture to prevent runaway costs. I implemented a lazy-generation system with permanent database caching, ensuring each game summary is generated exactly once and served from cache on all subsequent requests. This reduced potential costs from thousands of dollars to just a few dollars per month while maintaining instant load times for cached summaries.
 
 ## 🧠 Author
 

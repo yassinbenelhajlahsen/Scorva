@@ -39,7 +39,7 @@ export default async function upsertPlayer(
     player.position || null,
     player.height || null,
     player.image_url || null,
-    player.jerseynum || null,
+    player.jerseynum != null ? (parseInt(String(player.jerseynum), 10) || null) : null,
     player.weight || null,
     player.birthdate || null,
     player.draftinfo || null,
