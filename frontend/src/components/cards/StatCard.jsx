@@ -23,7 +23,7 @@ export default function StatCard({
 
   return (
     <Link to={to} className="group block">
-      <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 cursor-pointer max-w-sm mx-auto overflow-hidden">
+      <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:z-10 cursor-pointer max-w-sm mx-auto overflow-hidden">
 
         {/* Game info */}
         {(opponent || date) && (

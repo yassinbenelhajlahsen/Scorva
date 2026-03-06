@@ -123,9 +123,9 @@ export default function GameCard({ game }) {
               <span className="w-8 text-center">1</span>
               <span className="w-8 text-center">2</span>
               <span className="w-8 text-center">3</span>
-              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
                 game[key] ? (
-                  <span key={key} className="w-10 text-center">{key}</span>
+                  <span key={key} className="w-10 text-center">{key.toUpperCase()}</span>
                 ) : null
               )}
               <span className="w-8 text-center font-semibold">T</span>
@@ -135,7 +135,7 @@ export default function GameCard({ game }) {
               <span className="w-8 text-center">{game.firstqtr?.split("-")[1]}</span>
               <span className="w-8 text-center">{game.secondqtr?.split("-")[1]}</span>
               <span className="w-8 text-center">{game.thirdqtr?.split("-")[1]}</span>
-              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
                 game[key] ? (
                   <span key={key} className="w-10 text-center">{game[key].split("-")[1]}</span>
                 ) : null
@@ -149,7 +149,7 @@ export default function GameCard({ game }) {
               <span className="w-8 text-center">{game.firstqtr?.split("-")[0]}</span>
               <span className="w-8 text-center">{game.secondqtr?.split("-")[0]}</span>
               <span className="w-8 text-center">{game.thirdqtr?.split("-")[0]}</span>
-              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
                 game[key] ? (
                   <span key={key} className="w-10 text-center">{game[key].split("-")[0]}</span>
                 ) : null
@@ -177,9 +177,9 @@ export default function GameCard({ game }) {
               <span className="w-8 text-center">2</span>
               <span className="w-8 text-center">3</span>
               <span className="w-8 text-center">4</span>
-              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
                 game[key] ? (
-                  <span key={key} className="w-10 text-center">{key}</span>
+                  <span key={key} className="w-10 text-center">{key.toUpperCase()}</span>
                 ) : null
               )}
               <span className="w-8 text-center font-semibold">T</span>
@@ -190,7 +190,7 @@ export default function GameCard({ game }) {
               <span className="w-8 text-center">{game.secondqtr?.split("-")[1]}</span>
               <span className="w-8 text-center">{game.thirdqtr?.split("-")[1]}</span>
               <span className="w-8 text-center">{game.fourthqtr?.split("-")[1]}</span>
-              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
                 game[key] ? (
                   <span key={key} className="w-10 text-center">{game[key].split("-")[1]}</span>
                 ) : null
@@ -205,7 +205,7 @@ export default function GameCard({ game }) {
               <span className="w-8 text-center">{game.secondqtr?.split("-")[0]}</span>
               <span className="w-8 text-center">{game.thirdqtr?.split("-")[0]}</span>
               <span className="w-8 text-center">{game.fourthqtr?.split("-")[0]}</span>
-              {["OT", "OT2", "OT3", "OT4"].map((key) =>
+              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
                 game[key] ? (
                   <span key={key} className="w-10 text-center">{game[key].split("-")[0]}</span>
                 ) : null

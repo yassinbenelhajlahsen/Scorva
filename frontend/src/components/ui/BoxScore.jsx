@@ -162,11 +162,13 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
   }
 
   function getSortedPlayers(players) {
+    if (!players?.length) return [];
     if (!sortKey) return defaultSort(players, league);
     return columnSort(players, sortKey, sortDir);
   }
 
   const extractStatHeaders = (players) => {
+    if (!players?.length) return [];
     const sample = players.find((p) => p?.stats && typeof p.stats === "object");
     if (!sample) return [];
     return Object.keys(sample.stats);
