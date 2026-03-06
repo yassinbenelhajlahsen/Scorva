@@ -7,6 +7,7 @@ import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import slugify from "../utilities/slugify.js";
 import formatDate from "../utilities/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
+import SeasonSelector from "../components/ui/SeasonSelector.jsx";
 
 const statConfigs = {
   nba: [
@@ -78,22 +79,37 @@ export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [playerData, setPlayerData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSeason, setSelectedSeason] = useState(null);
+  // undefined = not yet resolved, null = not found, number = found
+  const [playerId, setPlayerId] = useState(undefined);
 
   useEffect(() => {
-    async function fetchPlayerData() {
+    async function resolvePlayerId() {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_URL}/api/${league}/players`
         );
         const players = await res.json();
-
         const match = players.find(
           (p) => slugify(p.name, { lower: true }) === slug
         );
-        if (!match) { setPlayerData(null); return; }
+        setPlayerId(match?.id ?? null);
+      } catch (err) {
+        console.error("Error fetching players:", err);
+        setPlayerId(null);
+      }
+    }
+    resolvePlayerId();
+  }, [league, slug]);
 
+  useEffect(() => {
+    if (playerId === undefined) return;
+    if (playerId === null) { setLoading(false); return; }
+    async function fetchPlayerData() {
+      try {
+        const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
         const fullRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/players/${match.id}`
+          `${import.meta.env.VITE_API_URL}/api/${league}/players/${playerId}${seasonParam}`
         );
         const fullData = await fullRes.json();
         setPlayerData(fullData.player);
@@ -105,7 +121,7 @@ export default function PlayerPage() {
       }
     }
     fetchPlayerData();
-  }, [league, slug]);
+  }, [league, playerId, selectedSeason]);
 
   if (loading) return <LoadingPage />;
 
@@ -126,7 +142,7 @@ export default function PlayerPage() {
     );
   }
 
-  const { id, name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, team, dob, draftInfo, games } = playerData;
+  const { id, name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo, games } = playerData;
 
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
@@ -157,6 +173,13 @@ export default function PlayerPage() {
 
         {/* Info card */}
         <div className="flex-1 flex flex-col gap-6">
+          <div className="flex justify-end">
+            <SeasonSelector
+              league={league}
+              selectedSeason={selectedSeason}
+              onSeasonChange={setSelectedSeason}
+            />
+          </div>
           <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
             <div className="grid grid-cols-[max-content_auto] gap-x-10 gap-y-3">
               <span className="text-sm text-text-tertiary">Height / Weight</span>
@@ -179,9 +202,7 @@ export default function PlayerPage() {
             </div>
           </div>
 
-          {games && (
-            <PlayerAvgCard league={league} averages={seasonAverages} season={games.season} />
-          )}
+          <PlayerAvgCard league={league} averages={seasonAverages} season={selectedSeason || apiSeason} />
         </div>
       </div>
 

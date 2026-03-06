@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import GameCard from "../components/cards/GameCard";
 import LoadingPage from "./LoadingPage.jsx";
 import slugify from "../utilities/slugify.js";
+import SeasonSelector from "../components/ui/SeasonSelector.jsx";
 
 const containerVariants = {
   hidden: {},
@@ -24,6 +25,7 @@ export default function TeamPage() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(null);
 
   useEffect(() => {
     async function fetchTeamData() {
@@ -40,18 +42,6 @@ export default function TeamPage() {
 
         if (!foundTeam) throw new Error("Team not found.");
         setTeam(foundTeam);
-
-        const games = await (
-          await fetch(
-            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${foundTeam.id}`
-          )
-        ).json();
-        const last10 = games
-          .slice()
-          .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .slice(0, 10);
-        setGames(last10);
-        setLoading(false);
       } catch (err) {
         setError(err.message || "Failed to load data.");
         setLoading(false);
@@ -59,6 +49,29 @@ export default function TeamPage() {
     }
     fetchTeamData();
   }, [league, teamId]);
+
+  useEffect(() => {
+    if (!team) return;
+    async function fetchGames() {
+      try {
+        const seasonParam = selectedSeason ? `&season=${selectedSeason}` : "";
+        const gamesData = await (
+          await fetch(
+            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${team.id}${seasonParam}`
+          )
+        ).json();
+        const sorted = gamesData
+          .slice()
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        setGames(selectedSeason ? sorted : sorted.slice(0, 10));
+      } catch (err) {
+        setError(err.message || "Failed to load games.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchGames();
+  }, [league, team, selectedSeason]);
 
   if (loading) return <LoadingPage />;
   if (error || !team) {
@@ -91,6 +104,15 @@ export default function TeamPage() {
         <span>{league?.toUpperCase()}</span>
       </Link>
 
+      {/* Season selector */}
+      <div className="flex justify-end mb-6">
+        <SeasonSelector
+          league={league}
+          selectedSeason={selectedSeason}
+          onSeasonChange={setSelectedSeason}
+        />
+      </div>
+
       {/* Team header + info */}
       <div className="flex flex-col md:flex-row gap-10 mb-12">
         {/* Logo + name */}
@@ -112,20 +134,28 @@ export default function TeamPage() {
               <span className="text-sm text-text-tertiary">Location</span>
               <span className="text-sm font-medium text-text-primary">{team.location}</span>
               <span className="text-sm text-text-tertiary">Record</span>
-              <span className="text-sm font-semibold text-text-primary tabular-nums">{team.record}</span>
-              <span className="text-sm text-text-tertiary">Home Record</span>
-              <span className="text-sm font-medium text-text-primary tabular-nums">{team.homerecord}</span>
-              <span className="text-sm text-text-tertiary">Away Record</span>
-              <span className="text-sm font-medium text-text-primary tabular-nums">{team.awayrecord}</span>
+              <span className="text-sm font-semibold text-text-primary tabular-nums">
+                {selectedSeason
+                  ? `${games.filter((g) => g.winnerid === team.id).length}-${games.filter((g) => g.winnerid !== null && g.winnerid !== team.id).length}`
+                  : team.record}
+              </span>
+              {!selectedSeason && (
+                <>
+                  <span className="text-sm text-text-tertiary">Home Record</span>
+                  <span className="text-sm font-medium text-text-primary tabular-nums">{team.homerecord}</span>
+                  <span className="text-sm text-text-tertiary">Away Record</span>
+                  <span className="text-sm font-medium text-text-primary tabular-nums">{team.awayrecord}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Last 10 games */}
+      {/* Games */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-8">
-          Last 10 Games
+          {selectedSeason ? `${selectedSeason} Games` : "Last 10 Games"}
         </h2>
         {games.length > 0 ? (
           <motion.div

@@ -6,6 +6,7 @@ import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utilities/LeagueData";
 import LoadingPage from "./LoadingPage.jsx";
 import slugify from "../utilities/slugify.js";
+import SeasonSelector from "../components/ui/SeasonSelector.jsx";
 
 const containerVariants = {
   hidden: {},
@@ -26,6 +27,7 @@ export default function LeaguePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [displayData, setDisplayData] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState(null);
 
   useEffect(() => {
     if (!data) {
@@ -42,8 +44,9 @@ export default function LeaguePage() {
       setError(null);
 
       try {
+        const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
         const gamesRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/games`,
+          `${import.meta.env.VITE_API_URL}/api/${league}/games${seasonParam}`,
           { signal }
         );
         if (!gamesRes.ok) throw new Error(`HTTP ${gamesRes.status}`);
@@ -51,7 +54,7 @@ export default function LeaguePage() {
         setGames(allGames);
 
         const standingsRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/standings`,
+          `${import.meta.env.VITE_API_URL}/api/${league}/standings${seasonParam}`,
           { signal }
         );
         if (!standingsRes.ok) throw new Error(`HTTP ${standingsRes.status}`);
@@ -76,7 +79,7 @@ export default function LeaguePage() {
 
     fetchData();
     return () => controller.abort();
-  }, [league, data]);
+  }, [league, data, selectedSeason]);
 
   if (!data) {
     return (
@@ -111,15 +114,22 @@ export default function LeaguePage() {
       </Link>
 
       {/* League header */}
-      <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-5 mb-12">
-        <img
-          src={data.logo}
-          alt={`${league} logo`}
-          className="w-16 h-16 object-contain"
+      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-5 mb-12">
+        <div className="flex items-center gap-5">
+          <img
+            src={data.logo}
+            alt={`${league} logo`}
+            className="w-16 h-16 object-contain"
+          />
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary uppercase">
+            {league}
+          </h1>
+        </div>
+        <SeasonSelector
+          league={league}
+          selectedSeason={selectedSeason}
+          onSeasonChange={setSelectedSeason}
         />
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary uppercase">
-          {league}
-        </h1>
       </div>
 
       {loading || !displayData ? (
