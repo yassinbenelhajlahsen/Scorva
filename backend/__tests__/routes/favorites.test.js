@@ -60,6 +60,38 @@ describe("Favorites Routes", () => {
       expect(res.body.teams[0].name).toBe("Lakers");
     });
 
+    it("should group recent stats by player and recent games by team", async () => {
+      const stat1 = { playerid: 1, gameid: 101, points: 28, date: "2026-01-10" };
+      const stat2 = { playerid: 1, gameid: 102, points: 30, date: "2026-01-12" };
+      const stat3 = { playerid: 2, gameid: 103, points: 15, date: "2026-01-11" };
+      const game1 = { fav_team_id: 10, id: 201, homescore: 110, awayscore: 100 };
+      const game2 = { fav_team_id: 10, id: 202, homescore: 95, awayscore: 98 };
+
+      // players query
+      mockPool.query.mockResolvedValueOnce({ rows: [
+        { id: 1, name: "LeBron James", league: "nba" },
+        { id: 2, name: "Anthony Davis", league: "nba" },
+      ]});
+      // player stats query — multiple rows, including 2 for same player
+      mockPool.query.mockResolvedValueOnce({ rows: [stat1, stat2, stat3] });
+      // teams query
+      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 10, name: "Lakers", shortname: "LAL", location: "Los Angeles", logo_url: null, record: "30-10", league: "nba" }] });
+      // team games query — multiple rows for same team
+      mockPool.query.mockResolvedValueOnce({ rows: [game1, game2] });
+
+      const res = await request(app).get("/api/favorites");
+      expect(res.status).toBe(200);
+
+      const lebron = res.body.players.find((p) => p.id === 1);
+      expect(lebron.recentStats).toHaveLength(2);
+
+      const ad = res.body.players.find((p) => p.id === 2);
+      expect(ad.recentStats).toHaveLength(1);
+
+      const lakers = res.body.teams.find((t) => t.id === 10);
+      expect(lakers.recentGames).toHaveLength(2);
+    });
+
     it("should return 500 on DB error", async () => {
       mockPool.query.mockRejectedValueOnce(new Error("DB error"));
       const res = await request(app).get("/api/favorites");
