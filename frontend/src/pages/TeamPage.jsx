@@ -1,84 +1,19 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
 import LoadingPage from "./LoadingPage.jsx";
-import slugify from "../utilities/slugify.js";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
-};
-
-const itemVariants = {
-  hidden:  { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-};
+import { useTeam } from "../hooks/useTeam.js";
+import { containerVariants, itemVariants } from "../utilities/motion.js";
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
-
-  const [team, setTeam] = useState(null);
-  const [games, setGames] = useState([]);
-  const [teamRecord, setTeamRecord] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-
-  useEffect(() => {
-    async function fetchTeamData() {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/teams`
-        );
-        if (!res.ok) throw new Error("Failed to fetch teams.");
-        const teamList = await res.json();
-        const foundTeam = teamList.find(
-          (t) =>
-            slugify(t.name) === teamId || slugify(t.shortname || "") === teamId
-        );
-
-        if (!foundTeam) throw new Error("Team not found.");
-        setTeam(foundTeam);
-      } catch (err) {
-        setError(err.message || "Failed to load data.");
-        setLoading(false);
-      }
-    }
-    fetchTeamData();
-  }, [league, teamId]);
-
-  useEffect(() => {
-    if (!team) return;
-    async function fetchGames() {
-      try {
-        const seasonParam = selectedSeason ? `&season=${selectedSeason}` : "";
-        const [gamesData, standingsData] = await Promise.all([
-          fetch(
-            `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${team.id}${seasonParam}`
-          ).then((r) => r.json()),
-          fetch(
-            `${import.meta.env.VITE_API_URL}/api/${league}/standings${selectedSeason ? `?season=${selectedSeason}` : ""}`
-          ).then((r) => r.json()),
-        ]);
-        const sorted = gamesData
-          .slice()
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-        setGames(sorted);
-        const standing = standingsData.find((t) => t.id === team.id);
-        setTeamRecord(standing ? `${standing.wins}-${standing.losses}` : null);
-      } catch (err) {
-        setError(err.message || "Failed to load games.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchGames();
-  }, [league, team, selectedSeason]);
+  const { team, games, teamRecord, loading, error } = useTeam(league, teamId, selectedSeason);
 
   if (loading) return <LoadingPage />;
   if (error || !team) {

@@ -1,6 +1,5 @@
 import { Link, useParams, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useEffect } from "react";
 
 import BoxScore from "../components/ui/BoxScore.jsx";
 import AISummary from "../components/ui/AISummary.jsx";
@@ -9,30 +8,12 @@ import computeTopPlayers from "../utilities/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
 import LoadingPage from "./LoadingPage.jsx";
 import formatDate from "../utilities/formatDate.js";
+import { useGame } from "../hooks/useGame.js";
 
 export default function GamePage() {
   const location = useLocation();
   const { league, gameId } = useParams();
-  const [gameData, setGameData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    async function fetchGame() {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/${league}/games/${gameId}`
-        );
-        setGameData(res.data);
-      } catch (err) {
-        console.error("Error fetching game:", err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchGame();
-  }, [league, gameId]);
+  const { gameData, loading, error } = useGame(league, gameId);
 
   useEffect(() => {
     if (!gameData || !location.hash) return;

@@ -1,5 +1,5 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
@@ -7,80 +7,15 @@ import leagueData from "../utilities/LeagueData";
 import LoadingPage from "./LoadingPage.jsx";
 import slugify from "../utilities/slugify.js";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.05 } },
-};
-
-const itemVariants = {
-  hidden:   { opacity: 0, y: 12 },
-  visible:  { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-};
+import { useLeagueData } from "../hooks/useLeagueData.js";
+import { containerVariants, itemVariants } from "../utilities/motion.js";
 
 export default function LeaguePage() {
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
   const [searchParams] = useSearchParams();
-
-  const [games, setGames] = useState([]);
-  const [standings, setStandings] = useState({ eastOrAFC: [], westOrNFC: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [displayData, setDisplayData] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-
-  useEffect(() => {
-    if (!data) {
-      setLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    async function fetchData() {
-      setLoading(true);
-      setDisplayData(false);
-      setError(null);
-
-      try {
-        const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
-        const gamesRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/games${seasonParam}`,
-          { signal }
-        );
-        if (!gamesRes.ok) throw new Error(`HTTP ${gamesRes.status}`);
-        const allGames = await gamesRes.json();
-        setGames(allGames);
-
-        const standingsRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/standings${seasonParam}`,
-          { signal }
-        );
-        if (!standingsRes.ok) throw new Error(`HTTP ${standingsRes.status}`);
-        const teams = await standingsRes.json();
-
-        const isNFL = league === "nfl";
-        const east = teams.filter((t) => t.conf?.toLowerCase() === (isNFL ? "afc" : "east"));
-        const west = teams.filter((t) => t.conf?.toLowerCase() === (isNFL ? "nfc" : "west"));
-
-        setStandings({ eastOrAFC: east, westOrNFC: west });
-        await new Promise((r) => setTimeout(r, 50));
-        setDisplayData(true);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Failed to fetch data:", err);
-          setError("Failed to load data.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-    return () => controller.abort();
-  }, [league, data, selectedSeason]);
+  const { games, standings, loading, error, displayData } = useLeagueData(league, selectedSeason);
 
   if (!data) {
     return (

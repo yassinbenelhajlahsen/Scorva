@@ -1,60 +1,15 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import LoadingPage from "./LoadingPage.jsx";
 import leagueData from "../utilities/LeagueData.js";
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.07 } },
-};
-
-const itemVariants = {
-  hidden:  { opacity: 0, y: 14 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
-};
+import { useHomeGames } from "../hooks/useHomeGames.js";
+import { containerVariants, itemVariants } from "../utilities/motion.js";
 
 export default function Homepage() {
-  const [games, setGames] = useState({ nba: [], nhl: [], nfl: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { games, loading, error } = useHomeGames();
   const [activeLeague, setActiveLeague] = useState("nba");
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchAllGames() {
-      try {
-        setLoading(true);
-        setError(null);
-        const leagues = ["nba", "nhl", "nfl"];
-        const responses = await Promise.all(
-          leagues.map((league) =>
-            fetch(`${import.meta.env.VITE_API_URL}/api/${league}/games`, {
-              signal: controller.signal,
-            })
-          )
-        );
-        const data = await Promise.all(
-          responses.map((res, i) => {
-            if (!res.ok) throw new Error(`Failed to fetch ${leagues[i]} games`);
-            return res.json();
-          })
-        );
-        setGames({ nba: data[0], nhl: data[1], nfl: data[2] });
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          setError("Could not load games. Please try again later.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAllGames();
-    return () => controller.abort();
-  }, []);
 
   if (loading) return <LoadingPage />;
   if (error) return <div className="p-6 text-loss text-sm">{error}</div>;

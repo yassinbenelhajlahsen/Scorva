@@ -1,6 +1,8 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { usePlayer } from "../hooks/usePlayer.js";
+import { containerVariants, itemVariants } from "../utilities/motion.js";
 import LoadingPage from "./LoadingPage.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
@@ -65,42 +67,11 @@ const nflStatsByPosition = {
   SAF: ["INT"],
 };
 
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
-};
-
-const itemVariants = {
-  hidden:  { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-};
-
 export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [searchParams] = useSearchParams();
-  const [playerData, setPlayerData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-
-  useEffect(() => {
-    async function fetchPlayerData() {
-      try {
-        const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/players/${slug}${seasonParam}`
-        );
-        if (!res.ok) { setPlayerData(null); return; }
-        const fullData = await res.json();
-        setPlayerData(fullData.player);
-      } catch (err) {
-        console.error("Error fetching player:", err);
-        setPlayerData(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchPlayerData();
-  }, [league, slug, selectedSeason]);
+  const { playerData, loading } = usePlayer(league, slug, selectedSeason);
 
   if (loading) return <LoadingPage />;
 
