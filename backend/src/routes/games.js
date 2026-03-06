@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get("/:league/games", async (req, res) => {
   const { league } = req.params;
-  const { teamId } = req.query;
+  const { teamId, season } = req.query;
 
   try {
     let query = `
@@ -31,8 +31,14 @@ router.get("/:league/games", async (req, res) => {
       params.push(teamId);
     }
 
-    query += ` ORDER BY g.date DESC
-                LIMIT 12`;
+    if (season) {
+      query += ` AND g.season = $${params.length + 1}`;
+      params.push(season);
+    }
+
+    query += ` ORDER BY g.date DESC`;
+
+      query += ` LIMIT 12`;
 
     const { rows } = await db.query(query, params);
     res.json(rows);
