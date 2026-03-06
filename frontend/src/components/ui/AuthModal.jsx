@@ -124,7 +124,7 @@ export default function AuthModal({ onClose }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -132,31 +132,29 @@ export default function AuthModal({ onClose }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-2xl" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-2xl" onClick={onClose} />
 
       {/* Sheet */}
       <motion.div
         layout
-        className="relative w-full sm:max-w-[360px] bg-[rgba(22,22,26,0.96)] backdrop-blur-3xl border border-white/[0.07] sm:rounded-[20px] rounded-t-[20px] shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden"
+        className="relative w-full sm:max-w-[360px] bg-[rgba(22,22,26,0.96)] backdrop-blur-3xl border border-white/[0.07] rounded-[20px] shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none"
         initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Mobile drag handle */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-9 h-1 bg-white/[0.15] rounded-full" />
-        </div>
-
-        {/* Close — desktop only */}
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="hidden sm:flex absolute top-4 right-4 w-6 h-6 items-center justify-center rounded-full text-text-tertiary hover:text-text-secondary transition-colors duration-150 z-10"
+          className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-secondary transition-colors duration-150 z-10"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+
+        {/* Scrollable content — constrained by sheet max-height */}
+        <div className="overflow-y-auto overscroll-contain flex-1">
 
         {/* Completion screens — full fade swap */}
         <AnimatePresence mode="wait" initial={false}>
@@ -167,7 +165,7 @@ export default function AuthModal({ onClose }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="px-7 pt-7 pb-8 space-y-5"
+              className="px-7 pt-6 pb-8 space-y-5"
             >
               <div className="flex justify-center">
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center ${success ? "bg-win/15" : "bg-accent/10"}`}>
@@ -505,6 +503,7 @@ export default function AuthModal({ onClose }) {
             </AnimatePresence>
           </div>
         )}
+        </div>{/* end scrollable */}
       </motion.div>
     </motion.div>
   );
