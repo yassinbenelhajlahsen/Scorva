@@ -10,10 +10,6 @@ export function AuthProvider({ children }) {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -23,10 +19,7 @@ export function AuthProvider({ children }) {
     const channel = new BroadcastChannel("supabase_auth");
     channel.onmessage = (event) => {
       if (event.data?.type === "SUPABASE_AUTH_SUCCESS") {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          setSession(session);
-          setModalOpen(false);
-        });
+        setModalOpen(false);
       }
     };
 
