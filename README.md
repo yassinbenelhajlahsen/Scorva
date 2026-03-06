@@ -14,6 +14,7 @@ https://scorva.vercel.app
 
 - **Frontend:** React, React Router, Tailwind v4, Framer Motion, Vite
 - **Backend:** Node.js, Express, pg (PostgreSQL), Prisma ORM
+- **Auth:** Supabase Auth (email/password + Google OAuth)
 - **Database:** PostgreSQL (hosted on Railway)
 - **Deployment:**
   - Frontend: Vercel
@@ -92,14 +93,18 @@ Scorva
 │   │   ├── App.jsx               # Root React component
 │   │   ├── main.jsx              # Entry point for Vite
 │   │   ├── assets/               # Static assets (images, icons, etc.)
+│   │   ├── lib/
+│   │   │   └── supabase.js       # Supabase client singleton
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx   # Session state + auth modal trigger
 │   │   ├── api/                  # Backend API client and endpoint functions
-│   │   │   ├── client.js         
-│   │   │   ├── games.js          
-│   │   │   ├── teams.js         
-│   │   │   ├── players.js       
-│   │   │   ├── search.js         
-│   │   │   ├── seasons.js       
-│   │   │   └── ai.js             
+│   │   │   ├── client.js
+│   │   │   ├── games.js
+│   │   │   ├── teams.js
+│   │   │   ├── players.js
+│   │   │   ├── search.js
+│   │   │   ├── seasons.js
+│   │   │   └── ai.js
 │   │   ├── hooks/                # Custom React hooks (data-fetching + state)
 │   │   │   ├── useHomeGames.js   
 │   │   │   ├── useLeagueData.js  
@@ -114,6 +119,7 @@ Scorva
 │   │   │   ├── layout/           
 │   │   │   └── ui/               
 │   │   ├── pages/                # Page-level React components (routes)
+│   │   │   └── AuthCallback.jsx  # OAuth popup callback — exchanges code and closes window
 │   │   ├── utilities/            # Helper functions and shared constants
 │   │   │   ├── motion.js        
 │   │   │   ├── formatDate.js     
@@ -139,11 +145,12 @@ Scorva
 
 ## 🔥 Features
 
+- **User Authentication:** Sign in with email/password or Google OAuth via Supabase Auth. Session state managed globally with auto-close modal on successful login.
 - **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
 - **Multi-league & Multi-season history support:** NBA, NFL, NHL with consistent data structure
 - **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
 - **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
-- **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages (lazy-generated and permanently cached for cost efficiency)
+- **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages — gated behind authentication, lazy-generated and permanently cached for cost efficiency
 - **Interactive UI:** Hover effects on game and stat cards for advanced details
 - **Real-time data:** Updates every 5 minutes via ESPN API integration
 - **Responsive design:** Built with Tailwind CSS and Framer Motion for smooth animations
@@ -176,9 +183,10 @@ Scorva includes an **AI-powered game analysis system** that generates intelligen
 
 **Technical Implementation:**
 
-- Backend endpoint: `GET /api/games/:id/ai-summary`
+- Backend endpoint: `GET /api/games/:id/ai-summary` — requires valid Supabase JWT
 - Cache-first architecture: checks database before calling OpenAI
 - 30-second timeout with error handling
+- Locked UI shown to unauthenticated users with sign-in prompt
 - Clean UI integration between quarter-by-quarter scores and box score
 - Responsive design with animated bullet points and loading skeletons
 
@@ -242,7 +250,7 @@ npm run test:coverage    # Generate coverage report
 
 ## 📌 Future Improvements
 
-- User accounts with saved teams, players, and preferences
+- Saved teams, players, and personalized preferences per user account
 - Live game alerts, final scores, and push notifications
 - Multi-language AI summaries
 - Mobile app (React Native or PWA)

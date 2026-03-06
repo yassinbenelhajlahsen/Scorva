@@ -29,7 +29,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 - API routing: all routers live in `backend/src/routes/` and are mounted under `/api` in `backend/src/index.js`.
 - Layer separation: routes contain no logic; controllers contain no SQL; services return plain data only.
-- Frontend API calls: all calls go to `VITE_API_URL` via wrappers in `frontend/src/api/`. No authentication required.
+- Frontend API calls: all calls go to `VITE_API_URL` via wrappers in `frontend/src/api/`. The AI summary endpoint requires a `Authorization: Bearer <token>` header — token comes from `supabase.auth.getSession()`.
 - Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development.
 - ESM everywhere: both packages use `"type": "module"`. Always use `.js` extensions in imports.
 - CORS: allowlist in `backend/src/middleware/index.js` — update `corsOrigins` when adding new origins.
@@ -76,7 +76,8 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 8. Known gaps / expectations
 
-- The API is publicly accessible with no authentication. Rate limiting is active (general + stricter AI limiter).
+- Most API endpoints are publicly accessible. The AI summary endpoint (`GET /api/games/:id/ai-summary`) requires a valid Supabase JWT — unauthenticated requests return 401.
+- Auth is handled by Supabase. Backend env vars required: `PROJECT_URL`, `SUPABASE_SECRET_KEY`. Frontend env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - AI summaries: cache-first, persisted to `games.ai_summary`, only generated for finalized games.
 - `playerInfo` service uses a hardcoded `currentSeason = "2025-26"` constant — update when the season changes.
 

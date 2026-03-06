@@ -6,6 +6,7 @@ Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → Post
 ## Stack
 - **Frontend**: React 19, Vite 6, React Router 7, Tailwind CSS v4, Framer Motion 12
 - **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only)
+- **Auth**: Supabase Auth — email/password + Google OAuth; JWT verified server-side
 - **AI**: OpenAI SDK for game summaries
 - **Testing**: Jest 29 + Supertest (backend only)
 - All packages use ESM (`"type": "module"`). Always use `.js` extensions in imports.
@@ -42,6 +43,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 |---|---|
 | Backend entry | `backend/src/index.js` |
 | CORS + rate limits | `backend/src/middleware/index.js` |
+| JWT auth middleware | `backend/src/middleware/auth.js` |
 | Routes | `backend/src/routes/` |
 | Controllers | `backend/src/controllers/` |
 | Services | `backend/src/services/` |
@@ -51,6 +53,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Frontend entry | `frontend/src/main.jsx` |
 | Frontend router | `frontend/src/App.jsx` |
 | Design tokens | `frontend/src/index.css` (`@theme`) |
+| Supabase client | `frontend/src/lib/supabase.js` |
+| Auth context + modal | `frontend/src/context/AuthContext.jsx` |
+| OAuth callback page | `frontend/src/pages/AuthCallback.jsx` |
 | API wrappers | `frontend/src/api/` |
 | Data hooks | `frontend/src/hooks/` |
 | Test suite | `backend/__tests__/` |
@@ -65,7 +70,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `GET /:league/players/:playerId`
 - `GET /:league/seasons`
 - `GET /search`
-- `POST /:league/games/:gameId/ai-summary`
+- `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**
 
 ## Frontend routes
 - `/` → Homepage
@@ -73,6 +78,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `/:league/teams/:teamId` → TeamPage
 - `/:league/players/:playerId` → PlayerPage
 - `/:league/games/:gameId` → GamePage
+- `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 
 ## Design system
 Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind.config.js`.
@@ -84,8 +90,10 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 ## Important conventions
 - **Never edit** `backend/src/generated/prisma/` — regenerate with `prisma generate`
 - **CORS allowlist** in `backend/src/middleware/index.js` — update `corsOrigins` for new origins
-- **AI route** uses stricter `aiLimiter` mounted separately in `index.js`
-- **AI summaries** are cache-first, persisted to `games.ai_summary`, only generated for finalized games
+- **AI route** uses stricter `aiLimiter` + `requireAuth` middleware mounted in `index.js`
+- **AI summaries** are cache-first, persisted to `games.ai_summary`, only generated for finalized games, requires auth
+- **Auth middleware** (`requireAuth`) calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `PROJECT_URL` env vars
+- **Google OAuth popup** flow: `skipBrowserRedirect: true` → open popup → `/auth/callback` page closes popup via `postMessage` → parent modal closes
 - **Prisma** is for schema/migrations only; runtime uses `pg` directly
 - **game_label** column holds playoff round labels (e.g. `"NBA Finals - Game 1"`), null for regular season
 
