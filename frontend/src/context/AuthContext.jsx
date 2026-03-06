@@ -20,21 +20,19 @@ export function AuthProvider({ children }) {
       setSession(session);
     });
 
-    function handleMessage(event) {
-      if (event.origin !== window.location.origin) return;
+    const channel = new BroadcastChannel("supabase_auth");
+    channel.onmessage = (event) => {
       if (event.data?.type === "SUPABASE_AUTH_SUCCESS") {
         supabase.auth.getSession().then(({ data: { session } }) => {
           setSession(session);
           setModalOpen(false);
         });
       }
-    }
-
-    window.addEventListener("message", handleMessage);
+    };
 
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener("message", handleMessage);
+      channel.close();
     };
   }, []);
 

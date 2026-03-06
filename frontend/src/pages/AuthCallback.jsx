@@ -5,9 +5,10 @@ import { supabase } from "../lib/supabase.js";
 import { FloatingInput } from "../components/ui/FloatingInput.tsx";
 
 function notifyAndClose() {
-  if (window.opener) {
-    window.opener.postMessage({ type: "SUPABASE_AUTH_SUCCESS" }, window.location.origin);
-  }
+  // window.opener is null after cross-origin navigation (Google → app), so use BroadcastChannel
+  const channel = new BroadcastChannel("supabase_auth");
+  channel.postMessage({ type: "SUPABASE_AUTH_SUCCESS" });
+  channel.close();
   window.close();
 }
 
