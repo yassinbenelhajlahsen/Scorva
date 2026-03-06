@@ -17,6 +17,7 @@ export default function AuthModal({ onClose }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [confirm, setConfirm] = useState("");
   const [success, setSuccess] = useState(false);
   const [view, setView] = useState("form"); // "form" | "reset" | "reset-sent"
   const [direction, setDirection] = useState(1);
@@ -85,6 +86,16 @@ export default function AuthModal({ onClose }) {
       if (error) setError(error.message);
       else onClose();
     } else {
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        setLoading(false);
+        return;
+      }
+      if (password !== confirm) {
+        setError("Passwords don't match.");
+        setLoading(false);
+        return;
+      }
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
       else setSuccess(true);
@@ -96,6 +107,7 @@ export default function AuthModal({ onClose }) {
   function switchMode() {
     setMode((m) => (m === "signin" ? "signup" : "signin"));
     setError(null);
+    setConfirm("");
   }
 
   return (
@@ -317,7 +329,35 @@ export default function AuthModal({ onClose }) {
                           </button>
                         </div>
                       )}
+                      {mode === "signup" && (
+                        <p className="text-[11px] text-text-tertiary mt-1.5 px-1">
+                          At least 8 characters
+                        </p>
+                      )}
                     </div>
+
+                    {/* Confirm password — signup only */}
+                    <AnimatePresence initial={false}>
+                      {mode === "signup" && (
+                        <motion.div
+                          key="confirm"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <FloatingInput
+                            id="auth-confirm"
+                            type="password"
+                            value={confirm}
+                            onChange={(e) => setConfirm(e.target.value)}
+                            label="Confirm password"
+                            autoComplete="new-password"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     <AnimatePresence>
                       {error && (
