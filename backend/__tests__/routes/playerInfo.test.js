@@ -239,8 +239,8 @@ describe("Player Info Route - GET /:league/players/:slug", () => {
 
   describe("Slug Resolution", () => {
     it("should handle numeric slugs", async () => {
+      // Numeric IDs skip the slug lookup — only the main query runs
       mockPool.query
-        .mockResolvedValueOnce({ rows: [{ id: 123 }] })
         .mockResolvedValueOnce({ rows: [{ player: { id: 123 } }] });
 
       await request(app).get("/api/nba/players/123");

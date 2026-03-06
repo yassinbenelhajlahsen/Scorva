@@ -93,8 +93,8 @@ describe("Standings Route - GET /:league/standings", () => {
 
     expect(response.status).toBe(200);
     expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("ORDER BY conf, wins DESC, losses ASC"),
-      ["nba"]
+      expect.stringContaining("ORDER BY t.conf, wins DESC, losses ASC"),
+      ["nba", null]
     );
   });
 
@@ -121,7 +121,7 @@ describe("Standings Route - GET /:league/standings", () => {
 
     await request(app).get("/api/nhl/standings");
 
-    expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["nhl"]);
+    expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["nhl", null]);
   });
 
   it("should parse record string correctly", async () => {

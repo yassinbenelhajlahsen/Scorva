@@ -56,7 +56,7 @@ describe("Games Route - GET /:league/games", () => {
     expect(response.body).toEqual(mockGames);
     expect(mockPool.query).toHaveBeenCalledWith(
       expect.stringContaining("SELECT"),
-      ["nba"]
+      ["nba", null]
     );
   });
 
@@ -79,8 +79,8 @@ describe("Games Route - GET /:league/games", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual(mockGames);
     expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("$2::integer IN"),
-      ["nba", teamId.toString()]
+      expect.stringContaining("$3::integer IN"),
+      ["nba", null, teamId.toString()]
     );
   });
 
@@ -100,7 +100,7 @@ describe("Games Route - GET /:league/games", () => {
     expect(response.status).toBe(200);
     expect(mockPool.query).toHaveBeenCalledWith(
       expect.stringContaining("LIMIT 12"),
-      ["nba"]
+      ["nba", null]
     );
   });
 
@@ -125,7 +125,7 @@ describe("Games Route - GET /:league/games", () => {
     expect(response.status).toBe(200);
     expect(mockPool.query).toHaveBeenCalledWith(
       expect.stringContaining("ORDER BY g.date DESC"),
-      ["nba"]
+      ["nba", null]
     );
   });
 
@@ -152,6 +152,6 @@ describe("Games Route - GET /:league/games", () => {
 
     await request(app).get("/api/nhl/games");
 
-    expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["nhl"]);
+    expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["nhl", null]);
   });
 });

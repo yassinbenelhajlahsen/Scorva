@@ -42,7 +42,7 @@ describe("upsertPlayer", () => {
         "F",
         "6-9",
         "https://example.com/lebron.jpg",
-        "23",
+        23,
         "250",
         "1984-12-30",
         "Round 1, Pick 1, 2003",
