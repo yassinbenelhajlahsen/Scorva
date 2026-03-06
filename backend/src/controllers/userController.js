@@ -1,0 +1,45 @@
+import { createClient } from "@supabase/supabase-js";
+import * as userService from "../services/userService.js";
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET_KEY
+);
+
+export async function getProfile(req, res) {
+  try {
+    const user = await userService.getUser(req.user.id);
+    res.json(user ?? { id: req.user.id, default_league: null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+}
+
+export async function updateProfile(req, res) {
+  try {
+    const { firstName, lastName, defaultLeague } = req.body ?? {};
+    if (firstName === undefined && lastName === undefined && defaultLeague === undefined) {
+      return res.status(400).json({ error: "At least one field required" });
+    }
+    const user = await userService.updateUser(req.user.id, { firstName, lastName, defaultLeague });
+    res.json({ ok: true, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+}
+
+export async function deleteAccount(req, res) {
+  try {
+    // Delete our DB row first (cascades favorites)
+    await userService.deleteUser(req.user.id);
+    // Then remove the Supabase auth user
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
+    if (error) throw error;
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete account" });
+  }
+}

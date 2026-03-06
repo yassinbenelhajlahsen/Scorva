@@ -18,6 +18,7 @@ import searchRoute from "./routes/search.js";
 import aiSummaryRoute from "./routes/aiSummary.js";
 import seasonsRoute from "./routes/seasons.js";
 import favoritesRoute from "./routes/favorites.js";
+import userRoute from "./routes/user.js";
 import webhooksRoute from "./routes/webhooks.js";
 
 const app = express();
@@ -51,6 +52,7 @@ app.use("/api", playerInfoRoute);
 app.use("/api", searchRoute);
 app.use("/api", seasonsRoute);
 app.use("/api", favoritesRoute);
+app.use("/api", userRoute);
 
 const port = process.env.PORT || 3000;
 app.listen(port, "0.0.0.0", () => {
