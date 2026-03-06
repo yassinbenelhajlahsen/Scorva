@@ -1,3 +1,4 @@
+// eslint-disable-next-line react-refresh/only-export-components
 export function passwordMeetsRequirements(pw) {
   return (
     pw.length >= 8 &&

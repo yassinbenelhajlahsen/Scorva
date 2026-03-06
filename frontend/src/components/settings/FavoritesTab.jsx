@@ -207,6 +207,7 @@ export default function FavoritesTab() {
     if (prefs?.default_league && selectedLeague === null) {
       setSelectedLeague(prefs.default_league);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs]);
 
   const activeLeague = selectedLeague ?? "nba";

@@ -57,7 +57,6 @@ export default function SettingsPage() {
   if (session === undefined || session === null) return null;
 
   const tabContent = activeTab === "favorites" ? <FavoritesTab /> : <AccountTab />;
-  const activeTabMeta = tabs.find((t) => t.id === activeTab);
 
   return (
     <div className="min-h-screen py-6 sm:py-10 px-4 sm:px-6">
