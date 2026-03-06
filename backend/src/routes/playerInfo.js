@@ -18,14 +18,7 @@ async function getPlayerIdBySlug(slugOrId, league) {
     // Already numeric? Use it directly.
     if (/^\d+$/.test(s)) return parseInt(s, 10);
 
-    // Try exact slug column
-    const bySlug = await pool.query(
-      `SELECT id FROM players WHERE league = $1 AND slug = $2 LIMIT 1`,
-      [league, s]
-    );
-    if (bySlug.rows[0]?.id) return bySlug.rows[0].id;
-
-    // Fallback: derive slug from name if slug column wasn't populated
+    // Derive slug from name (e.g. "lebron-james" matches "LeBron James")
     const byNameSlug = await pool.query(
       `SELECT id
          FROM players

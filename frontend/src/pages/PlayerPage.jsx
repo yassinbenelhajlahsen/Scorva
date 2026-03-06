@@ -81,38 +81,16 @@ export default function PlayerPage() {
   const [playerData, setPlayerData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  // undefined = not yet resolved, null = not found, number = found
-  const [playerId, setPlayerId] = useState(undefined);
 
   useEffect(() => {
-    async function resolvePlayerId() {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/players`
-        );
-        const players = await res.json();
-        const match = players.find(
-          (p) => slugify(p.name, { lower: true }) === slug
-        );
-        setPlayerId(match?.id ?? null);
-      } catch (err) {
-        console.error("Error fetching players:", err);
-        setPlayerId(null);
-      }
-    }
-    resolvePlayerId();
-  }, [league, slug]);
-
-  useEffect(() => {
-    if (playerId === undefined) return;
-    if (playerId === null) { setLoading(false); return; }
     async function fetchPlayerData() {
       try {
         const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
-        const fullRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/${league}/players/${playerId}${seasonParam}`
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/${league}/players/${slug}${seasonParam}`
         );
-        const fullData = await fullRes.json();
+        if (!res.ok) { setPlayerData(null); return; }
+        const fullData = await res.json();
         setPlayerData(fullData.player);
       } catch (err) {
         console.error("Error fetching player:", err);
@@ -122,7 +100,7 @@ export default function PlayerPage() {
       }
     }
     fetchPlayerData();
-  }, [league, playerId, selectedSeason]);
+  }, [league, slug, selectedSeason]);
 
   if (loading) return <LoadingPage />;
 
