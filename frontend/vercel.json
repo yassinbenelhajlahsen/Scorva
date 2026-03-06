@@ -1,7 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- .",
   "headers": [
     {
       "source": "/(.*)\\.(webp|png|jpg|jpeg|svg|ico|woff2|woff)",
