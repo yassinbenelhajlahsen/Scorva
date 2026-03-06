@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -21,13 +21,14 @@ const itemVariants = {
 export default function LeaguePage() {
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
+  const [searchParams] = useSearchParams();
 
   const [games, setGames] = useState([]);
   const [standings, setStandings] = useState({ eastOrAFC: [], westOrNFC: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [displayData, setDisplayData] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
 
   useEffect(() => {
     if (!data) {
@@ -152,7 +153,7 @@ export default function LeaguePage() {
                 <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
                   {standings.eastOrAFC.map((team, index) => (
                     <Link
-                      to={`/${league}/teams/${slugify(team.name)}`}
+                      to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                       key={team.id}
                     >
                       <div className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
@@ -184,7 +185,7 @@ export default function LeaguePage() {
                 <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
                   {standings.westOrNFC.map((team, index) => (
                     <Link
-                      to={`/${league}/teams/${slugify(team.name)}`}
+                      to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                       key={team.id}
                     >
                       <div className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${

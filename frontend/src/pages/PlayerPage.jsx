@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import LoadingPage from "./LoadingPage.jsx";
@@ -77,9 +77,10 @@ const itemVariants = {
 
 export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
+  const [searchParams] = useSearchParams();
   const [playerData, setPlayerData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
   // undefined = not yet resolved, null = not found, number = found
   const [playerId, setPlayerId] = useState(undefined);
 
@@ -194,7 +195,7 @@ export default function PlayerPage() {
               <span className="text-sm font-medium text-text-primary">{draftInfo}</span>
               <span className="text-sm text-text-tertiary">Team</span>
               <Link
-                to={`/${league}/teams/${slugify(team.name)}`}
+                to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                 className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
               >
                 {team.name}

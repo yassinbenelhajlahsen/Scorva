@@ -296,7 +296,7 @@ export default function GamePage() {
 
       {/* Box Score */}
       {isFinal || inProgress ? (
-        <BoxScore homeTeam={homeTeam} awayTeam={awayTeam} league={league} />
+        <BoxScore homeTeam={homeTeam} awayTeam={awayTeam} league={league} season={game.season} />
       ) : (
         <div className="text-center text-text-tertiary text-sm my-8">
           No box score available — check back when the game starts.

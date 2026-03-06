@@ -134,7 +134,7 @@ function SortArrow({ active, dir }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function BoxScore({ league, homeTeam, awayTeam }) {
+export default function BoxScore({ league, homeTeam, awayTeam, season }) {
   // null sortKey = use league default sort
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("desc");
@@ -258,7 +258,7 @@ export default function BoxScore({ league, homeTeam, awayTeam }) {
               >
                 <td className="py-2.5 px-5 font-medium whitespace-nowrap">
                   <Link
-                    to={`/${league}/players/${slugify(p.name)}`}
+                    to={`/${league}/players/${slugify(p.name)}${season ? `?season=${season}` : ""}`}
                     className="text-accent hover:text-accent-hover transition-colors duration-200 text-sm"
                   >
                     {p.name}

@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -20,12 +20,13 @@ const itemVariants = {
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
+  const [searchParams] = useSearchParams();
 
   const [team, setTeam] = useState(null);
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
 
   useEffect(() => {
     async function fetchTeamData() {
@@ -82,7 +83,7 @@ export default function TeamPage() {
           The team you&apos;re looking for doesn&apos;t exist or hasn&apos;t been added yet.
         </p>
         <Link
-          to={`/${league}`}
+          to={`/${league}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
           className="bg-accent text-white font-semibold py-3 px-6 rounded-full text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent-hover hover:shadow-[0_0_20px_rgba(232,134,58,0.3)]"
         >
           {league?.toUpperCase()} Teams
@@ -95,7 +96,7 @@ export default function TeamPage() {
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
       <Link
-        to={`/${league}`}
+        to={`/${league}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
         className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 mb-8 text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
