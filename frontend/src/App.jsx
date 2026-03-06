@@ -10,12 +10,13 @@ import Homepage from "./pages/Homepage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 
-const About      = lazy(() => import("./pages/About.jsx"));
-const LeaguePage = lazy(() => import("./pages/LeaguePage.jsx"));
-const PlayerPage = lazy(() => import("./pages/PlayerPage.jsx"));
-const TeamPage   = lazy(() => import("./pages/TeamPage.jsx"));
-const GamePage   = lazy(() => import("./pages/GamePage.jsx"));
-const ErrorPage  = lazy(() => import("./pages/ErrorPage.jsx"));
+const About        = lazy(() => import("./pages/About.jsx"));
+const LeaguePage   = lazy(() => import("./pages/LeaguePage.jsx"));
+const PlayerPage   = lazy(() => import("./pages/PlayerPage.jsx"));
+const TeamPage     = lazy(() => import("./pages/TeamPage.jsx"));
+const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
+const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -37,6 +38,14 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <About />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <PageWrapper>
+              <SettingsPage />
             </PageWrapper>
           }
         />
