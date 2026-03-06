@@ -137,7 +137,7 @@ export default function TeamPage() {
               <span className="text-sm text-text-tertiary">Record</span>
               <span className="text-sm font-semibold text-text-primary tabular-nums">
                 {selectedSeason
-                  ? `${games.filter((g) => g.winnerid === team.id).length}-${games.filter((g) => g.winnerid !== null && g.winnerid !== team.id).length}`
+                  ? `${games.filter((g) => g.game_label === null && g.winnerid === team.id).length}-${games.filter((g) => g.game_label === null && g.winnerid !== null && g.winnerid !== team.id).length}`
                   : team.record}
               </span>
               {!selectedSeason && (
