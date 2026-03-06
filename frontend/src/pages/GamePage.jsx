@@ -88,12 +88,13 @@ export default function GamePage() {
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;
   const nhl = league === "nhl";
-  const isChampionship = game.gameLabel && (
+  const isPlayoffGame = game.gameLabel && game.gameLabel.toLowerCase() !== "Preseason";
+  const isChampionship = isPlayoffGame && (
     game.gameLabel.toLowerCase().includes("nba finals") ||
     game.gameLabel.toLowerCase().includes("stanley cup") ||
     game.gameLabel.toLowerCase().includes("super bowl")
   );
-  const playoffLogo = game.gameLabel
+  const playoffLogo = isPlayoffGame
     ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
     : null;
   const quarterKeys = nhl ? ["q1", "q2", "q3"] : ["q1", "q2", "q3", "q4"];

@@ -24,6 +24,7 @@ export default function TeamPage() {
 
   const [team, setTeam] = useState(null);
   const [games, setGames] = useState([]);
+  const [teamRecord, setTeamRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
@@ -56,15 +57,20 @@ export default function TeamPage() {
     async function fetchGames() {
       try {
         const seasonParam = selectedSeason ? `&season=${selectedSeason}` : "";
-        const gamesData = await (
-          await fetch(
+        const [gamesData, standingsData] = await Promise.all([
+          fetch(
             `${import.meta.env.VITE_API_URL}/api/${league}/games?teamId=${team.id}${seasonParam}`
-          )
-        ).json();
+          ).then((r) => r.json()),
+          fetch(
+            `${import.meta.env.VITE_API_URL}/api/${league}/standings${selectedSeason ? `?season=${selectedSeason}` : ""}`
+          ).then((r) => r.json()),
+        ]);
         const sorted = gamesData
           .slice()
           .sort((a, b) => new Date(b.date) - new Date(a.date));
-        setGames(selectedSeason ? sorted : sorted.slice(0, 10));
+        setGames(sorted);
+        const standing = standingsData.find((t) => t.id === team.id);
+        setTeamRecord(standing ? `${standing.wins}-${standing.losses}` : null);
       } catch (err) {
         setError(err.message || "Failed to load games.");
       } finally {
@@ -136,9 +142,7 @@ export default function TeamPage() {
               <span className="text-sm font-medium text-text-primary">{team.location}</span>
               <span className="text-sm text-text-tertiary">Record</span>
               <span className="text-sm font-semibold text-text-primary tabular-nums">
-                {selectedSeason
-                  ? `${games.filter((g) => g.game_label === null && g.winnerid === team.id).length}-${games.filter((g) => g.game_label === null && g.winnerid !== null && g.winnerid !== team.id).length}`
-                  : team.record}
+                {teamRecord ?? team.record}
               </span>
               {!selectedSeason && (
                 <>
@@ -156,7 +160,7 @@ export default function TeamPage() {
       {/* Games */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-8">
-          {selectedSeason ? `${selectedSeason} Games` : "Last 10 Games"}
+          {selectedSeason ? `${selectedSeason} Schedule` : "Season Schedule"}
         </h2>
         {games.length > 0 ? (
           <motion.div

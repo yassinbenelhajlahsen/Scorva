@@ -8,8 +8,10 @@ router.get("/:league/games", async (req, res) => {
   const { teamId, season } = req.query;
 
   try {
+    const currentSeasonSubquery = `(SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL)`;
+
     let query = `
-      SELECT 
+      SELECT
         g.*,
   th.name AS home_team_name,
   th.shortname AS home_shortname,
@@ -21,24 +23,21 @@ router.get("/:league/games", async (req, res) => {
       JOIN teams th ON g.hometeamid = th.id
       JOIN teams ta ON g.awayteamid = ta.id
       WHERE g.league = $1
+        AND g.season = COALESCE($2, ${currentSeasonSubquery})
     `;
 
-    const params = [league];
+    const params = [league, season || null];
 
-    // Add team filter if teamId exists to search just THAT teams games
+    // Add team filter if teamId exists to search just THAT team's games
     if (teamId) {
-      query += ` AND ($2::integer IN (g.hometeamid, g.awayteamid))`;
+      query += ` AND ($${params.length + 1}::integer IN (g.hometeamid, g.awayteamid))`;
       params.push(teamId);
-    }
-
-    if (season) {
-      query += ` AND g.season = $${params.length + 1}`;
-      params.push(season);
     }
 
     query += ` ORDER BY g.date DESC`;
 
-    if (!season) {
+    // League page: limit to 12 most recent games; team page: full season schedule
+    if (!teamId) {
       query += ` LIMIT 12`;
     }
 
