@@ -36,13 +36,39 @@ Scorva
 │   │   │   └── db.js             # PostgreSQL connection (pg pool)
 │   │   ├── generated/
 │   │   │   └── prisma/           # Auto-generated Prisma client (do not edit)
-│   │   ├── routes/               # API route handlers
-│   │   │   ├── games.js
+│   │   ├── routes/               # Thin route definitions — map endpoints to controllers
 │   │   │   ├── teams.js
 │   │   │   ├── players.js
-│   │   │   ├── search.js
+│   │   │   ├── playerInfo.js
+│   │   │   ├── games.js
+│   │   │   ├── gameInfo.js
 │   │   │   ├── standings.js
-│   │   │   └── ...
+│   │   │   ├── seasons.js
+│   │   │   ├── search.js
+│   │   │   └── aiSummary.js
+│   │   ├── controllers/          # Request/response handling — parse params, call services
+│   │   │   ├── teamsController.js
+│   │   │   ├── playersController.js
+│   │   │   ├── playerInfoController.js
+│   │   │   ├── gamesController.js
+│   │   │   ├── gameInfoController.js
+│   │   │   ├── standingsController.js
+│   │   │   ├── seasonsController.js
+│   │   │   ├── searchController.js
+│   │   │   └── aiSummaryController.js
+│   │   ├── services/             # Database queries and business logic
+│   │   │   ├── teamsService.js
+│   │   │   ├── playersService.js
+│   │   │   ├── playerInfoService.js
+│   │   │   ├── gamesService.js
+│   │   │   ├── gameInfoService.js
+│   │   │   ├── standingsService.js
+│   │   │   ├── seasonsService.js
+│   │   │   ├── searchService.js
+│   │   │   └── aiSummaryService.js
+│   │   ├── utils/                # Shared helper functions
+│   │   │   ├── slugResolver.js   # Resolve player name slug or numeric ID to DB id
+│   │   │   └── dateParser.js     # Parse partial/full date strings for search
 │   │   ├── config/
 │   │   │   └── env.js            # dotenv initialization and environment setup
 │   │   └── populate/             # Database seeding and update scripts
@@ -67,44 +93,44 @@ Scorva
 │   │   ├── main.jsx              # Entry point for Vite
 │   │   ├── assets/               # Static assets (images, icons, etc.)
 │   │   ├── api/                  # Backend API client and endpoint functions
-│   │   │   ├── client.js         # Centralized fetch wrapper (base URL, error handling)
-│   │   │   ├── games.js          # getAllLeagueGames, getLeagueGames, getTeamGames, getGameById
-│   │   │   ├── teams.js          # getTeams, getStandings
-│   │   │   ├── players.js        # getPlayer
-│   │   │   ├── search.js         # search
-│   │   │   ├── seasons.js        # getSeasons
-│   │   │   └── ai.js             # getAISummary
+│   │   │   ├── client.js         
+│   │   │   ├── games.js          
+│   │   │   ├── teams.js         
+│   │   │   ├── players.js       
+│   │   │   ├── search.js         
+│   │   │   ├── seasons.js       
+│   │   │   └── ai.js             
 │   │   ├── hooks/                # Custom React hooks (data-fetching + state)
-│   │   │   ├── useHomeGames.js   # Homepage: parallel fetch for all 3 leagues
-│   │   │   ├── useLeagueData.js  # LeaguePage: games + standings
-│   │   │   ├── useTeam.js        # TeamPage: team lookup, games, record
-│   │   │   ├── usePlayer.js      # PlayerPage: player data by slug/season
-│   │   │   ├── useGame.js        # GamePage: single game detail
-│   │   │   ├── useSearch.js      # Navbar: debounced search with abort
-│   │   │   ├── useSeasons.js     # SeasonSelector: available seasons list
-│   │   │   └── useAISummary.js   # AISummary: AI-generated game summary
+│   │   │   ├── useHomeGames.js   
+│   │   │   ├── useLeagueData.js  
+│   │   │   ├── useTeam.js        
+│   │   │   ├── usePlayer.js      
+│   │   │   ├── useGame.js        
+│   │   │   ├── useSearch.js      
+│   │   │   ├── useSeasons.js    
+│   │   │   └── useAISummary.js   
 │   │   ├── components/           # Reusable UI components
-│   │   │   ├── cards/            # GameCard, PlayerCard, StatCard, etc.
-│   │   │   ├── layout/           # Navbar, Footer, PageWrapper, ScrollToTop
-│   │   │   └── ui/               # BoxScore, AISummary, SearchBar, SeasonSelector
+│   │   │   ├── cards/            
+│   │   │   ├── layout/           
+│   │   │   └── ui/               
 │   │   ├── pages/                # Page-level React components (routes)
 │   │   ├── utilities/            # Helper functions and shared constants
-│   │   │   ├── motion.js         # Shared Framer Motion variants (containerVariants, itemVariants)
-│   │   │   ├── formatDate.js     # Date formatting helpers
-│   │   │   ├── LeagueData.js     # Static league config (names, logos, links)
-│   │   │   ├── slugify.js        # URL-safe slug generation
-│   │   │   └── topPlayers.js     # Top performer computation per league
+│   │   │   ├── motion.js        
+│   │   │   ├── formatDate.js     
+│   │   │   ├── LeagueData.js     
+│   │   │   ├── slugify.js       
+│   │   │   └── topPlayers.js    
 │   │   └── index.css             # Global styles and Tailwind v4 theme tokens
-│   ├── public/
-│   │   ├── NBA/                  # NBA logos (NBAlogo.webp, NBAPlayoff.png, NBAFinal.png)
-│   │   ├── NFL/                  # NFL logos (NFLlogo.webp, NFLPlayoff.png, NFLFinal.png)
-│   │   └── NHL/                  # NHL logos (NHLlogo.webp, NHLPlayoff.png, NHLFinal.png)
-│   ├── index.html                # HTML template for Vite
-│   ├── vite.config.js            # Vite configuration
-│   ├── eslint.config.js          # ESLint configuration
-│   ├── package.json              # Frontend dependencies
-│   ├── vercel.json               # Vercel deployment configuration
-│   └── .env                      # Frontend environment variables (ignored by Git)
+│   ├── public/                   # League logos
+│   │   ├── NBA/                 
+│   │   ├── NFL/                 
+│   │   └── NHL/                 
+│   ├── index.html                
+│   ├── vite.config.js           
+│   ├── eslint.config.js         
+│   ├── package.json              
+│   ├── vercel.json              
+│   └── .env                     
 │
 ├── LICENSE
 └── README.md
