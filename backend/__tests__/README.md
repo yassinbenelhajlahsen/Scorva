@@ -23,7 +23,9 @@ backend/__tests__/
 │   ├── players.test.js          # GET /:league/players
 │   ├── games.test.js            # GET /:league/games
 │   ├── standings.test.js        # GET /:league/standings
-│   └── search.test.js           # GET /search
+│   ├── search.test.js           # GET /search
+│   ├── aiSummary.test.js        # GET /games/:id/ai-summary
+│   └── favorites.test.js        # GET|POST|DELETE /favorites/*
 ├── db/
 │   └── db.test.js               # Database connection tests
 ├── populate/
@@ -159,6 +161,7 @@ Test full request-response cycles with middleware.
 - ✅ Works with different league parameters
 - ✅ Validates query parameters
 - ✅ Covers search-specific behavior such as SQL ordering and date parsing for exact and partial game-date lookups
+- ✅ Auth-gated routes (favorites, ai-summary): mock `requireAuth` to inject `req.user = { id: "test-uuid" }` and test 401 enforcement separately
 
 ### Service Tests
 

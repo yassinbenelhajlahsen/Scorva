@@ -46,7 +46,9 @@ Scorva
 │   │   │   ├── standings.js
 │   │   │   ├── seasons.js
 │   │   │   ├── search.js
-│   │   │   └── aiSummary.js
+│   │   │   ├── aiSummary.js
+│   │   │   ├── favorites.js      # Favorites CRUD — all routes require auth
+│   │   │   └── webhooks.js       # Supabase auth webhook — populates users table on signup
 │   │   ├── controllers/          # Request/response handling — parse params, call services
 │   │   │   ├── teamsController.js
 │   │   │   ├── playersController.js
@@ -56,7 +58,9 @@ Scorva
 │   │   │   ├── standingsController.js
 │   │   │   ├── seasonsController.js
 │   │   │   ├── searchController.js
-│   │   │   └── aiSummaryController.js
+│   │   │   ├── aiSummaryController.js
+│   │   │   ├── favoritesController.js
+│   │   │   └── webhooksController.js
 │   │   ├── services/             # Database queries and business logic
 │   │   │   ├── teamsService.js
 │   │   │   ├── playersService.js
@@ -66,7 +70,8 @@ Scorva
 │   │   │   ├── standingsService.js
 │   │   │   ├── seasonsService.js
 │   │   │   ├── searchService.js
-│   │   │   └── aiSummaryService.js
+│   │   │   ├── aiSummaryService.js
+│   │   │   └── favoritesService.js  # ensureUser + favorites CRUD + recent stats/games queries
 │   │   ├── utils/                # Shared helper functions
 │   │   │   ├── slugResolver.js   # Resolve player name slug or numeric ID to DB id
 │   │   │   └── dateParser.js     # Parse partial/full date strings for search
@@ -146,6 +151,7 @@ Scorva
 ## 🔥 Features
 
 - **User Authentication:** Sign in with email/password or Google OAuth via Supabase Auth. Session state managed globally with auto-close modal on successful login.
+- **Favorites:** Star players and teams from their pages. Favorited items appear on the homepage (between the hero and today's games) with the player's recent stat lines and the team's most recent game cards. Hidden when logged out. Powered by `user_favorite_players` and `user_favorite_teams` tables with a Supabase auth webhook that auto-creates user rows on signup.
 - **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
 - **Multi-league & Multi-season history support:** NBA, NFL, NHL with consistent data structure
 - **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
@@ -250,7 +256,6 @@ npm run test:coverage    # Generate coverage report
 
 ## 📌 Future Improvements
 
-- Saved teams, players, and personalized preferences per user account
 - Live game alerts, final scores, and push notifications
 - Multi-language AI summaries
 - Mobile app (React Native or PWA)

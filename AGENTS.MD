@@ -20,8 +20,8 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - Entry: `frontend/src/main.jsx`
 - HTML template: `frontend/index.html`
 - Router: `frontend/src/App.jsx`
-- `api/` — thin fetch wrappers (one file per resource: client.js, games.js, teams.js, players.js, search.js, seasons.js, ai.js)
-- `hooks/` — data-fetching hooks (useGame, useTeam, usePlayer, useLeagueData, useHomeGames, useSearch, useSeasons, useAISummary)
+- `api/` — thin fetch wrappers (one file per resource: client.js, games.js, teams.js, players.js, search.js, seasons.js, ai.js, favorites.js)
+- `hooks/` — data-fetching hooks (useGame, useTeam, usePlayer, useLeagueData, useHomeGames, useSearch, useSeasons, useAISummary, useFavorites, useFavoriteToggle)
 - `pages/` — route-level components (Homepage, LeaguePage, TeamPage, PlayerPage, GamePage, About, ErrorPage, LoadingPage)
 - `components/layout/` — Navbar, Footer, PageWrapper, ScrollToTop
 - `components/cards/` — GameCard, TeamCard, PlayerCard, StatCard, TopPerformerCard, PlayerAvgCard
@@ -51,13 +51,23 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | `GET /:league/players/:playerId` | routes/playerInfo.js |
 | `GET /:league/seasons` | routes/seasons.js |
 | `GET /search` | routes/search.js |
-| `POST /:league/games/:gameId/ai-summary` | routes/aiSummary.js |
+| `GET /games/:id/ai-summary` | routes/aiSummary.js |
+| `GET /favorites` | routes/favorites.js |
+| `GET /favorites/check` | routes/favorites.js |
+| `POST /favorites/players/:id` | routes/favorites.js |
+| `DELETE /favorites/players/:id` | routes/favorites.js |
+| `POST /favorites/teams/:id` | routes/favorites.js |
+| `DELETE /favorites/teams/:id` | routes/favorites.js |
+| `POST /webhooks/supabase-auth` | routes/webhooks.js |
 
 ## Database Models (Prisma schema at `backend/prisma/schema.prisma`)
 - **games**: id, league, date, hometeamid, awayteamid, homescore, awayscore, season, status, venue, broadcast, winnerid, ai_summary, game_label, period scores (firstqtr–fourthqtr, ot1–ot4), eventid
 - **teams**: id, name, shortname, league, location, logo_url, record, homerecord, awayrecord, conf, espnid
 - **players**: id, name, league, teamid, position, height, weight, jerseynum, dob, draftinfo, image_url, espn_playerid
 - **stats**: composite PK (gameid, playerid); sport-specific columns covering NBA/NFL/NHL stats
+- **users**: id (UUID, PK — matches Supabase auth.users.id), created_at, email, first_name, last_name
+- **user_favorite_players**: composite PK (user_id, player_id); FK to users + players
+- **user_favorite_teams**: composite PK (user_id, team_id); FK to users + teams
 
 `game_label` is set for playoff games (e.g. `"NBA Finals - Game 1"`). Null for regular season.
 Generated client lives at `backend/src/generated/prisma/` — never edit directly; re-run `prisma generate` after schema changes.
@@ -100,11 +110,15 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
 - Rate limiting (`backend/src/middleware/index.js`):
   - General limiter on all `/api` routes.
   - Stricter `aiLimiter` for AI summary route (mounted first in `index.js`).
+  - Webhook route is mounted before all limiters — no rate limiting on `/api/webhooks/supabase-auth`.
 - AI summaries are cache-first and persisted to `games.ai_summary`; generation only triggers for games with a `Final` status.
 - `playerInfo` uses a hardcoded `currentSeason = "2025-26"` constant.
 - Backend server starts listening directly in `backend/src/index.js` (no exported app instance for tests — tests create their own Express app).
 - All imports must use `.js` extensions (both packages use ESM `"type": "module"`).
 - Prisma shadow DB requires `pg_trgm` extension; `prisma migrate dev` may fail locally — apply SQL manually then `prisma migrate resolve --applied`.
+- **Users table** stores `id`, `email`, `first_name`, `last_name`. Populated two ways: (1) Supabase webhook fires `POST /api/webhooks/supabase-auth` on new signup — verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>` header; email/password users pass name via `options.data` in `signUp()`, Google OAuth users have `full_name` split on first space from `raw_user_meta_data`; (2) `ensureUser()` in `favoritesService.js` as a fallback on first favorite action. Both use `ON CONFLICT DO UPDATE` with `COALESCE` to avoid overwriting existing values.
+- **Favorites routes** all require `requireAuth` middleware applied at the router level in `routes/favorites.js`.
+- When mocking auth routes in tests, mock `requireAuth` to call `next()` and set `req.user = { id: "test-uuid" }`.
 
 ## Testing
 - Jest config: `backend/jest.config.js`

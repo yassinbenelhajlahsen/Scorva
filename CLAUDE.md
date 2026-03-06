@@ -58,6 +58,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | OAuth callback page | `frontend/src/pages/AuthCallback.jsx` |
 | API wrappers | `frontend/src/api/` |
 | Data hooks | `frontend/src/hooks/` |
+| Favorites API | `frontend/src/api/favorites.js` |
+| Favorites hooks | `frontend/src/hooks/useFavorites.js`, `frontend/src/hooks/useFavoriteToggle.js` |
+| Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
 | Test suite | `backend/__tests__/` |
 | Test helpers | `backend/__tests__/helpers/testHelpers.js` |
 
@@ -71,6 +74,13 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `GET /:league/seasons`
 - `GET /search`
 - `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**
+- `GET /favorites` — requires auth; returns `{ players: [...], teams: [...] }` with recent stats/games
+- `GET /favorites/check?playerIds=1,2&teamIds=3,4` — requires auth; returns which IDs are favorited
+- `POST /favorites/players/:playerId` — requires auth; adds player favorite
+- `DELETE /favorites/players/:playerId` — requires auth; removes player favorite
+- `POST /favorites/teams/:teamId` — requires auth; adds team favorite
+- `DELETE /favorites/teams/:teamId` — requires auth; removes team favorite
+- `POST /webhooks/supabase-auth` — Supabase auth webhook; verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>` header; inserts new user into `users` table on signup
 
 ## Frontend routes
 - `/` → Homepage
@@ -96,6 +106,8 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Google OAuth popup** flow: `skipBrowserRedirect: true` → open popup → `/auth/callback` page closes popup via `postMessage` → parent modal closes
 - **Prisma** is for schema/migrations only; runtime uses `pg` directly
 - **game_label** column holds playoff round labels (e.g. `"NBA Finals - Game 1"`), null for regular season
+- **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`. Populated via Supabase webhook (`POST /api/webhooks/supabase-auth`) on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
+- **Favorites** all routes require `requireAuth`; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
