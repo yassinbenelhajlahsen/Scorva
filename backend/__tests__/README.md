@@ -2,6 +2,9 @@
 
 Comprehensive test suite for Scorva backend services and API endpoints.
 
+> **Note:** Frontend tests use a separate framework (Vitest + Testing Library).
+> See `frontend/src/__tests__/` and the root `CLAUDE.md` for frontend testing guidance.
+
 ## Overview
 
 This test suite covers:

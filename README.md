@@ -145,22 +145,43 @@ Saves are included so goalies can appear when they carry their team. The Impact 
 
 ## 🧪 Testing
 
-Scorva includes a comprehensive test suite for the backend with 100% coverage of all API endpoints, database operations, and data transformation utilities.
+Scorva includes comprehensive test suites for both backend and frontend.
 
 ### Quick Start
 
 ```bash
+# Run everything (lint + test + build) from the project root
+npm run verify
+
+# Backend only
 cd backend
 npm test                  # Run all tests
-npm run test:coverage    # Generate coverage report
+npm run test:coverage     # Generate coverage report
+
+# Frontend only
+cd frontend
+npm test                  # Run all tests (Vitest)
+npm run test:coverage     # Generate coverage report
 ```
 
-### Test Coverage
+### Backend Coverage
 
-- ✅ **All API Routes** - Teams, players, games, standings, search, game info, player info
-- ✅ **Database Layer** - Connection, queries, error handling
-- ✅ **Data Services** - Stats mapping, player upserts, transformations
-- ✅ **Integration Tests** - Full Express app behavior
+- ✅ **All API Routes** — Teams, players, games, standings, search, game info, player info
+- ✅ **Database Layer** — Connection, queries, error handling
+- ✅ **Data Services** — Stats mapping, player upserts, transformations
+- ✅ **Integration Tests** — Full Express app behavior
+
+### Frontend Coverage
+
+- ✅ **Utility Functions** — Date formatting, slugify, normalize, top players scoring (NBA/NFL/NHL)
+- ✅ **API Client** — `apiFetch` URL construction, headers, body serialization, abort signal, error handling
+- ✅ **API Wrappers** — Favorites, user profile, and search API functions
+- ✅ **Hooks** — `useFavorites`, `useFavoriteToggle` (optimistic updates + rollback), `useUserPrefs`, `useSearch` (debounce + abort cancel)
+- ✅ **Components** — Navbar (auth state), PasswordChecklist (validation logic + rendering)
+
+## 🔄 CI/CD
+
+GitHub Actions runs frontend lint, tests, and a production build on every push and pull request. Deployment to Vercel only proceeds after all checks pass on `main`. The backend deploys independently via Railway.
 
 ---
 

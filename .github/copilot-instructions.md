@@ -41,8 +41,10 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 - Run frontend only: `cd frontend && npm run dev`. Requires backend running and `frontend/.env` with `VITE_API_URL`.
 - Run backend only: `cd backend && npm run start`. Requires `backend/.env` with `DATABASE_URL`.
-- Run tests: `cd backend && npm test` (full Jest suite). `npm test -- <pattern>` for a specific file.
-- Coverage: `cd backend && npm run test:coverage` (reports in `backend/coverage/`).
+- Run all quality checks: `npm run verify` from project root (frontend lint + test + build, then backend tests).
+- Run backend tests: `cd backend && npm test` (full Jest suite). `npm test -- <pattern>` for a specific file.
+- Run frontend tests: `cd frontend && npm test` (Vitest). `npm run test:watch` for watch mode.
+- Coverage: `cd backend && npm run test:coverage` or `cd frontend && npm run test:coverage`.
 - Schema changes: edit `backend/prisma/schema.prisma` → `prisma migrate dev --name <desc>` locally → `prisma migrate deploy` on production. Note: shadow DB requires `pg_trgm`; if `migrate dev` fails locally, apply SQL manually then `prisma migrate resolve --applied`.
 
 5. How to add a new backend endpoint
@@ -68,11 +70,26 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 7. Testing approach
 
+**Backend** (Jest 29 + Supertest):
 - **Framework**: Jest 29 + Supertest for HTTP assertions. ES modules — use `jest.unstable_mockModule()` for mocking.
 - **Test structure**: `backend/__tests__/routes/`, `services/`, `populate/`, `db/`, `integration/`.
 - **Test helpers**: `backend/__tests__/helpers/testHelpers.js` exports `createMockPool()`, `fixtures` (team/player/game factories), `mockRequest`, `mockResponse`.
 - **Running tests**: `cd backend && npm test` (all), `npm test -- <pattern>` (specific).
 - **Writing tests**: mock `db/db.js` with `createMockPool()`. Test success cases + error handling + edge cases + parameter variants. See `backend/__tests__/README.md` for full guide.
+
+**Frontend** (Vitest + Testing Library):
+- **Framework**: Vitest + @testing-library/react + jsdom. Config inline in `frontend/vite.config.js`.
+- **Test structure**: `frontend/src/__tests__/{utilities,api,components,hooks,helpers}/`.
+- **Test helpers**: `frontend/src/__tests__/helpers/testUtils.jsx` exports `renderWithProviders()` (wraps `BrowserRouter` + mock `AuthContext.Provider`) and `mockSession` fixture.
+- **Running tests**: `cd frontend && npm test` (all), `npm run test:watch` (watch mode).
+- **Writing tests**:
+  - Utilities: no mocking needed
+  - API wrappers: mock `client.js` via `vi.mock()`; stub `import.meta.env` with `vi.stubEnv()`
+  - Hooks: mock `AuthContext.jsx` + API modules via `vi.mock()`; use `renderHook` + `waitFor` + `act`
+  - Debounce/timer tests: `vi.useFakeTimers()` in `beforeEach`; advance with `vi.advanceTimersByTimeAsync(ms)`; then drain microtasks with `await act(async () => {})`
+  - Components: use `renderWithProviders()` for router + auth context wrapping
+
+**CI**: `.github/workflows/deploy.yml` runs `npm run verify` (root) on every push and PR — frontend lint + test + build. Backend deploys independently via Railway. Vercel deploy only runs on `main` after CI passes.
 
 8. Auth-gated features & user preferences
 

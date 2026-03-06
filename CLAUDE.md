@@ -8,7 +8,7 @@ Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → Post
 - **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only)
 - **Auth**: Supabase Auth — email/password + Google OAuth; JWT verified server-side
 - **AI**: OpenAI SDK for game summaries
-- **Testing**: Jest 29 + Supertest (backend only)
+- **Testing**: Jest 29 + Supertest (backend), Vitest + Testing Library + jsdom (frontend)
 - All packages use ESM (`"type": "module"`). Always use `.js` extensions in imports.
 
 ## Commands
@@ -16,6 +16,10 @@ Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → Post
 # Frontend
 cd frontend && npm run dev        # dev server
 cd frontend && npm run build      # production build
+cd frontend && npm test           # run all frontend tests (Vitest)
+cd frontend && npm run test:watch # watch mode
+cd frontend && npm run test:coverage
+cd frontend && npm run verify     # lint + test + build (also what CI runs)
 
 # Backend
 cd backend && npm run start       # start server
@@ -68,8 +72,11 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | User service | `backend/src/services/userService.js` |
 | User route | `backend/src/routes/user.js` |
 | Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
-| Test suite | `backend/__tests__/` |
-| Test helpers | `backend/__tests__/helpers/testHelpers.js` |
+| Backend test suite | `backend/__tests__/` |
+| Backend test helpers | `backend/__tests__/helpers/testHelpers.js` |
+| Frontend test suite | `frontend/src/__tests__/` |
+| Frontend test setup | `frontend/src/__tests__/setup.js` |
+| Frontend test helpers | `frontend/src/__tests__/helpers/testUtils.jsx` |
 
 ## API endpoints (all under `/api`)
 - `GET /:league/teams`
@@ -133,7 +140,22 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 5. Test in `backend/__tests__/routes/myRoute.test.js` — mock db with `createMockPool()`
 
 ## Testing patterns
+
+### Backend (Jest 29 + Supertest)
 - Mock `db/db.js` using `jest.unstable_mockModule()` before importing
 - `createMockPool()` returns a mock with `.query.mockResolvedValue({ rows: [...] })`
 - Test: success case, DB error case, edge cases, different league params
 - See `backend/__tests__/README.md` for full guide
+
+### Frontend (Vitest + Testing Library)
+- **Utilities**: pure function tests, no mocking needed (`formatDate`, `slugify`, `normalize`, `computeTopPlayers`)
+- **API client**: mock `global.fetch` via `vi.stubGlobal`; stub `import.meta.env.VITE_API_URL` via `vi.stubEnv`
+- **API wrappers**: mock `../../api/client.js` via `vi.mock()`, verify correct paths/methods/params
+- **Hooks**: mock `AuthContext.jsx` + API modules via `vi.mock()`; use `renderHook` + `waitFor` + `act`; use `vi.useFakeTimers()` for debounce tests (advance with `vi.advanceTimersByTimeAsync`, then drain microtasks with `await act(async () => {})`)
+- **Components**: use `renderWithProviders` from `frontend/src/__tests__/helpers/testUtils.jsx` (wraps `BrowserRouter` + mock `AuthContext.Provider`)
+- `vi.mock()` for ESM module mocking (no hoisting quirks unlike Jest)
+- See `frontend/src/__tests__/` for examples
+
+## CI/CD
+- CI (`.github/workflows/deploy.yml`) runs `cd frontend && npm run verify` on every push and PR (lint + test + build — backend deploys independently via Railway)
+- Vercel deployment only proceeds after CI passes on `main`
