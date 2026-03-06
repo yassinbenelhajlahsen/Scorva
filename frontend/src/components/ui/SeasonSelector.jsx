@@ -1,16 +1,7 @@
-import { useEffect, useState } from "react";
+import { useSeasons } from "../../hooks/useSeasons.js";
 
 export default function SeasonSelector({ league, selectedSeason, onSeasonChange }) {
-  const [seasons, setSeasons] = useState([]);
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/${league}/seasons`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setSeasons(data);
-      })
-      .catch(() => {});
-  }, [league]);
+  const { seasons } = useSeasons(league);
 
   if (seasons.length === 0) return null;
 

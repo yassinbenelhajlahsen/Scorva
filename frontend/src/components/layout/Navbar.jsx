@@ -1,14 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import axios from "axios";
 import logo from "../../assets/favicon.png";
 import SearchBar from "../ui/SearchBar.jsx";
+import { useSearch } from "../../hooks/useSearch.js";
 
 export default function Navbar() {
   const [query, setQuery] = useState("");
-  const [allItems, setAllItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const abortControllerRef = useRef(null);
+  const { results: allItems, loading } = useSearch(query);
   const navRef = useRef(null);
   const location = useLocation();
 
@@ -21,44 +19,6 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const fetchResults = useCallback(async (searchTerm) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-    try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/search`,
-        {
-          params: { term: searchTerm },
-          signal: abortControllerRef.current.signal,
-        }
-      );
-      setAllItems(data);
-    } catch (err) {
-      if (err.name !== "CanceledError") {
-        console.error("Search error:", err);
-        setAllItems([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) {
-      setAllItems([]);
-      setLoading(false);
-      return;
-    }
-    const debounce = setTimeout(() => {
-      fetchResults(trimmedQuery);
-    }, 200);
-    return () => clearTimeout(debounce);
-  }, [query, fetchResults]);
 
   const navLinks = [
     { to: "/nba", label: "NBA" },

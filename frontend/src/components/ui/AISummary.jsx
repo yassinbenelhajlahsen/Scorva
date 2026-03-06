@@ -1,31 +1,7 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useAISummary } from "../../hooks/useAISummary.js";
 
 export default function AISummary({ gameId }) {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    async function fetchSummary() {
-      if (!gameId) return;
-      try {
-        setLoading(true);
-        setError(false);
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/games/${gameId}/ai-summary`
-        );
-        setSummary(response.data.summary);
-      } catch (err) {
-        console.error("Error fetching AI summary:", err);
-        setError(true);
-        setSummary("AI summary unavailable for this game.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchSummary();
-  }, [gameId]);
+  const { summary, loading, error } = useAISummary(gameId);
 
   const parseBulletPoints = (text) => {
     if (!text) return [];
