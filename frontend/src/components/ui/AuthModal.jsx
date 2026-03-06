@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase.js";
 import { FloatingInput } from "./FloatingInput.tsx";
+import { PasswordChecklist, passwordMeetsRequirements } from "./PasswordChecklist.jsx";
 
 const slideVariants = {
   enter: (d) => ({ x: d * 48, opacity: 0 }),
@@ -90,8 +91,8 @@ export default function AuthModal({ onClose }) {
       if (error) setError(error.message);
       else onClose();
     } else {
-      if (password.length < 8) {
-        setError("Password must be at least 8 characters.");
+      if (!passwordMeetsRequirements(password)) {
+        setError("Password does not meet all requirements.");
         setLoading(false);
         return;
       }
@@ -390,9 +391,9 @@ export default function AuthModal({ onClose }) {
                         </div>
                       )}
                       {mode === "signup" && (
-                        <p className="text-[11px] text-text-tertiary mt-1.5 px-1">
-                          At least 8 characters
-                        </p>
+                        <div className="mt-1.5">
+                          <PasswordChecklist password={password} />
+                        </div>
                       )}
                     </div>
 
