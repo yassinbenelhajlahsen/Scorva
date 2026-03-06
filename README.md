@@ -25,127 +25,35 @@ https://scorva.dev
 ```
 Scorva
 ├── backend
-│   ├── prisma/
-│   │   ├── schema.prisma         # Prisma schema (models: games, teams, players, stats)
-│   │   └── migrations/           # Migration history
-│   │       ├── 0_init/           # Baseline migration (existing schema)
-│   │       └── 20260305000000_add_game_label/
-│   ├── prisma.config.ts          # Prisma config (datasource URL, migrations path)
+│   ├── prisma/                   # Schema, config, and migration history
 │   ├── src/
 │   │   ├── index.js              # Express server entry point
-│   │   ├── db/
-│   │   │   └── db.js             # PostgreSQL connection (pg pool)
-│   │   ├── generated/
-│   │   │   └── prisma/           # Auto-generated Prisma client (do not edit)
-│   │   ├── routes/               # Thin route definitions — map endpoints to controllers
-│   │   │   ├── teams.js
-│   │   │   ├── players.js
-│   │   │   ├── playerInfo.js
-│   │   │   ├── games.js
-│   │   │   ├── gameInfo.js
-│   │   │   ├── standings.js
-│   │   │   ├── seasons.js
-│   │   │   ├── search.js
-│   │   │   ├── aiSummary.js
-│   │   │   ├── favorites.js      # Favorites CRUD — all routes require auth
-│   │   │   └── webhooks.js       # Supabase auth webhook — populates users table on signup
-│   │   ├── controllers/          # Request/response handling — parse params, call services
-│   │   │   ├── teamsController.js
-│   │   │   ├── playersController.js
-│   │   │   ├── playerInfoController.js
-│   │   │   ├── gamesController.js
-│   │   │   ├── gameInfoController.js
-│   │   │   ├── standingsController.js
-│   │   │   ├── seasonsController.js
-│   │   │   ├── searchController.js
-│   │   │   ├── aiSummaryController.js
-│   │   │   ├── favoritesController.js
-│   │   │   └── webhooksController.js
-│   │   ├── services/             # Database queries and business logic
-│   │   │   ├── teamsService.js
-│   │   │   ├── playersService.js
-│   │   │   ├── playerInfoService.js
-│   │   │   ├── gamesService.js
-│   │   │   ├── gameInfoService.js
-│   │   │   ├── standingsService.js
-│   │   │   ├── seasonsService.js
-│   │   │   ├── searchService.js
-│   │   │   ├── aiSummaryService.js
-│   │   │   └── favoritesService.js  # ensureUser + favorites CRUD + recent stats/games queries
-│   │   ├── utils/                # Shared helper functions
-│   │   │   ├── slugResolver.js   # Resolve player name slug or numeric ID to DB id
-│   │   │   └── dateParser.js     # Parse partial/full date strings for search
-│   │   ├── config/
-│   │   │   └── env.js            # dotenv initialization and environment setup
-│   │   └── populate/             # Database seeding and update scripts
-│   │       ├── historicalUpsert.js
-│   │       ├── upsert.js
-│   │       └── src/
-│   │           ├── commonMappings.js
-│   │           ├── mapStatsToSchema.js
-│   │           ├── eventProcessor.js # ESPN event processing + game_label extraction
-│   │           ├── upsertGame.js
-│   │           ├── upsertPlayer.js
-│   │           ├── upsertStat.js
-│   │           └── upsertTeam.js
-│   ├── package.json              # Backend dependencies
-│   ├── package-lock.json
-│   ├── backend.env.example       # Example backend environment variables
-│   └── .env                      # Local backend environment (ignored by Git)
+│   │   ├── db/db.js              # PostgreSQL pool singleton
+│   │   ├── middleware/           # CORS, rate limiting, JWT auth
+│   │   ├── routes/               # Thin route definitions (one per resource)
+│   │   ├── controllers/          # Param extraction, response handling
+│   │   ├── services/             # SQL queries and business logic
+│   │   ├── utils/                # slugResolver, dateParser
+│   │   ├── config/env.js         # dotenv initialization
+│   │   └── populate/             # ESPN ingestion and upsert scripts
+│   └── __tests__/                # Jest + Supertest test suite
 │
 ├── frontend
 │   ├── src/
-│   │   ├── App.jsx               # Root React component
-│   │   ├── main.jsx              # Entry point for Vite
-│   │   ├── assets/               # Static assets (images, icons, etc.)
-│   │   ├── lib/
-│   │   │   └── supabase.js       # Supabase client singleton
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx   # Session state + auth modal trigger
-│   │   ├── api/                  # Backend API client and endpoint functions
-│   │   │   ├── client.js
-│   │   │   ├── games.js
-│   │   │   ├── teams.js
-│   │   │   ├── players.js
-│   │   │   ├── search.js
-│   │   │   ├── seasons.js
-│   │   │   └── ai.js
-│   │   ├── hooks/                # Custom React hooks (data-fetching + state)
-│   │   │   ├── useHomeGames.js   
-│   │   │   ├── useLeagueData.js  
-│   │   │   ├── useTeam.js        
-│   │   │   ├── usePlayer.js      
-│   │   │   ├── useGame.js        
-│   │   │   ├── useSearch.js      
-│   │   │   ├── useSeasons.js    
-│   │   │   └── useAISummary.js   
-│   │   ├── components/           # Reusable UI components
-│   │   │   ├── cards/            
-│   │   │   ├── layout/           
-│   │   │   └── ui/               
-│   │   ├── pages/                # Page-level React components (routes)
-│   │   │   └── AuthCallback.jsx  # OAuth popup callback — exchanges code and closes window
-│   │   ├── utilities/            # Helper functions and shared constants
-│   │   │   ├── motion.js        
-│   │   │   ├── formatDate.js     
-│   │   │   ├── LeagueData.js     
-│   │   │   ├── slugify.js       
-│   │   │   └── topPlayers.js    
-│   │   └── index.css             # Global styles and Tailwind v4 theme tokens
-│   ├── public/                   # League logos
-│   │   ├── NBA/                 
-│   │   ├── NFL/                 
-│   │   └── NHL/                 
-│   ├── index.html                
-│   ├── vite.config.js           
-│   ├── eslint.config.js         
-│   ├── package.json              
-│   ├── vercel.json              
-│   └── .env                     
+│   │   ├── App.jsx               # Root component and router
+│   │   ├── main.jsx              # Vite entry point
+│   │   ├── index.css             # Tailwind v4 theme tokens and global styles
+│   │   ├── lib/supabase.js       # Supabase client singleton
+│   │   ├── context/              # AuthContext — session state and auth modal
+│   │   ├── api/                  # Backend API client and per-resource wrappers
+│   │   ├── hooks/                # Data-fetching and state hooks
+│   │   ├── components/           # Reusable UI (cards, layout, ui primitives)
+│   │   ├── pages/                # Page-level route components
+│   │   └── utilities/            # Formatters, slugify, topPlayers scoring
+│   └── public/                   # League and playoff logos (NBA/, NFL/, NHL/)
 │
 ├── LICENSE
 └── README.md
-
 ```
 
 ## 🔥 Features
