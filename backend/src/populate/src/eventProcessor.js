@@ -464,13 +464,12 @@ export async function processEvent(client, leagueSlug, event) {
       seasonText = `${startYear}-${endTwoDigits}`; // "2023-24"
     }
 
-    // 5.4.9) Playoff/round label from ESPN notes (null for regular season)
+    // 5.4.9) Game label from ESPN notes
+    // type 1 = preseason, type 2 = regular season (null unless tournament e.g. 'NBA Cup Championship'), type 3 = playoffs
     const gameLabel =
-    event.season?.type === 3
-      ? (event.competitions?.[0]?.notes?.[0]?.headline || null)
-      : event.season?.type === 1
-      ? 'Preseason'
-      : null;
+      event.season?.type === 1
+        ? 'Preseason'
+        : (event.competitions?.[0]?.notes?.[0]?.headline || null);
 
     // 5.4.10) Upsert into games
     const gamePayload = {
