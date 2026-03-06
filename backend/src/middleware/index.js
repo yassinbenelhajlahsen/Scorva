@@ -1,46 +1,35 @@
 import rateLimit from "express-rate-limit";
 
+export const log = (level, message, meta = {}) => {
+  const entry = { time: new Date().toISOString(), level, message, ...meta };
+  const out = JSON.stringify(entry);
+  if (level === "error") {
+    process.stderr.write(out + "\n");
+  } else {
+    process.stdout.write(out + "\n");
+  }
+};
+
+export const logger = { info: (m, meta) => log("info", m, meta), warn: (m, meta) => log("warn", m, meta), error: (m, meta) => log("error", m, meta) };
+
 export const requestLogger = (req, res, next) => {
   const startTime = Date.now();
-
-  // Flag to prevent multiple logs for the same request
   let logged = false;
-
-  // Capture the original end function
   const originalEnd = res.end;
 
   res.end = function (...args) {
-    // Only log once per request
     if (!logged) {
       logged = true;
-      
       const duration = Date.now() - startTime;
-      const statusCode = res.statusCode;
-
-      // Color code based on status
-      let statusIcon;
-      if (statusCode >= 500) {
-        statusIcon = "🔴"; // Server error
-      } else if (statusCode >= 400) {
-        statusIcon = "🟡"; // Client error
-      } else if (statusCode >= 300) {
-        statusIcon = "🔵"; // Redirect
-      } else {
-        statusIcon = "🟢"; // Success
-      }
-
-      // Build log message
-      const method = req.method.padEnd(6);
-      const url = req.originalUrl;
-      const query =
-        Object.keys(req.query).length > 0 ? ` ${JSON.stringify(req.query)}` : "";
-
-      console.log(
-        `${statusIcon} ${statusCode} | ${method} ${url}${query} | ${duration}ms`,
-      );
+      const status = res.statusCode;
+      const level = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+      log(level, "request", {
+        method: req.method,
+        url: req.originalUrl,
+        status,
+        duration_ms: duration,
+      });
     }
-
-    // Call original end
     originalEnd.apply(res, args);
   };
 
@@ -48,7 +37,7 @@ export const requestLogger = (req, res, next) => {
 };
 
 const isProd = process.env.NODE_ENV === "production";
-console.log("environment:", process.env.NODE_ENV)
+log("info", "server starting", { env: process.env.NODE_ENV || "development" });
 // General rate limiter for all API endpoints
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

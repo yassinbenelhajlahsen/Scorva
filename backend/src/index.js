@@ -6,6 +6,7 @@ import {
   generalLimiter,
   aiLimiter,
   corsOrigins,
+  log,
 } from "./middleware/index.js";
 import teamsRouter from "./routes/teams.js";
 import standingsRouter from "./routes/standings.js";
@@ -51,6 +52,7 @@ app.use("/api", searchRoute);
 app.use("/api", seasonsRoute);
 app.use("/api", favoritesRoute);
 
-app.listen(process.env.PORT || 3000, "0.0.0.0", () => {
-  console.log("✅ Server running on port: ", process.env.PORT || 3000);
+const port = process.env.PORT || 3000;
+app.listen(port, "0.0.0.0", () => {
+  log("info", "server ready", { port });
 });

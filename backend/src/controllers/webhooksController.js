@@ -1,4 +1,5 @@
 import pool from "../db/db.js";
+import { log } from "../middleware/index.js";
 
 export async function handleSupabaseAuth(req, res) {
   const secret = process.env.SUPABASE_WEBHOOK_SECRET;
@@ -38,7 +39,7 @@ export async function handleSupabaseAuth(req, res) {
     );
     res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("Webhook: failed to insert user", err);
+    log("error", "webhook failed to insert user", { err: err.message });
     res.status(500).json({ error: "Failed to create user" });
   }
 }
