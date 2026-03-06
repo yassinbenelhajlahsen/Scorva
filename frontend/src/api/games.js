@@ -1,0 +1,21 @@
+import { apiFetch } from "./client.js";
+
+export function getAllLeagueGames(signal) {
+  return Promise.all(
+    ["nba", "nhl", "nfl"].map((league) =>
+      apiFetch(`/api/${league}/games`, { signal })
+    )
+  ).then(([nba, nhl, nfl]) => ({ nba, nhl, nfl }));
+}
+
+export function getLeagueGames(league, { season, signal } = {}) {
+  return apiFetch(`/api/${league}/games`, { signal, params: { season } });
+}
+
+export function getTeamGames(league, teamId, { season, signal } = {}) {
+  return apiFetch(`/api/${league}/games`, { signal, params: { teamId, season } });
+}
+
+export function getGameById(league, gameId, { signal } = {}) {
+  return apiFetch(`/api/${league}/games/${gameId}`, { signal });
+}
