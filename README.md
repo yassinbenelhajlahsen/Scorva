@@ -12,7 +12,7 @@ https://scorva.vercel.app
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React, React Router, Tailwind v4, Axios, Framer Motion, Vite
+- **Frontend:** React, React Router, Tailwind v4, Framer Motion, Vite
 - **Backend:** Node.js, Express, pg (PostgreSQL), Prisma ORM
 - **Database:** PostgreSQL (hosted on Railway)
 - **Deployment:**
@@ -66,13 +66,35 @@ Scorva
 │   │   ├── App.jsx               # Root React component
 │   │   ├── main.jsx              # Entry point for Vite
 │   │   ├── assets/               # Static assets (images, icons, etc.)
+│   │   ├── api/                  # Backend API client and endpoint functions
+│   │   │   ├── client.js         # Centralized fetch wrapper (base URL, error handling)
+│   │   │   ├── games.js          # getAllLeagueGames, getLeagueGames, getTeamGames, getGameById
+│   │   │   ├── teams.js          # getTeams, getStandings
+│   │   │   ├── players.js        # getPlayer
+│   │   │   ├── search.js         # search
+│   │   │   ├── seasons.js        # getSeasons
+│   │   │   └── ai.js             # getAISummary
+│   │   ├── hooks/                # Custom React hooks (data-fetching + state)
+│   │   │   ├── useHomeGames.js   # Homepage: parallel fetch for all 3 leagues
+│   │   │   ├── useLeagueData.js  # LeaguePage: games + standings
+│   │   │   ├── useTeam.js        # TeamPage: team lookup, games, record
+│   │   │   ├── usePlayer.js      # PlayerPage: player data by slug/season
+│   │   │   ├── useGame.js        # GamePage: single game detail
+│   │   │   ├── useSearch.js      # Navbar: debounced search with abort
+│   │   │   ├── useSeasons.js     # SeasonSelector: available seasons list
+│   │   │   └── useAISummary.js   # AISummary: AI-generated game summary
 │   │   ├── components/           # Reusable UI components
-│   │   │   ├── cards/            # GameCard, PlayerCard, etc.
+│   │   │   ├── cards/            # GameCard, PlayerCard, StatCard, etc.
 │   │   │   ├── layout/           # Navbar, Footer, PageWrapper, ScrollToTop
-│   │   │   └── ui/               # BoxScore, Hero, SearchBar
+│   │   │   └── ui/               # BoxScore, AISummary, SearchBar, SeasonSelector
 │   │   ├── pages/                # Page-level React components (routes)
-│   │   ├── utilities/            # Helper functions and formatters
-│   │   └── index.css             # Global styles
+│   │   ├── utilities/            # Helper functions and shared constants
+│   │   │   ├── motion.js         # Shared Framer Motion variants (containerVariants, itemVariants)
+│   │   │   ├── formatDate.js     # Date formatting helpers
+│   │   │   ├── LeagueData.js     # Static league config (names, logos, links)
+│   │   │   ├── slugify.js        # URL-safe slug generation
+│   │   │   └── topPlayers.js     # Top performer computation per league
+│   │   └── index.css             # Global styles and Tailwind v4 theme tokens
 │   ├── public/
 │   │   ├── NBA/                  # NBA logos (NBAlogo.webp, NBAPlayoff.png, NBAFinal.png)
 │   │   ├── NFL/                  # NFL logos (NFLlogo.webp, NFLPlayoff.png, NFLFinal.png)
