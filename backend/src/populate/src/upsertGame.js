@@ -1,19 +1,22 @@
 export default async function upsertGame(client, league, gamePayload) {
   const text = `
     INSERT INTO games
-      (date, hometeamid, awayteamid, league,
+      (eventid, date, hometeamid, awayteamid, league,
        homescore, awayscore, venue, broadcast,
        firstqtr, secondqtr, thirdqtr, fourthqtr,
        ot1, ot2, ot3, ot4,
        status, season, game_label)
     VALUES
-      ($1,       $2,         $3,          $4,
-       $5,       $6,         $7,          $8,
-       $9,       $10,        $11,         $12,
-       $13,      $14,        $15,         $16,
-       $17,      $18,        $19)
-    ON CONFLICT ON CONSTRAINT unique_game_combo DO UPDATE
-      SET homescore  = EXCLUDED.homescore,
+      ($1,      $2,   $3,         $4,          $5,
+       $6,       $7,         $8,          $9,
+       $10,      $11,        $12,         $13,
+       $14,      $15,        $16,         $17,
+       $18,      $19,        $20)
+    ON CONFLICT (eventid, league) DO UPDATE
+      SET date       = EXCLUDED.date,
+          hometeamid = EXCLUDED.hometeamid,
+          awayteamid = EXCLUDED.awayteamid,
+          homescore  = EXCLUDED.homescore,
           awayscore  = EXCLUDED.awayscore,
           venue      = EXCLUDED.venue,
           broadcast  = EXCLUDED.broadcast,
@@ -32,10 +35,11 @@ export default async function upsertGame(client, league, gamePayload) {
   `;
 
   const values = [
-    gamePayload.date, // e.g. '2025-05-30'
+    gamePayload.eventid,          // ESPN event ID
+    gamePayload.date,             // e.g. '2025-05-30'
     gamePayload.homeTeamId,
     gamePayload.awayTeamId,
-    league, // 'nba', 'nfl', etc.
+    league,                       // 'nba', 'nfl', etc.
     gamePayload.homeScore,
     gamePayload.awayScore,
     gamePayload.venue,
@@ -48,9 +52,9 @@ export default async function upsertGame(client, league, gamePayload) {
     gamePayload.quarters.ot2 || null,
     gamePayload.quarters.ot3 || null,
     gamePayload.quarters.ot4 || null,
-    gamePayload.status, // 'SCHEDULED' / 'IN' / 'FINAL'
-    gamePayload.seasonText, // '2024-reg' / '2024-post'
-    gamePayload.gameLabel || null, // e.g. 'NBA Finals - Game 1', null for regular season
+    gamePayload.status,           // 'SCHEDULED' / 'IN' / 'FINAL'
+    gamePayload.seasonText,       // '2024-25' etc.
+    gamePayload.gameLabel || null,
   ];
   const result = await client.query(text, values);
   const gameId = result.rows[0].id;

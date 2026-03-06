@@ -35,9 +35,7 @@ model games {
   teams_games_hometeamidToteams teams?   @relation("games_hometeamidToteams", fields: [hometeamid], references: [id], onDelete: Cascade, onUpdate: NoAction)
   stats                         stats[]
 
-  @@unique([date, hometeamid, awayteamid, league], map: "games_date_teams_league_unique")
   @@unique([eventid, league], map: "games_eventid_league_uniq")
-  @@unique([date, hometeamid, awayteamid, league], map: "unique_game_combo")
   @@index([awayteamid, date])
   @@index([hometeamid, date], map: "games_teamid_date_idx")
   @@index([awayteamid], map: "idx_games_awayteamid")
