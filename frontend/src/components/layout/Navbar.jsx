@@ -4,7 +4,6 @@ import logo from "../../assets/favicon.png";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/useSearch.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { supabase } from "../../lib/supabase.js";
 
 export default function Navbar() {
   const [query, setQuery] = useState("");
@@ -52,11 +51,10 @@ export default function Navbar() {
           />
         </div>
 
-        {/* Right: Nav links + auth */}
+        {/* Right: Nav links + divider + auth */}
         <div className="ml-auto flex items-center gap-5 shrink-0">
           {navLinks.map(({ to, label }) => {
-            const isActive =
-              label !== "About" && location.pathname.startsWith(to);
+            const isActive = location.pathname.startsWith(to);
             return (
               <Link
                 key={to}
@@ -71,20 +69,29 @@ export default function Navbar() {
               </Link>
             );
           })}
-          {session === undefined ? null : session ? (
-            <button
-              onClick={() => supabase.auth.signOut()}
-              className="text-[13px] font-medium text-text-tertiary hover:text-text-secondary transition-colors duration-150"
-            >
-              Sign Out
-            </button>
-          ) : (
-            <button
-              onClick={openAuthModal}
-              className="text-[13px] font-medium text-text-secondary hover:text-text-primary border border-white/[0.14] hover:border-white/[0.26] hover:bg-white/[0.04] rounded-full px-3.5 py-1.5 transition-all duration-200"
-            >
-              Sign In
-            </button>
+          {session === undefined ? null : (
+            <>
+              <div className="w-px h-4 bg-white/[0.12]" />
+              {session ? (
+                <Link
+                  to="/settings"
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    location.pathname.startsWith("/settings")
+                      ? "text-accent"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Account
+                </Link>
+              ) : (
+                <button
+                  onClick={openAuthModal}
+                  className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200"
+                >
+                  Sign In
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
