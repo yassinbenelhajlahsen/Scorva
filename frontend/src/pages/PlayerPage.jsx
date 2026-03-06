@@ -92,7 +92,7 @@ export default function PlayerPage() {
     );
   }
 
-  const { id, name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo, games } = playerData;
+  const { id, name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo } = playerData;
 
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
