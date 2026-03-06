@@ -49,7 +49,6 @@ export function FloatingInput({
   borderColor = "var(--app-border)",
   labelColor,
 }: FloatingInputProps) {
-  const isPasswordLabel = label?.toLowerCase() === "password";
   const [isFocused, setIsFocused] = React.useState(false);
 
   return (
@@ -104,7 +103,7 @@ export function FloatingInput({
             error
               ? "text-red-500 peer-focus:text-red-500"
               : `${
-                  isPasswordLabel ? "text-app-brand" : "text-app-text-secondary"
+                  "text-app-brand"
                 } peer-focus:text-app-brand`
           }
           peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm
