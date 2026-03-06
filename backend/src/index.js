@@ -16,6 +16,8 @@ import gamesRoute from "./routes/games.js";
 import searchRoute from "./routes/search.js";
 import aiSummaryRoute from "./routes/aiSummary.js";
 import seasonsRoute from "./routes/seasons.js";
+import favoritesRoute from "./routes/favorites.js";
+import webhooksRoute from "./routes/webhooks.js";
 
 const app = express();
 
@@ -31,6 +33,9 @@ app.use(cors({ origin: corsOrigins }));
 // JSON body parser
 app.use(express.json());
 
+// Supabase auth webhook — no rate limiter, verified by secret header
+app.use("/api", webhooksRoute);
+
 // Apply stricter rate limiter to AI summary endpoint (more expensive operation)
 app.use("/api", aiLimiter, aiSummaryRoute);
 
@@ -44,6 +49,7 @@ app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", searchRoute);
 app.use("/api", seasonsRoute);
+app.use("/api", favoritesRoute);
 
 app.listen(process.env.PORT || 3000, "0.0.0.0", () => {
   console.log("✅ Server running on port: ", process.env.PORT || 3000);
