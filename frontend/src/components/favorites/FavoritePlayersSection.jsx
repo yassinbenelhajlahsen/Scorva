@@ -53,7 +53,7 @@ export default function FavoritePlayersSection({ players }) {
 
               <div className="hidden sm:block w-px bg-white/[0.06] self-stretch shrink-0" />
 
-              <div className="flex flex-wrap gap-3 flex-1 min-w-0 pt-1">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 flex-1 min-w-0 pt-1">
                 {player.recentStats.length === 0 ? (
                   <p className="text-text-tertiary text-xs self-center">No recent games</p>
                 ) : (
@@ -68,7 +68,7 @@ export default function FavoritePlayersSection({ players }) {
                       .map((s) => ({ label: s.label, value: stat[s.key] ?? "-" }))
                       .filter((s) => s.value !== "-");
                     return (
-                      <div key={stat.game_id} className="flex-1 min-w-[10rem]">
+                      <div key={stat.game_id} className="w-full sm:flex-1 sm:min-w-[10rem]">
                         <StatCard
                           stats={statsArr}
                           opponent={opponent}
