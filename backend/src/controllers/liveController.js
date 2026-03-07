@@ -120,10 +120,11 @@ export async function streamGame(req, res) {
 
   async function cleanup() {
     clearInterval(heartbeat);
-    if (listenClient) {
-      try { await listenClient.query("UNLISTEN game_updated"); } catch { /* ignore */ }
-      listenClient.release();
-      listenClient = null;
+    const client = listenClient;
+    listenClient = null;
+    if (client) {
+      try { await client.query("UNLISTEN game_updated"); } catch { /* ignore */ }
+      client.release();
     }
   }
 
