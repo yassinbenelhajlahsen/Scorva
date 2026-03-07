@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { formatDateShort } from "../../utilities/formatDate";
+import { formatDateShort, getPeriodLabel } from "../../utilities/formatDate";
 
 export default function GameCard({ game }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -42,10 +42,15 @@ export default function GameCard({ game }) {
 
         {/* Status pill */}
         {inProgress && (
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-3 flex items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full">
               Live
             </span>
+            {game.clock && (
+              <span className="text-[10px] text-live/70 font-medium">
+                {getPeriodLabel(game.current_period, game.league)} {game.clock}
+              </span>
+            )}
           </div>
         )}
 

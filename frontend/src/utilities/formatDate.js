@@ -109,4 +109,12 @@ export function formatDateShort(input) {
   return `${utcMonthName} ${utcDay}${suffix}`;
 }
 
+export function getPeriodLabel(period, league) {
+  if (!period) return "";
+  const prefix = league === "nhl" ? "P" : "Q";
+  const maxRegular = league === "nhl" ? 3 : 4;
+  if (period <= maxRegular) return `${prefix}${period}`;
+  return "OT" + (period > maxRegular + 1 ? period - maxRegular : "");
+}
+
 export default formatDate;

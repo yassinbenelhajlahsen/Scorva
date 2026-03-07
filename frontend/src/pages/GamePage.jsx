@@ -7,7 +7,7 @@ import slugify from "../utilities/slugify.js";
 import computeTopPlayers from "../utilities/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
 import LoadingPage from "./LoadingPage.jsx";
-import formatDate from "../utilities/formatDate.js";
+import formatDate, { getPeriodLabel } from "../utilities/formatDate.js";
 import { useGame } from "../hooks/useGame.js";
 
 export default function GamePage() {
@@ -148,6 +148,11 @@ export default function GamePage() {
           {inProgress && (
             <span className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full">
               Live
+            </span>
+          )}
+          {inProgress && game.clock && (
+            <span className="text-text-tertiary text-xs">
+              {getPeriodLabel(game.currentPeriod, league)} · {game.clock}
             </span>
           )}
           {!inProgress && !isFinal && (
