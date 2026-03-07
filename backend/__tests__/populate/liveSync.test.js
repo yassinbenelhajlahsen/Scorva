@@ -87,7 +87,8 @@ describe("upsertGameScoreboard", () => {
   it("issues an UPDATE with scores, status, clock, and current_period", async () => {
     await upsertGameScoreboard(mockClient, "nba", makeEvent());
 
-    expect(mockClient.query).toHaveBeenCalledTimes(1);
+    // 2 calls: UPDATE games + pg_notify
+    expect(mockClient.query).toHaveBeenCalledTimes(2);
     const [sql, params] = mockClient.query.mock.calls[0];
     expect(sql).toContain("UPDATE games");
     expect(sql).toContain("current_period");
@@ -131,7 +132,8 @@ describe("upsertGameScoreboard", () => {
     await upsertGameScoreboard(mockClient, "nba", event);
 
     // Should still run the update — quarter COALESCE keeps existing DB values
-    expect(mockClient.query).toHaveBeenCalledTimes(1);
+    // 2 calls: UPDATE games + pg_notify
+    expect(mockClient.query).toHaveBeenCalledTimes(2);
     const params = mockClient.query.mock.calls[0][1];
     // Quarter params should be null (COALESCE in SQL preserves DB values)
     expect(params[5]).toBeNull(); // firstqtr

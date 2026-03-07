@@ -28,7 +28,8 @@ backend/__tests__/
 │   ├── standings.test.js        # GET /:league/standings
 │   ├── search.test.js           # GET /search
 │   ├── aiSummary.test.js        # GET /games/:id/ai-summary
-│   └── favorites.test.js        # GET|POST|DELETE /favorites/*
+│   ├── favorites.test.js        # GET|POST|DELETE /favorites/*
+│   └── live.test.js             # GET /live/:league/games + /live/:league/games/:gameId (SSE)
 ├── db/
 │   └── db.test.js               # Database connection tests
 ├── populate/
@@ -152,7 +153,11 @@ Test different league parameters, query params, and route params.
 
 Test mapping functions with various input formats and edge cases.
 
-### 5. Integration
+### 5. SSE Endpoints
+
+Test SSE controllers directly using mock req/res objects (EventEmitter-based client for LISTEN/NOTIFY). Supertest is not used for SSE — `res.write`, `res.writeHead`, and `res.end` are mocked as `jest.fn()`. The mock `listenClient` is a Node.js `EventEmitter` so `notification` events can be simulated.
+
+### 6. Integration
 
 Test full request-response cycles with middleware.
 

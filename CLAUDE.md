@@ -75,6 +75,8 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | User service | `backend/src/services/userService.js` |
 | User route | `backend/src/routes/user.js` |
 | Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
+| SSE live route | `backend/src/routes/live.js`, `backend/src/controllers/liveController.js` |
+| SSE live hooks | `frontend/src/hooks/useLiveGame.js`, `frontend/src/hooks/useLiveGames.js` |
 | Backend test suite | `backend/__tests__/` |
 | Backend test helpers | `backend/__tests__/helpers/testHelpers.js` |
 | Frontend test suite | `frontend/src/__tests__/` |
@@ -90,6 +92,8 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `GET /:league/players/:playerId`
 - `GET /:league/seasons`
 - `GET /search`
+- `GET /live/:league/games` — SSE stream; pushes game list every 30s; sends `event: done` when no live games remain; heartbeat `: ping` every 15s
+- `GET /live/:league/games/:gameId` — SSE stream; pushes full game detail every 30s; sends `event: done` when game is Final; mounted before `generalLimiter`
 - `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**
 - `GET /favorites` — requires auth; returns `{ players: [...], teams: [...] }` with recent stats/games
 - `GET /favorites/check?playerIds=1,2&teamIds=3,4` — requires auth; returns which IDs are favorited
@@ -137,6 +141,7 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Auth modal** — fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
 - **apiFetch** (`frontend/src/api/client.js`) supports `method` and `body` params; sets `Content-Type: application/json` when body present; handles 204 (no-content) responses.
 - **Favorites** all routes require `requireAuth`; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
+- **SSE live endpoints** (`/api/live/:league/games` and `/api/live/:league/games/:gameId`) — mounted before `generalLimiter`; reuse `gamesService`/`gameInfoService` directly in controller (no new service layer); 30s data interval, 15s `: ping` heartbeat, `X-Accel-Buffering: no` for Railway. Frontend: `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` hooks — pass `null` to deactivate without breaking hooks rules. 3-failure REST fallback. SSE URL helpers in `frontend/src/api/games.js` use `import.meta.env.VITE_API_URL` directly. `useLiveGame` integrated into `useGame`; `useLiveGames` integrated into `useHomeGames` (3x) and `useLeagueData`.
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
