@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { Pool } from "pg";
 import {
   runTodayProcessing,
+  runUpcomingProcessing,
   clearPlayerCache,
   getPlayerCacheStats,
 } from "./src/eventProcessor.js";
@@ -39,15 +40,13 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
   console.log(`${"=".repeat(60)}`);
 
   try {
-    // For each league, fetch and process today's events
-    console.log(`\n📋 Processing NBA...`);
-    await runTodayProcessing("nba", pool);
+    const leagues = ["nba", "nfl", "nhl"];
 
-    console.log(`\n📋 Processing NFL...`);
-    await runTodayProcessing("nfl", pool);
-
-    console.log(`\n📋 Processing NHL...`);
-    await runTodayProcessing("nhl", pool);
+    for (const league of leagues) {
+      console.log(`\n📋 Processing ${league.toUpperCase()}...`);
+      await runTodayProcessing(league, pool);
+      await runUpcomingProcessing(league, pool);
+    }
 
     // Log optimization stats before clearing (useful for monitoring impact)
     const stats = getPlayerCacheStats();
