@@ -120,9 +120,7 @@ describe("streamGames", () => {
 
   it("sends data event with game list on first tick", async () => {
     const liveGame = makeLiveGame();
-    mockPool.query
-      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check
-      .mockResolvedValueOnce({ rows: [liveGame] }); // main query
+    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
@@ -135,11 +133,25 @@ describe("streamGames", () => {
     expect(parsed[0].status).toBe("In Progress");
   });
 
+  it("skips EXISTS check by passing live: true (single query per tick)", async () => {
+    const liveGame = makeLiveGame();
+    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
+
+    const req = makeReq({ league: "nba" });
+    const res = makeRes();
+    await streamGames(req, res);
+
+    // Only 1 pool.query call (no EXISTS check), plus the LISTEN on the client
+    expect(mockPool.query).toHaveBeenCalledTimes(1);
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.not.stringContaining("EXISTS"),
+      expect.any(Array)
+    );
+  });
+
   it("sends event: done and ends stream when no live games", async () => {
     const finalGame = { ...fixtures.game(), status: "Final" };
-    mockPool.query
-      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check
-      .mockResolvedValueOnce({ rows: [finalGame] }); // main query
+    mockPool.query.mockResolvedValueOnce({ rows: [finalGame] });
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
@@ -151,9 +163,7 @@ describe("streamGames", () => {
 
   it("keeps stream open when games are at Halftime", async () => {
     const halftimeGame = { ...fixtures.game(), status: "Halftime" };
-    mockPool.query
-      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] })
-      .mockResolvedValueOnce({ rows: [halftimeGame] });
+    mockPool.query.mockResolvedValueOnce({ rows: [halftimeGame] });
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
@@ -176,12 +186,10 @@ describe("streamGames", () => {
 
   it("pushes data on pg notification", async () => {
     const liveGame = makeLiveGame();
-    // Each getGames() call makes 2 queries: EXISTS check + main query.
+    // live: true skips EXISTS check — one query per getGames() call.
     mockPool.query
-      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check - initial send
-      .mockResolvedValueOnce({ rows: [liveGame] })                  // main query - initial send
-      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check - notification send
-      .mockResolvedValueOnce({ rows: [liveGame] });                 // main query - notification send
+      .mockResolvedValueOnce({ rows: [liveGame] })  // initial send
+      .mockResolvedValueOnce({ rows: [liveGame] }); // notification-triggered send
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
