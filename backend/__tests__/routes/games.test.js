@@ -25,6 +25,14 @@ const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: gamesRouter } = await import(routerPath);
 
+// Helper: mock the two-query sequence for the default (no teamId, no season) path.
+// First call is the EXISTS check; second call is the main SELECT.
+function mockTodayCheck(hasTodayGames, games = []) {
+  mockPool.query
+    .mockResolvedValueOnce({ rows: [{ has_today_games: hasTodayGames }] })
+    .mockResolvedValueOnce({ rows: games });
+}
+
 describe("Games Route - GET /:league/games", () => {
   let app;
 
@@ -35,123 +43,194 @@ describe("Games Route - GET /:league/games", () => {
     jest.clearAllMocks();
   });
 
-  it("should return all games for a league", async () => {
-    const mockGames = [
-      {
-        ...fixtures.game(),
-        home_team_name: "Los Angeles Lakers",
-        home_shortname: "LAL",
-        home_logo: "https://example.com/lal.png",
-        away_team_name: "Boston Celtics",
-        away_shortname: "BOS",
-        away_logo: "https://example.com/bos.png",
-      },
-    ];
+  describe("default path (no teamId, no season)", () => {
+    it("should return today's games when today has live/final games", async () => {
+      const mockGames = [
+        {
+          ...fixtures.game({ status: "In Progress" }),
+          home_team_name: "Los Angeles Lakers",
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_team_name: "Boston Celtics",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        },
+      ];
 
-    mockPool.query.mockResolvedValue({ rows: mockGames });
+      mockTodayCheck(true, mockGames);
 
-    const response = await request(app).get("/api/nba/games");
+      const response = await request(app).get("/api/nba/games");
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(mockGames);
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("SELECT"),
-      ["nba", null]
-    );
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockGames);
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+      // First call: EXISTS check
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("EXISTS"),
+        ["nba", null, expect.any(String)]
+      );
+      // Second call: today's full slate, ordered by status priority
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("ILIKE"),
+        ["nba", null, expect.any(String)]
+      );
+    });
+
+    it("should return upcoming scheduled games when no live/final games today", async () => {
+      const scheduledGames = [
+        {
+          ...fixtures.game({ status: "Scheduled", homescore: null, awayscore: null }),
+          home_team_name: "Los Angeles Lakers",
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_team_name: "Boston Celtics",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        },
+      ];
+
+      mockTodayCheck(false, scheduledGames);
+
+      const response = await request(app).get("/api/nba/games");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(scheduledGames);
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+      // Second call: upcoming scheduled, ordered by date ASC
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("ORDER BY g.date ASC"),
+        ["nba", null, expect.any(String)]
+      );
+    });
+
+    it("should include LIMIT 12 for today's games query", async () => {
+      mockTodayCheck(true, []);
+
+      await request(app).get("/api/nba/games");
+
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("LIMIT 12"),
+        ["nba", null, expect.any(String)]
+      );
+    });
+
+    it("should include LIMIT 12 for upcoming scheduled games query", async () => {
+      mockTodayCheck(false, []);
+
+      await request(app).get("/api/nba/games");
+
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("LIMIT 12"),
+        ["nba", null, expect.any(String)]
+      );
+    });
+
+    it("should return empty array when no games found", async () => {
+      mockTodayCheck(false, []);
+
+      const response = await request(app).get("/api/nfl/games");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it("should work with different league parameters", async () => {
+      mockTodayCheck(false, []);
+
+      await request(app).get("/api/nhl/games");
+
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        ["nhl", null, expect.any(String)]
+      );
+    });
+
+    it("should handle database errors gracefully", async () => {
+      mockPool.query.mockRejectedValue(new Error("Database error"));
+
+      const response = await request(app).get("/api/nba/games");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: "Failed to fetch games." });
+    });
   });
 
-  it("should filter games by teamId when provided", async () => {
-    const teamId = 5;
-    const mockGames = [
-      {
-        ...fixtures.game({ hometeamid: teamId }),
-        home_team_name: "Los Angeles Lakers",
-        away_team_name: "Boston Celtics",
-      },
-    ];
+  describe("teamId path (preserves original behavior)", () => {
+    it("should filter games by teamId and order by date descending", async () => {
+      const teamId = 5;
+      const mockGames = [
+        {
+          ...fixtures.game({ hometeamid: teamId }),
+          home_team_name: "Los Angeles Lakers",
+          away_team_name: "Boston Celtics",
+        },
+      ];
 
-    mockPool.query.mockResolvedValue({ rows: mockGames });
+      mockPool.query.mockResolvedValue({ rows: mockGames });
 
-    const response = await request(app)
-      .get("/api/nba/games")
-      .query({ teamId: teamId.toString() });
+      const response = await request(app)
+        .get("/api/nba/games")
+        .query({ teamId: teamId.toString() });
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(mockGames);
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("$3::integer IN"),
-      ["nba", null, teamId.toString()]
-    );
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(mockGames);
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("$3::integer IN"),
+        ["nba", null, teamId.toString()]
+      );
+    });
+
+    it("should not apply LIMIT when filtering by teamId", async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      await request(app).get("/api/nba/games").query({ teamId: "1" });
+
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      const [calledQuery] = mockPool.query.mock.calls[0];
+      expect(calledQuery).not.toContain("LIMIT");
+    });
+
+    it("should order by date descending for teamId path", async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      await request(app).get("/api/nba/games").query({ teamId: "1" });
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("ORDER BY g.date DESC"),
+        expect.any(Array)
+      );
+    });
   });
 
-  it("should limit results to 12 games", async () => {
-    const mockGames = Array(15)
-      .fill(null)
-      .map((_, i) => ({
-        ...fixtures.game({ id: i + 1 }),
-        home_team_name: "Team A",
-        away_team_name: "Team B",
-      }));
+  describe("season path (preserves original behavior)", () => {
+    it("should filter by season and order by date descending", async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
 
-    mockPool.query.mockResolvedValue({ rows: mockGames.slice(0, 12) });
+      await request(app).get("/api/nba/games").query({ season: "2024-25" });
 
-    const response = await request(app).get("/api/nba/games");
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("ORDER BY g.date DESC"),
+        ["nba", "2024-25"]
+      );
+    });
 
-    expect(response.status).toBe(200);
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("LIMIT 12"),
-      ["nba", null]
-    );
-  });
+    it("should apply LIMIT 12 for season path without teamId", async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
 
-  it("should order games by date descending", async () => {
-    const mockGames = [
-      {
-        ...fixtures.game({ id: 1, date: "2025-01-16" }),
-        home_team_name: "Team A",
-        away_team_name: "Team B",
-      },
-      {
-        ...fixtures.game({ id: 2, date: "2025-01-15" }),
-        home_team_name: "Team C",
-        away_team_name: "Team D",
-      },
-    ];
+      await request(app).get("/api/nba/games").query({ season: "2024-25" });
 
-    mockPool.query.mockResolvedValue({ rows: mockGames });
-
-    const response = await request(app).get("/api/nba/games");
-
-    expect(response.status).toBe(200);
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("ORDER BY g.date DESC"),
-      ["nba", null]
-    );
-  });
-
-  it("should handle database errors gracefully", async () => {
-    mockPool.query.mockRejectedValue(new Error("Database error"));
-
-    const response = await request(app).get("/api/nba/games");
-
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({ error: "Failed to fetch games." });
-  });
-
-  it("should return empty array when no games found", async () => {
-    mockPool.query.mockResolvedValue({ rows: [] });
-
-    const response = await request(app).get("/api/nfl/games");
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([]);
-  });
-
-  it("should work with different league parameters", async () => {
-    mockPool.query.mockResolvedValue({ rows: [] });
-
-    await request(app).get("/api/nhl/games");
-
-    expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["nhl", null]);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("LIMIT 12"),
+        ["nba", "2024-25"]
+      );
+    });
   });
 });

@@ -120,7 +120,9 @@ describe("streamGames", () => {
 
   it("sends data event with game list on first tick", async () => {
     const liveGame = makeLiveGame();
-    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check
+      .mockResolvedValueOnce({ rows: [liveGame] }); // main query
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
@@ -135,7 +137,9 @@ describe("streamGames", () => {
 
   it("sends event: done and ends stream when no live games", async () => {
     const finalGame = { ...fixtures.game(), status: "Final" };
-    mockPool.query.mockResolvedValueOnce({ rows: [finalGame] });
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check
+      .mockResolvedValueOnce({ rows: [finalGame] }); // main query
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
@@ -158,10 +162,12 @@ describe("streamGames", () => {
 
   it("pushes data on pg notification", async () => {
     const liveGame = makeLiveGame();
-    // First call: initial send. Second call: notification-triggered send.
+    // Each getGames() call makes 2 queries: EXISTS check + main query.
     mockPool.query
-      .mockResolvedValueOnce({ rows: [liveGame] })
-      .mockResolvedValueOnce({ rows: [liveGame] });
+      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check - initial send
+      .mockResolvedValueOnce({ rows: [liveGame] })                  // main query - initial send
+      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] }) // EXISTS check - notification send
+      .mockResolvedValueOnce({ rows: [liveGame] });                 // main query - notification send
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
