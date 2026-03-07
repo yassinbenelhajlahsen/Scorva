@@ -30,15 +30,17 @@ const NO_GAMES_SLEEP_MS = 5 * 60 * 1000;
 
 // Per-event tracking for two-tier strategy
 // eventId → { lastFullUpdate: timestamp, lastPeriod: number|null }
-const eventState = new Map();
+export const eventState = new Map();
 
-async function fetchLiveEvents(sport, leagueSlug) {
+function isLiveEvent(e) {
+  const state = e.status?.type?.state;
+  return state !== "pre" && state !== "post";
+}
+
+async function fetchTodayEvents(sport, leagueSlug) {
   const res = await fetch(SCOREBOARD_URL(sport, leagueSlug));
   const data = await res.json();
-  return (data.events ?? []).filter((e) => {
-    const state = e.status?.type?.state;
-    return state !== "pre" && state !== "post";
-  });
+  return data.events ?? [];
 }
 
 /**
@@ -114,27 +116,37 @@ export async function upsertGameScoreboard(client, leagueSlug, event) {
   await client.query("SELECT pg_notify('game_updated', $1)", [String(espnEventId)]);
 }
 
-async function tick(liveLeagues) {
+export async function tick(liveLeagues) {
   const stillLive = [];
 
   for (const { slug, sport } of liveLeagues) {
-    let events;
+    let allEvents;
     try {
-      events = await fetchLiveEvents(sport, slug);
+      allEvents = await fetchTodayEvents(sport, slug);
     } catch (err) {
       console.error(`[liveSync] Failed to fetch ${slug} scoreboard: ${err.message}`);
       stillLive.push({ slug, sport }); // keep retrying this league
       continue;
     }
 
-    if (events.length) stillLive.push({ slug, sport });
+    const liveEvents = allEvents.filter(isLiveEvent);
+
+    // Games that were being tracked but have now transitioned to "post" (Final)
+    const justFinalized = allEvents.filter(
+      (e) =>
+        e.status?.type?.state === "post" &&
+        eventState.has(parseInt(e.id, 10))
+    );
+
+    if (liveEvents.length) stillLive.push({ slug, sport });
 
     const now = Date.now();
     const client = await pool.connect();
     try {
-      for (let i = 0; i < events.length; i += 5) {
+      // Process in-progress games (existing two-tier logic)
+      for (let i = 0; i < liveEvents.length; i += 5) {
         await Promise.all(
-          events.slice(i, i + 5).map(async (event) => {
+          liveEvents.slice(i, i + 5).map(async (event) => {
             const eventId = parseInt(event.id, 10);
             const state = eventState.get(eventId) ?? { lastFullUpdate: 0, lastPeriod: null };
             const currentPeriod = event.status?.period ?? null;
@@ -162,6 +174,22 @@ async function tick(liveLeagues) {
             }
           })
         );
+      }
+
+      // Write Final status for games that just ended and remove from tracking
+      for (const event of justFinalized) {
+        const eventId = parseInt(event.id, 10);
+        try {
+          await processEvent(client, slug, event);
+          await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
+        } catch (err) {
+          console.error(`[liveSync] Final update failed for event ${eventId}: ${err.message}`);
+          try {
+            await client.query("ROLLBACK");
+          } catch (_) { /* ignore */ }
+          await upsertGameScoreboard(client, slug, event);
+        }
+        eventState.delete(eventId);
       }
     } finally {
       client.release();
@@ -195,12 +223,12 @@ async function main() {
 
   // eslint-disable-next-line no-constant-condition
   while (!shuttingDown) {
-    // Discover live leagues
+    // Discover leagues with live (in-progress) games
     let liveLeagues = [];
     for (const { slug, sport } of LEAGUES) {
       try {
-        const events = await fetchLiveEvents(sport, slug);
-        if (events.length) liveLeagues.push({ slug, sport });
+        const events = await fetchTodayEvents(sport, slug);
+        if (events.some(isLiveEvent)) liveLeagues.push({ slug, sport });
       } catch (err) {
         console.error(`[liveSync] Failed to check ${slug}: ${err.message}`);
       }
