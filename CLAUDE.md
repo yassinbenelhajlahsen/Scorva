@@ -92,8 +92,8 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `GET /:league/players/:playerId`
 - `GET /:league/seasons`
 - `GET /search`
-- `GET /live/:league/games` — SSE stream; pushes game list every 30s; sends `event: done` when no live games remain; heartbeat `: ping` every 15s
-- `GET /live/:league/games/:gameId` — SSE stream; pushes full game detail every 30s; sends `event: done` when game is Final; mounted before `generalLimiter`
+- `GET /live/:league/games` — SSE stream; pushes game list on each `pg_notify('game_updated')` from liveSync; sends `event: done` when no live games remain; heartbeat `: ping` every 15s
+- `GET /live/:league/games/:gameId` — SSE stream; pushes full game detail on each `pg_notify('game_updated')` from liveSync; sends `event: done` when game is Final; mounted before `generalLimiter`
 - `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**
 - `GET /favorites` — requires auth; returns `{ players: [...], teams: [...] }` with recent stats/games
 - `GET /favorites/check?playerIds=1,2&teamIds=3,4` — requires auth; returns which IDs are favorited
@@ -132,7 +132,7 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Prisma** is for schema/migrations only; runtime uses `pg` directly
 - **game_label** column holds playoff round labels (e.g. `"NBA Finals - Game 1"`), null for regular season
 - **current_period** (`Int?`) and **clock** (`String?`) columns on `games` — populated by the live sync worker and `upsert.js`. Null for scheduled/final games. `gameInfoService.js` exposes them as `currentPeriod` and `clock` in the game detail response. Frontend uses `getPeriodLabel(period, league)` from `formatDate.js` to render Q1–Q4/OT (NBA/NFL) or P1–P3/OT (NHL).
-- **Live sync worker** (`liveSync.js`): two-tier update — fast path every 30s (`upsertGameScoreboard`, scoreboard data only), full path every 2 min or on period change (`processEvent`, fetches boxscore + player stats). Sleeps 5 min when no live games. Deployed as a separate Railway service with `npm run live-sync`. `main()` is guarded by `NODE_ENV !== 'test'`; `upsertGameScoreboard` is a named export for unit testing.
+- **Live sync worker** (`liveSync.js`): two-tier update — fast path every 15s (`upsertGameScoreboard`, scoreboard data only), full path every 2 min or on period change (`processEvent`, fetches boxscore + player stats). Each write fires `pg_notify('game_updated')` which SSE controllers use to push immediately to clients. Sleeps 5 min when no live games. Deployed as a separate Railway service with `npm run live-sync`. `main()` is guarded by `NODE_ENV !== 'test'`; `upsertGameScoreboard` is a named export for unit testing.
 - **upsert.js** runs on a schedule (every 30–60 min) as a catch-up mechanism — picks up scheduled games, season transitions, and data liveSync may have missed. Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe.
 - **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`, `default_league` (nullable, defaults to `"nba"` on frontend). Populated via Supabase webhook on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
 - **User preferences** (`default_league`) stored in `users` table. Fetched via `useUserPrefs` hook (`GET /api/user/profile`). Homepage defers rendering league tabs until prefs resolve to avoid NBA→preference flicker. Settings page allows editing via `PATCH /api/user/profile`.
