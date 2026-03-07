@@ -716,3 +716,46 @@ export async function runTodayProcessing(leagueSlug, pool) {
     }
   }
 }
+
+/**
+ * 8) Fetch and upsert upcoming games for tomorrow and the day after tomorrow.
+ *    Prevents the “morning gap” where ESPN’s parameterless scoreboard stops
+ *    returning today’s (now-final) games before it starts returning tomorrow’s.
+ *
+ *    Uses getEventsByDate() with explicit YYYYMMDD dates — ESPN reliably returns
+ *    scheduled games days in advance via that endpoint.
+ */
+export async function runUpcomingProcessing(leagueSlug, pool) {
+  const nowEST = DateTime.now().setZone(“America/New_York”);
+  const tomorrow = nowEST.plus({ days: 1 }).toFormat(“yyyyMMdd”);
+  const dayAfter = nowEST.plus({ days: 2 }).toFormat(“yyyyMMdd”);
+
+  // Fetch both dates in parallel
+  const [tomorrowEvents, dayAfterEvents] = await Promise.all([
+    getEventsByDate(tomorrow, leagueSlug),
+    getEventsByDate(dayAfter, leagueSlug),
+  ]);
+
+  // Deduplicate by ESPN event ID in case ESPN returns the same event on both dates
+  const seenIds = new Set();
+  const upcomingEvents = [];
+  for (const event of [...tomorrowEvents, ...dayAfterEvents]) {
+    if (!seenIds.has(event.id)) {
+      seenIds.add(event.id);
+      upcomingEvents.push(event);
+    }
+  }
+
+  console.log(
+    `  📅 [${leagueSlug}] Found ${upcomingEvents.length} upcoming game(s) (${tomorrow} + ${dayAfter})`,
+  );
+
+  for (const event of upcomingEvents) {
+    const client = await pool.connect();
+    try {
+      await processEvent(client, leagueSlug, event);
+    } finally {
+      client.release();
+    }
+  }
+}
