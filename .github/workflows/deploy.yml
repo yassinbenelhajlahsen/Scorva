@@ -41,6 +41,11 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel
 
+      - name: Link Vercel project
+        run: |
+          mkdir -p frontend/.vercel
+          echo '{"orgId":"${{ secrets.ORG_ID }}","projectId":"${{ secrets.PROJECT_ID }}"}' > frontend/.vercel/project.json
+
       - name: Deploy
         run: vercel --prod --yes --cwd frontend --token=${{ secrets.VERCEL_TOKEN }}
         env:
