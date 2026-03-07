@@ -15,13 +15,21 @@ The scoreboard endpoint (`/scoreboard`) returns per-event:
 
 | ESPN field | Example value | Meaning |
 |---|---|---|
-| `event.status.type.description` | `"IN"` | live / scheduled / final |
+| `event.status.type.description` | `"In Progress"` | human-readable status string |
+| `event.status.type.state` | `"in"` | machine-readable: `"pre"` / `"in"` / `"post"` |
 | `event.status.period` | `3` | current period number |
 | `event.status.displayClock` | `"2:34"` | time remaining in current period |
 
 These are already fetched inside `eventProcessor.js` but `period` and `displayClock`
 are currently discarded. The summary endpoint (`/summary?event=<id>`) is used for
 per-player box score stats and is called once per live game per tick.
+
+> **Important — status field disambiguation:** The ESPN scoreboard `description` field
+> returns human-readable strings like `"In Progress"`, `"Scheduled"`, `"Final"` — **not**
+> short codes like `"IN"`. The `eventProcessor.js` stores the raw `description` value, so
+> the DB contains `"In Progress"`, not `"IN"`. For reliable filtering, use
+> `event.status.type.state === 'in'` (machine-readable, always lowercase `"pre"` / `"in"`
+> / `"post"`) instead of matching on `description`.
 
 ---
 
@@ -118,9 +126,30 @@ This change applies to both `upsert.js` (the existing scheduled run) and `liveSy
 ### Exit handling
 
 ```js
-process.on('SIGTERM', () => { clearInterval(handle); pool.end(); });
-process.on('SIGINT',  () => { clearInterval(handle); pool.end(); });
+process.on('SIGTERM', async () => { clearInterval(handle); await pool.end(); process.exit(0); });
+process.on('SIGINT',  async () => { clearInterval(handle); await pool.end(); process.exit(0); });
 ```
+
+> **Note:** `pool.end()` returns a Promise — must be awaited to avoid interrupting
+> in-flight queries.
+
+### Two-tier update strategy (ESPN API efficiency)
+
+Calling `processEvent()` every 30 seconds triggers a full ESPN summary/boxscore API call
+per live game per tick. With multiple concurrent live games, this can hit ESPN rate limits
+and is wasteful — scores and clock are already available in the scoreboard response.
+
+**Fast path (every 30s):** Use scoreboard data only — update `homescore`, `awayscore`,
+`status`, `current_period`, `clock`, and quarter strings. No summary API call needed.
+Create a lightweight `upsertGameScoreboard(client, league, scoreboardEvent)` function
+that runs the upsert SQL with just the fields available from the scoreboard endpoint.
+
+**Full path (every 2–3 minutes, or on period change):** Call `processEvent()` to fetch
+the full boxscore/summary and update player stats. Track `lastFullUpdate` per game and
+only trigger when `Date.now() - lastFullUpdate > 120_000` or when `current_period` changes.
+
+This reduces ESPN API calls from `N × 2` per tick (scoreboard + summary per game) to
+`N × 1` per tick (scoreboard only) with occasional summary fetches.
 
 ### What it does NOT do
 
@@ -132,7 +161,7 @@ process.on('SIGINT',  () => { clearInterval(handle); pool.end(); });
 
 ```js
 import { pool } from '../db/db.js';
-import { processEvent } from './src/eventProcessor.js';
+import { processEvent } from './src/eventProcessor.js'; // NOTE: verify processEvent is a named export; add `export` if needed
 
 const LEAGUES = [
   { slug: 'nba', sport: 'basketball', league: 'nba' },
@@ -147,7 +176,7 @@ async function fetchLiveEvents(sport, leagueSlug) {
   const res  = await fetch(SCOREBOARD_URL(sport, leagueSlug));
   const data = await res.json();
   return (data.events ?? []).filter(
-    e => e.status?.type?.description === 'IN'
+    e => e.status?.type?.state === 'in'
   );
 }
 
@@ -199,8 +228,8 @@ async function main() {
     }
   }, INTERVAL_MS);
 
-  process.on('SIGTERM', () => { clearInterval(handle); pool.end(); });
-  process.on('SIGINT',  () => { clearInterval(handle); pool.end(); });
+  process.on('SIGTERM', async () => { clearInterval(handle); await pool.end(); process.exit(0); });
+  process.on('SIGINT',  async () => { clearInterval(handle); await pool.end(); process.exit(0); });
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
@@ -243,8 +272,17 @@ Add a second Railway service inside the existing Scorva project:
 | PORT binding | None — Railway detects no PORT and treats it as a worker |
 
 The worker process exits cleanly when no live games remain. Railway's `Always` restart
-policy will bring it back on the next deploy or if it crashes unexpectedly. Because it
-exits on its own when done, it won't idle and burn resources between games.
+policy will bring it back on the next deploy or if it crashes unexpectedly.
+
+> **Restart loop mitigation:** With `Always` restart policy, the worker will enter a
+> rapid restart loop when no games are live (start → no games → exit → restart → repeat).
+> To avoid this, the worker should **sleep-and-recheck** instead of exiting when no live
+> games are found. For example: if no live games, sleep 5 minutes, then recheck. Only
+> truly exit on SIGTERM/SIGINT. This prevents unnecessary Railway restarts and log spam
+> while still detecting new live games within a reasonable window.
+>
+> Alternative: use Railway's cron feature to start the worker only during known game
+> windows (e.g., 6 PM – 1 AM ET for NBA).
 
 ---
 
@@ -310,3 +348,5 @@ Same data, zero extra cost — already in the games list response.
 - `GET /api/nba/games/:id` on a live game returns `{ clock: "2:34", current_period: 3, ... }`
 - GamePage shows "Q3 · 2:34 remaining" next to the Live pill; GameCard shows "● LIVE  Q3 2:34"
 - After game ends, `clock` and `current_period` are null in DB, frontend hides the clock line
+- Verify `processEvent` is exported as a named export from `eventProcessor.js` (currently may only be called internally by `upsert.js`)
+- Confirm ESPN scoreboard `status.type.state` returns `'in'` (not `'IN'`) — use lowercase comparison or `.toLowerCase()` as a safety measure
