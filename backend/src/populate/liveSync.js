@@ -24,7 +24,7 @@ const LEAGUES = [
 const SCOREBOARD_URL = (sport, league) =>
   `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`;
 
-const TICK_MS = 30_000;
+const TICK_MS = 15_000;
 const FULL_UPDATE_INTERVAL_MS = 120_000;
 const NO_GAMES_SLEEP_MS = 5 * 60 * 1000;
 
