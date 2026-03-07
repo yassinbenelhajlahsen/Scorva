@@ -24,7 +24,7 @@ const LEAGUES = [
 const SCOREBOARD_URL = (sport, league) =>
   `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`;
 
-const TICK_MS = 30_000;
+const TICK_MS = 15_000;
 const FULL_UPDATE_INTERVAL_MS = 120_000;
 const NO_GAMES_SLEEP_MS = 5 * 60 * 1000;
 
@@ -35,7 +35,10 @@ const eventState = new Map();
 async function fetchLiveEvents(sport, leagueSlug) {
   const res = await fetch(SCOREBOARD_URL(sport, leagueSlug));
   const data = await res.json();
-  return (data.events ?? []).filter((e) => e.status?.type?.state === "in");
+  return (data.events ?? []).filter((e) => {
+    const state = e.status?.type?.state;
+    return state !== "pre" && state !== "post";
+  });
 }
 
 /**
