@@ -88,9 +88,18 @@ export default function GameCard({ game }) {
                   Live
                 </motion.span>
                 {game.clock && (
-                  <span className="text-[10px] text-live/70 font-medium mt-0.5">
-                    {getPeriodLabel(game.current_period, game.league)} {game.clock}
-                  </span>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={`${game.current_period}-${game.clock}`}
+                      variants={scoreUpdateVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="text-[10px] text-live/70 font-medium mt-0.5"
+                    >
+                      {getPeriodLabel(game.current_period, game.league)} {game.clock}
+                    </motion.span>
+                  </AnimatePresence>
                 )}
               </>
             )}

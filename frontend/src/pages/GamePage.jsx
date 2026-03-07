@@ -166,9 +166,18 @@ export default function GamePage() {
             </motion.span>
           )}
           {inProgress && game.clock && (
-            <span className="text-text-tertiary text-xs">
-              {getPeriodLabel(game.currentPeriod, league)} · {game.clock}
-            </span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={`${game.currentPeriod}-${game.clock}`}
+                variants={scoreUpdateVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="text-text-tertiary text-xs"
+              >
+                {getPeriodLabel(game.currentPeriod, league)} · {game.clock}
+              </motion.span>
+            </AnimatePresence>
           )}
           {!inProgress && !isFinal && (
             <span className="text-xs text-text-tertiary">{game.status}</span>
