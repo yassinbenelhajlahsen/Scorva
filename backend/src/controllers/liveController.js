@@ -43,7 +43,7 @@ export async function streamGames(req, res) {
   async function send() {
     if (res.writableEnded) return;
     try {
-      const games = await getGames(league.toLowerCase());
+      const games = await getGames(league.toLowerCase(), { live: true });
       if (res.writableEnded) return;
       res.write(`data: ${JSON.stringify(games)}\n\n`);
       const anyLive = games.some((g) => isLiveStatus(g.status));

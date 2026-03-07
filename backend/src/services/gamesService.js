@@ -1,7 +1,7 @@
 import pool from "../db/db.js";
 import { DateTime } from "luxon";
 
-export async function getGames(league, { teamId, season } = {}) {
+export async function getGames(league, { teamId, season, live } = {}) {
   const currentSeasonSubquery = `(SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL)`;
   const seasonClause = `g.season = COALESCE($2, ${currentSeasonSubquery})`;
 
@@ -39,17 +39,23 @@ export async function getGames(league, { teamId, season } = {}) {
   const todayEST = DateTime.now().setZone("America/New_York").toFormat("yyyy-MM-dd");
   params.push(todayEST); // $3
 
-  // Check whether today has any live or final games
-  const checkQuery = `
-    SELECT EXISTS(
-      SELECT 1 FROM games
-      WHERE league = $1
-        AND season = COALESCE($2, ${currentSeasonSubquery})
-        AND date = $3
-        AND status NOT IN ('Scheduled', 'Postponed', 'Canceled')
-    ) AS has_today_games
-  `;
-  const { rows: [{ has_today_games }] } = await pool.query(checkQuery, params);
+  // When called from SSE live controller, skip the EXISTS check — we already
+  // know games are in progress, so go straight to the today-slate query.
+  let has_today_games;
+  if (live) {
+    has_today_games = true;
+  } else {
+    const checkQuery = `
+      SELECT EXISTS(
+        SELECT 1 FROM games
+        WHERE league = $1
+          AND season = COALESCE($2, ${currentSeasonSubquery})
+          AND date = $3
+          AND status NOT IN ('Scheduled', 'Postponed', 'Canceled')
+      ) AS has_today_games
+    `;
+    ({ rows: [{ has_today_games }] } = await pool.query(checkQuery, params));
+  }
 
   let query;
   if (has_today_games) {
