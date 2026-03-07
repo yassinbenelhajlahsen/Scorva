@@ -19,3 +19,11 @@ export function getTeamGames(league, teamId, { season, signal } = {}) {
 export function getGameById(league, gameId, { signal } = {}) {
   return apiFetch(`/api/${league}/games/${gameId}`, { signal });
 }
+
+export function getLiveGamesUrl(league) {
+  return `${import.meta.env.VITE_API_URL}/api/live/${league}/games`;
+}
+
+export function getLiveGameUrl(league, gameId) {
+  return `${import.meta.env.VITE_API_URL}/api/live/${league}/games/${gameId}`;
+}

@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { getLeagueGames } from "../api/games.js";
 import { getStandings } from "../api/teams.js";
+import { useLiveGames } from "./useLiveGames.js";
+
+function hasLiveGame(games) {
+  return games.some(
+    (g) =>
+      g.status.includes("In Progress") || g.status.includes("End of Period")
+  );
+}
 
 export function useLeagueData(league, selectedSeason) {
   const [games, setGames] = useState([]);
@@ -44,6 +52,12 @@ export function useLeagueData(league, selectedSeason) {
     fetchData();
     return () => controller.abort();
   }, [league, selectedSeason]);
+
+  const { liveGames } = useLiveGames(hasLiveGame(games) ? league : null);
+
+  useEffect(() => {
+    if (liveGames) setGames(liveGames);
+  }, [liveGames]);
 
   return { games, standings, loading, error, displayData };
 }
