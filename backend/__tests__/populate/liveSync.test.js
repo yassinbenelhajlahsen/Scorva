@@ -9,13 +9,18 @@ import { dirname, resolve } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Mock pg Pool so liveSync doesn't open a real connection on import
+// Capture the pool mock instance when Pool is constructed so tick() tests
+// can control pool.connect() and the returned client.
+let mockPoolInstance;
 jest.unstable_mockModule("pg", () => ({
-  Pool: jest.fn().mockImplementation(() => ({
-    connect: jest.fn(),
-    end: jest.fn(),
-    query: jest.fn(),
-  })),
+  Pool: jest.fn().mockImplementation(() => {
+    mockPoolInstance = {
+      connect: jest.fn(),
+      end: jest.fn(),
+      query: jest.fn(),
+    };
+    return mockPoolInstance;
+  }),
 }));
 
 // Mock eventProcessor so processEvent doesn't make real ESPN calls
@@ -29,13 +34,24 @@ jest.unstable_mockModule(eventProcessorPath, () => ({
 }));
 
 // Import liveSync after mocks are set up
-const { upsertGameScoreboard } = await import(
+const { upsertGameScoreboard, tick, eventState } = await import(
   "../../src/populate/liveSync.js"
+);
+
+const { processEvent } = await import(
+  "../../src/populate/src/eventProcessor.js"
 );
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function makeClient() {
+  return {
+    query: jest.fn().mockResolvedValue({ rows: [] }),
+    release: jest.fn(),
+  };
+}
 
 function makeEvent(overrides = {}) {
   return {
@@ -71,6 +87,23 @@ function makeEvent(overrides = {}) {
     ],
     ...overrides,
   };
+}
+
+function makeFinalEvent(id = "401584583") {
+  return makeEvent({
+    id,
+    status: {
+      type: { state: "post", description: "Final" },
+      period: 4,
+      displayClock: "0:00",
+    },
+  });
+}
+
+function mockFetch(events) {
+  global.fetch = jest.fn().mockResolvedValue({
+    json: () => Promise.resolve({ events }),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -180,5 +213,125 @@ describe("upsertGameScoreboard", () => {
 
     const params = mockClient.query.mock.calls[0][1];
     expect(params).toContain("nhl");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tick — justFinalized handling
+// ---------------------------------------------------------------------------
+
+describe("tick — justFinalized handling", () => {
+  let mockClient;
+
+  beforeEach(() => {
+    eventState.clear();
+    processEvent.mockClear();
+    mockClient = makeClient();
+    mockPoolInstance.connect = jest.fn().mockResolvedValue(mockClient);
+  });
+
+  it("calls processEvent and removes from eventState when a tracked game goes Final", async () => {
+    const eventId = 401584583;
+    eventState.set(eventId, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+
+    const finalEvent = makeFinalEvent(String(eventId));
+    mockFetch([finalEvent]);
+
+    await tick([{ slug: "nba", sport: "basketball" }]);
+
+    expect(processEvent).toHaveBeenCalledWith(mockClient, "nba", finalEvent);
+    expect(eventState.has(eventId)).toBe(false);
+  });
+
+  it("fires pg_notify after writing Final status", async () => {
+    const eventId = 401584583;
+    eventState.set(eventId, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+
+    mockFetch([makeFinalEvent(String(eventId))]);
+
+    await tick([{ slug: "nba", sport: "basketball" }]);
+
+    const notifyCalls = mockClient.query.mock.calls.filter(([sql]) =>
+      sql.includes("pg_notify")
+    );
+    expect(notifyCalls.length).toBeGreaterThan(0);
+    const notifyArgs = notifyCalls[0][1];
+    expect(notifyArgs).toContain(String(eventId));
+  });
+
+  it("ignores post-state events that were NOT being tracked", async () => {
+    // eventState is empty — this game was never tracked
+    const untrackedFinalEvent = makeFinalEvent("999999999");
+    mockFetch([untrackedFinalEvent]);
+
+    await tick([{ slug: "nba", sport: "basketball" }]);
+
+    expect(processEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not include a league in stillLive when all its games are post-state", async () => {
+    const eventId = 401584583;
+    eventState.set(eventId, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+
+    mockFetch([makeFinalEvent(String(eventId))]);
+
+    const stillLive = await tick([{ slug: "nba", sport: "basketball" }]);
+
+    expect(stillLive).not.toContainEqual(
+      expect.objectContaining({ slug: "nba" })
+    );
+  });
+
+  it("keeps a league in stillLive when it still has in-progress games alongside finalized ones", async () => {
+    const finishedId = 401584583;
+    const liveId = 401584584;
+    eventState.set(finishedId, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+    eventState.set(liveId, { lastFullUpdate: Date.now() - 1000, lastPeriod: 3 });
+
+    const finalEvent = makeFinalEvent(String(finishedId));
+    const liveEvent = makeEvent({ id: String(liveId) });
+    mockFetch([finalEvent, liveEvent]);
+
+    const stillLive = await tick([{ slug: "nba", sport: "basketball" }]);
+
+    expect(stillLive).toContainEqual(
+      expect.objectContaining({ slug: "nba" })
+    );
+    expect(eventState.has(finishedId)).toBe(false); // finalized game removed
+    expect(eventState.has(liveId)).toBe(true);      // live game still tracked
+  });
+
+  it("falls back to upsertGameScoreboard when processEvent throws for a finalized game", async () => {
+    const eventId = 401584583;
+    eventState.set(eventId, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+
+    processEvent.mockRejectedValueOnce(new Error("DB error"));
+    mockFetch([makeFinalEvent(String(eventId))]);
+
+    await tick([{ slug: "nba", sport: "basketball" }]);
+
+    // Should still remove from eventState even after fallback
+    expect(eventState.has(eventId)).toBe(false);
+
+    // ROLLBACK + upsertGameScoreboard UPDATE + pg_notify
+    const updateCalls = mockClient.query.mock.calls.filter(([sql]) =>
+      sql.includes("UPDATE games")
+    );
+    expect(updateCalls.length).toBeGreaterThan(0);
+  });
+
+  it("handles multiple games finalizing in the same tick", async () => {
+    const id1 = 401584583;
+    const id2 = 401584584;
+    eventState.set(id1, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+    eventState.set(id2, { lastFullUpdate: Date.now() - 1000, lastPeriod: 4 });
+
+    mockFetch([makeFinalEvent(String(id1)), makeFinalEvent(String(id2))]);
+
+    await tick([{ slug: "nba", sport: "basketball" }]);
+
+    expect(processEvent).toHaveBeenCalledTimes(2);
+    expect(eventState.has(id1)).toBe(false);
+    expect(eventState.has(id2)).toBe(false);
   });
 });
