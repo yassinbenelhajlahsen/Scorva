@@ -1,16 +1,17 @@
 export default function About() {
   const techStack = [
-    "React + Vite",
-    "React Router",
-    "Tailwind CSS",
+    "React 19 + Vite 6",
+    "React Router 7",
+    "Tailwind CSS v4",
     "Framer Motion",
-    "Node.js + Express",
+    "Node.js + Express 5",
     "PostgreSQL + Prisma ORM",
+    "Supabase Auth (email + OAuth)",
+    "Server-Sent Events (SSE)",
     "OpenAI GPT-4o-mini",
-    "External Sports APIs",
+    "Jest + Supertest / Vitest",
     "Vercel (frontend)",
-    "Railway (backend + DB)",
-    "Jest + Supertest",
+    "Railway (API + live sync worker)",
   ];
 
   return (
@@ -22,24 +23,28 @@ export default function About() {
       <div className="space-y-5 text-text-secondary text-base leading-relaxed">
         <p>
           <strong className="text-text-primary font-semibold">Scorva</strong> is a full-stack sports analytics platform
-          designed to deliver fast, reliable, and structured access to live and
-          historical data for the NBA, NFL, and NHL. Built as a production-style
-          application to demonstrate real-world software engineering skills across
-          frontend development, backend API design, database modeling, and deployment.
+          delivering live scores, historical game data, player profiles, and
+          AI-generated game analysis for the NBA, NFL, and NHL. Built as a
+          production-style application to demonstrate real-world software
+          engineering across frontend development, backend API design, database
+          modeling, real-time streaming, and deployment.
         </p>
 
         <p>
-          The system is built on a React frontend and a Node.js + Express backend,
-          backed by PostgreSQL for structured sports data. Scorva consumes external
-          sports APIs, normalizes raw responses into a consistent schema, and exposes
-          clean REST endpoints to power features like live box scores, player profiles,
-          and AI-generated game summaries.
+          The system is built on a React frontend and a Node.js + Express
+          backend, backed by PostgreSQL for structured sports data. Scorva
+          consumes ESPN's undocumented APIs, normalizes raw responses into a
+          consistent multi-league schema, and exposes clean REST and SSE
+          endpoints to power live scores, box scores, player profiles, and
+          AI-powered game summaries.
         </p>
 
         <p>
-          The application focuses on performance, maintainability, and scalability —
-          efficient API calls, slug-based routing, modular service layers, reusable UI
-          components, and responsive design throughout.
+          The application focuses on performance, correctness, and maintainability —
+          efficient SQL with <code className="text-text-primary text-sm font-mono">pg_trgm</code> GIN indexes for fuzzy search,
+          a two-tier live sync worker, JWT-verified authentication, optimistic
+          UI updates with rollback, and comprehensive test coverage across
+          backend and frontend.
         </p>
       </div>
 
@@ -48,13 +53,14 @@ export default function About() {
           <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4">What it demonstrates</h3>
           <ul className="text-text-secondary text-sm space-y-2.5">
             {[
-              "Full-stack architecture and API design",
-              "AI/LLM integration with cost-controlled caching",
-              "Data ingestion and transformation pipelines",
-              "Relational database modeling with PostgreSQL",
-              "Frontend performance and UX optimization",
-              "Production deployment and environment separation",
-              "Comprehensive test coverage (120+ tests)",
+              "Full-stack architecture with strict layer separation",
+              "Real-time SSE streaming with REST fallback",
+              "Auth system design — JWT, OAuth popup flow, webhooks",
+              "Database optimization — GIN indexes, window functions",
+              "Data ingestion and multi-league normalization pipeline",
+              "AI integration with cost-controlled permanent caching",
+              "Optimistic UI updates with rollback on failure",
+              "Production deployment and CI/CD pipeline",
             ].map((item, i) => (
               <li key={i} className="flex items-start gap-2.5">
                 <span className="w-1 h-1 bg-accent rounded-full mt-2 flex-shrink-0" />
@@ -69,7 +75,8 @@ export default function About() {
           <p className="text-text-secondary text-sm leading-relaxed">
             Scorva is built for engineers, recruiters, and sports fans who want
             to explore a real application that mirrors how modern full-stack
-            systems are designed and shipped.
+            systems are designed and shipped — from database schema to
+            deployment pipeline.
           </p>
         </div>
       </div>
@@ -104,9 +111,9 @@ export default function About() {
         <h2 className="text-xl font-bold tracking-tight text-text-primary mb-4">The Vision</h2>
         <p className="text-text-secondary text-sm leading-relaxed">
           Scorva represents an approach to building clean, maintainable, and
-          scalable software. It showcases system design thinking, API architecture,
-          data flow, and frontend performance — the same principles that drive
-          production engineering teams.
+          scalable software. It showcases system design thinking, API
+          architecture, real-time data flow, and frontend performance — the
+          same principles that drive production engineering teams.
         </p>
       </div>
 

@@ -1,25 +1,25 @@
-# Scorva 🏀🏒
+# Scorva
 
-**Scorva** is a full-stack sports statistics platform that lets users explore game results, player performances, and team data across NBA, NFL, and NHL leagues. It includes a React frontend, an Express backend, and a PostgreSQL database, deployed using Vercel and Railway.
+Full-stack sports statistics platform for NBA, NFL, and NHL. Covers live scores, historical game data, player profiles, box scores, and AI-generated game analysis. Built with React, Express, and PostgreSQL; deployed on Vercel and Railway.
 
 ---
 
-## 🚀 Live
+## Live
 
 https://scorva.dev
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Frontend:** React, React Router, Tailwind v4, Framer Motion, Vite
-- **Backend:** Node.js, Express, pg (PostgreSQL), Prisma ORM
-- **Auth:** Supabase Auth (email/password + Google OAuth)
-- **Database:** PostgreSQL (hosted on Railway)
-- **Deployment:**
-  - Frontend: Vercel
-  - Backend API: Railway
-  - Live Sync Worker: Railway (separate service, same repo)
+| Layer | Technologies |
+|---|---|
+| Frontend | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6 |
+| Backend | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only) |
+| Auth | Supabase Auth — email/password + Google OAuth; JWT verified server-side |
+| AI | OpenAI GPT-4o-mini |
+| Database | PostgreSQL — `pg_trgm` GIN indexes, window functions, `ON CONFLICT DO UPDATE` |
+| Deployment | Vercel (frontend) · Railway (API server + live sync worker) |
 
 ## Project Structure
 
@@ -30,7 +30,7 @@ Scorva
 │   ├── src/
 │   │   ├── index.js              # Express server entry point
 │   │   ├── db/db.js              # PostgreSQL pool singleton
-│   │   ├── middleware/           # CORS, rate limiting, JWT auth
+│   │   ├── middleware/           # CORS, rate limiting, request logging, JWT auth
 │   │   ├── routes/               # Thin route definitions (one per resource)
 │   │   ├── controllers/          # Param extraction, response handling
 │   │   ├── services/             # SQL queries and business logic
@@ -50,156 +50,179 @@ Scorva
 │   │   ├── hooks/                # Data-fetching and state hooks
 │   │   ├── components/           # Reusable UI (cards, layout, ui primitives)
 │   │   ├── pages/                # Page-level route components
-│   │   └── utilities/            # Formatters, slugify, topPlayers scoring
+│   │   └── utilities/            # Formatters, slugify, normalize, topPlayers scoring
 │   └── public/                   # League and playoff logos (NBA/, NFL/, NHL/)
 │
 ├── LICENSE
 └── README.md
 ```
 
-## 🔥 Features
+## Architecture
 
-- **User Authentication:** Sign in with email/password or Google OAuth via Supabase Auth. Session state managed globally with auto-close modal on successful login.
-- **Settings page:** Gear icon in the navbar opens `/settings` — a two-tab settings panel (sidebar on desktop, drill-down on mobile). **Favorites tab** lets you search and add/remove favorite players and teams, and choose a default homepage league. **Account tab** lets you edit your name, change your password (with current-password validation), and delete your account with a confirmation prompt. Google OAuth users see a "Signed in with Google" badge and the password section is hidden.
-- **Favorites:** Star players and teams from their pages. Favorited items appear on the homepage (between the hero and today's games) with the player's recent stat lines and the team's most recent game cards. Hidden when logged out. Powered by `user_favorite_players` and `user_favorite_teams` tables with a Supabase auth webhook that auto-creates user rows on signup.
-- **Default league preference:** Logged-in users can set their preferred homepage league (NBA, NFL, or NHL) in Settings → Favorites. The homepage waits for this preference before rendering the league tabs, preventing any flash of the wrong league.
-- **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
-- **Multi-league & Multi-season history support:** NBA, NFL, NHL with consistent data structure
-- **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
-- **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring, live period label (Q3, P2, OT), and game clock
-- **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages — gated behind authentication, lazy-generated and permanently cached for cost efficiency
-- **Interactive UI:** Hover effects on game and stat cards for advanced details
-- **Live game sync:** 30-second live updates during active games via a dedicated Railway worker (`liveSync.js`), showing real-time scores, current period, and game clock. Scheduled upsert runs every 30–60 minutes as a catch-up mechanism for non-live data.
-- **Responsive design:** Built with Tailwind CSS and Framer Motion for smooth animations
-- **RESTful API:** Clean Express backend with PostgreSQL
-- **Production deployment:** Frontend on Vercel, backend on Railway
+Backend follows a strict 4-layer separation: Routes → Controllers → Services → DB. Routes delegate only; controllers extract params and send responses; services own all SQL via `pg` Pool; `db/db.js` exports a singleton. All modules use ESM with `.js` extensions.
 
-## 🔎 Search Experience
+---
 
-The global search bar returns mixed results across players, teams, and games from a single backend query.
+## Features
 
-- **Game search by team names:** Finds matchups from home or away team names and abbreviations
-- **Date-aware game search:** Supports exact dates like `2025-01-15`, common US formats like `1/15/2025`, and partial in-season lookups like `12/25` or `Jan 15`
-- **Season-aware partial dates:** Inputs without a year resolve against the current app season (`2025-26`), so `12/25` maps to December 25, 2025 while `Jan 15` maps to January 15, 2026
-- **Relevance-ranked results:** Exact and prefix matches are ranked ahead of looser matches, with players, teams, and games returned in a single dropdown
+### Authentication & User Accounts
 
-Game results in the search dropdown also show a formatted game date to make matchup results easier to scan.
+- Email/password and Google OAuth via Supabase Auth
+- JWT validated server-side on all protected routes using `requireAuth` middleware
+- Google OAuth uses a popup flow (`skipBrowserRedirect: true`) — child window closes via `postMessage` after the callback page completes
+- Supabase auth webhook (`POST /webhooks/supabase-auth`) auto-creates user rows on signup: splits `full_name` for OAuth users, reads `first_name`/`last_name` metadata for email signups
+- Account deletion: `DELETE /api/user/account` cascades favorites in DB then calls Supabase Admin API to remove the auth user
 
-## 🤖 AI Game Summary Feature
+### Settings Page
 
-Scorva includes an **AI-powered game analysis system** that generates intelligent summaries for completed games:
+Gear icon in the navbar opens `/settings` (requires auth):
 
-- **Smart Generation:** Summaries are generated on-demand when a user views a game (lazy loading)
-- **Permanent Caching:** Each summary is stored in the database and never regenerated (cost-controlled)
-- **Structured Insights:** Uses OpenAI's GPT-4o-mini to analyze game data and produce 3-4 bullet points covering:
-  - Why the winning team won (key moments or advantages)
-  - Top player performances with statistics
-  - Crucial statistical differences or momentum shifts
-- **Cost Efficient:** ~$0.0001 per summary, cached permanently (approximately $3/month for 1,000 games)
-- **Graceful Degradation:** Handles API timeouts and errors with fallback messages
+- **Favorites tab:** search and add/remove favorite players and teams; choose a default homepage league (spring-animated sliding pill selector, optimistic local state)
+- **Account tab:** edit display name (synced to both DB and Supabase user metadata), change password with current-password validation, delete account with confirmation. Password section is hidden for Google OAuth users; replaced with a "Signed in with Google" badge.
 
-**Technical Implementation:**
+### Favorites
 
-- Backend endpoint: `GET /api/games/:id/ai-summary` — requires valid Supabase JWT
-- Cache-first architecture: checks database before calling OpenAI
-- 30-second timeout with error handling
-- Locked UI shown to unauthenticated users with sign-in prompt
-- Clean UI integration between quarter-by-quarter scores and box score
-- Responsive design with animated bullet points and loading skeletons
+- Star players and teams from their profile pages
+- Favorited items appear on the homepage with recent stat lines (players) and recent game cards (teams)
+- Backend uses `ROW_NUMBER()` window functions to return the 3 most recent finalized entries per favorite, without subqueries
+- `user_favorite_players` and `user_favorite_teams` tables with cascade deletes linked to `users` (Supabase UUID as PK)
+- `favoritesService.ensureUser()` is a fallback upsert guard on first favorite action in case the webhook was missed
 
-## 📊 Top Players Analysis
+### Default League Preference
 
-Each game page surfaces three player highlight cards computed entirely on the frontend from box score data (`frontend/src/utilities/topPlayers.js`):
+- Stored in `users.default_league`; fetched via `GET /api/user/profile`
+- Homepage defers rendering league tabs until the preference resolves, preventing a flash of the wrong league
+
+### Live Game Sync
+
+A dedicated Railway worker (`liveSync.js`) runs a two-tier update cycle across all three leagues:
+
+- **Fast path (every 30s):** `upsertGameScoreboard` — updates scores, clock, period, and quarter strings from the ESPN scoreboard endpoint only. No boxscore fetch.
+- **Full path (every 2 min, or on period change):** `processEvent` — fetches the full boxscore and upserts player stats
+- Per-event state tracked in a `Map` to decide which path to take each tick
+- Sleeps 5 minutes when no live games are detected across all leagues
+- Separate scheduled `upsert.js` runs every 30–60 minutes as a catch-up for scheduled games and season transitions; both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
+
+### Real-Time SSE
+
+- `GET /live/:league/games` — streams live game list every 30s; emits `event: done` when no live games remain
+- `GET /live/:league/games/:gameId` — streams full game detail every 30s; emits `event: done` when game status is Final
+- 15-second `: ping` heartbeat; `X-Accel-Buffering: no` header for Railway reverse-proxy compatibility
+- Mounted before `generalLimiter` to avoid SSE connections being counted against rate limits
+- Frontend `useLiveGames` and `useLiveGame` hooks integrate into `useHomeGames`, `useLeagueData`, and `useGame`; fall back to REST polling after 3 consecutive SSE failures. Pass `null` to deactivate without breaking hook rules.
+
+### AI Game Summaries
+
+- On-demand, lazy-generated analysis for completed games via OpenAI GPT-4o-mini
+- Cache-first: summary stored in `games.ai_summary`, never regenerated after initial creation (~$0.0001/summary, ~$3/month at 1,000 daily unique views)
+- Produces 3–4 structured bullet points: why the winner won, top performances, key statistical advantages
+- Protected by `requireAuth` middleware + a dedicated stricter rate limiter (`aiLimiter`, 50 req/15 min in production)
+- 30-second timeout with graceful fallback; locked UI shown to unauthenticated users with sign-in prompt
+
+### Intelligent Search
+
+Single-query, relevance-ranked search across players, teams, and games:
+
+- `pg_trgm` GIN indexes on `players.name`, `teams.name`, and `teams.shortname` for fuzzy matching
+- Custom `ORDER BY` ranks: exact match (0) → prefix (1) → substring (2) → trigram `similarity()` score
+- Date-aware: `tryParseDate()` resolves `2025-01-15`, `12/25`, and `Jan 15` against the current app season
+- Game results display a formatted date to disambiguate same-team matchups
+
+### Playoff Detection
+
+- `games.game_label` stores ESPN playoff round labels sourced from `event.competitions[0].notes[0].headline` when `event.season.type === 3`
+- Examples: `"NBA Finals - Game 1"`, `"Super Bowl LIX"`, `"Stanley Cup Final - Game 3"`
+- GameCard and GamePage display league-specific playoff or finals logos in place of generic text badges
+
+### Top Players Analysis
+
+Three deduplicated highlight cards computed on the frontend from box score data (`topPlayers.js`):
 
 | Card | What it measures |
 |---|---|
-| **Top Performer** | Best all-around game via a weighted composite score |
+| **Top Performer** | Weighted composite score by league |
 | **Top Scorer** | Highest output in the primary scoring category |
-| **Impact Player** | Best on-off differential or defensive contribution |
+| **Impact Player** | Defensive contribution or on-ice differential |
 
-Players are **deduplicated** across slots — if the top performer is also the top scorer, the next best scorer is shown instead, ensuring each card highlights a different player.
+Players are deduplicated across slots — if the top performer is also the top scorer, the next best scorer fills that card.
 
-### Scoring formulas by league
+**Scoring formulas:**
 
-**NBA** — inspired by Hollinger's Game Score:
+NBA (Hollinger-inspired):
 ```
 Performance = PTS + (0.4 × REB) + (0.7 × AST) + STL + BLK − TOV
 Impact      = +/− + (1.5 × STL) + BLK
 ```
-Rebounds and assists are discounted vs. points since they accumulate more easily; turnovers subtract from the composite.
 
-**NFL** — position-agnostic composite:
+NFL (position-agnostic):
 ```
 Performance = (YDS × 0.05) + (CMP × 0.3) + (TD × 10) − (INT × 4) + (SCKS × 5)
 Impact      = (SCKS × 5) + (INT × 6) + (YDS × 0.02)
 ```
-QBs earn through yardage and completion rate; skill players through yards and touchdowns; defensive players through sacks. The Impact slot specifically surfaces the defensive standout.
 
-**NHL** — goals weighted above assists:
+NHL (saves-aware so goalies can surface):
 ```
 Performance = (G × 2.0) + (A × 1.5) + (SHOTS × 0.15) + (SAVES × 0.1) + (BS × 0.4) + (HT × 0.2)
 Impact      = (+/− × 1.5) + G + A
 ```
-Saves are included so goalies can appear when they carry their team. The Impact formula combines on-ice differential with point production to reduce noise from short ice-time.
 
 ---
 
-## 🧪 Testing
+## Database Schema
 
-Scorva includes comprehensive test suites for both backend and frontend.
+Seven tables: `games`, `teams`, `players`, `stats`, `users`, `user_favorite_players`, `user_favorite_teams`.
 
-### Quick Start
+- `pg_trgm` GIN indexes on `players.name`, `teams.name`, and `teams.shortname` for sub-millisecond fuzzy search
+- Compound unique constraints on `(espn_playerid, league)` and `(eventid, league)` to support safe multi-league upserts
+- `stats` uses a composite primary key `(gameid, playerid)` — no surrogate key
+- Cascade deletes: `users` → favorites; `teams`/`players` → `stats`; `games` → `stats`
+- `games.ai_summary` caches LLM output; `games.game_label` stores playoff labels; `games.current_period` and `games.clock` are written by the live sync worker
+
+---
+
+## Testing
 
 ```bash
-# Run everything (lint + test + build) from the project root
-npm run verify
+# Frontend
+cd frontend && npm test
+cd frontend && npm run test:coverage
 
-# Backend only
-cd backend
-npm test                  # Run all tests
-npm run test:coverage     # Generate coverage report
+# Backend
+cd backend && npm test
+cd backend && npm run test:coverage
 
-# Frontend only
-cd frontend
-npm test                  # Run all tests (Vitest)
-npm run test:coverage     # Generate coverage report
+# Lint + test + build (what CI runs)
+cd frontend && npm run verify
 ```
 
-### Backend Coverage
+### Backend (Jest 29 + Supertest)
 
-- ✅ **All API Routes** — Teams, players, games, standings, search, game info, player info
-- ✅ **Database Layer** — Connection, queries, error handling
-- ✅ **Data Services** — Stats mapping, player upserts, transformations
-- ✅ **Live Sync Worker** — `upsertGameScoreboard` (scores, clock, period, quarters from scoreboard data)
-- ✅ **Integration Tests** — Full Express app behavior
+- **All API routes** — teams, players, games, standings, search, game detail, player detail, seasons
+- **Auth-protected routes** — favorites, user profile, AI summary, account deletion
+- **Webhook handler** — Supabase auth event parsing, user creation, name extraction for email and OAuth signup flows
+- **Live SSE routes** — stream lifecycle, 15s heartbeat, `done` event on game completion
+- **Database layer** — connection pooling, `pg` Pool error handling
+- **Data ingestion** — `mapStatsToSchema`, `upsertPlayer`, `upsertTeam`, `upsertGame`, `upsertStat`, `eventProcessor`, `upsertGameScoreboard` (live sync fast path)
+- **Integration** — full Express app behavior across all mounted routes
+- Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`
 
-### Frontend Coverage
+### Frontend (Vitest + Testing Library)
 
-- ✅ **Utility Functions** — Date formatting (incl. `getPeriodLabel` for NBA/NFL/NHL periods + OT), slugify, normalize, top players scoring
-- ✅ **API Client** — `apiFetch` URL construction, headers, body serialization, abort signal, error handling
-- ✅ **API Wrappers** — Favorites, user profile, and search API functions
-- ✅ **Hooks** — `useFavorites`, `useFavoriteToggle` (optimistic updates + rollback), `useUserPrefs`, `useSearch` (debounce + abort cancel)
-- ✅ **Components** — Navbar (auth state), PasswordChecklist (validation logic + rendering)
-
-## 🔄 CI/CD
-
-GitHub Actions runs frontend lint, tests, and a production build on every push and pull request. Deployment to Vercel only proceeds after all checks pass on `main`. The backend deploys independently via Railway.
+- **Utility functions** — `formatDate`, `getPeriodLabel` (NBA/NFL/NHL periods + OT), `slugify`, `normalize`, `computeTopPlayers`
+- **API client** — URL construction, headers, body serialization, abort signal, 204 handling, error propagation
+- **API wrappers** — favorites, user profile, search
+- **Hooks** — `useFavorites`, `useFavoriteToggle` (optimistic updates + rollback), `useUserPrefs`, `useSearch` (debounce + abort cancel), `useLiveGame`, `useLiveGames` (SSE lifecycle, REST fallback, `done` event handling)
+- **Components** — Navbar (auth state variants), PasswordChecklist (validation logic and rendering)
 
 ---
 
-## 📌 Future Improvements
+## CI/CD
 
-- Live game alerts, final scores, and push notifications
-- Multi-language AI summaries
-- Mobile app (React Native or PWA)
+GitHub Actions runs `cd frontend && npm run verify` (lint + Vitest + production build) on every push and pull request. Vercel deployment only proceeds after all checks pass on `main`. The backend deploys independently via Railway on push to `main`.
 
-## 🧩 Challenges Faced
+---
 
-- **Inconsistent Data from Unofficial APIs:**  
-  ESPN’s APIs are not publicly documented and return different structures for each league (NBA, NFL, NHL). Normalizing player and game stats into a consistent PostgreSQL schema required extensive reverse-engineering and custom mapping logic.  
-  → External API reference: [akeaswaran/espn-api gist](https://gist.github.com/akeaswaran/b48b02f1c94f873c6655e7129910fc3b)
+## Author
 
-## 🧠 Author
-
-Made by **Yassin Benelhajlahsen** — Computer Science @ Brooklyn College  
-[GitHub](https://github.com/yassinbenelhajlahsen) • [LinkedIn](https://www.linkedin.com/in/yassin-benelhajlahsen/)
+Made by **Yassin Benelhajlahsen** — Computer Science @ Brooklyn College
+[GitHub](https://github.com/yassinbenelhajlahsen) · [LinkedIn](https://www.linkedin.com/in/yassin-benelhajlahsen/)
