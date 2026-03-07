@@ -35,7 +35,10 @@ const eventState = new Map();
 async function fetchLiveEvents(sport, leagueSlug) {
   const res = await fetch(SCOREBOARD_URL(sport, leagueSlug));
   const data = await res.json();
-  return (data.events ?? []).filter((e) => e.status?.type?.state === "in");
+  return (data.events ?? []).filter((e) => {
+    const state = e.status?.type?.state;
+    return state !== "pre" && state !== "post";
+  });
 }
 
 /**
