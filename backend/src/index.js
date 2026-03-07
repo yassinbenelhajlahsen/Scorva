@@ -4,7 +4,6 @@ import "./config/env.js";
 import {
   requestLogger,
   generalLimiter,
-  aiLimiter,
   corsOrigins,
   log,
 } from "./middleware/index.js";
@@ -38,8 +37,8 @@ app.use(express.json());
 // Supabase auth webhook — no rate limiter, verified by secret header
 app.use("/api", webhooksRoute);
 
-// Apply stricter rate limiter to AI summary endpoint (more expensive operation)
-app.use("/api", aiLimiter, aiSummaryRoute);
+// AI summary endpoint (stricter rate limiter applied inside the route)
+app.use("/api", aiSummaryRoute);
 
 // Apply general rate limiter to all other /api routes
 app.use("/api", generalLimiter);

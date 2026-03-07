@@ -118,7 +118,7 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 ## Important conventions
 - **Never edit** `backend/src/generated/prisma/` — regenerate with `prisma generate`
 - **CORS allowlist** in `backend/src/middleware/index.js` — update `corsOrigins` for new origins
-- **AI route** uses stricter `aiLimiter` + `requireAuth` middleware mounted in `index.js`
+- **AI route** uses stricter `aiLimiter` (applied inside `routes/aiSummary.js`) + `requireAuth` middleware
 - **AI summaries** are cache-first, persisted to `games.ai_summary`, only generated for finalized games, requires auth
 - **Auth middleware** (`requireAuth`) calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `PROJECT_URL` env vars
 - **Google OAuth popup** flow: `skipBrowserRedirect: true` → open popup → `/auth/callback` page closes popup via `postMessage` → parent modal closes
