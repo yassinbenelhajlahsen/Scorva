@@ -18,7 +18,8 @@ https://scorva.dev
 - **Database:** PostgreSQL (hosted on Railway)
 - **Deployment:**
   - Frontend: Vercel
-  - Backend: Railway
+  - Backend API: Railway
+  - Live Sync Worker: Railway (separate service, same repo)
 
 ## Project Structure
 
@@ -35,7 +36,7 @@ Scorva
 │   │   ├── services/             # SQL queries and business logic
 │   │   ├── utils/                # slugResolver, dateParser
 │   │   ├── config/env.js         # dotenv initialization
-│   │   └── populate/             # ESPN ingestion and upsert scripts
+│   │   └── populate/             # ESPN ingestion scripts: upsert.js (scheduled), liveSync.js (live worker)
 │   └── __tests__/                # Jest + Supertest test suite
 │
 ├── frontend
@@ -65,10 +66,10 @@ Scorva
 - **Playoff detection:** Games are tagged with round labels sourced from ESPN (`game_label` column) — e.g. `"NBA Finals - Game 1"`, `"Super Bowl LIX"`. GameCard and GamePage display the appropriate league playoff/finals logo instead of generic text badges.
 - **Multi-league & Multi-season history support:** NBA, NFL, NHL with consistent data structure
 - **Intelligent search:** Real-time autocomplete for players, teams, and games, including direct date lookups like `2025-01-15`, `12/25`, and `Jan 15`
-- **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring
+- **Live stats & box scores:** Detailed game breakdowns with quarter-by-quarter scoring, live period label (Q3, P2, OT), and game clock
 - **AI Game Summaries:** OpenAI-powered insights that analyze completed games and highlight key moments, standout players, and statistical advantages — gated behind authentication, lazy-generated and permanently cached for cost efficiency
 - **Interactive UI:** Hover effects on game and stat cards for advanced details
-- **Real-time data:** Updates every 5 minutes via ESPN API integration
+- **Live game sync:** 30-second live updates during active games via a dedicated Railway worker (`liveSync.js`), showing real-time scores, current period, and game clock. Scheduled upsert runs every 30–60 minutes as a catch-up mechanism for non-live data.
 - **Responsive design:** Built with Tailwind CSS and Framer Motion for smooth animations
 - **RESTful API:** Clean Express backend with PostgreSQL
 - **Production deployment:** Frontend on Vercel, backend on Railway
@@ -169,11 +170,12 @@ npm run test:coverage     # Generate coverage report
 - ✅ **All API Routes** — Teams, players, games, standings, search, game info, player info
 - ✅ **Database Layer** — Connection, queries, error handling
 - ✅ **Data Services** — Stats mapping, player upserts, transformations
+- ✅ **Live Sync Worker** — `upsertGameScoreboard` (scores, clock, period, quarters from scoreboard data)
 - ✅ **Integration Tests** — Full Express app behavior
 
 ### Frontend Coverage
 
-- ✅ **Utility Functions** — Date formatting, slugify, normalize, top players scoring (NBA/NFL/NHL)
+- ✅ **Utility Functions** — Date formatting (incl. `getPeriodLabel` for NBA/NFL/NHL periods + OT), slugify, normalize, top players scoring
 - ✅ **API Client** — `apiFetch` URL construction, headers, body serialization, abort signal, error handling
 - ✅ **API Wrappers** — Favorites, user profile, and search API functions
 - ✅ **Hooks** — `useFavorites`, `useFavoriteToggle` (optimistic updates + rollback), `useUserPrefs`, `useSearch` (debounce + abort cancel)

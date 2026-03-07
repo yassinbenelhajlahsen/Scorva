@@ -33,7 +33,9 @@ backend/__tests__/
 │   └── db.test.js               # Database connection tests
 ├── populate/
 │   ├── mapStatsToSchema.test.js # Stats mapping tests
-│   └── upsertPlayer.test.js     # Player upsert tests
+│   ├── upsertPlayer.test.js     # Player upsert tests
+│   ├── upsertGame.test.js       # Game upsert (incl. current_period/clock fields)
+│   └── liveSync.test.js         # Live sync worker: upsertGameScoreboard
 └── integration/
     └── app.test.js              # Full app integration tests
 ```

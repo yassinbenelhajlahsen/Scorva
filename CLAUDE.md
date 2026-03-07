@@ -23,6 +23,7 @@ cd frontend && npm run verify     # lint + test + build (also what CI runs)
 
 # Backend
 cd backend && npm run start       # start server
+cd backend && npm run live-sync   # run live sync worker locally
 cd backend && npm test            # run all tests
 cd backend && npm test -- <pat>   # run matching tests
 cd backend && npm run test:coverage
@@ -53,7 +54,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Services | `backend/src/services/` |
 | Prisma schema | `backend/prisma/schema.prisma` |
 | Generated client | `backend/src/generated/prisma/` (do not edit) |
-| Data ingestion | `backend/src/populate/` |
+| Scheduled upsert | `backend/src/populate/upsert.js` |
+| Live sync worker | `backend/src/populate/liveSync.js` |
+| Data ingestion helpers | `backend/src/populate/src/` |
 | Frontend entry | `frontend/src/main.jsx` |
 | Frontend router | `frontend/src/App.jsx` |
 | Design tokens | `frontend/src/index.css` (`@theme`) |
@@ -124,6 +127,9 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Google OAuth popup** flow: `skipBrowserRedirect: true` → open popup → `/auth/callback` page closes popup via `postMessage` → parent modal closes
 - **Prisma** is for schema/migrations only; runtime uses `pg` directly
 - **game_label** column holds playoff round labels (e.g. `"NBA Finals - Game 1"`), null for regular season
+- **current_period** (`Int?`) and **clock** (`String?`) columns on `games` — populated by the live sync worker and `upsert.js`. Null for scheduled/final games. `gameInfoService.js` exposes them as `currentPeriod` and `clock` in the game detail response. Frontend uses `getPeriodLabel(period, league)` from `formatDate.js` to render Q1–Q4/OT (NBA/NFL) or P1–P3/OT (NHL).
+- **Live sync worker** (`liveSync.js`): two-tier update — fast path every 30s (`upsertGameScoreboard`, scoreboard data only), full path every 2 min or on period change (`processEvent`, fetches boxscore + player stats). Sleeps 5 min when no live games. Deployed as a separate Railway service with `npm run live-sync`. `main()` is guarded by `NODE_ENV !== 'test'`; `upsertGameScoreboard` is a named export for unit testing.
+- **upsert.js** runs on a schedule (every 30–60 min) as a catch-up mechanism — picks up scheduled games, season transitions, and data liveSync may have missed. Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe.
 - **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`, `default_league` (nullable, defaults to `"nba"` on frontend). Populated via Supabase webhook on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
 - **User preferences** (`default_league`) stored in `users` table. Fetched via `useUserPrefs` hook (`GET /api/user/profile`). Homepage defers rendering league tabs until prefs resolve to avoid NBA→preference flicker. Settings page allows editing via `PATCH /api/user/profile`.
 - **Settings page** (`/settings`) — sidebar navigation (desktop) / drill-down (mobile). Tabs: Favorites (manage favorites + default league selector) and Account (edit name, change password, delete account). Navbar shows gear icon linking to `/settings` when logged in; "Sign In" pill when logged out. Google OAuth users see "Signed in with Google" badge; password change section is hidden for them.

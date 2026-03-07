@@ -22,8 +22,10 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
   - **Services**: runs raw SQL via `pg` Pool, returns plain data.
   - **DB**: `backend/src/db/db.js` — `pg` Pool singleton.
 - Prisma: schema at `backend/prisma/schema.prisma`; generated client at `backend/src/generated/prisma/`. Used for schema management and migrations **only** — runtime queries use `pg` directly.
-- Data ingestion: `backend/src/populate/` — ESPN API → DB normalization and upsert helpers.
-- Deployment: frontend on Vercel (Root Directory `frontend/`), backend on Railway.
+- Data ingestion: `backend/src/populate/` — ESPN API → DB normalization and upsert helpers. Two workers:
+  - `upsert.js` — scheduled (every 30–60 min), processes all leagues for today's games
+  - `liveSync.js` — persistent Railway worker, polls live games every 30s using a two-tier strategy: fast scoreboard-only upsert every tick, full `processEvent()` (boxscore + player stats) every 2 min or on period change. Sleeps 5 min when no live games.
+- Deployment: frontend on Vercel (Root Directory `frontend/`), backend API on Railway, liveSync worker as a separate Railway service (Root Directory `backend`, Start Command `npm run live-sync`, Restart Policy `Always`).
 
 3. Important conventions (do NOT break these)
 
@@ -61,7 +63,8 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - `backend/src/routes/` — route patterns (thin — just delegates to controller).
 - `backend/src/controllers/` — request/response handling per resource.
 - `backend/src/services/` — DB queries and business logic.
-- `backend/src/populate/src/` — ESPN API mapping and upsert utilities.
+- `backend/src/populate/src/` — ESPN API mapping and upsert utilities (`eventProcessor.js`, `upsertGame.js`, etc.).
+- `backend/src/populate/liveSync.js` — live sync worker (exports `upsertGameScoreboard` for testing; `main()` guarded by `NODE_ENV !== 'test'`).
 - `backend/prisma/schema.prisma` — source of truth for DB models.
 - `frontend/src/App.jsx` and `frontend/src/main.jsx` — entry points.
 - `frontend/src/index.css` — Tailwind v4 `@theme` design tokens.
