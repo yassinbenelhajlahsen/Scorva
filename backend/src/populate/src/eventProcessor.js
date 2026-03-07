@@ -385,6 +385,8 @@ export async function processEvent(client, leagueSlug, event) {
     // 5.4.7) Status (SCHEDULED, IN, FINAL, etc.)
     const status =
       event.status && event.status.type ? event.status.type.description : null;
+    const currentPeriod = event.status?.period ?? null;
+    const clock = event.status?.displayClock ?? null;
 
     // 5.4.8) Build quarter/period scores (if available)
     const periodsMap = {};
@@ -485,6 +487,8 @@ export async function processEvent(client, leagueSlug, event) {
       status,
       seasonText,
       gameLabel,
+      currentPeriod,
+      clock,
     };
 
     // ========================================================================
