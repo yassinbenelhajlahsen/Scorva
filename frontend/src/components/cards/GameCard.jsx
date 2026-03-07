@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { formatDateShort, getPeriodLabel } from "../../utilities/formatDate";
+import { scoreUpdateVariants } from "../../utilities/motion.js";
 
 export default function GameCard({ game }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -56,9 +58,18 @@ export default function GameCard({ game }) {
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
               {game.home_shortname}
             </div>
-            <div className={`text-lg font-bold min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}>
-              {game.homescore}
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={game.homescore}
+                variants={scoreUpdateVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className={`text-lg font-bold min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}
+              >
+                {game.homescore}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Center */}
@@ -69,9 +80,13 @@ export default function GameCard({ game }) {
             <div className="text-xs font-medium text-text-tertiary">vs</div>
             {inProgress && (
               <>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full mt-1">
+                <motion.span
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full mt-1"
+                >
                   Live
-                </span>
+                </motion.span>
                 {game.clock && (
                   <span className="text-[10px] text-live/70 font-medium mt-0.5">
                     {getPeriodLabel(game.current_period, game.league)} {game.clock}
@@ -105,9 +120,18 @@ export default function GameCard({ game }) {
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
               {game.away_shortname}
             </div>
-            <div className={`text-lg font-bold min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}>
-              {game.awayscore}
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={game.awayscore}
+                variants={scoreUpdateVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className={`text-lg font-bold min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}
+              >
+                {game.awayscore}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
