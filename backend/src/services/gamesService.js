@@ -86,5 +86,19 @@ export async function getGames(league, { teamId, season, live } = {}) {
   }
 
   const { rows } = await pool.query(query, params);
+
+  // Off-season fallback: no live/final today AND no upcoming scheduled games.
+  // Show the last finalized games of the season so the page isn't empty.
+  if (!has_today_games && rows.length === 0) {
+    const fallbackQuery = selectFrom + `
+      WHERE g.league = $1
+        AND ${seasonClause}
+      ORDER BY g.date DESC, g.id DESC
+      LIMIT 12
+    `;
+    const { rows: fallbackRows } = await pool.query(fallbackQuery, [league, season || null]);
+    return fallbackRows;
+  }
+
   return rows;
 }

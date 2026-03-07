@@ -130,8 +130,39 @@ describe("Games Route - GET /:league/games", () => {
       );
     });
 
-    it("should return empty array when no games found", async () => {
-      mockTodayCheck(false, []);
+    it("should fall back to last final games when no upcoming scheduled games (off-season)", async () => {
+      const finalGames = [
+        {
+          ...fixtures.game({ status: "Final" }),
+          home_team_name: "Team A",
+          away_team_name: "Team B",
+        },
+      ];
+
+      // EXISTS check → false, upcoming query → empty, fallback → final games
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ has_today_games: false }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: finalGames });
+
+      const response = await request(app).get("/api/nfl/games");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(finalGames);
+      expect(mockPool.query).toHaveBeenCalledTimes(3);
+      // Fallback query: ORDER BY date DESC, no status filter
+      expect(mockPool.query).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining("ORDER BY g.date DESC"),
+        ["nfl", null]
+      );
+    });
+
+    it("should return empty array when no games exist at all", async () => {
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ has_today_games: false }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app).get("/api/nfl/games");
 
