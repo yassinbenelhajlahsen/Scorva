@@ -23,7 +23,9 @@ export async function getNbaGame(gameId) {
     'status', g.status,
     'season', g.season,
     'winnerId', g.winnerid,
-    'gameLabel', g.game_label
+    'gameLabel', g.game_label,
+    'currentPeriod', g.current_period,
+    'clock', g.clock
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -146,7 +148,9 @@ export async function getNflGame(gameId) {
     'status', g.status,
     'season', g.season,
     'winnerId', g.winnerid,
-    'gameLabel', g.game_label
+    'gameLabel', g.game_label,
+    'currentPeriod', g.current_period,
+    'clock', g.clock
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -256,7 +260,9 @@ export async function getNhlGame(gameId) {
     'status', g.status,
     'season', g.season,
     'winnerId', g.winnerid,
-    'gameLabel', g.game_label
+    'gameLabel', g.game_label,
+    'currentPeriod', g.current_period,
+    'clock', g.clock
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
