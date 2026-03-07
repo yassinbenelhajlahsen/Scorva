@@ -149,6 +149,20 @@ describe("streamGames", () => {
     expect(res.end).toHaveBeenCalled();
   });
 
+  it("keeps stream open when games are at Halftime", async () => {
+    const halftimeGame = { ...fixtures.game(), status: "Halftime" };
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [{ has_today_games: true }] })
+      .mockResolvedValueOnce({ rows: [halftimeGame] });
+
+    const req = makeReq({ league: "nba" });
+    const res = makeRes();
+    await streamGames(req, res);
+
+    expect(res.written).not.toContain("event: done\ndata: final\n\n");
+    expect(res.end).not.toHaveBeenCalled();
+  });
+
   it("calls LISTEN game_updated on setup", async () => {
     const liveGame = makeLiveGame();
     mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });

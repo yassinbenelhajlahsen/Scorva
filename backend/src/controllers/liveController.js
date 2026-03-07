@@ -13,7 +13,9 @@ const leagueHandlers = {
 
 function isLiveStatus(status) {
   return (
-    status.includes("In Progress") || status.includes("End of Period")
+    status.includes("In Progress") ||
+    status.includes("End of Period") ||
+    status.includes("Halftime")
   );
 }
 
