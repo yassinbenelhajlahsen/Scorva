@@ -175,7 +175,9 @@ export default function GamePage() {
                 exit="exit"
                 className="text-text-tertiary text-xs"
               >
-                {getPeriodLabel(game.currentPeriod, league)} · {game.clock}
+                {game.clock === "0.0"
+                  ? `End of ${getPeriodLabel(game.currentPeriod, league)}`
+                  : `${getPeriodLabel(game.currentPeriod, league)} · ${game.clock}`}
               </motion.span>
             </AnimatePresence>
           )}

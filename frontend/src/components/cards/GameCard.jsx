@@ -97,7 +97,9 @@ export default function GameCard({ game }) {
                       exit="exit"
                       className="text-[10px] text-live/70 font-medium mt-0.5"
                     >
-                      {getPeriodLabel(game.current_period, game.league)} {game.clock}
+                      {game.clock === "0.0"
+                        ? `End of ${getPeriodLabel(game.current_period, game.league)}`
+                        : `${getPeriodLabel(game.current_period, game.league)} ${game.clock}`}
                     </motion.span>
                   </AnimatePresence>
                 )}
