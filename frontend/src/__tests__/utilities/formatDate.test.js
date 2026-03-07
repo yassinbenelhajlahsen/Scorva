@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import formatDate, { formatDateShort } from "../../utilities/formatDate.js";
+import formatDate, { formatDateShort, getPeriodLabel } from "../../utilities/formatDate.js";
 
 describe("formatDate", () => {
   it("formats ISO YYYY-MM-DD", () => {
@@ -82,5 +82,53 @@ describe("formatDateShort", () => {
 
   it("ordinal: 11th (exception)", () => {
     expect(formatDateShort("2025-06-11")).toBe("Jun 11th");
+  });
+});
+
+describe("getPeriodLabel", () => {
+  it("returns Q1-Q4 for NBA regular periods", () => {
+    expect(getPeriodLabel(1, "nba")).toBe("Q1");
+    expect(getPeriodLabel(2, "nba")).toBe("Q2");
+    expect(getPeriodLabel(3, "nba")).toBe("Q3");
+    expect(getPeriodLabel(4, "nba")).toBe("Q4");
+  });
+
+  it("returns OT for NBA overtime (period 5)", () => {
+    expect(getPeriodLabel(5, "nba")).toBe("OT");
+  });
+
+  it("returns OT2 for NBA double overtime (period 6)", () => {
+    expect(getPeriodLabel(6, "nba")).toBe("OT2");
+  });
+
+  it("returns Q1-Q4 for NFL periods", () => {
+    expect(getPeriodLabel(1, "nfl")).toBe("Q1");
+    expect(getPeriodLabel(4, "nfl")).toBe("Q4");
+  });
+
+  it("returns OT for NFL overtime", () => {
+    expect(getPeriodLabel(5, "nfl")).toBe("OT");
+  });
+
+  it("returns P1-P3 for NHL regular periods", () => {
+    expect(getPeriodLabel(1, "nhl")).toBe("P1");
+    expect(getPeriodLabel(2, "nhl")).toBe("P2");
+    expect(getPeriodLabel(3, "nhl")).toBe("P3");
+  });
+
+  it("returns OT for NHL overtime (period 4)", () => {
+    expect(getPeriodLabel(4, "nhl")).toBe("OT");
+  });
+
+  it("returns OT2 for NHL double OT (period 5)", () => {
+    expect(getPeriodLabel(5, "nhl")).toBe("OT2");
+  });
+
+  it("returns empty string for null period", () => {
+    expect(getPeriodLabel(null, "nba")).toBe("");
+  });
+
+  it("returns empty string for undefined period", () => {
+    expect(getPeriodLabel(undefined, "nba")).toBe("");
   });
 });

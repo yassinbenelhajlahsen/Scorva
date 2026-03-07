@@ -30,6 +30,8 @@ describe("upsertGame", () => {
     status: "Final",
     seasonText: "2024-25",
     gameLabel: null,
+    currentPeriod: null,
+    clock: null,
   };
 
   beforeEach(() => {
@@ -158,7 +160,39 @@ describe("upsertGame", () => {
     await upsertGame(mockClient, "nba", basePayload);
 
     const insertValues = mockClient.query.mock.calls[0][1];
-    expect(insertValues[insertValues.length - 1]).toBeNull();
+    // gameLabel ($20), currentPeriod ($21), clock ($22) should all be null
+    expect(insertValues[19]).toBeNull();
+    expect(insertValues[20]).toBeNull();
+    expect(insertValues[21]).toBeNull();
+  });
+
+  it("should write currentPeriod and clock for live games", async () => {
+    const livePayload = {
+      ...basePayload,
+      status: "In Progress",
+      currentPeriod: 3,
+      clock: "2:34",
+    };
+
+    mockClient.query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+    mockClient.query.mockResolvedValueOnce({ rows: [] });
+
+    await upsertGame(mockClient, "nba", livePayload);
+
+    const insertValues = mockClient.query.mock.calls[0][1];
+    expect(insertValues).toContain(3);    // currentPeriod
+    expect(insertValues).toContain("2:34"); // clock
+  });
+
+  it("should include current_period and clock in ON CONFLICT UPDATE", async () => {
+    mockClient.query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+    mockClient.query.mockResolvedValueOnce({ rows: [] });
+
+    await upsertGame(mockClient, "nba", basePayload);
+
+    const insertQuery = mockClient.query.mock.calls[0][0];
+    expect(insertQuery).toContain("current_period");
+    expect(insertQuery).toContain("clock");
   });
 
   it("should propagate query errors", async () => {
