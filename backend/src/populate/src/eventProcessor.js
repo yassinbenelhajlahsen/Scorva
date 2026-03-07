@@ -246,7 +246,7 @@ async function getCachedPlayerDetails(client, espnId, leagueSlug) {
 
 /**
  * 4a) Fetch all events for a specific date (YYYYMMDD) and league
- *     → Returns an array of ESPN “event” objects
+ *     → Returns an array of ESPN "event" objects
  */
 export async function getEventsByDate(dateString, leagueSlug) {
   const path = getSportPath(leagueSlug);
@@ -265,8 +265,8 @@ export async function getEventsByDate(dateString, leagueSlug) {
 }
 
 /**
- * 4b) Fetch “today’s” events (live + scheduled) for a league
- *     → No ?dates parameter means “today”
+ * 4b) Fetch "today’s" events (live + scheduled) for a league
+ *     → No ?dates parameter means "today"
  */
 export async function getTodayEvents(leagueSlug) {
   const path = getSportPath(leagueSlug);
@@ -296,7 +296,7 @@ export async function processEvent(client, leagueSlug, event) {
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
     console.warn(
-      `⚠️ [processEvent] invalid event.id (“${event.id}”) → skipping`,
+      `⚠️ [processEvent] invalid event.id ("${event.id}") → skipping`,
     );
     return null;
   }
@@ -701,7 +701,7 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
 }
 
 /**
- * 7) Convenience: process “today’s” events for one league
+ * 7) Convenience: process "today’s" events for one league
  *    (hourly script will call this once per league)
  */
 export async function runTodayProcessing(leagueSlug, pool) {
@@ -719,16 +719,16 @@ export async function runTodayProcessing(leagueSlug, pool) {
 
 /**
  * 8) Fetch and upsert upcoming games for tomorrow and the day after tomorrow.
- *    Prevents the “morning gap” where ESPN’s parameterless scoreboard stops
+ *    Prevents the "morning gap" where ESPN’s parameterless scoreboard stops
  *    returning today’s (now-final) games before it starts returning tomorrow’s.
  *
  *    Uses getEventsByDate() with explicit YYYYMMDD dates — ESPN reliably returns
  *    scheduled games days in advance via that endpoint.
  */
 export async function runUpcomingProcessing(leagueSlug, pool) {
-  const nowEST = DateTime.now().setZone(“America/New_York”);
-  const tomorrow = nowEST.plus({ days: 1 }).toFormat(“yyyyMMdd”);
-  const dayAfter = nowEST.plus({ days: 2 }).toFormat(“yyyyMMdd”);
+  const nowEST = DateTime.now().setZone("America/New_York");
+  const tomorrow = nowEST.plus({ days: 1 }).toFormat("yyyyMMdd");
+  const dayAfter = nowEST.plus({ days: 2 }).toFormat("yyyyMMdd");
 
   // Fetch both dates in parallel
   const [tomorrowEvents, dayAfterEvents] = await Promise.all([

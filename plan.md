@@ -31,12 +31,20 @@ These queries return data that **never changes** once finalized. Cache indefinit
 - **TTL:** 30 days for past seasons, 2 minutes for current season
 - **Invalidation:** None for past seasons
 
-### 1d. `gamesService` — Past season game lists (`getGames`)
+### 1d. `gamesService` — Game lists (`getGames`)
 - **Why:** Called on homepage, league page, team page. 2 JOINs for team logos. Most frequently hit endpoint.
-- **Key:** `games:{league}:{season}:{teamId|'all'}`
-- **Condition:** Long-cache for past seasons only
-- **TTL:** 30 days for past seasons, 30 seconds for current season
-- **Invalidation:** None for past seasons
+- **Note:** `getGames()` has three distinct code paths after recent changes — each needs its own cache key:
+  - **Default path** (no `teamId`, no `season`): runs an EXISTS check then a main SELECT based on whether today (EST) has live/final games. Result is time-of-day dependent and changes as games start/finish.
+    - **Key:** `games:{league}:default:{todayEST}` (e.g. `games:nba:default:2026-03-07`)
+    - **TTL:** 30 seconds — short enough to reflect live status changes; key naturally expires when `todayEST` rolls over at midnight
+  - **teamId path**: returns all of a team's games for the current or specified season.
+    - **Key:** `games:{league}:{season}:{teamId}`
+    - **TTL:** 30 days for past seasons, 30 seconds for current season
+  - **Historical season path** (explicit `season`, no `teamId`): immutable once season ends.
+    - **Key:** `games:{league}:{season}:all`
+    - **TTL:** 30 days for past seasons, 30 seconds for current season
+- **Condition:** Long-cache for past seasons only; 30 seconds for current/default
+- **Invalidation:** None for past seasons; current-season keys expire on their own TTL
 
 ---
 
@@ -81,7 +89,7 @@ These queries return data that changes infrequently. Short TTLs reduce DB load w
 - **Why:** Unbounded input space makes Redis caching impractical (millions of possible search terms). The `pg_trgm` GIN indexes already make these queries fast (~5ms). An in-memory LRU cache in the application process would be more appropriate here if ever needed, but not Redis.
 
 ### 3d. SSE live endpoints (`liveController`)
-- **Why:** Real-time streams by design. The underlying queries (`getGames`, `getNbaGame`, etc.) will benefit from Tier 1/2 caching when serving finalized data, but the SSE stream itself should always hit fresh data for live games.
+- **Why:** Real-time streams by design. `liveController.streamGames` calls `getGames(league)` on the default path every 30 seconds and on every pg NOTIFY. Caching this call with a 30-second TTL would mean each SSE tick always serves cached data — the same staleness as the polling interval, so acceptable in practice. However, pg NOTIFY-triggered sends would also hit the cache and serve data that's up to 30 seconds stale, defeating the purpose of the notification. **Recommended:** either skip cache for the default-path `getGames()` call inside `liveController` (e.g. pass a `bypassCache` flag), or accept the 30-second staleness since the SSE interval is already 30 seconds. `getNbaGame`/`getNflGame`/`getNhlGame` (used by `streamGame`) should also bypass cache while the game is live — only cache once status is `Final`.
 
 ### 3e. `aiSummaryService` — AI summary
 - **Why:** Already has its own caching strategy — summaries are persisted in `games.ai_summary` column. The `getCachedSummary` check is a simple indexed SELECT. Adding Redis on top of DB-level caching is redundant.

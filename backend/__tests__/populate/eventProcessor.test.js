@@ -43,8 +43,9 @@ jest.unstable_mockModule(
   () => ({ default: mockMapStats })
 );
 
-const {
-  getSportPath,
+// Imported inside beforeAll so jest.unstable_mockModule registrations above
+// are in place before the module (and its mocked dependencies) loads.
+let getSportPath,
   clearPlayerCache,
   getPlayerCacheStats,
   fetchPlayerDetails,
@@ -53,9 +54,7 @@ const {
   processEvent,
   runTodayProcessing,
   runDateRangeProcessing,
-} = await import(
-  resolve(__dirname, "../../src/populate/src/eventProcessor.js")
-);
+  runUpcomingProcessing;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -129,6 +128,21 @@ function createMockEvent(overrides = {}) {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("eventProcessor", () => {
+  beforeAll(async () => {
+    const epPath = resolve(__dirname, "../../src/populate/src/eventProcessor.js");
+    const mod = await import(epPath);
+    getSportPath = mod.getSportPath;
+    clearPlayerCache = mod.clearPlayerCache;
+    getPlayerCacheStats = mod.getPlayerCacheStats;
+    fetchPlayerDetails = mod.fetchPlayerDetails;
+    getEventsByDate = mod.getEventsByDate;
+    getTodayEvents = mod.getTodayEvents;
+    processEvent = mod.processEvent;
+    runTodayProcessing = mod.runTodayProcessing;
+    runDateRangeProcessing = mod.runDateRangeProcessing;
+    runUpcomingProcessing = mod.runUpcomingProcessing;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     clearPlayerCache();
@@ -590,6 +604,69 @@ describe("eventProcessor", () => {
       await runTodayProcessing("nba", mockPool);
 
       expect(client.release).toHaveBeenCalled();
+    });
+  });
+
+  describe("runUpcomingProcessing", () => {
+    it("should fetch tomorrow and day-after events in parallel", async () => {
+      mockAxiosGet.mockResolvedValue({ data: { events: [] } });
+
+      const mockPool = {
+        connect: jest.fn().mockResolvedValue(createMockClient()),
+      };
+
+      await runUpcomingProcessing("nba", mockPool);
+
+      // Two getEventsByDate calls (tomorrow + dayAfter) in parallel
+      expect(mockAxiosGet).toHaveBeenCalledTimes(2);
+      expect(mockAxiosGet).toHaveBeenCalledWith(
+        expect.stringContaining("scoreboard?dates=")
+      );
+    });
+
+    it("should deduplicate events with the same ESPN id", async () => {
+      const duplicateEvent = createMockEvent({ id: "999" });
+      // Both dates return the same event
+      mockAxiosGet
+        .mockResolvedValueOnce({ data: { events: [duplicateEvent] } })
+        .mockResolvedValueOnce({ data: { events: [duplicateEvent] } })
+        // Boxscore for the single deduplicated processEvent call
+        .mockResolvedValue({ data: { boxscore: { players: [] } } });
+
+      const mockClient = createMockClient();
+      const mockPool = { connect: jest.fn().mockResolvedValue(mockClient) };
+
+      await runUpcomingProcessing("nba", mockPool);
+
+      // pool.connect called once — only one unique event processed
+      expect(mockPool.connect).toHaveBeenCalledTimes(1);
+    });
+
+    it("should release client after processing each event", async () => {
+      const client = createMockClient();
+      mockAxiosGet
+        .mockResolvedValueOnce({ data: { events: [createMockEvent()] } })
+        .mockResolvedValueOnce({ data: { events: [] } })
+        .mockResolvedValue({ data: { boxscore: { players: [] } } });
+
+      const mockPool = { connect: jest.fn().mockResolvedValue(client) };
+
+      await runUpcomingProcessing("nba", mockPool);
+
+      expect(client.release).toHaveBeenCalled();
+    });
+
+    it("should handle empty event lists for both dates", async () => {
+      mockAxiosGet.mockResolvedValue({ data: { events: [] } });
+
+      const mockPool = {
+        connect: jest.fn().mockResolvedValue(createMockClient()),
+      };
+
+      await runUpcomingProcessing("nba", mockPool);
+
+      // No events → no pool.connect needed
+      expect(mockPool.connect).not.toHaveBeenCalled();
     });
   });
 
