@@ -108,6 +108,7 @@ export async function upsertGameScoreboard(client, leagueSlug, event) {
       espnEventId, leagueSlug,
     ]
   );
+  await client.query("SELECT pg_notify('game_updated', $1)", [String(espnEventId)]);
 }
 
 async function tick(liveLeagues) {
@@ -142,6 +143,7 @@ async function tick(liveLeagues) {
               try {
                 await processEvent(client, slug, event);
                 eventState.set(eventId, { lastFullUpdate: now, lastPeriod: currentPeriod });
+                await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
               } catch (err) {
                 console.error(`[liveSync] Full update failed for event ${eventId}: ${err.message}`);
                 // Fall back to fast path

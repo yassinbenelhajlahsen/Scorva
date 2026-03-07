@@ -19,6 +19,7 @@ import seasonsRoute from "./routes/seasons.js";
 import favoritesRoute from "./routes/favorites.js";
 import userRoute from "./routes/user.js";
 import webhooksRoute from "./routes/webhooks.js";
+import liveRoute from "./routes/live.js";
 
 const app = express();
 
@@ -39,6 +40,9 @@ app.use("/api", webhooksRoute);
 
 // AI summary endpoint (stricter rate limiter applied inside the route)
 app.use("/api", aiSummaryRoute);
+
+// SSE live endpoints — mounted before rate limiter (long-lived connections)
+app.use("/api", liveRoute);
 
 // Apply general rate limiter to all other /api routes
 app.use("/api", generalLimiter);
