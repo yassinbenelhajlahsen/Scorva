@@ -40,20 +40,6 @@ export default function GameCard({ game }) {
     >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">
 
-        {/* Status pill */}
-        {inProgress && (
-          <div className="absolute top-3 right-3 flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full">
-              Live
-            </span>
-            {game.clock && (
-              <span className="text-[10px] text-live/70 font-medium">
-                {getPeriodLabel(game.current_period, game.league)} {game.clock}
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Teams & Scores */}
         <div className="flex items-center justify-between gap-4 min-h-[110px]">
           {/* Home */}
@@ -81,6 +67,18 @@ export default function GameCard({ game }) {
               {formatDateShort(game.date)}
             </span>
             <div className="text-xs font-medium text-text-tertiary">vs</div>
+            {inProgress && (
+              <>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full mt-1">
+                  Live
+                </span>
+                {game.clock && (
+                  <span className="text-[10px] text-live/70 font-medium mt-0.5">
+                    {getPeriodLabel(game.current_period, game.league)} {game.clock}
+                  </span>
+                )}
+              </>
+            )}
             {!inProgress && (
               <p className="text-xs text-text-tertiary text-center px-1 max-w-[80px]">
                 {game.status}
