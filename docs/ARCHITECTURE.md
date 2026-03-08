@@ -9,6 +9,7 @@ Two-tier update strategy:
 - **Full path** every 2 min or on period change: `processEvent` — fetches boxscore + player stats
 - Each write fires `pg_notify('game_updated')` → SSE controllers push immediately to clients
 - Sleeps 5 min when no live games
+- **Multi-league discovery**: every tick iteration re-checks all leagues and merges any newly-live ones into the active sync set — so a league that goes live after initial discovery is picked up within 15s, not after all other leagues finish
 - Deployed as a separate Railway service (`npm run live-sync`)
 - `main()` is guarded by `NODE_ENV !== 'test'`; `upsertGameScoreboard` is a named export for unit testing
 - Check `res.ok` on ESPN fetch — 5xx returns silently treated as "no games" is a known past bug (fixed)

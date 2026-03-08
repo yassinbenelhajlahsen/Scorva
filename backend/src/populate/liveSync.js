@@ -139,7 +139,13 @@ export async function tick(liveLeagues) {
 
     const liveEvents = allEvents.filter(isLiveEvent);
 
-    // Games that were being tracked but have now transitioned to "post" (Final)
+    if (!liveEvents.length) {
+      const states = allEvents.map((e) => `${e.id}:${e.status?.type?.state}`).join(", ");
+      console.log(`[liveSync] ${slug}: no live events (${allEvents.length} total). States: ${states || "none"}`);
+    }
+
+    // Games that were being tracked but have now transitioned to "post" (Final),
+    // OR games seen as "post" on the very first tick for this league (race between discovery and tick).
     const justFinalized = allEvents.filter(
       (e) =>
         e.status?.type?.state === "post" &&
@@ -255,11 +261,26 @@ async function main() {
 
     console.log(`[liveSync] Live games: ${liveLeagues.map((l) => l.slug).join(", ")}. Starting 30s sync.`);
 
-    // Run ticks until no games remain
+    // Run ticks until no games remain; re-discover all leagues each iteration
+    // so leagues that go live after initial discovery are picked up immediately.
     liveLeagues = await tick(liveLeagues);
 
     while (!shuttingDown && liveLeagues.length) {
       await sleep(TICK_MS);
+      // Merge any newly-live leagues not already being tracked
+      for (const league of LEAGUES) {
+        if (!liveLeagues.some((l) => l.slug === league.slug)) {
+          try {
+            const events = await fetchTodayEvents(league.sport, league.slug);
+            if (events.some(isLiveEvent)) {
+              console.log(`[liveSync] ${league.slug} games started — adding to live sync.`);
+              liveLeagues.push(league);
+            }
+          } catch (err) {
+            console.error(`[liveSync] Failed to check ${league.slug}: ${err.message}`);
+          }
+        }
+      }
       liveLeagues = await tick(liveLeagues);
     }
 
