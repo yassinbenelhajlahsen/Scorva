@@ -3,6 +3,8 @@ import { Pool } from "pg";
 import { processEvent, clearPlayerCache } from "./src/eventProcessor.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { DateTime } from "luxon";
+import { invalidate, invalidatePattern, closeCache } from "../cache/cache.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../../.env") });
@@ -114,6 +116,8 @@ export async function upsertGameScoreboard(client, leagueSlug, event) {
     ]
   );
   await client.query("SELECT pg_notify('game_updated', $1)", [String(espnEventId)]);
+  const todayEST = DateTime.now().setZone("America/New_York").toFormat("yyyy-MM-dd");
+  await invalidate(`games:${leagueSlug}:default:${todayEST}`);
 }
 
 export async function tick(liveLeagues) {
@@ -191,6 +195,10 @@ export async function tick(liveLeagues) {
         }
         eventState.delete(eventId);
       }
+      // Standings change when games finalize
+      if (justFinalized.length > 0) {
+        await invalidatePattern(`standings:${slug}:*`);
+      }
     } finally {
       client.release();
     }
@@ -214,6 +222,7 @@ async function main() {
     if (handle) clearTimeout(handle);
     console.log("[liveSync] Shutting down...");
     clearPlayerCache();
+    await closeCache();
     await pool.end();
     process.exit(0);
   };

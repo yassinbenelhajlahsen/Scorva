@@ -9,6 +9,7 @@ import {
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
+import { invalidatePattern, closeCache } from "../cache/cache.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../../.env") });
@@ -46,6 +47,8 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
       console.log(`\n📋 Processing ${league.toUpperCase()}...`);
       await runTodayProcessing(league, pool);
       await runUpcomingProcessing(league, pool);
+      await invalidatePattern(`games:${league}:*`);
+      await invalidatePattern(`standings:${league}:*`);
     }
 
     // Log optimization stats before clearing (useful for monitoring impact)
@@ -72,6 +75,7 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
   } finally {
     // Always clear cache on exit to prevent memory leaks
     clearPlayerCache();
+    await closeCache();
     await pool.end();
     process.exit(0);
   }

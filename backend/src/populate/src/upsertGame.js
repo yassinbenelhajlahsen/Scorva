@@ -1,3 +1,6 @@
+import { invalidate } from "../../cache/cache.js";
+import { DateTime } from "luxon";
+
 export default async function upsertGame(client, league, gamePayload) {
   const text = `
     INSERT INTO games
@@ -77,5 +80,13 @@ export default async function upsertGame(client, league, gamePayload) {
 `,
     [gameId]
   );
+
+  // Invalidate game detail cache — the write may have changed status/scores
+  const todayEST = DateTime.now().setZone("America/New_York").toFormat("yyyy-MM-dd");
+  await invalidate(
+    `gameDetail:${league}:${gameId}`,
+    `games:${league}:default:${todayEST}`
+  );
+
   return gameId;
 }
