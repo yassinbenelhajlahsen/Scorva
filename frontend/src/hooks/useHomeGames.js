@@ -5,7 +5,9 @@ import { useLiveGames } from "./useLiveGames.js";
 function hasLiveGame(games) {
   return games.some(
     (g) =>
-      g.status.includes("In Progress") || g.status.includes("End of Period")
+      g.status.includes("In Progress") ||
+      g.status.includes("End of Period") ||
+      g.status.includes("Halftime")
   );
 }
 
