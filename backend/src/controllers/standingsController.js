@@ -1,7 +1,10 @@
 import { getStandings } from "../services/standingsService.js";
 
+const VALID_LEAGUES = ["nba", "nfl", "nhl"];
+
 export async function getStandingsList(req, res) {
-  const { league } = req.params;
+  const league = String(req.params.league || "").toLowerCase();
+  if (!VALID_LEAGUES.includes(league)) return res.status(400).json({ error: "Invalid league" });
   const { season } = req.query;
 
   try {

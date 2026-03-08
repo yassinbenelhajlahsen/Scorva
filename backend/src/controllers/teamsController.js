@@ -1,7 +1,10 @@
 import { getTeamsByLeague } from "../services/teamsService.js";
 
+const VALID_LEAGUES = ["nba", "nfl", "nhl"];
+
 export async function getTeams(req, res) {
-  const { league } = req.params;
+  const league = String(req.params.league || "").toLowerCase();
+  if (!VALID_LEAGUES.includes(league)) return res.status(400).json({ error: "Invalid league" });
 
   try {
     const teams = await getTeamsByLeague(league);
