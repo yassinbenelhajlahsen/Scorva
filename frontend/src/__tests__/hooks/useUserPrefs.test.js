@@ -33,7 +33,7 @@ describe("useUserPrefs — with session", () => {
     renderHook(() => useUserPrefs());
 
     await waitFor(() => expect(getProfile).toHaveBeenCalledTimes(1));
-    expect(getProfile).toHaveBeenCalledWith({ token: "tok" });
+    expect(getProfile).toHaveBeenCalledWith(expect.objectContaining({ token: "tok" }));
   });
 
   it("sets prefs and clears loading on success", async () => {

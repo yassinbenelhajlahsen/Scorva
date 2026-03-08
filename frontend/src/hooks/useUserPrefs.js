@@ -11,7 +11,7 @@ export function useUserPrefs() {
     if (!session) return;
     const controller = new AbortController();
     setLoading(true);
-    getProfile({ token: session.access_token })
+    getProfile({ token: session.access_token, signal: controller.signal })
       .then((data) => { setPrefs(data); setLoading(false); })
       .catch((err) => { if (err.name !== "AbortError") setLoading(false); });
     return controller;
