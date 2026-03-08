@@ -16,11 +16,16 @@ export async function getProfile(req, res) {
   }
 }
 
+const VALID_LEAGUES = ["nba", "nfl", "nhl"];
+
 export async function updateProfile(req, res) {
   try {
     const { firstName, lastName, defaultLeague } = req.body ?? {};
     if (firstName === undefined && lastName === undefined && defaultLeague === undefined) {
       return res.status(400).json({ error: "At least one field required" });
+    }
+    if (defaultLeague !== undefined && !VALID_LEAGUES.includes(defaultLeague)) {
+      return res.status(400).json({ error: "Invalid league. Must be nba, nfl, or nhl" });
     }
     const user = await userService.updateUser(req.user.id, { firstName, lastName, defaultLeague });
     res.json({ ok: true, user });
