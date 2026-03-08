@@ -5,7 +5,9 @@ import { useLiveGame } from "./useLiveGame.js";
 function isLiveStatus(status) {
   return (
     typeof status === "string" &&
-    (status.includes("In Progress") || status.includes("End of Period"))
+    (status.includes("In Progress") ||
+      status.includes("End of Period") ||
+      status.includes("Halftime"))
   );
 }
 
