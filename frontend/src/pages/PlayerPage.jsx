@@ -211,6 +211,7 @@ export default function PlayerPage() {
                   isHome={game.ishome}
                   opponentLogo={game.opponentlogo}
                   result={game.result}
+                  status={game.status}
                   id={id}
                 />
               </motion.div>

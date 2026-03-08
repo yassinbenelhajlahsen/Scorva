@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import StatCard from "../cards/StatCard.jsx";
 import slugify from "../../utilities/slugify.js";
 import { itemVariants } from "../../utilities/motion.js";
+import { formatDateShort } from "../../utilities/formatDate.js";
 
 const statKeysForLeague = {
   nba: [
@@ -58,7 +59,7 @@ export default function FavoritePlayersSection({ players }) {
                   <p className="text-text-tertiary text-xs self-center">No recent games</p>
                 ) : (
                   player.recentStats.map((stat) => {
-                    const isHome = stat.hometeamid === player.id;
+                    const isHome = stat.hometeamid === player.team_id;
                     const opponent = isHome ? stat.away_shortname : stat.home_shortname;
                     const opponentLogo = isHome ? stat.away_logo : stat.home_logo;
                     const result = stat.winnerid
@@ -72,12 +73,13 @@ export default function FavoritePlayersSection({ players }) {
                         <StatCard
                           stats={statsArr}
                           opponent={opponent}
-                          date={new Date(stat.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          date={formatDateShort(stat.date)}
                           gameId={stat.game_id}
                           league={player.league}
                           isHome={isHome}
                           opponentLogo={opponentLogo}
                           result={result}
+                          status={stat.status}
                           id={player.id}
                         />
                       </div>

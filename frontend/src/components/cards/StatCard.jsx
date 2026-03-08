@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export default function StatCard({
   stats = [],
@@ -9,8 +10,14 @@ export default function StatCard({
   isHome,
   opponentLogo,
   result,
+  status,
   id,
 }) {
+  const isFinal = status?.includes("Final");
+  const inProgress =
+    status?.includes("In Progress") ||
+    status?.includes("Halftime") ||
+    status?.includes("End of Period");
   if (!stats.length) {
     return (
       <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full max-w-3xl p-6 text-center">
@@ -28,9 +35,18 @@ export default function StatCard({
         {/* Game info */}
         {(opponent || date) && (
           <div className="text-text-tertiary text-xs mb-4 text-center flex items-center justify-center gap-2">
-            {result && (
+            {inProgress && (
+              <motion.span
+                animate={{ opacity: [1, 0.5, 1] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full"
+              >
+                Live
+              </motion.span>
+            )}
+            {isFinal && result && (
               <span
-                className={`font-semibold text-xs px-2 py-0.5 rounded-full ${
+                className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full ${
                   result === "W"
                     ? "text-win bg-win/10"
                     : "text-loss bg-loss/10"
