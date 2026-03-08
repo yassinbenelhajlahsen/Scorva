@@ -301,11 +301,16 @@ export async function processEvent(client, leagueSlug, event) {
     return null;
   }
 
-  // Extract date portion YYYY-MM-DD
+  // Extract date portion YYYY-MM-DD and ET start time
   const rawDate = event.date; // "2025-06-09T00:00Z"
-  const localDate = DateTime.fromISO(rawDate, { zone: "utc" })
-    .setZone("America/New_York")
-    .toFormat("yyyy-MM-dd");
+  const dt = DateTime.fromISO(rawDate, { zone: "utc" }).setZone("America/New_York");
+  const localDate = dt.toFormat("yyyy-MM-dd");
+  const hour = dt.hour % 12 || 12;
+  const minute = dt.minute;
+  const ampm = dt.hour < 12 ? "AM" : "PM";
+  const startTime = minute === 0
+    ? `${hour}${ampm} ET`
+    : `${hour}:${String(minute).padStart(2, "0")}${ampm} ET`;
   const comps = event.competitions?.[0]?.competitors || [];
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
@@ -489,6 +494,7 @@ export async function processEvent(client, leagueSlug, event) {
       gameLabel,
       currentPeriod,
       clock,
+      startTime,
     };
 
     // ========================================================================
