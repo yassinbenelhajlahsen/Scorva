@@ -120,22 +120,24 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-lg font-semibold text-text-primary mb-3">Contact</h2>
-            <p className="text-text-secondary text-sm leading-relaxed">
-              Questions about this policy? Reach out at{" "}
-              <a
-                href="mailto:yassinbenelhajlahsen@gmail.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:text-accent-hover underline underline-offset-2"
-              >
-                yassinbenelhajlahsen@gmail.com.
-              </a>
-            </p>
-          </section>
         </div>
       </div>
+
+      {/* Contact — full width, centered */}
+      <section className="mt-16 text-center">
+        <h2 className="text-lg font-semibold text-text-primary mb-3">Contact</h2>
+        <p className="text-text-secondary text-sm leading-relaxed">
+          Questions about this policy? Reach out at{" "}
+          <a
+            href="mailto:yassinbenelhajlahsen@gmail.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:text-accent-hover underline underline-offset-2"
+          >
+            yassinbenelhajlahsen@gmail.com.
+          </a>
+        </p>
+      </section>
     </div>
   );
 }
