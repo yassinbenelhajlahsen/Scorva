@@ -56,6 +56,7 @@ export async function getNbaPlayer(playerId, season) {
           FROM (
             SELECT
               g.date,
+              g.status,
               s2.gameid,
               s2.points,
               s2.assists,
@@ -134,6 +135,7 @@ export async function getNflPlayer(playerId, season) {
           FROM (
             SELECT
               g.date,
+              g.status,
               s2.gameid,
               s2.cmpatt AS "CMPATT",
               s2.yds    AS "YDS",
@@ -207,6 +209,7 @@ export async function getNhlPlayer(playerId, season) {
           FROM (
             SELECT
               g.date,
+              g.status,
               s2.gameid,
               s2.g       AS "G",
               s2.a       AS "A",

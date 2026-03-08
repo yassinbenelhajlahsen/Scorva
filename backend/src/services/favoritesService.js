@@ -34,7 +34,7 @@ export async function getFavorites(userId) {
                   s.yds, s.sacks, s.td, s.interceptions, s.cmpatt,
                   s.g, s.a, s.saves, s.savepct, s.shots, s.toi,
                   g.date, g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
-                  g.winnerid, g.league, g.id AS game_id,
+                  g.winnerid, g.status, g.league, g.id AS game_id,
                   th.shortname AS home_shortname, th.logo_url AS home_logo,
                   ta.shortname AS away_shortname, ta.logo_url AS away_logo,
                   ROW_NUMBER() OVER (PARTITION BY s.playerid ORDER BY g.date DESC) AS rn
