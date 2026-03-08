@@ -32,6 +32,8 @@ describe("upsertGame", () => {
     gameLabel: null,
     currentPeriod: null,
     clock: null,
+    startTime: null,
+    gameType: null,
   };
 
   beforeEach(() => {
@@ -160,10 +162,29 @@ describe("upsertGame", () => {
     await upsertGame(mockClient, "nba", basePayload);
 
     const insertValues = mockClient.query.mock.calls[0][1];
-    // gameLabel ($20), currentPeriod ($21), clock ($22) should all be null
+    // gameLabel ($20), currentPeriod ($21), clock ($22), startTime ($23) should all be null
     expect(insertValues[19]).toBeNull();
     expect(insertValues[20]).toBeNull();
     expect(insertValues[21]).toBeNull();
+    expect(insertValues[22]).toBeNull();
+    // type ($24) defaults to 'regular' when gameType is null
+    expect(insertValues[23]).toBe('regular');
+  });
+
+  it("should write gameType for playoff games", async () => {
+    const playoffPayload = {
+      ...basePayload,
+      gameLabel: "NBA Finals - Game 1",
+      gameType: "final",
+    };
+
+    mockClient.query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+    mockClient.query.mockResolvedValueOnce({ rows: [] });
+
+    await upsertGame(mockClient, "nba", playoffPayload);
+
+    const insertValues = mockClient.query.mock.calls[0][1];
+    expect(insertValues[23]).toBe("final");
   });
 
   it("should write currentPeriod and clock for live games", async () => {
@@ -193,6 +214,7 @@ describe("upsertGame", () => {
     const insertQuery = mockClient.query.mock.calls[0][0];
     expect(insertQuery).toContain("current_period");
     expect(insertQuery).toContain("clock");
+    expect(insertQuery).toContain("type");
   });
 
   it("should propagate query errors", async () => {
