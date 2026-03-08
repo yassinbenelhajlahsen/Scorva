@@ -117,4 +117,16 @@ export function getPeriodLabel(period, league) {
   return "OT" + (period > maxRegular + 1 ? period - maxRegular : "");
 }
 
+export function formatDateShortWithTime(dateInput, startTime) {
+  const date = formatDateShort(dateInput);
+  if (!startTime) return date;
+  return `${date} @ ${startTime}`;
+}
+
+export function formatDateWithTime(dateInput, startTime) {
+  const date = formatDate(dateInput);
+  if (!startTime) return date;
+  return `${date} @ ${startTime}`;
+}
+
 export default formatDate;

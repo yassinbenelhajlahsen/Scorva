@@ -8,7 +8,7 @@ import AISummary from "../components/ui/AISummary.jsx";
 import slugify from "../utilities/slugify.js";
 import computeTopPlayers from "../utilities/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
-import formatDate, { getPeriodLabel } from "../utilities/formatDate.js";
+import formatDate, { formatDateWithTime, getPeriodLabel } from "../utilities/formatDate.js";
 import { useGame } from "../hooks/useGame.js";
 import GamePageSkeleton from "../components/skeletons/GamePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -228,7 +228,11 @@ export default function GamePage() {
         <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0">
           <div className="grid grid-cols-[max-content_auto] gap-x-8 gap-y-3">
             <span className="text-sm text-text-tertiary">Date</span>
-            <span className="text-sm font-medium text-text-primary">{formatDate(game.date)}</span>
+            <span className="text-sm font-medium text-text-primary">
+              {!isFinal && !inProgress && game.startTime
+                ? formatDateWithTime(game.date, game.startTime)
+                : formatDate(game.date)}
+            </span>
             <span className="text-sm text-text-tertiary">Status</span>
             <span className="text-sm font-medium text-text-primary">{game.status}</span>
             <span className="text-sm text-text-tertiary">Location</span>

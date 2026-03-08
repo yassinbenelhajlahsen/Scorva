@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDateShort, getPeriodLabel } from "../../utilities/formatDate";
+import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utilities/formatDate";
 import { scoreUpdateVariants } from "../../utilities/motion.js";
 
 export default function GameCard({ game }) {
@@ -76,7 +76,9 @@ export default function GameCard({ game }) {
           {/* Center */}
           <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
             <span className="text-xs text-text-tertiary">
-              {formatDateShort(game.date)}
+              {!isFinal && !inProgress && game.start_time
+                ? formatDateShortWithTime(game.date, game.start_time)
+                : formatDateShort(game.date)}
             </span>
             <div className="text-xs font-medium text-text-tertiary">vs</div>
             {inProgress && (
