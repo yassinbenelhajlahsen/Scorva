@@ -1,7 +1,6 @@
 import { getPlayerIdBySlug } from "../utils/slugResolver.js";
 import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "../services/playerInfoService.js";
-
-const currentSeason = "2025-26";
+import { getCurrentSeason } from "../cache/seasons.js";
 
 const leagueHandlers = {
   nba: getNbaPlayer,
@@ -12,7 +11,7 @@ const leagueHandlers = {
 export async function getPlayerInfo(req, res) {
   const league = String(req.params.league || "").toLowerCase();
   const { slug } = req.params;
-  const season = req.query.season || currentSeason;
+  const season = req.query.season || await getCurrentSeason(league);
 
   const handler = leagueHandlers[league];
   if (!handler) {
