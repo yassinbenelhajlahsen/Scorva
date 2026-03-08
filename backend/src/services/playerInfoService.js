@@ -1,8 +1,17 @@
 import pool from "../db/db.js";
+import { cached } from "../cache/cache.js";
+import { getCurrentSeason } from "../cache/seasons.js";
+
+async function playerTTL(league, season) {
+  const currentSeason = await getCurrentSeason(league);
+  return season === currentSeason ? 120 : 30 * 86400; // 2 min current, 30 days past
+}
 
 export async function getNbaPlayer(playerId, season) {
-  const result = await pool.query(
-    `
+  const ttl = await playerTTL("nba", season);
+  return cached(`playerDetail:nba:${playerId}:${season}`, ttl, async () => {
+    const result = await pool.query(
+      `
     SELECT json_build_object(
       'id', p.id,
       'name', p.name,
@@ -84,14 +93,17 @@ export async function getNbaPlayer(playerId, season) {
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
-    ["nba", playerId, season]
-  );
-  return result.rows[0] ?? null;
+      ["nba", playerId, season]
+    );
+    return result.rows[0] ?? null;
+  });
 }
 
 export async function getNflPlayer(playerId, season) {
-  const result = await pool.query(
-    `
+  const ttl = await playerTTL("nfl", season);
+  return cached(`playerDetail:nfl:${playerId}:${season}`, ttl, async () => {
+    const result = await pool.query(
+      `
     SELECT json_build_object(
       'id', p.id,
       'name', p.name,
@@ -153,14 +165,17 @@ export async function getNflPlayer(playerId, season) {
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
-    ["nfl", playerId, season]
-  );
-  return result.rows[0] ?? null;
+      ["nfl", playerId, season]
+    );
+    return result.rows[0] ?? null;
+  });
 }
 
 export async function getNhlPlayer(playerId, season) {
-  const result = await pool.query(
-    `
+  const ttl = await playerTTL("nhl", season);
+  return cached(`playerDetail:nhl:${playerId}:${season}`, ttl, async () => {
+    const result = await pool.query(
+      `
     SELECT json_build_object(
       'id', p.id,
       'name', p.name,
@@ -233,7 +248,8 @@ export async function getNhlPlayer(playerId, season) {
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
-    ["nhl", playerId, season]
-  );
-  return result.rows[0] ?? null;
+      ["nhl", playerId, season]
+    );
+    return result.rows[0] ?? null;
+  });
 }

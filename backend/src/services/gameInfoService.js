@@ -1,7 +1,14 @@
 import pool from "../db/db.js";
+import { cached } from "../cache/cache.js";
+
+const GAME_DETAIL_TTL = 30 * 86400; // 30 days
 
 export async function getNbaGame(gameId) {
-  const result = await pool.query(
+  return cached(
+    `gameDetail:nba:${gameId}`,
+    GAME_DETAIL_TTL,
+    async () => {
+      const result = await pool.query(
     `SELECT json_build_object(
   'game', json_build_object(
     'id', g.id,
@@ -121,13 +128,20 @@ FROM games g
 JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
 WHERE g.id = $1 AND g.league = $2;`,
-    [gameId, "nba"]
+        [gameId, "nba"]
+      );
+      return result.rows[0] ?? null;
+    },
+    { cacheIf: (data) => data?.json_build_object?.game?.status?.includes("Final") }
   );
-  return result.rows[0] ?? null;
 }
 
 export async function getNflGame(gameId) {
-  const result = await pool.query(
+  return cached(
+    `gameDetail:nfl:${gameId}`,
+    GAME_DETAIL_TTL,
+    async () => {
+      const result = await pool.query(
     `SELECT json_build_object(
   'game', json_build_object(
     'id', g.id,
@@ -233,14 +247,21 @@ FROM games g
 JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
 WHERE g.id = $1 AND g.league = $2`,
-    [gameId, "nfl"]
+        [gameId, "nfl"]
+      );
+      return result.rows[0] ?? null;
+    },
+    { cacheIf: (data) => data?.json_build_object?.game?.status?.includes("Final") }
   );
-  return result.rows[0] ?? null;
 }
 
 export async function getNhlGame(gameId) {
-  const result = await pool.query(
-    `
+  return cached(
+    `gameDetail:nhl:${gameId}`,
+    GAME_DETAIL_TTL,
+    async () => {
+      const result = await pool.query(
+        `
     SELECT json_build_object(
   'game', json_build_object(
     'id', g.id,
@@ -365,7 +386,10 @@ JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
 WHERE g.id = $1 AND g.league = $2;
     `,
-    [gameId, "nhl"]
+        [gameId, "nhl"]
+      );
+      return result.rows[0] ?? null;
+    },
+    { cacheIf: (data) => data?.json_build_object?.game?.status?.includes("Final") }
   );
-  return result.rows[0] ?? null;
 }
