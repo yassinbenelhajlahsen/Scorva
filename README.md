@@ -15,7 +15,7 @@ https://scorva.dev
 | Layer | Technologies |
 |---|---|
 | Frontend | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6 |
-| Backend | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only) |
+| Backend | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis) |
 | Auth | Supabase Auth — email/password + Google OAuth; JWT verified server-side |
 | AI | OpenAI GPT-4o-mini |
 | Database | PostgreSQL — `pg_trgm` GIN indexes, window functions, `ON CONFLICT DO UPDATE` |
@@ -30,6 +30,7 @@ Scorva
 │   ├── src/
 │   │   ├── index.js              # Express server entry point
 │   │   ├── db/db.js              # PostgreSQL pool singleton
+│   │   ├── cache/                # Redis caching layer (cache.js, seasons.js)
 │   │   ├── middleware/           # CORS, rate limiting, request logging, JWT auth
 │   │   ├── routes/               # Thin route definitions (one per resource)
 │   │   ├── controllers/          # Param extraction, response handling
@@ -59,7 +60,23 @@ Scorva
 
 ## Architecture
 
-Backend follows a strict 4-layer separation: Routes → Controllers → Services → DB. Routes delegate only; controllers extract params and send responses; services own all SQL via `pg` Pool; `db/db.js` exports a singleton. All modules use ESM with `.js` extensions.
+Backend follows a strict 4-layer separation: Routes → Controllers → Services → DB. Routes delegate only; controllers extract params and send responses; services own all SQL via `pg` Pool; `db/db.js` exports a singleton. Caching is applied at the service layer via `cached()` from `backend/src/cache/cache.js`. All modules use ESM with `.js` extensions.
+
+---
+
+## Frontend Routes
+
+| Path | Page |
+|---|---|
+| `/` | Homepage |
+| `/about` | About |
+| `/:league` | LeaguePage |
+| `/:league/teams/:teamId` | TeamPage |
+| `/:league/players/:playerId` | PlayerPage |
+| `/:league/games/:gameId` | GamePage |
+| `/settings` | SettingsPage (requires auth) |
+| `/auth/callback` | AuthCallback (OAuth popup handler) |
+| `*` | ErrorPage (404 catch-all) |
 
 ---
 
@@ -97,7 +114,7 @@ Gear icon in the navbar opens `/settings` (requires auth):
 
 A dedicated Railway worker (`liveSync.js`) runs a two-tier update cycle across all three leagues:
 
-- **Fast path (every 30s):** `upsertGameScoreboard` — updates scores, clock, period, and quarter strings from the ESPN scoreboard endpoint only. No boxscore fetch.
+- **Fast path (every 15s):** `upsertGameScoreboard` — updates scores, clock, period, and quarter strings from the ESPN scoreboard endpoint only. No boxscore fetch.
 - **Full path (every 2 min, or on period change):** `processEvent` — fetches the full boxscore and upserts player stats
 - Per-event state tracked in a `Map` to decide which path to take each tick
 - Sleeps 5 minutes when no live games are detected across all leagues
@@ -118,6 +135,17 @@ A dedicated Railway worker (`liveSync.js`) runs a two-tier update cycle across a
 - Produces 3–4 structured bullet points: why the winner won, top performances, key statistical advantages
 - Protected by `requireAuth` middleware + a dedicated stricter rate limiter (`aiLimiter`, 50 req/15 min in production)
 - 30-second timeout with graceful fallback; locked UI shown to unauthenticated users with sign-in prompt
+
+### Redis Caching
+
+Service-layer caching via `ioredis` with tiered TTLs based on data volatility:
+
+- **30-day cache**: finalized game detail (`gameInfoService`), past-season standings, past-season player stats, past-season game lists — immutable once finalized
+- **Short TTL (30s–5min)**: current-season standings (5 min), current-season player stats (2 min), today's default game list (30s)
+- **24h cache**: team lists, player lists, available seasons
+- **Not cached**: favorites, user profile, search, AI summaries (DB-persisted), SSE endpoints
+
+Graceful fallback: if `REDIS_URL` is unset, all cache ops are no-ops — no behavior change in local dev or tests. Cache invalidation runs inside `upsertGame.js`, `liveSync.js`, and `upsert.js` on every write. Graceful shutdown calls `closeCache()` on `SIGTERM`.
 
 ### Intelligent Search
 
@@ -197,14 +225,16 @@ cd frontend && npm run verify
 
 ### Backend (Jest 29 + Supertest)
 
-- **All API routes** — teams, players, games, standings, search, game detail, player detail, seasons
+- **All API routes** — teams, players, games, game detail (`gameInfo`), player detail (`playerInfo`), standings, seasons, search
 - **Auth-protected routes** — favorites, user profile, AI summary, account deletion
 - **Webhook handler** — Supabase auth event parsing, user creation, name extraction for email and OAuth signup flows
 - **Live SSE routes** — stream lifecycle, 15s heartbeat, `done` event on game completion
 - **Database layer** — connection pooling, `pg` Pool error handling
 - **Data ingestion** — `mapStatsToSchema`, `upsertPlayer`, `upsertTeam`, `upsertGame`, `upsertStat`, `eventProcessor`, `upsertGameScoreboard` (live sync fast path)
+- **Cache module** — Redis `cached()`, `invalidate()`, `invalidatePattern()`, graceful fallback when `REDIS_URL` unset
+- **Service unit tests** — `aiSummaryService` cache-first logic, summary generation, error handling
 - **Integration** — full Express app behavior across all mounted routes
-- Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`
+- Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`; season-aware routes also mock `cache/seasons.js`
 
 ### Frontend (Vitest + Testing Library)
 

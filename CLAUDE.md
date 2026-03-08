@@ -8,6 +8,7 @@ Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → Post
 - **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only)
 - **Auth**: Supabase Auth — email/password + Google OAuth; JWT verified server-side
 - **AI**: OpenAI SDK for game summaries
+- **Caching**: Redis via `ioredis` (graceful no-op fallback when `REDIS_URL` unset)
 - **Testing**: Jest 29 + Supertest (backend), Vitest + Testing Library + jsdom (frontend)
 - All packages use ESM (`"type": "module"`). Always use `.js` extensions in imports.
 
@@ -54,8 +55,11 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Services | `backend/src/services/` |
 | Prisma schema | `backend/prisma/schema.prisma` |
 | Generated client | `backend/src/generated/prisma/` (do not edit) |
+| Cache module | `backend/src/cache/cache.js` |
+| Season cache helper | `backend/src/cache/seasons.js` |
 | Scheduled upsert | `backend/src/populate/upsert.js` |
 | Live sync worker | `backend/src/populate/liveSync.js` |
+| Historical upsert | `backend/src/populate/historicalUpsert.js` |
 | Data ingestion helpers | `backend/src/populate/src/` |
 | Frontend entry | `frontend/src/main.jsx` |
 | Frontend router | `frontend/src/App.jsx` |
@@ -111,12 +115,14 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 
 ## Frontend routes
 - `/` → Homepage
+- `/about` → About (lazy-loaded)
 - `/:league` → LeaguePage
 - `/:league/teams/:teamId` → TeamPage
 - `/:league/players/:playerId` → PlayerPage
 - `/:league/games/:gameId` → GamePage
 - `/settings` → SettingsPage (requires auth, redirects to `/` if logged out)
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
+- `*` → ErrorPage (404 catch-all, lazy-loaded)
 
 ## Design system
 Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind.config.js`.
@@ -142,7 +148,7 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`, `default_league` (nullable, defaults to `"nba"` on frontend). Populated via Supabase webhook on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
 - **User preferences** (`default_league`) stored in `users` table. Fetched via `useUserPrefs` hook (`GET /api/user/profile`). Homepage defers rendering league tabs until prefs resolve to avoid NBA→preference flicker. Settings page allows editing via `PATCH /api/user/profile`.
 - **Settings page** (`/settings`) — sidebar navigation (desktop) / drill-down (mobile). Tabs: Favorites (manage favorites + default league selector) and Account (edit name, change password, delete account). Navbar shows gear icon linking to `/settings` when logged in; "Sign In" pill when logged out. Google OAuth users see "Signed in with Google" badge; password change section is hidden for them.
-- **Account deletion** — two-step: `DELETE /api/user/account` deletes DB row (cascades favorites), then calls Supabase Admin API to delete auth user. Requires `SUPABASE_SERVICE_ROLE_KEY` env var on backend.
+- **Account deletion** — two-step: `DELETE /api/user/account` deletes DB row (cascades favorites), then calls Supabase Admin API to delete auth user. Uses `SUPABASE_SECRET_KEY` env var (same key as auth middleware) — no separate service role key needed.
 - **Auth modal** — fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
 - **apiFetch** (`frontend/src/api/client.js`) supports `method` and `body` params; sets `Content-Type: application/json` when body present; handles 204 (no-content) responses.
 - **Favorites** all routes require `requireAuth`; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite

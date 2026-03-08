@@ -7,7 +7,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - Frontend (Vite + React): `cd frontend && npm run dev` (serves `frontend/src`).
 - Backend (Express): in a second terminal `cd backend && npm run start` (runs `node src/index.js`).
 - Populate envs:
-  - Copy `backend/backend.env.example` -> `backend/.env` and set `DATABASE_URL` and `OPENAI_API_KEY`.
+  - Copy `backend/.env.example` -> `backend/.env` and set `DATABASE_URL` and `OPENAI_API_KEY`.
   - Copy `frontend/.env.example` -> `frontend/.env` and set `VITE_API_URL` (backend URL).
 
 2. Big-picture architecture
@@ -22,9 +22,10 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
   - **Services**: runs raw SQL via `pg` Pool, returns plain data.
   - **DB**: `backend/src/db/db.js` — `pg` Pool singleton.
 - Prisma: schema at `backend/prisma/schema.prisma`; generated client at `backend/src/generated/prisma/`. Used for schema management and migrations **only** — runtime queries use `pg` directly.
+- Cache: `backend/src/cache/` — Redis caching layer via `ioredis`. `cache.js` exports `cached()`, `invalidate()`, `invalidatePattern()`, `closeCache()`. `seasons.js` exports `getCurrentSeason(league)` (1h TTL). Applied at the service layer. Graceful no-op fallback when `REDIS_URL` is unset.
 - Data ingestion: `backend/src/populate/` — ESPN API → DB normalization and upsert helpers. Two workers:
   - `upsert.js` — scheduled (every 30–60 min), processes all leagues for today's games
-  - `liveSync.js` — persistent Railway worker, polls live games every 30s using a two-tier strategy: fast scoreboard-only upsert every tick, full `processEvent()` (boxscore + player stats) every 2 min or on period change. Sleeps 5 min when no live games.
+  - `liveSync.js` — persistent Railway worker, polls live games every 15s using a two-tier strategy: fast scoreboard-only upsert every tick, full `processEvent()` (boxscore + player stats) every 2 min or on period change. Sleeps 5 min when no live games.
 - Deployment: frontend on Vercel (Root Directory `frontend/`), backend API on Railway, liveSync worker as a separate Railway service (Root Directory `backend`, Start Command `npm run live-sync`, Restart Policy `Always`).
 
 3. Important conventions (do NOT break these)
@@ -43,7 +44,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 - Run frontend only: `cd frontend && npm run dev`. Requires backend running and `frontend/.env` with `VITE_API_URL`.
 - Run backend only: `cd backend && npm run start`. Requires `backend/.env` with `DATABASE_URL`.
-- Run all quality checks: `npm run verify` from project root (frontend lint + test + build, then backend tests).
+- Run all quality checks: `cd frontend && npm run verify` (lint + test + build — no root package.json exists).
 - Run backend tests: `cd backend && npm test` (full Jest suite). `npm test -- <pattern>` for a specific file.
 - Run frontend tests: `cd frontend && npm test` (Vitest). `npm run test:watch` for watch mode.
 - Coverage: `cd backend && npm run test:coverage` or `cd frontend && npm run test:coverage`.
@@ -65,6 +66,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - `backend/src/services/` — DB queries and business logic.
 - `backend/src/populate/src/` — ESPN API mapping and upsert utilities (`eventProcessor.js`, `upsertGame.js`, etc.).
 - `backend/src/populate/liveSync.js` — live sync worker (exports `upsertGameScoreboard` for testing; `main()` guarded by `NODE_ENV !== 'test'`).
+- `backend/src/cache/cache.js` and `backend/src/cache/seasons.js` — Redis caching layer and season helper.
 - `backend/prisma/schema.prisma` — source of truth for DB models.
 - `frontend/src/App.jsx` and `frontend/src/main.jsx` — entry points.
 - `frontend/src/index.css` — Tailwind v4 `@theme` design tokens.
@@ -75,7 +77,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 
 **Backend** (Jest 29 + Supertest):
 - **Framework**: Jest 29 + Supertest for HTTP assertions. ES modules — use `jest.unstable_mockModule()` for mocking.
-- **Test structure**: `backend/__tests__/routes/`, `services/`, `populate/`, `db/`, `integration/`.
+- **Test structure**: `backend/__tests__/routes/`, `services/`, `populate/`, `db/`, `cache/`, `integration/`.
 - **Test helpers**: `backend/__tests__/helpers/testHelpers.js` exports `createMockPool()`, `fixtures` (team/player/game factories), `mockRequest`, `mockResponse`.
 - **Running tests**: `cd backend && npm test` (all), `npm test -- <pattern>` (specific).
 - **Writing tests**: mock `db/db.js` with `createMockPool()`. Test success cases + error handling + edge cases + parameter variants. See `backend/__tests__/README.md` for full guide.
@@ -92,12 +94,12 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
   - Debounce/timer tests: `vi.useFakeTimers()` in `beforeEach`; advance with `vi.advanceTimersByTimeAsync(ms)`; then drain microtasks with `await act(async () => {})`
   - Components: use `renderWithProviders()` for router + auth context wrapping
 
-**CI**: `.github/workflows/deploy.yml` runs `npm run verify` (root) on every push and PR — frontend lint + test + build. Backend deploys independently via Railway. Vercel deploy only runs on `main` after CI passes.
+**CI**: `.github/workflows/deploy.yml` runs `cd frontend && npm run verify` on every push and PR — frontend lint + test + build. Backend deploys independently via Railway. Vercel deploy only runs on `main` after CI passes.
 
 8. Auth-gated features & user preferences
 
 - Most API endpoints are publicly accessible. The AI summary, favorites, and user profile endpoints require a valid Supabase JWT — unauthenticated requests return 401.
-- Auth is handled by Supabase. Backend env vars required: `PROJECT_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (for account deletion). Frontend env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
+- Auth is handled by Supabase. Backend env vars required: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (used for both auth middleware and admin operations), `SUPABASE_WEBHOOK_SECRET`, `REDIS_URL` (optional). Frontend env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - AI summaries: cache-first, persisted to `games.ai_summary`, only generated for finalized games.
 - `playerInfo` service uses a hardcoded `currentSeason = "2025-26"` constant — update when the season changes.
 - **User preferences** are stored in the `users` table (`default_league VARCHAR(10)`). Fetched on the frontend via `useUserPrefs` hook (`GET /api/user/profile`). The homepage defers rendering league tabs until prefs resolve to prevent a flash of the wrong default league.

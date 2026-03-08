@@ -12,33 +12,47 @@ This test suite covers:
 - **API Routes**: All endpoints in `/api`
 - **Database Layer**: Connection and query operations
 - **Data Population Services**: Mapping and upsert utilities
+- **Cache Module**: Redis caching layer unit tests
+- **Service Unit Tests**: Individual service logic (AI summary)
 - **Integration Tests**: Full app behavior
 
 ## Test Structure
 
 ```
 backend/__tests__/
-├── setup.js                      # Global test configuration
+├── setup.js                          # Global test configuration
 ├── helpers/
-│   └── testHelpers.js           # Mock utilities and fixtures
+│   └── testHelpers.js               # Mock utilities and fixtures
 ├── routes/
-│   ├── teams.test.js            # GET /:league/teams
-│   ├── players.test.js          # GET /:league/players
-│   ├── games.test.js            # GET /:league/games
-│   ├── standings.test.js        # GET /:league/standings
-│   ├── search.test.js           # GET /search
-│   ├── aiSummary.test.js        # GET /games/:id/ai-summary
-│   ├── favorites.test.js        # GET|POST|DELETE /favorites/*
-│   └── live.test.js             # GET /live/:league/games + /live/:league/games/:gameId (SSE)
+│   ├── teams.test.js                # GET /:league/teams
+│   ├── players.test.js              # GET /:league/players
+│   ├── games.test.js                # GET /:league/games
+│   ├── gameInfo.test.js             # GET /:league/games/:gameId
+│   ├── playerInfo.test.js           # GET /:league/players/:playerId
+│   ├── standings.test.js            # GET /:league/standings
+│   ├── seasons.test.js              # GET /:league/seasons
+│   ├── search.test.js               # GET /search
+│   ├── aiSummary.test.js            # GET /games/:id/ai-summary (requireAuth)
+│   ├── favorites.test.js            # GET|POST|DELETE /favorites/* (requireAuth)
+│   ├── user.test.js                 # GET|PATCH /user/profile, DELETE /user/account
+│   ├── webhooks.test.js             # POST /webhooks/supabase-auth
+│   └── live.test.js                 # GET /live/:league/games + /:gameId (SSE)
+├── services/
+│   └── aiSummaryService.test.js     # AI summary service unit tests
+├── cache/
+│   └── cache.test.js                # Redis cache module unit tests
 ├── db/
-│   └── db.test.js               # Database connection tests
+│   └── db.test.js                   # Database connection tests
 ├── populate/
-│   ├── mapStatsToSchema.test.js # Stats mapping tests
-│   ├── upsertPlayer.test.js     # Player upsert tests
-│   ├── upsertGame.test.js       # Game upsert (incl. current_period/clock fields)
-│   └── liveSync.test.js         # Live sync worker: upsertGameScoreboard
+│   ├── mapStatsToSchema.test.js     # Stats mapping tests
+│   ├── upsertPlayer.test.js         # Player upsert tests
+│   ├── upsertTeam.test.js           # Team upsert tests
+│   ├── upsertGame.test.js           # Game upsert (incl. current_period/clock fields)
+│   ├── upsertStat.test.js           # Stat upsert tests
+│   ├── eventProcessor.test.js       # Event processing pipeline tests
+│   └── liveSync.test.js             # Live sync worker: upsertGameScoreboard
 └── integration/
-    └── app.test.js              # Full app integration tests
+    └── app.test.js                  # Full app integration tests
 ```
 
 ## Running Tests
@@ -156,6 +170,16 @@ Test mapping functions with various input formats and edge cases.
 ### 5. SSE Endpoints
 
 Test SSE controllers directly using mock req/res objects (EventEmitter-based client for LISTEN/NOTIFY). Supertest is not used for SSE — `res.write`, `res.writeHead`, and `res.end` are mocked as `jest.fn()`. The mock `listenClient` is a Node.js `EventEmitter` so `notification` events can be simulated.
+
+### 7. Season-Aware Route Tests
+
+Route tests for `games`, `standings`, and `playerInfo` must mock `../../src/cache/seasons.js` with `jest.unstable_mockModule()` so `getCurrentSeason()` never calls `pool.query` in tests:
+
+```javascript
+jest.unstable_mockModule("../../src/cache/seasons.js", () => ({
+  getCurrentSeason: jest.fn().mockResolvedValue("2025-26"),
+}));
+```
 
 ### 6. Integration
 

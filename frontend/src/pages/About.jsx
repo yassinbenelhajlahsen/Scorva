@@ -1,98 +1,123 @@
-export default function About() {
-  const techStack = [
-    "React 19 + Vite 6",
-    "React Router 7",
-    "Tailwind CSS v4",
-    "Framer Motion",
-    "Node.js + Express 5",
-    "PostgreSQL + Prisma ORM",
-    "Supabase Auth (email + OAuth)",
-    "Server-Sent Events (SSE)",
-    "OpenAI GPT-4o-mini",
-    "Jest + Supertest / Vitest",
-    "Vercel (frontend)",
-    "Railway (API + live sync worker)",
-  ];
+const techStack = [
+  { category: "Frontend", items: ["React 19 + Vite 6", "React Router 7", "Tailwind CSS v4", "Framer Motion 12"] },
+  { category: "Backend", items: ["Node.js + Express 5", "PostgreSQL (pg)", "Redis (ioredis)", "Prisma 7 (migrations)"] },
+  { category: "Auth & AI", items: ["Supabase Auth (email + OAuth)", "OpenAI GPT-4o-mini", "JWT (server-side verified)"] },
+  { category: "Infra & Testing", items: ["Vercel · Railway (2 services)", "GitHub Actions CI/CD", "Jest + Supertest", "Vitest + Testing Library"] },
+];
 
+const engineeringDecisions = [
+  {
+    title: "Service-layer Redis caching",
+    detail: "Cache applied at the service layer so REST and SSE controllers share the same hot data. Tiered TTLs: 30s for live game lists, 5min for standings, 30 days for finalized game detail. cacheIf guard prevents caching in-progress games.",
+  },
+  {
+    title: "Two-tier live sync worker",
+    detail: "Fast path every 15s updates scores and clock only (scoreboard endpoint). Full path every 2min or on period change fetches boxscore and upserts player stats. Reduces ESPN API calls ~8× while keeping scores current.",
+  },
+  {
+    title: "SSE over WebSocket + pg_notify",
+    detail: "PostgreSQL LISTEN/NOTIFY triggers SSE pushes instantly on each DB write — no polling lag. SSE fits unidirectional score delivery, avoids WebSocket infrastructure overhead, and works cleanly behind Railway's reverse proxy.",
+  },
+  {
+    title: "pg_trgm GIN indexes for search",
+    detail: "Fuzzy search across players, teams, and games in a single ranked query — no external search service. Custom ORDER BY ranks exact → prefix → substring → trigram similarity. Date-aware parsing handles 'Jan 15', '12/25', and full ISO dates.",
+  },
+];
+
+export default function About() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-16">
-      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary mb-8">
+      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary mb-3">
         About Scorva
       </h1>
+      <p className="text-text-tertiary text-sm mb-10">Full-stack · Production-deployed · Open source</p>
 
+      {/* Intro */}
       <div className="space-y-5 text-text-secondary text-base leading-relaxed">
         <p>
-          <strong className="text-text-primary font-semibold">Scorva</strong> is a full-stack sports analytics platform
-          delivering live scores, historical game data, player profiles, and
-          AI-generated game analysis for the NBA, NFL, and NHL. Built as a
-          production-style application to demonstrate real-world software
-          engineering across frontend development, backend API design, database
-          modeling, real-time streaming, and deployment.
+          <strong className="text-text-primary font-semibold">Scorva</strong> is a production-deployed,
+          full-stack sports data platform covering live scores, historical game data, player profiles,
+          and AI-generated game analysis for the NBA, NFL, and NHL. It runs as three separate services —
+          a React frontend on Vercel, a REST + SSE API on Railway, and a dedicated live sync worker that
+          continuously ingests data from ESPN.
         </p>
-
         <p>
-          The system is built on a React frontend and a Node.js + Express
-          backend, backed by PostgreSQL for structured sports data. Scorva
-          consumes ESPN's undocumented APIs, normalizes raw responses into a
-          consistent multi-league schema, and exposes clean REST and SSE
-          endpoints to power live scores, box scores, player profiles, and
-          AI-powered game summaries.
+          The backend is structured in four strict layers (Route → Controller → Service → DB) with
+          service-layer Redis caching, a PostgreSQL data model spanning seven tables and nine schema
+          migrations, and a data ingestion pipeline that normalizes ESPN's undocumented API responses
+          into a consistent multi-league schema. Every public API route has a corresponding test file;
+          the suite covers route behavior, DB layer, data ingestion, cache module, and integration tests.
         </p>
-
         <p>
-          The application focuses on performance, correctness, and maintainability —
-          efficient SQL with <code className="text-text-primary text-sm font-mono">pg_trgm</code> GIN indexes for fuzzy search,
-          a two-tier live sync worker, JWT-verified authentication, optimistic
-          UI updates with rollback, and comprehensive test coverage across
-          backend and frontend.
+          Built with deliberate engineering tradeoffs — not to check boxes, but because the problem
+          warranted them.
         </p>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4">What it demonstrates</h3>
-          <ul className="text-text-secondary text-sm space-y-2.5">
-            {[
-              "Full-stack architecture with strict layer separation",
-              "Real-time SSE streaming with REST fallback",
-              "Auth system design — JWT, OAuth popup flow, webhooks",
-              "Database optimization — GIN indexes, window functions",
-              "Data ingestion and multi-league normalization pipeline",
-              "AI integration with cost-controlled permanent caching",
-              "Optimistic UI updates with rollback on failure",
-              "Production deployment and CI/CD pipeline",
-            ].map((item, i) => (
-              <li key={i} className="flex items-start gap-2.5">
-                <span className="w-1 h-1 bg-accent rounded-full mt-2 flex-shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4">Who it is for</h3>
-          <p className="text-text-secondary text-sm leading-relaxed">
-            Scorva is built for engineers, recruiters, and sports fans who want
-            to explore a real application that mirrors how modern full-stack
-            systems are designed and shipped — from database schema to
-            deployment pipeline.
-          </p>
-        </div>
-      </div>
-
+      {/* Engineering decisions */}
       <div className="mt-12">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-6">Tech Stack</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {techStack.map((item, i) => (
-            <div key={i} className="flex items-center gap-2.5 text-sm text-text-secondary">
-              <span className="w-1 h-1 bg-surface-subtle rounded-full flex-shrink-0" />
-              {item}
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-5">
+          Engineering decisions
+        </h2>
+        <div className="space-y-3">
+          {engineeringDecisions.map(({ title, detail }) => (
+            <div
+              key={title}
+              className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5"
+            >
+              <div className="text-sm font-semibold text-text-primary mb-1.5">{title}</div>
+              <div className="text-sm text-text-secondary leading-relaxed">{detail}</div>
             </div>
           ))}
         </div>
       </div>
 
+      {/* What it demonstrates */}
+      <div className="mt-10 bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4">
+          What it demonstrates
+        </h3>
+        <ul className="text-text-secondary text-sm space-y-2.5">
+          {[
+            "4-layer backend architecture — routes delegate only, controllers own no SQL, services return plain data",
+            "Real-time SSE streaming with pg_notify triggers and 3-failure REST fallback",
+            "Tiered Redis caching strategy with conditional caching and pattern-based invalidation",
+            "Auth system — JWT verification, Google OAuth popup flow, Supabase webhook + ensureUser fallback",
+            "PostgreSQL schema design — GIN indexes, composite PKs, cascade deletes, window functions",
+            "ESPN data ingestion pipeline — normalization, multi-league upserts, two-tier sync workers",
+            "AI integration with DB-persisted caching (~$0.0001/summary, never regenerated)",
+            "Optimistic UI with rollback, skeleton loading states, and hook retry pattern",
+            "CI/CD — GitHub Actions lint + Vitest + build gate before every Vercel deploy",
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-2.5">
+              <span className="w-1 h-1 bg-accent rounded-full mt-2 flex-shrink-0" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Tech stack */}
+      <div className="mt-10">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-5">Tech Stack</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {techStack.map(({ category, items }) => (
+            <div key={category}>
+              <div className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2">{category}</div>
+              <ul className="space-y-1.5">
+                {items.map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-text-secondary">
+                    <span className="w-1 h-1 bg-surface-subtle rounded-full flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* GitHub link */}
       <div className="mt-10">
         <a
           href="https://github.com/yassinbenelhajlahsen/Scorva"
@@ -107,17 +132,7 @@ export default function About() {
         </a>
       </div>
 
-      <div className="mt-12 pt-8 border-t border-white/[0.06]">
-        <h2 className="text-xl font-bold tracking-tight text-text-primary mb-4">The Vision</h2>
-        <p className="text-text-secondary text-sm leading-relaxed">
-          Scorva represents an approach to building clean, maintainable, and
-          scalable software. It showcases system design thinking, API
-          architecture, real-time data flow, and frontend performance — the
-          same principles that drive production engineering teams.
-        </p>
-      </div>
-
-      <p className="mt-8 text-xs text-text-tertiary">
+      <p className="mt-10 text-xs text-text-tertiary">
         For educational and portfolio purposes only. Not affiliated with any professional sports league or data provider.
       </p>
     </div>
