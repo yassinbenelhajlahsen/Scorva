@@ -21,12 +21,12 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - HTML template: `frontend/index.html`
 - Router: `frontend/src/App.jsx`
 - `api/` — thin fetch wrappers: client.js (apiFetch with auth/body/204 support), games.js, teams.js, players.js, search.js, seasons.js, ai.js, favorites.js, user.js
-- `hooks/` — data-fetching hooks: useGame, useTeam, usePlayer, useLeagueData, useHomeGames, useSearch, useSeasons, useAISummary, useFavorites, useFavoriteToggle, useUserPrefs
-- `pages/` — route-level components: Homepage, LeaguePage, TeamPage, PlayerPage, GamePage, SettingsPage, About, ErrorPage, LoadingPage
+- `hooks/` — data-fetching hooks: useGame, useTeam, usePlayer, useLeagueData, useHomeGames, useSearch, useSeasons, useAISummary, useFavorites, useFavoriteToggle, useUserPrefs, useLiveGame, useLiveGames
+- `pages/` — route-level components: Homepage, LeaguePage, TeamPage, PlayerPage, GamePage, SettingsPage, About, PrivacyPage, ErrorPage, LoadingPage, AuthCallback
 - `components/layout/` — Navbar (gear icon → /settings when logged in), Footer, PageWrapper, ScrollToTop
-- `components/cards/` — GameCard, TeamCard, PlayerCard, StatCard, TopPerformerCard, PlayerAvgCard
+- `components/cards/` — GameCard, StatCard, TopPerformerCard, PlayerAvgCard
 - `components/settings/` — FavoritesTab (favorites list + default league picker), AccountTab (name/password/delete)
-- `components/ui/` — SearchBar, SeasonSelector, AISummary, BoxScore, AuthModal, PasswordChecklist
+- `components/ui/` — SearchBar, SeasonSelector, AISummary, BoxScore, AuthModal, PasswordChecklist, FloatingInput (TSX), Skeleton, ErrorState
 - `utilities/` — Normalize.js, formatDate.js, slugify.js, topPlayers.js, LeagueData.js, motion.js
 - Styles: `frontend/src/index.css` — Tailwind v4 CSS-based config via `@theme` (no `tailwind.config.js`)
 
@@ -35,6 +35,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 /                           → Homepage (defers league tabs until user prefs resolve)
 /about                      → About
 /settings                   → SettingsPage (requires auth, redirects to / if logged out)
+/privacy                    → PrivacyPage
 /:league                    → LeaguePage
 /:league/teams/:teamId      → TeamPage
 /:league/players/:playerId  → PlayerPage
@@ -105,7 +106,7 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
 ## Environment
 - Frontend env example: `frontend/.env.example`
   - `VITE_API_URL=http://localhost:3000`
-- Backend env example: `backend/backend.env.example`
+- Backend env example: `backend/.env.example`
   - `DATABASE_URL=...`
   - `OPENAI_API_KEY=...`
 - Backend env loading: `backend/src/config/env.js`
@@ -119,14 +120,14 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
   - Stricter `aiLimiter` for AI summary route (mounted first in `index.js`).
   - Webhook route is mounted before all limiters — no rate limiting on `/api/webhooks/supabase-auth`.
 - AI summaries are cache-first and persisted to `games.ai_summary`; generation only triggers for games with a `Final` status.
-- `playerInfo` uses a hardcoded `currentSeason = "2025-26"` constant.
+- `playerInfo` uses `getCurrentSeason(league)` from `cache/seasons.js` for season resolution.
 - Backend server starts listening directly in `backend/src/index.js` (no exported app instance for tests — tests create their own Express app).
 - All imports must use `.js` extensions (both packages use ESM `"type": "module"`).
 - Prisma shadow DB requires `pg_trgm` extension; `prisma migrate dev` may fail locally — apply SQL manually then `prisma migrate resolve --applied`.
 - **Users table** stores `id`, `email`, `first_name`, `last_name`, `default_league`. Populated two ways: (1) Supabase webhook `POST /api/webhooks/supabase-auth` on signup — email/password users pass name via `options.data`, Google OAuth users split `full_name`; (2) `ensureUser()` in `favoritesService.js` as fallback. Both use `ON CONFLICT DO UPDATE` with `COALESCE` — never overwrites existing values.
 - **User preferences** (`default_league`): fetched via `useUserPrefs` hook. Homepage `activeLeague` starts as `null` and only renders tabs once resolved — prevents NBA flash. Settings page updates via `PATCH /api/user/profile`. `updateUser` service uses COALESCE so omitted fields are unchanged.
 - **Settings page** (`/settings`): sidebar (desktop) / drill-down (mobile). FavoritesTab: add/remove favorites + default league picker (spring-animated sliding indicator, optimistic local state). AccountTab: edit name, change password (validates current password via `signInWithPassword`), delete account (type "DELETE" to confirm). Sign out in sidebar below tabs on desktop, at bottom of menu list on mobile.
-- **Account deletion**: `DELETE /api/user/account` → `userService.deleteUser()` (cascades favorites) → `supabaseAdmin.auth.admin.deleteUser()`. Requires `SUPABASE_SERVICE_ROLE_KEY` env var.
+- **Account deletion**: `DELETE /api/user/account` → `supabaseAdmin.auth.admin.deleteUser()` first → then `userService.deleteUser()` (cascades favorites). Uses `SUPABASE_SECRET_KEY` env var (same key as auth middleware).
 - **Google OAuth detection**: use `user.app_metadata.providers.includes("email")` — not the single `provider` string. Password section hidden for OAuth users; "Signed in with Google" badge shown.
 - **Auth modal**: fully centered all screen sizes (`items-center`), outside-click dismissible, `max-h-[90dvh]` scrollable, close button always visible.
 - **apiFetch** supports `method` + `body` params; sets `Content-Type: application/json` when body present; handles 204 no-content.
@@ -164,7 +165,7 @@ Custom tokens defined in `frontend/src/index.css` `@theme`:
 - Surfaces: `surface-base` (#0a0a0c), `surface-primary` (#111114), `surface-elevated` (#1a1a1f), `surface-overlay` (#222228)
 - Text: `text-primary` (#f5f5f7), `text-secondary` (#a1a1a6), `text-tertiary` (#6e6e73)
 - Accent: `accent` (#e8863a), `accent-hover` (#f0974d)
-- Semantic: `win` (#34c759), `loss` (#ff453a), `live` (#ff9f0a)
+- Semantic: `win` (#34c759), `loss` (#ff453a), `live` (#ff453a)
 
 Core patterns:
 - Card: `bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)]`

@@ -27,7 +27,7 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 | `accent-hover` | #f0974d |
 | `win` | #34c759 |
 | `loss` | #ff453a |
-| `live` | #ff9f0a |
+| `live` | #ff453a |
 
 ### Font
 Inter via Google Fonts — overrides `--font-sans`.
@@ -76,7 +76,7 @@ Page-specific skeletons in `frontend/src/components/skeletons/` mirror real cont
 
 ### ErrorState
 `frontend/src/components/ui/ErrorState.jsx` — card with warning icon + message + optional "Try Again" button.
-Centered via `min-h-[60vh] flex items-center justify-center px-4 sm:px6`. Props: `{ message?, onRetry? }`.
+Centered via `min-h-[60vh] flex items-center justify-center px-4 sm:px-6`. Props: `{ message?, onRetry? }`.
 
 ### Auth modal
 Fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
@@ -87,7 +87,7 @@ Navbar shows gear icon → `/settings` when logged in; "Sign In" pill when logge
 
 ## Game clock colors
 - GamePage clock/period text (`Q3 · 5:32`): `text-loss` (red `#ff453a`)
-- GameCard clock: `text-live/70` (orange)
+- GameCard clock: `text-live/70` (red)
 - "Live" badge: `text-live` in both
 
 ## Game type logos

@@ -126,6 +126,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `/:league/players/:playerId` → PlayerPage
 - `/:league/games/:gameId` → GamePage
 - `/settings` → SettingsPage (requires auth, redirects to `/` if logged out)
+- `/privacy` → PrivacyPage (lazy-loaded)
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 - `*` → ErrorPage (404 catch-all, lazy-loaded)
 
@@ -135,9 +136,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **CORS allowlist** in `backend/src/middleware/index.js` — production: `scorva.vercel.app` and `scorva.dev` only; localhost/LAN only when `NODE_ENV !== "production"`
 - **Middleware chain**: `helmet` → `requestLogger` → `cors` → `express.json()` → `webhooksRoute` → `aiSummaryRoute` → `sseConnectionLimiter` (on `/api/live`) → `liveRoute` → `generalLimiter` → all other routes
 - **AI route** — stricter `aiLimiter` (inside `routes/aiSummary.js`) + `requireAuth`
-- **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `PROJECT_URL`
+- **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `SUPABASE_URL`
 - **Prisma** — schema/migrations only; runtime uses `pg` directly
-- **League validation** — all 5 league-param controllers validate against `["nba","nfl","nhl"]` (400 if invalid)
+- **League validation** — all 8 league-param controllers (teams, standings, games, gameInfo, players, playerInfo, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid)
 - **`apiFetch`** (`frontend/src/api/client.js`) — supports `method` + `body`; sets `Content-Type: application/json` when body present; handles 204 responses
 - **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isFinite` to filter comma-separated params; service uses `ROW_NUMBER()` for 3 most recent per favorite
 - **Google OAuth popup** — `skipBrowserRedirect: true` → popup → `/auth/callback` closes via `postMessage` → parent modal closes
@@ -170,6 +171,6 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **Components**: use `renderWithProviders` from `testUtils.jsx`
 
 ## CI/CD
-- CI runs `cd frontend && npm run verify` (lint + test + build) on every push and PR
+- CI runs `cd frontend && npm run verify` (lint + test + build) on pushes/PRs that touch `frontend/**` (excludes `*.md`); also supports `workflow_dispatch`
 - Vercel deployment proceeds only after CI passes on `main`
 - Backend deploys independently via Railway
