@@ -74,7 +74,7 @@ export default function GamePage() {
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;
   const nhl = league === "nhl";
-  const isPlayoffGame = game.gameLabel && game.gameLabel.toLowerCase() !== "Preseason";
+  const isPlayoffGame = game.gameLabel && game.gameLabel.toLowerCase() !== "preseason" && !game.gameLabel.toLowerCase().includes("makeup");
   const isChampionship = isPlayoffGame && (
     game.gameLabel.toLowerCase().includes("nba finals") ||
     game.gameLabel.toLowerCase().includes("stanley cup") ||

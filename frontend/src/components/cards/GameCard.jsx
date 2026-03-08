@@ -17,7 +17,7 @@ export default function GameCard({ game }) {
   if (!league) return null;
 
   const nhl = league === "nhl";
-  const isPlayoff = !!game.game_label && game.game_label.toLowerCase() !== "Preseason";
+  const isPlayoff = !!game.game_label && game.game_label.toLowerCase() !== "preseason" && !game.game_label.toLowerCase().includes("makeup");
   const label = game.game_label?.toLowerCase() || "";
   const isChampionship = label.includes("nba finals") || label.includes("stanley cup") || label.includes("super bowl");
   const isSuperBowl = label.includes("super bowl");
