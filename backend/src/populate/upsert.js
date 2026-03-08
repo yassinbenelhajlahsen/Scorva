@@ -45,10 +45,14 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
 
     for (const league of leagues) {
       console.log(`\n📋 Processing ${league.toUpperCase()}...`);
-      await runTodayProcessing(league, pool);
-      await runUpcomingProcessing(league, pool);
-      await invalidatePattern(`games:${league}:*`);
-      await invalidatePattern(`standings:${league}:*`);
+      try {
+        await runTodayProcessing(league, pool);
+        await runUpcomingProcessing(league, pool);
+        await invalidatePattern(`games:${league}:*`);
+        await invalidatePattern(`standings:${league}:*`);
+      } catch (err) {
+        console.error(`❌ Failed processing ${league.toUpperCase()}:`, err.message);
+      }
     }
 
     // Log optimization stats before clearing (useful for monitoring impact)
