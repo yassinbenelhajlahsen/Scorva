@@ -3,6 +3,11 @@
 ## Project overview
 Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → PostgreSQL → Express backend → React frontend.
 
+## Docs
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — live sync, Redis, SSE, data flow, game columns, auth, AI summaries
+- [`docs/DESIGN.md`](docs/DESIGN.md) — design tokens, component conventions, Tailwind patterns
+- [`backend/__tests__/README.md`](backend/__tests__/README.md) — backend testing guide, patterns, fixtures
+
 ## Stack
 - **Frontend**: React 19, Vite 6, React Router 7, Tailwind CSS v4, Framer Motion 12
 - **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), helmet (security headers)
@@ -99,19 +104,19 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `GET /:league/players/:playerId`
 - `GET /:league/seasons`
 - `GET /search`
-- `GET /live/:league/games` — SSE stream; pushes game list on each `pg_notify('game_updated')` from liveSync; sends `event: done` when no live games remain; heartbeat `: ping` every 15s
-- `GET /live/:league/games/:gameId` — SSE stream; pushes full game detail on each `pg_notify('game_updated')` from liveSync; sends `event: done` when game is Final; mounted before `generalLimiter`
+- `GET /live/:league/games` — SSE stream; heartbeat `: ping` every 15s; `event: done` when no live games
+- `GET /live/:league/games/:gameId` — SSE stream; `event: done` when game is Final
 - `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**
-- `GET /favorites` — requires auth; returns `{ players: [...], teams: [...] }` with recent stats/games
-- `GET /favorites/check?playerIds=1,2&teamIds=3,4` — requires auth; returns which IDs are favorited
-- `POST /favorites/players/:playerId` — requires auth; adds player favorite
-- `DELETE /favorites/players/:playerId` — requires auth; removes player favorite
-- `POST /favorites/teams/:teamId` — requires auth; adds team favorite
-- `DELETE /favorites/teams/:teamId` — requires auth; removes team favorite
-- `GET /user/profile` — requires auth; returns user row (`id`, `email`, `first_name`, `last_name`, `default_league`)
-- `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; validates `defaultLeague` against `["nba", "nfl", "nhl"]` (400 if invalid); uses COALESCE so omitted fields are unchanged
-- `DELETE /user/account` — requires auth; deletes Supabase auth user via `supabaseAdmin.auth.admin.deleteUser()`, then deletes DB row (cascades favorites)
-- `POST /webhooks/supabase-auth` — Supabase auth webhook; verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>` header; inserts new user into `users` table on signup
+- `GET /favorites` — requires auth; returns `{ players: [...], teams: [...] }`
+- `GET /favorites/check?playerIds=1,2&teamIds=3,4` — requires auth
+- `POST /favorites/players/:playerId` — requires auth
+- `DELETE /favorites/players/:playerId` — requires auth
+- `POST /favorites/teams/:teamId` — requires auth
+- `DELETE /favorites/teams/:teamId` — requires auth
+- `GET /user/profile` — requires auth; returns `id`, `email`, `first_name`, `last_name`, `default_league`
+- `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; validates `defaultLeague` against `["nba", "nfl", "nhl"]`
+- `DELETE /user/account` — requires auth; deletes Supabase auth user then DB row (cascades favorites)
+- `POST /webhooks/supabase-auth` — verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>`; inserts user on signup
 
 ## Frontend routes
 - `/` → Homepage
@@ -124,44 +129,22 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 - `*` → ErrorPage (404 catch-all, lazy-loaded)
 
-## Design system
-Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind.config.js`.
-- Apple-style dark theme: `surface-base/primary/elevated/overlay`, `text-primary/secondary/tertiary`, `accent`, `win`, `loss`, `live`
-- Card: `bg-surface-elevated border border-white/[0.08] rounded-2xl`
-- Hover: always `hover:-translate-y-0.5`, never `hover:scale-105`
-- Transitions: `transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]`
-
-## Important conventions
+## Critical conventions
 - **Never edit** `backend/src/generated/prisma/` — regenerate with `prisma generate`
-- **Security headers** — `helmet` middleware in `backend/src/index.js` sets `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`, etc.
-- **CORS allowlist** in `backend/src/middleware/index.js` — production only includes `scorva.vercel.app` and `scorva.dev`; localhost and LAN IPs are included only when `NODE_ENV !== "production"`. Update `corsOrigins` for new origins.
-- **Middleware chain** in `index.js`: `helmet` → `requestLogger` → `cors` → `express.json()` → `webhooksRoute` → `aiSummaryRoute` → `sseConnectionLimiter` (on `/api/live`) → `liveRoute` → `generalLimiter` → all other routes
-- **AI route** uses stricter `aiLimiter` (applied inside `routes/aiSummary.js`) + `requireAuth` middleware
-- **AI summaries** are cache-first, persisted to `games.ai_summary`, only generated for finalized games, requires auth
-- **Auth middleware** (`requireAuth`) calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `PROJECT_URL` env vars
-- **Google OAuth popup** flow: `skipBrowserRedirect: true` → open popup → `/auth/callback` page closes popup via `postMessage` → parent modal closes
-- **Prisma** is for schema/migrations only; runtime uses `pg` directly
-- **game_label** column holds display text for special games (e.g. `"NBA Finals - Game 1"`, `"Wild Card Round"`, `"Super Bowl LIX"`), null for regular season. Display-only — do not use for classification logic.
-- **type** column (`VARCHAR(20) DEFAULT 'regular'`) is the single source of truth for game classification. Values: `regular`, `preseason`, `playoff`, `final`, `makeup`, `other`. Derived in `eventProcessor.js` from `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`. Persisted in `upsertGame.js` as `$24`. `standingsService.js` and `playerInfoService.js` (6 places) filter `AND g.type = 'regular'`. Frontend uses `game.type` (snake_case from `gamesService`) and `game.gameType` (camelCase from `gameInfoService`).
-- **current_period** (`Int?`) and **clock** (`String?`) columns on `games` — populated by the live sync worker and `upsert.js`. Null for scheduled/final games. `gameInfoService.js` exposes them as `currentPeriod` and `clock` in the game detail response. Frontend uses `getPeriodLabel(period, league)` from `formatDate.js` to render Q1–Q4/OT (NBA/NFL) or P1–P3/OT (NHL).
-- **start_time** (`String?`) column on `games` — set once at ingest by `eventProcessor.js` from `event.date` (ESPN UTC ISO timestamp converted to ET, e.g. `"7:30PM ET"` or `"10PM ET"`). Never updated by liveSync. `gameInfoService.js` exposes it as `startTime` (camelCase). `gamesService` exposes it as `start_time` (snake_case via `g.*`). Frontend shows it only for scheduled games (not live/final): `GameCard` shows `"Mar 12th @ 7PM ET"`, `GamePage` shows `"March 12th, 2026 @ 7PM ET"`. Helpers: `formatDateShortWithTime` and `formatDateWithTime` in `frontend/src/utilities/formatDate.js`.
-- **Live sync worker** (`liveSync.js`): two-tier update — fast path every 15s (`upsertGameScoreboard`, scoreboard data only), full path every 2 min or on period change (`processEvent`, fetches boxscore + player stats). Each write fires `pg_notify('game_updated')` which SSE controllers use to push immediately to clients. Sleeps 5 min when no live games. Deployed as a separate Railway service with `npm run live-sync`. `main()` is guarded by `NODE_ENV !== 'test'`; `upsertGameScoreboard` is a named export for unit testing.
-- **upsert.js** runs on a schedule (every 30–60 min) as a catch-up mechanism — picks up scheduled games, season transitions, and data liveSync may have missed. Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe.
-- **Redis caching** — `backend/src/cache/cache.js` exports `cached(key, ttl, queryFn, {cacheIf}?)`, `invalidate(...keys)`, `invalidatePattern(pattern)`, `closeCache()`. `backend/src/cache/seasons.js` exports `getCurrentSeason(league)` (1h TTL). Applied at the service layer. Graceful fallback: if `REDIS_URL` is unset, all ops are no-ops. Cache keys: `gameDetail:{league}:{id}` (30d, Final only via `cacheIf`), `standings:{league}:{season}` (5m current / 30d past), `playerDetail:{league}:{playerId}:{season}` (2m current / 30d past), `games:{league}:default:{todayEST}` (30s), `games:{league}:{season}:team:{teamId}` and `:all` (30s/30d), `teams/players/seasons:{league}` (24h). Invalidation: `upsertGame.js` (per write), `liveSync.js` (scoreboard tick + game finalize), `upsert.js` (per league batch). NOT cached: favorites, user, search, AI summary, SSE. `REDIS_URL` must be set on all three Railway services (API, liveSync, upsert). Tests: mock `cache/seasons.js` with `jest.unstable_mockModule` in route tests that use season-aware services; `__tests__/cache/cache.test.js` unit-tests the cache module with mocked ioredis.
-- **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`, `default_league` (nullable, defaults to `"nba"` on frontend). Populated via Supabase webhook on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
-- **User preferences** (`default_league`) stored in `users` table. Fetched via `useUserPrefs` hook (`GET /api/user/profile`). Homepage defers rendering league tabs until prefs resolve to avoid NBA→preference flicker. Settings page allows editing via `PATCH /api/user/profile`.
-- **Settings page** (`/settings`) — sidebar navigation (desktop) / drill-down (mobile). Tabs: Favorites (manage favorites + default league selector) and Account (edit name, change password, delete account). Navbar shows gear icon linking to `/settings` when logged in; "Sign In" pill when logged out. Google OAuth users see "Signed in with Google" badge; password change section is hidden for them.
-- **Account deletion** — two-step: `DELETE /api/user/account` deletes Supabase auth user first via `supabaseAdmin.auth.admin.deleteUser()`, then deletes DB row (cascades favorites). Uses `SUPABASE_SECRET_KEY` env var (same key as auth middleware) — no separate service role key needed.
-- **Auth modal** — fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
-- **apiFetch** (`frontend/src/api/client.js`) supports `method` and `body` params; sets `Content-Type: application/json` when body present; handles 204 (no-content) responses.
-- **Favorites** all routes require `requireAuth`; controller validates numeric `playerId`/`teamId` params (returns 400 for non-numeric); `checkFavorites` uses `Number.isFinite` to filter invalid IDs from comma-separated query params; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
-- **SSE live endpoints** (`/api/live/:league/games` and `/api/live/:league/games/:gameId`) — mounted before `generalLimiter` but behind `sseConnectionLimiter` (max 6 concurrent per IP to prevent pg pool exhaustion); reuse `gamesService`/`gameInfoService` directly in controller (no new service layer); 15s `: ping` heartbeat, `X-Accel-Buffering: no` for Railway. Frontend: `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` hooks — pass `null` to deactivate without breaking hooks rules. 3-failure REST fallback. SSE URL helpers in `frontend/src/api/games.js` use `import.meta.env.VITE_API_URL` directly. `useLiveGame` integrated into `useGame`; `useLiveGames` integrated into `useHomeGames` (3x) and `useLeagueData`.
-- **Loading states** — all pages use page-specific shimmer skeleton components (`frontend/src/components/skeletons/`) instead of a generic spinner. `Skeleton.jsx` is the shared `animate-pulse bg-white/[0.06] rounded-lg` primitive. `LoadingPage.jsx` is no longer used by main pages but still exists.
-- **Error state** — `ErrorState.jsx` (`frontend/src/components/ui/`) is the standard error UI: card with warning icon, message, and "Try Again" button. Always centered via `min-h-[60vh]` flex wrapper with `px-4 sm:px-6` mobile padding. Props: `{ message?, onRetry? }`. Pages distinguish network errors (show `ErrorState`) from not-found (show dedicated "Not Found" layout).
-- **Hook retry pattern** — all data-fetching hooks (`useHomeGames`, `useLeagueData`, `useTeam`, `usePlayer`, `useGame`) expose a `retry()` function. Pattern: `const [retryCount, setRetryCount] = useState(0)` added to deps array; `const retry = useCallback(() => setRetryCount(c => c + 1), [])` returned alongside data.
-- **usePlayer** now returns `{ playerData, loading, error, retry }` — previously had no `error` state and silently swallowed fetch failures by setting `playerData` to null.
-- **inProgress detection** — both `GameCard.jsx` and `GamePage.jsx` treat `"Halftime"` as an in-progress status alongside `"In Progress"` and `"End of Period"`.
-- **GamePage live clock** — clock/period text (`Q3 · 5:32`) uses `text-loss` (red `#ff453a`). GameCard clock still uses `text-live/70` (orange). The "Live" badge is `text-live` in both.
+- **Security headers** — `helmet` in `backend/src/index.js`
+- **CORS allowlist** in `backend/src/middleware/index.js` — production: `scorva.vercel.app` and `scorva.dev` only; localhost/LAN only when `NODE_ENV !== "production"`
+- **Middleware chain**: `helmet` → `requestLogger` → `cors` → `express.json()` → `webhooksRoute` → `aiSummaryRoute` → `sseConnectionLimiter` (on `/api/live`) → `liveRoute` → `generalLimiter` → all other routes
+- **AI route** — stricter `aiLimiter` (inside `routes/aiSummary.js`) + `requireAuth`
+- **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `PROJECT_URL`
+- **Prisma** — schema/migrations only; runtime uses `pg` directly
+- **League validation** — all 5 league-param controllers validate against `["nba","nfl","nhl"]` (400 if invalid)
+- **`apiFetch`** (`frontend/src/api/client.js`) — supports `method` + `body`; sets `Content-Type: application/json` when body present; handles 204 responses
+- **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isFinite` to filter comma-separated params; service uses `ROW_NUMBER()` for 3 most recent per favorite
+- **Google OAuth popup** — `skipBrowserRedirect: true` → popup → `/auth/callback` closes via `postMessage` → parent modal closes
+- **`game_label`** — display-only text, null for regular season; never use for classification logic
+- **`games.type`** — single source of truth for game classification; see `docs/ARCHITECTURE.md`
+- **`useUserPrefs`** — pass `controller.signal` to `getProfile()` so AbortController signal is forwarded
+- **`userController`** — delete Supabase auth user before DB delete (not after)
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
@@ -170,23 +153,23 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 4. Mount in `backend/src/index.js` under `/api`
 5. Test in `backend/__tests__/routes/myRoute.test.js` — mock db with `createMockPool()`
 
-## Testing patterns
+## Testing quick reference
 
 ### Backend (Jest 29 + Supertest)
 - Mock `db/db.js` using `jest.unstable_mockModule()` before importing
-- `createMockPool()` returns a mock with `.query.mockResolvedValue({ rows: [...] })`
-- Test: success case, DB error case, edge cases, different league params
+- `createMockPool()` returns mock with `.query.mockResolvedValue({ rows: [...] })`
+- Mock `cache/seasons.js` in route tests that use season-aware services
+- `jest.clearAllMocks()` clears call counts but NOT `mockOnce` queue — use `jest.resetAllMocks()` to clear queues
 - See `backend/__tests__/README.md` for full guide
 
 ### Frontend (Vitest + Testing Library)
-- **Utilities**: pure function tests, no mocking needed (`formatDate`, `slugify`, `normalize`, `computeTopPlayers`)
 - **API client**: mock `global.fetch` via `vi.stubGlobal`; stub `import.meta.env.VITE_API_URL` via `vi.stubEnv`
-- **API wrappers**: mock `../../api/client.js` via `vi.mock()`, verify correct paths/methods/params
-- **Hooks**: mock `AuthContext.jsx` + API modules via `vi.mock()`; use `renderHook` + `waitFor` + `act`; use `vi.useFakeTimers()` for debounce tests (advance with `vi.advanceTimersByTimeAsync`, then drain microtasks with `await act(async () => {})`)
-- **Components**: use `renderWithProviders` from `frontend/src/__tests__/helpers/testUtils.jsx` (wraps `BrowserRouter` + mock `AuthContext.Provider`)
-- `vi.mock()` for ESM module mocking (no hoisting quirks unlike Jest)
-- See `frontend/src/__tests__/` for examples
+- **API wrappers**: mock `../../api/client.js` via `vi.mock()`
+- **Hooks**: mock `AuthContext.jsx` + API modules; use `renderHook` + `waitFor` + `act`
+- **Debounce**: `vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync(ms)` + `await act(async () => {})` — do NOT use `waitFor` with fake timers
+- **Components**: use `renderWithProviders` from `testUtils.jsx`
 
 ## CI/CD
-- CI (`.github/workflows/deploy.yml`) runs `cd frontend && npm run verify` on every push and PR (lint + test + build — backend deploys independently via Railway)
-- Vercel deployment only proceeds after CI passes on `main`
+- CI runs `cd frontend && npm run verify` (lint + test + build) on every push and PR
+- Vercel deployment proceeds only after CI passes on `main`
+- Backend deploys independently via Railway
