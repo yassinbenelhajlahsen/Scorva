@@ -23,7 +23,6 @@ export default function AuthModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [confirm, setConfirm] = useState("");
-  const [success, setSuccess] = useState(false);
   const [view, setView] = useState("form"); // "form" | "reset" | "reset-sent"
   const [direction, setDirection] = useState(1);
 
@@ -107,7 +106,7 @@ export default function AuthModal({ onClose }) {
         options: { data: { first_name: firstName.trim(), last_name: lastName.trim() } },
       });
       if (error) setError(error.message);
-      else setSuccess(true);
+      else onClose();
     }
 
     setLoading(false);
@@ -157,11 +156,11 @@ export default function AuthModal({ onClose }) {
         {/* Scrollable content — constrained by sheet max-height */}
         <div className="overflow-y-auto overscroll-contain flex-1">
 
-        {/* Completion screens — full fade swap */}
+        {/* Completion screen — password reset sent */}
         <AnimatePresence mode="wait" initial={false}>
-          {(success || view === "reset-sent") && (
+          {view === "reset-sent" && (
             <motion.div
-              key={success ? "success" : "reset-sent"}
+              key="reset-sent"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -169,27 +168,21 @@ export default function AuthModal({ onClose }) {
               className="px-7 pt-6 pb-8 space-y-5"
             >
               <div className="flex justify-center">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center ${success ? "bg-win/15" : "bg-accent/10"}`}>
-                  {success ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-win" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                    </svg>
-                  )}
+                <div className="w-14 h-14 rounded-full flex items-center justify-center bg-accent/10">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  </svg>
                 </div>
               </div>
               <div className="text-center">
                 <h2 className="text-[20px] font-semibold tracking-[-0.015em] text-text-primary">Check your email</h2>
                 <p className="text-[13px] text-text-tertiary mt-1.5 leading-relaxed">
-                  {success ? "We sent a confirmation link to" : "We sent a password reset link to"}<br />
+                  We sent a password reset link to<br />
                   <span className="text-text-secondary">{email}</span>
                 </p>
               </div>
               <button
-                onClick={() => { setSuccess(false); setView("form"); setMode("signin"); setError(null); }}
+                onClick={() => { setView("form"); setMode("signin"); setError(null); }}
                 className="w-full text-[14px] text-text-tertiary hover:text-text-secondary transition-colors duration-150 py-2"
               >
                 Back to sign in
@@ -199,7 +192,7 @@ export default function AuthModal({ onClose }) {
         </AnimatePresence>
 
         {/* Main interactive area — slides between "form" and "reset" */}
-        {!success && view !== "reset-sent" && (
+        {view !== "reset-sent" && (
           <div style={{ overflow: "hidden" }}>
             <AnimatePresence mode="popLayout" custom={direction} initial={false}>
               {view === "reset" ? (
