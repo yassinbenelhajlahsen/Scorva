@@ -17,11 +17,9 @@ export default function GameCard({ game }) {
   if (!league) return null;
 
   const nhl = league === "nhl";
-  const isPlayoff = !!game.game_label && game.game_label.toLowerCase() !== "preseason" && !game.game_label.toLowerCase().includes("makeup");
-  const label = game.game_label?.toLowerCase() || "";
-  const isChampionship = label.includes("nba finals") || label.includes("stanley cup") || label.includes("super bowl");
-  const isSuperBowl = label.includes("super bowl");
-  const isStanley = label.includes("Stanley");
+  const gameType = game.type || 'regular';
+  const isPlayoff = gameType === 'playoff' || gameType === 'final';
+  const isChampionship = gameType === 'final';
 
   const playoffLogo = isPlayoff
     ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
@@ -114,8 +112,15 @@ export default function GameCard({ game }) {
               </p>
             )}
             {isPlayoff && (
-              <div className={`mt-1 flex items-center justify-center h-20 w-20`}>
-                <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${(isSuperBowl || isStanley) ? "p-1.5" : ""}`} />
+              <div className="mt-1 flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center h-20 w-20">
+                  <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-1.5" : ""}`} />
+                </div>
+                {game.game_label && (
+                  <span className="text-xs font-medium text-text-tertiary text-center leading-tight max-w-[80px]">
+                    {game.game_label}
+                  </span>
+                )}
               </div>
             )}
           </div>

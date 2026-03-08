@@ -74,12 +74,9 @@ export default function GamePage() {
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;
   const nhl = league === "nhl";
-  const isPlayoffGame = game.gameLabel && game.gameLabel.toLowerCase() !== "preseason" && !game.gameLabel.toLowerCase().includes("makeup");
-  const isChampionship = isPlayoffGame && (
-    game.gameLabel.toLowerCase().includes("nba finals") ||
-    game.gameLabel.toLowerCase().includes("stanley cup") ||
-    game.gameLabel.toLowerCase().includes("super bowl")
-  );
+  const gameType = game.gameType || 'regular';
+  const isPlayoffGame = gameType === 'playoff' || gameType === 'final';
+  const isChampionship = gameType === 'final';
   const playoffLogo = isPlayoffGame
     ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
     : null;
@@ -154,8 +151,15 @@ export default function GamePage() {
         {/* VS divider */}
         <div className="flex flex-col items-center gap-1.5">
           {playoffLogo && (
-            <div className="h-24 w-48 flex items-center justify-center mb-0.5">
-              <img src={playoffLogo} alt={game.gameLabel} className="max-h-full max-w-full object-contain" />
+            <div className="flex flex-col items-center gap-1.5 mb-0.5">
+              <div className="h-24 w-48 flex items-center justify-center">
+                <img src={playoffLogo} alt={game.gameLabel} className="max-h-full max-w-full object-contain" />
+              </div>
+              {game.gameLabel && (
+                <span className="text-s font-medium text-text-secondary text-center">
+                  {game.gameLabel}
+                </span>
+              )}
             </div>
           )}
           <span className="text-sm font-medium text-text-tertiary">vs</span>
