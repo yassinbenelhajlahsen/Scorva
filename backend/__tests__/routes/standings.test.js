@@ -19,6 +19,12 @@ jest.unstable_mockModule(dbPath, () => ({
   default: mockPool,
 }));
 
+// Mock seasons cache helper so getCurrentSeason never hits the DB in tests
+const seasonsPath = resolve(__dirname, "../../src/cache/seasons.js");
+jest.unstable_mockModule(seasonsPath, () => ({
+  getCurrentSeason: jest.fn().mockResolvedValue("2025-26"),
+}));
+
 // Now import the modules that depend on db
 const routerPath = resolve(__dirname, "../../src/routes/standings.js");
 const { default: express } = await import("express");
