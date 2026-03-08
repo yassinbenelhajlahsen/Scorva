@@ -22,9 +22,15 @@ export async function getFavorites(req, res) {
   }
 }
 
+function parseId(value) {
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
 export async function addFavoritePlayer(req, res) {
   try {
-    const playerId = parseInt(req.params.playerId);
+    const playerId = parseId(req.params.playerId);
+    if (!playerId) return res.status(400).json({ error: "Invalid player ID" });
     await favoritesService.addFavoritePlayer(req.user.id, playerId, profileFromUser(req.user));
     res.status(201).json({ ok: true });
   } catch (err) {
@@ -35,7 +41,8 @@ export async function addFavoritePlayer(req, res) {
 
 export async function removeFavoritePlayer(req, res) {
   try {
-    const playerId = parseInt(req.params.playerId);
+    const playerId = parseId(req.params.playerId);
+    if (!playerId) return res.status(400).json({ error: "Invalid player ID" });
     await favoritesService.removeFavoritePlayer(req.user.id, playerId);
     res.status(204).send();
   } catch (err) {
@@ -46,7 +53,8 @@ export async function removeFavoritePlayer(req, res) {
 
 export async function addFavoriteTeam(req, res) {
   try {
-    const teamId = parseInt(req.params.teamId);
+    const teamId = parseId(req.params.teamId);
+    if (!teamId) return res.status(400).json({ error: "Invalid team ID" });
     await favoritesService.addFavoriteTeam(req.user.id, teamId, profileFromUser(req.user));
     res.status(201).json({ ok: true });
   } catch (err) {
@@ -57,7 +65,8 @@ export async function addFavoriteTeam(req, res) {
 
 export async function removeFavoriteTeam(req, res) {
   try {
-    const teamId = parseInt(req.params.teamId);
+    const teamId = parseId(req.params.teamId);
+    if (!teamId) return res.status(400).json({ error: "Invalid team ID" });
     await favoritesService.removeFavoriteTeam(req.user.id, teamId);
     res.status(204).send();
   } catch (err) {
@@ -69,10 +78,10 @@ export async function removeFavoriteTeam(req, res) {
 export async function checkFavorites(req, res) {
   try {
     const playerIds = req.query.playerIds
-      ? req.query.playerIds.split(",").map(Number).filter(Boolean)
+      ? req.query.playerIds.split(",").map(s => parseInt(s, 10)).filter(Number.isFinite)
       : [];
     const teamIds = req.query.teamIds
-      ? req.query.teamIds.split(",").map(Number).filter(Boolean)
+      ? req.query.teamIds.split(",").map(s => parseInt(s, 10)).filter(Number.isFinite)
       : [];
     const result = await favoritesService.checkFavorites(
       req.user.id,
