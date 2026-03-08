@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import "./config/env.js";
+import { closeCache } from "./cache/cache.js";
 import {
   requestLogger,
   generalLimiter,
@@ -60,4 +61,9 @@ app.use("/api", userRoute);
 const port = process.env.PORT || 3000;
 app.listen(port, "0.0.0.0", () => {
   log("info", "server ready", { port });
+});
+
+process.on("SIGTERM", async () => {
+  await closeCache();
+  process.exit(0);
 });
