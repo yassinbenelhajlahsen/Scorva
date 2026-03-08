@@ -263,6 +263,8 @@ cd frontend && npm run verify
 
 GitHub Actions runs `cd frontend && npm run verify` (lint + Vitest + production build) on every push and pull request. Vercel deployment only proceeds after all checks pass on `main`. The backend deploys independently via Railway on push to `main`.
 
+![Railway deployment](demos/infra.png)
+
 ---
 
 ## Author
