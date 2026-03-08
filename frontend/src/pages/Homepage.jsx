@@ -51,17 +51,29 @@ export default function Homepage() {
 
       {/* Hero */}
       <motion.div
-        className="text-center mb-14 mt-2"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="text-center mb-20 mt-8"
+        initial="hidden"
+        animate="visible"
+        variants={{ visible: { transition: { staggerChildren: 0.14 } } }}
       >
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-text-primary">
+        <motion.h1
+          className="font-bold leading-[0.95] tracking-[-0.04em] bg-gradient-to-br from-white via-[#f0ece6] to-[#e8863a] bg-clip-text text-transparent text-[4.5rem] sm:text-[6.5rem] lg:text-[8rem]"
+          variants={{
+            hidden: { opacity: 0, y: 28 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] } },
+          }}
+        >
           Scorva
-        </h1>
-        <p className="text-base sm:text-lg text-text-secondary max-w-xl mx-auto mt-4 leading-relaxed">
+        </motion.h1>
+        <motion.p
+          className="text-base sm:text-[1.0625rem] text-text-secondary max-w-[460px] mx-auto mt-8 leading-[1.65] tracking-[-0.005em]"
+          variants={{
+            hidden: { opacity: 0, y: 14 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+          }}
+        >
           Real-time scores, stats, and insights across NBA, NFL, and NHL.
-        </p>
+        </motion.p>
       </motion.div>
 
       {/* Favorites section — only visible when logged in */}
