@@ -19,9 +19,13 @@ https://scorva.dev
 | ![Player Page](demos/PlayerPage.gif) | ![Favorites](demos/Favorites.gif) |
 | Player profile — stats, game log, top performances | Adding favorites and setting default league |
 
+<div align="center">
+
 **Sign in, AI game summary, full box score**
 
 ![Auth, AI Summary & Box Score](demos/Auth-AiSummary-Boxscore.gif)
+
+</div>
 
 ---
 
