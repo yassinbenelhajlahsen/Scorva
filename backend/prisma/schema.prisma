@@ -27,7 +27,7 @@ model games {
   ot4                           String?
   status                        String?
   season                        String?
-  eventid                       Int?     @unique(map: "games_eventid_unique")
+  eventid                       Int?
   winnerid                      Int?
   ai_summary                    String?
   game_label                    String?
@@ -42,8 +42,6 @@ model games {
   @@unique([eventid, league], map: "games_eventid_league_uniq")
   @@index([awayteamid, date])
   @@index([hometeamid, date], map: "games_teamid_date_idx")
-  @@index([awayteamid], map: "idx_games_awayteamid")
-  @@index([hometeamid], map: "idx_games_hometeamid")
 }
 
 model players {
@@ -63,7 +61,6 @@ model players {
   stats                stats[]
   user_favorite_players user_favorite_players[]
 
-  @@unique([espn_playerid, league], map: "players_espn_playerid_league_uniq")
   @@unique([espn_playerid, league], map: "players_espnid_league_unique")
   @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_players_name_trgm", type: Gin)
   @@index([teamid])
@@ -108,7 +105,6 @@ model stats {
   players       players @relation(fields: [playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([gameid, playerid])
-  @@unique([gameid, playerid], map: "stats_gameid_playerid_unique")
 }
 
 model teams {
@@ -128,10 +124,7 @@ model teams {
   players                       players[]
   user_favorite_teams           user_favorite_teams[]
 
-  @@unique([espnid, league], map: "teams_espnid_league_uniq")
   @@unique([espnid, league], map: "teams_espnid_league_unique")
-  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_teams_name_trgm", type: Gin)
-  @@index([shortname(ops: raw("gin_trgm_ops"))], map: "idx_teams_shortname_trgm", type: Gin)
 }
 
 model users {
