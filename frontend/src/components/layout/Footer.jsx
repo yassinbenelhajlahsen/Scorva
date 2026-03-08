@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Footer() {
   return (
     <footer className="border-t border-white/[0.06] mt-24">
@@ -18,6 +20,13 @@ export default function Footer() {
             </svg>
             <span className="text-sm">GitHub</span>
           </a>
+          <span className="w-px h-3 bg-white/[0.12]" />
+          <Link
+            to="/privacy"
+            className="text-text-secondary hover:text-text-primary transition-colors duration-200 text-sm"
+          >
+            Privacy Policy
+          </Link>
           <span className="w-px h-3 bg-white/[0.12]" />
           <a
             href="https://www.linkedin.com/in/yassin-benelhajlahsen"

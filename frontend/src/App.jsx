@@ -16,6 +16,7 @@ const PlayerPage   = lazy(() => import("./pages/PlayerPage.jsx"));
 const TeamPage     = lazy(() => import("./pages/TeamPage.jsx"));
 const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
+const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 
 function AnimatedRoutes() {
@@ -78,6 +79,14 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <GamePage />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <PageWrapper>
+              <PrivacyPage />
             </PageWrapper>
           }
         />
