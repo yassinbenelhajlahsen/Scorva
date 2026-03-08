@@ -249,6 +249,8 @@ cd frontend && npm run verify
 - **Integration** — full Express app behavior across all mounted routes
 - Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`; season-aware routes also mock `cache/seasons.js`
 
+![Railway deployment](demos/infra.png)
+
 ### Frontend (Vitest + Testing Library)
 
 - **Utility functions** — `formatDate`, `getPeriodLabel` (NBA/NFL/NHL periods + OT), `slugify`, `normalize`, `computeTopPlayers`
@@ -262,8 +264,6 @@ cd frontend && npm run verify
 ## CI/CD
 
 GitHub Actions runs `cd frontend && npm run verify` (lint + Vitest + production build) on every push and pull request. Vercel deployment only proceeds after all checks pass on `main`. The backend deploys independently via Railway on push to `main`.
-
-![Railway deployment](demos/infra.png)
 
 ---
 
