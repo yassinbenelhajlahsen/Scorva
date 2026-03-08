@@ -24,7 +24,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - Prisma: schema at `backend/prisma/schema.prisma`; generated client at `backend/src/generated/prisma/`. Used for schema management and migrations **only** — runtime queries use `pg` directly.
 - Cache: `backend/src/cache/` — Redis caching layer via `ioredis`. `cache.js` exports `cached()`, `invalidate()`, `invalidatePattern()`, `closeCache()`. `seasons.js` exports `getCurrentSeason(league)` (1h TTL). Applied at the service layer. Graceful no-op fallback when `REDIS_URL` is unset.
 - Data ingestion: `backend/src/populate/` — ESPN API → DB normalization and upsert helpers. Two workers:
-  - `upsert.js` — scheduled (every 30–60 min), processes all leagues for today's games
+  - `upsert.js` — scheduled (every 30 min), processes all leagues for today's games
   - `liveSync.js` — persistent Railway worker, polls live games every 15s using a two-tier strategy: fast scoreboard-only upsert every tick, full `processEvent()` (boxscore + player stats) every 2 min or on period change. Sleeps 5 min when no live games.
 - Deployment: frontend on Vercel (Root Directory `frontend/`), backend API on Railway, liveSync worker as a separate Railway service (Root Directory `backend`, Start Command `npm run live-sync`, Restart Policy `Always`).
 

@@ -15,7 +15,7 @@ Two-tier update strategy:
 - Check `res.ok` on ESPN fetch — 5xx returns silently treated as "no games" is a known past bug (fixed)
 
 ## Scheduled upsert (`upsert.js`)
-- Runs every 30–60 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
+- Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
 - Wraps each league in try/catch so one failure doesn't abort subsequent leagues
 - Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
 - Invalidates `games:*` and `standings:*` cache keys per league after batch

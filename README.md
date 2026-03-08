@@ -137,7 +137,7 @@ A dedicated Railway worker (`liveSync.js`) runs a two-tier update cycle across a
 - **Full path (every 2 min, or on period change):** `processEvent` — fetches the full boxscore and upserts player stats
 - Per-event state tracked in a `Map` to decide which path to take each tick
 - Sleeps 5 minutes when no live games are detected across all leagues
-- Separate scheduled `upsert.js` runs every 30–60 minutes as a catch-up for scheduled games and season transitions; both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
+- Separate scheduled `upsert.js` runs every 30 minutes as a catch-up for scheduled games and season transitions; both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
 
 ### Real-Time SSE
 
