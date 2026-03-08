@@ -102,30 +102,3 @@ export const fixtures = {
   }),
 };
 
-/**
- * Create mock request object
- */
-export const mockRequest = (overrides = {}) => ({
-  params: {},
-  query: {},
-  body: {},
-  headers: {},
-  ...overrides,
-});
-
-/**
- * Create mock response object
- */
-export const mockResponse = () => {
-  const res = {};
-  res.status = jest.fn().mockReturnValue(res);
-  res.json = jest.fn().mockReturnValue(res);
-  res.send = jest.fn().mockReturnValue(res);
-  return res;
-};
-
-/**
- * Helper to wait for async operations
- */
-export const waitFor = (ms) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
