@@ -68,7 +68,8 @@ export default function GamePage() {
   const { game, homeTeam, awayTeam } = gameData.json_build_object;
   const isFinal = game.status.includes("Final");
   const inProgress =
-    game.status.includes("In Progress") ||
+    game.status.includes("In Progress") || 
+    game.status.includes("Halftime") ||
     game.status.includes("End of Period");
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;

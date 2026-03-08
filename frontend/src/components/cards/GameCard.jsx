@@ -8,7 +8,8 @@ export default function GameCard({ game }) {
   const [isHovered, setIsHovered] = useState(false);
   const isFinal = game.status.includes("Final");
   const inProgress =
-    game.status.includes("In Progress") ||
+    game.status.includes("In Progress") || 
+    game.status.includes("Halftime") ||
     game.status.includes("End of Period");
   const homeWon = isFinal && game.hometeamid === game.winnerid;
   const awayWon = isFinal && game.awayteamid === game.winnerid;
