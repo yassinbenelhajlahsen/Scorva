@@ -18,8 +18,10 @@ https://scorva.dev
 | Homepage — favorites, league tabs, live scores | Live game updates via SSE |
 | ![Player Page](demos/PlayerPage.gif) | ![Favorites](demos/Favorites.gif) |
 | Player profile — stats, game log, top performances | Adding favorites and setting default league |
-| ![Auth, AI Summary & Box Score](demos/Auth-AiSummary-Boxscore.gif) | |
-| Sign in, AI game summary, full box score | |
+
+**Sign in, AI game summary, full box score**
+
+![Auth, AI Summary & Box Score](demos/Auth-AiSummary-Boxscore.gif)
 
 ---
 
