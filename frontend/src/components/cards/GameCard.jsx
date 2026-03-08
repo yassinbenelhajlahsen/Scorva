@@ -1,11 +1,19 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utilities/formatDate";
 import { scoreUpdateVariants } from "../../utilities/motion.js";
 
 export default function GameCard({ game }) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    const handleOtherExpand = (e) => {
+      if (e.detail.id !== game.id) setIsExpanded(false);
+    };
+    window.addEventListener("gamecard:expand", handleOtherExpand);
+    return () => window.removeEventListener("gamecard:expand", handleOtherExpand);
+  }, [game.id]);
   const isFinal = game.status.includes("Final");
   const inProgress =
     game.status.includes("In Progress") || 
@@ -36,8 +44,8 @@ export default function GameCard({ game }) {
     <Link
       to={`/${league}/games/${game.id}`}
       className="block no-underline"
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
+      onMouseEnter={() => { if (window.matchMedia("(hover: hover)").matches) setIsExpanded(true); }}
+      onMouseLeave={() => { if (window.matchMedia("(hover: hover)").matches) setIsExpanded(false); }}
     >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">
 
@@ -266,7 +274,15 @@ export default function GameCard({ game }) {
         {/* Mobile-only expand button — shown only on touch devices when there's a breakdown to reveal */}
         {(isFinal || inProgress) && (
           <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(v => !v); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsExpanded(v => {
+                const next = !v;
+                if (next) window.dispatchEvent(new CustomEvent("gamecard:expand", { detail: { id: game.id } }));
+                return next;
+              });
+            }}
             aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
             className="[@media(hover:hover)]:hidden mt-3 mx-auto flex items-center gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
           >
