@@ -182,7 +182,7 @@ function FavoriteRow({ item, type, onRemove }) {
       <button
         onClick={handleRemove}
         disabled={removing}
-        className="shrink-0 p-1.5 rounded-lg text-text-tertiary hover:text-loss hover:bg-loss/10 transition-all duration-150 opacity-0 group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg text-text-tertiary hover:text-loss hover:bg-loss/10 transition-all duration-150 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
         aria-label={`Remove ${item.name}`}
       >
         {removing ? (

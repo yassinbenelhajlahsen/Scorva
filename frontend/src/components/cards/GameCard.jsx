@@ -5,7 +5,7 @@ import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../
 import { scoreUpdateVariants } from "../../utilities/motion.js";
 
 export default function GameCard({ game }) {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const isFinal = game.status.includes("Final");
   const inProgress =
     game.status.includes("In Progress") || 
@@ -36,8 +36,8 @@ export default function GameCard({ game }) {
     <Link
       to={`/${league}/games/${game.id}`}
       className="block no-underline"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
     >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">
 
@@ -151,7 +151,7 @@ export default function GameCard({ game }) {
         {nhl && (
           <ul
             className={`mt-3 text-sm text-text-secondary font-mono overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] space-y-1 border-t border-white/[0.06] pt-3 ${
-              isHovered ? "max-h-[300px]" : "max-h-0 pt-0 border-t-0"
+              isExpanded ? "max-h-[300px]" : "max-h-0 pt-0 border-t-0"
             }`}
           >
             <li className="text-text-primary text-xs font-semibold text-center mb-1">
@@ -204,7 +204,7 @@ export default function GameCard({ game }) {
         {(isFinal || inProgress) && !nhl && (
           <ul
             className={`mt-3 text-sm text-text-secondary font-mono overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] space-y-1 border-t border-white/[0.06] pt-3 ${
-              isHovered ? "max-h-[300px]" : "max-h-0 pt-0 border-t-0"
+              isExpanded ? "max-h-[300px]" : "max-h-0 pt-0 border-t-0"
             }`}
           >
             <li className="text-text-primary text-xs font-semibold text-center mb-1">
@@ -261,6 +261,23 @@ export default function GameCard({ game }) {
           <p className="mt-2 pt-2 border-t border-white/[0.06] text-xs font-medium text-text-tertiary text-center tracking-wide">
             {game.game_label}
           </p>
+        )}
+
+        {/* Mobile-only expand button — shown only on touch devices when there's a breakdown to reveal */}
+        {(isFinal || inProgress) && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(v => !v); }}
+            aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
+            className="[@media(hover:hover)]:hidden mt-3 mx-auto flex items-center gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
+          >
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+            {isExpanded ? "Hide" : "Breakdown"}
+          </button>
         )}
       </div>
     </Link>

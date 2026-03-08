@@ -70,7 +70,7 @@ export default function StatCard({
           </div>
         )}
 
-        <ul className="flex flex-wrap justify-center gap-8 max-h-18 group-hover:max-h-[500px] overflow-hidden transition-[max-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
+        <ul className="flex flex-wrap justify-center gap-8 max-h-[500px] [@media(hover:hover)]:max-h-18 [@media(hover:hover)]:group-hover:max-h-[500px] overflow-hidden transition-[max-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
           {stats.map((stat, i) => (
             <li key={i} className="flex flex-col items-center min-w-[52px]">
               <span className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium">{stat.label}</span>
