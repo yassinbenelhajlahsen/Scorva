@@ -594,11 +594,11 @@ export async function processEvent(client, leagueSlug, event) {
           let statNames;
 
           if (leagueSlug === "nfl") {
-            statNames = Array.isArray(group.statistics?.[0]?.keys)
-              ? group.statistics[0].labels
-              : Array.isArray(group.statistics?.[0]?.descriptions)
-                ? group.statistics[0].descriptions
-                : group.statistics?.[0]?.names || [];
+            statNames = Array.isArray(cat.keys)
+              ? cat.labels
+              : Array.isArray(cat.descriptions)
+                ? cat.descriptions
+                : cat.names || [];
           } else {
             if (Array.isArray(cat.keys)) {
               statNames = cat.keys;
