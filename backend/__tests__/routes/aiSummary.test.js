@@ -409,11 +409,11 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
 
       const response = await request(app).get("/api/games/1/ai-summary");
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(500);
       expect(response.body.summary).toBe(
         "AI summary unavailable for this game."
       );
-      expect(response.body.error).toBe("OpenAI API error");
+      expect(response.body.error).toBeUndefined();
       expect(response.body.cached).toBe(false);
     });
 
@@ -422,11 +422,11 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
 
       const response = await request(app).get("/api/games/1/ai-summary");
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(500);
       expect(response.body.summary).toBe(
         "AI summary unavailable for this game."
       );
-      expect(response.body.error).toBe("Database error");
+      expect(response.body.error).toBeUndefined();
     });
   });
 

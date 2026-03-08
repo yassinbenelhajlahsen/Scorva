@@ -64,9 +64,8 @@ export async function getAiSummary(req, res) {
     return res.json({ summary, cached: false });
   } catch (error) {
     console.error("Error generating AI summary:", error);
-    return res.json({
+    return res.status(500).json({
       summary: "AI summary unavailable for this game.",
-      error: error.message,
       cached: false,
     });
   }
