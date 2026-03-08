@@ -67,7 +67,7 @@ export default function LeaguePage() {
         />
       </div>
 
-      {loading || !displayData ? (
+      {loading || (!displayData && !error) ? (
         <LeaguePageSkeleton />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />

@@ -56,7 +56,7 @@ export function useLeagueData(league, selectedSeason) {
     return () => controller.abort();
   }, [league, selectedSeason, retryCount]);
 
-  const { liveGames } = useLiveGames(hasLiveGame(games) ? league : null);
+  const { liveGames } = useLiveGames(selectedSeason === null && hasLiveGame(games) ? league : null);
 
   useEffect(() => {
     if (liveGames) setGames(liveGames);
