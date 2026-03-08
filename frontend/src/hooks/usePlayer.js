@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getPlayer } from "../api/players.js";
 
 export function usePlayer(league, slug, selectedSeason) {
   const [playerData, setPlayerData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function fetchPlayerData() {
       setLoading(true);
+      setError(null);
       try {
         const fullData = await getPlayer(league, slug, {
           season: selectedSeason,
@@ -21,6 +24,7 @@ export function usePlayer(league, slug, selectedSeason) {
         if (err.name !== "AbortError") {
           console.error("Error fetching player:", err);
           setPlayerData(null);
+          setError("Could not load player data. Please try again.");
           setLoading(false);
         }
       }
@@ -28,7 +32,9 @@ export function usePlayer(league, slug, selectedSeason) {
 
     fetchPlayerData();
     return () => controller.abort();
-  }, [league, slug, selectedSeason]);
+  }, [league, slug, selectedSeason, retryCount]);
 
-  return { playerData, loading };
+  const retry = useCallback(() => setRetryCount((c) => c + 1), []);
+
+  return { playerData, loading, error, retry };
 }

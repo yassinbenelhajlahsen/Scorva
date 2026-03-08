@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getTeams, getStandings } from "../api/teams.js";
 import { getTeamGames } from "../api/games.js";
 import slugify from "../utilities/slugify.js";
@@ -9,6 +9,7 @@ export function useTeam(league, teamId, selectedSeason) {
   const [teamRecord, setTeamRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Phase 1: resolve slug → team
   useEffect(() => {
@@ -35,7 +36,7 @@ export function useTeam(league, teamId, selectedSeason) {
 
     fetchTeam();
     return () => controller.abort();
-  }, [league, teamId]);
+  }, [league, teamId, retryCount]);
 
   // Phase 2: fetch games + standings once team is resolved
   useEffect(() => {
@@ -70,5 +71,7 @@ export function useTeam(league, teamId, selectedSeason) {
     return () => controller.abort();
   }, [league, team, selectedSeason]);
 
-  return { team, games, teamRecord, loading, error };
+  const retry = useCallback(() => setRetryCount((c) => c + 1), []);
+
+  return { team, games, teamRecord, loading, error, retry };
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getGameById } from "../api/games.js";
 import { useLiveGame } from "./useLiveGame.js";
 
@@ -13,6 +13,7 @@ export function useGame(league, gameId) {
   const [gameData, setGameData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -35,7 +36,7 @@ export function useGame(league, gameId) {
 
     fetchGame();
     return () => controller.abort();
-  }, [league, gameId]);
+  }, [league, gameId, retryCount]);
 
   const gameStatus = gameData?.json_build_object?.game?.status;
   const isLive = isLiveStatus(gameStatus);
@@ -45,5 +46,7 @@ export function useGame(league, gameId) {
     if (liveData) setGameData(liveData);
   }, [liveData]);
 
-  return { gameData, loading, error };
+  const retry = useCallback(() => setRetryCount((c) => c + 1), []);
+
+  return { gameData, loading, error, retry };
 }

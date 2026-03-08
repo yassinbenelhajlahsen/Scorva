@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getLeagueGames } from "../api/games.js";
 import { getStandings } from "../api/teams.js";
 import { useLiveGames } from "./useLiveGames.js";
@@ -16,6 +16,7 @@ export function useLeagueData(league, selectedSeason) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [displayData, setDisplayData] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,7 +52,7 @@ export function useLeagueData(league, selectedSeason) {
 
     fetchData();
     return () => controller.abort();
-  }, [league, selectedSeason]);
+  }, [league, selectedSeason, retryCount]);
 
   const { liveGames } = useLiveGames(hasLiveGame(games) ? league : null);
 
@@ -59,5 +60,7 @@ export function useLeagueData(league, selectedSeason) {
     if (liveGames) setGames(liveGames);
   }, [liveGames]);
 
-  return { games, standings, loading, error, displayData };
+  const retry = useCallback(() => setRetryCount((c) => c + 1), []);
+
+  return { games, standings, loading, error, displayData, retry };
 }
