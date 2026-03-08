@@ -32,11 +32,11 @@ export async function updateProfile(req, res) {
 
 export async function deleteAccount(req, res) {
   try {
-    // Delete our DB row first (cascades favorites)
-    await userService.deleteUser(req.user.id);
-    // Then remove the Supabase auth user
+    // Delete Supabase auth user first — if this fails, DB row stays intact
     const { error } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
     if (error) throw error;
+    // Then delete our DB row (cascades favorites)
+    await userService.deleteUser(req.user.id);
     res.status(204).send();
   } catch (err) {
     console.error(err);

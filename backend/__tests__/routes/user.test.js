@@ -176,7 +176,6 @@ describe("User Routes", () => {
     });
 
     it("should return 500 when Supabase auth deletion fails", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
       mockDeleteUser.mockResolvedValueOnce({ error: new Error("Auth deletion failed") });
 
       const res = await request(app).delete("/api/user/account");
@@ -186,13 +185,15 @@ describe("User Routes", () => {
     });
 
     it("should return 500 on DB error", async () => {
+      mockDeleteUser.mockResolvedValueOnce({ error: null });
       mockPool.query.mockRejectedValueOnce(new Error("DB error"));
 
       const res = await request(app).delete("/api/user/account");
 
       expect(res.status).toBe(500);
       expect(res.body.error).toBe("Failed to delete account");
-      expect(mockDeleteUser).not.toHaveBeenCalled();
+      // Supabase is called first in the new order, then DB delete
+      expect(mockDeleteUser).toHaveBeenCalledWith("test-uuid-1234");
     });
 
     it("should return 401 when auth is not provided", async () => {
