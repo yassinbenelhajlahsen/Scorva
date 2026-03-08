@@ -478,6 +478,32 @@ export async function processEvent(client, leagueSlug, event) {
         ? 'Preseason'
         : (event.competitions?.[0]?.notes?.[0]?.headline || null);
 
+    // 5.4.9b) Derive structured game type
+    let gameType;
+    if (preserveExistingTeam) {
+      // isSpecialEventGame() detected All-Star, Pro Bowl, skills events, etc.
+      gameType = 'other';
+    } else if (event.season?.type === 1) {
+      gameType = 'preseason';
+    } else if (event.season?.type === 3) {
+      const headline = (gameLabel || '').toLowerCase();
+      if (headline.includes('finals') || headline.includes('stanley cup') || headline.includes('super bowl')) {
+        gameType = 'final';
+      } else if (headline.includes('makeup')) {
+        gameType = 'makeup';
+      } else {
+        gameType = 'playoff';
+      }
+    } else {
+      // season.type === 2 (regular) or unknown
+      const headline = (gameLabel || '').toLowerCase();
+      if (headline.includes('makeup')) {
+        gameType = 'makeup';
+      } else {
+        gameType = 'regular';
+      }
+    }
+
     // 5.4.10) Upsert into games
     const gamePayload = {
       eventid: espnEventId,
@@ -495,6 +521,7 @@ export async function processEvent(client, leagueSlug, event) {
       currentPeriod,
       clock,
       startTime,
+      gameType,
     };
 
     // ========================================================================

@@ -8,13 +8,13 @@ export default async function upsertGame(client, league, gamePayload) {
        homescore, awayscore, venue, broadcast,
        firstqtr, secondqtr, thirdqtr, fourthqtr,
        ot1, ot2, ot3, ot4,
-       status, season, game_label, current_period, clock, start_time)
+       status, season, game_label, current_period, clock, start_time, type)
     VALUES
       ($1,      $2,   $3,         $4,          $5,
        $6,       $7,         $8,          $9,
        $10,      $11,        $12,         $13,
        $14,      $15,        $16,         $17,
-       $18,      $19,        $20,          $21,    $22,  $23)
+       $18,      $19,        $20,          $21,    $22,  $23,        $24)
     ON CONFLICT (eventid, league) DO UPDATE
       SET date           = EXCLUDED.date,
           hometeamid     = EXCLUDED.hometeamid,
@@ -36,7 +36,8 @@ export default async function upsertGame(client, league, gamePayload) {
           game_label     = EXCLUDED.game_label,
           current_period = EXCLUDED.current_period,
           clock          = EXCLUDED.clock,
-          start_time     = EXCLUDED.start_time
+          start_time     = EXCLUDED.start_time,
+          type           = EXCLUDED.type
           RETURNING id;
   `;
 
@@ -64,6 +65,7 @@ export default async function upsertGame(client, league, gamePayload) {
     gamePayload.currentPeriod ?? null,
     gamePayload.clock ?? null,
     gamePayload.startTime ?? null,
+    gamePayload.gameType || 'regular',
   ];
   const result = await client.query(text, values);
   const gameId = result.rows[0].id;
