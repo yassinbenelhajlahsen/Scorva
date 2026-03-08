@@ -45,7 +45,7 @@ export async function getFavorites(userId) {
            WHERE s.playerid IN (
              SELECT player_id FROM user_favorite_players WHERE user_id = $1
            )
-           AND g.status ILIKE '%Final%'
+           AND g.status NOT ILIKE '%Scheduled%'
          ) rs
          WHERE rs.rn <= 3`,
         [userId]
