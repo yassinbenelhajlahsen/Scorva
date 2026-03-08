@@ -112,15 +112,8 @@ export default function GameCard({ game }) {
               </p>
             )}
             {isPlayoff && (
-              <div className="mt-1 flex flex-col items-center gap-1">
-                <div className="flex items-center justify-center h-20 w-20">
-                  <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-1.5" : ""}`} />
-                </div>
-                {game.game_label && (
-                  <span className="text-xs font-medium text-text-tertiary text-center leading-tight max-w-[80px]">
-                    {game.game_label}
-                  </span>
-                )}
+              <div className="mt-1 flex items-center justify-center h-20 w-20">
+                <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-1.5" : ""}`} />
               </div>
             )}
           </div>
@@ -261,6 +254,13 @@ export default function GameCard({ game }) {
               </span>
             </li>
           </ul>
+        )}
+
+        {/* Playoff round label */}
+        {isPlayoff && game.game_label && (
+          <p className="mt-2 pt-2 border-t border-white/[0.06] text-xs font-medium text-text-tertiary text-center tracking-wide">
+            {game.game_label}
+          </p>
         )}
       </div>
     </Link>
