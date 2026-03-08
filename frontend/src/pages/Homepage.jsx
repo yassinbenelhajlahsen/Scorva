@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
-import LoadingPage from "./LoadingPage.jsx";
 import leagueData from "../utilities/LeagueData.js";
 import { useHomeGames } from "../hooks/useHomeGames.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
@@ -11,9 +10,12 @@ import { useFavorites } from "../hooks/useFavorites.js";
 import { useUserPrefs } from "../hooks/useUserPrefs.js";
 import FavoritePlayersSection from "../components/favorites/FavoritePlayersSection.jsx";
 import FavoriteTeamsSection from "../components/favorites/FavoriteTeamsSection.jsx";
+import HomepageSkeleton from "../components/skeletons/HomepageSkeleton.jsx";
+import ErrorState from "../components/ui/ErrorState.jsx";
+import Skeleton from "../components/ui/Skeleton.jsx";
 
 export default function Homepage() {
-  const { games, loading, error } = useHomeGames();
+  const { games, loading, error, retry } = useHomeGames();
   const { session } = useAuth();
   const { favorites, loading: favLoading } = useFavorites();
   const { prefs, loading: prefsLoading } = useUserPrefs();
@@ -35,8 +37,8 @@ export default function Homepage() {
     setUserPicked(true);
   }
 
-  if (loading) return <LoadingPage />;
-  if (error) return <div className="p-6 text-loss text-sm">{error}</div>;
+  if (loading) return <HomepageSkeleton session={session} />;
+  if (error) return <ErrorState message={error} onRetry={retry} />;
 
   const leagues = Object.entries(leagueData).map(([id, data]) => ({
     id,
@@ -66,8 +68,28 @@ export default function Homepage() {
       {session && (
         <div className="mb-14">
           {favLoading || !favorites ? (
-            <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 text-center">
-              <p className="text-text-tertiary text-sm">Loading your favorites…</p>
+            <div className="flex flex-col gap-3">
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 flex flex-col sm:flex-row gap-5 items-stretch"
+                >
+                  <div className="flex items-center gap-4 shrink-0 w-full sm:w-52">
+                    <Skeleton className="w-14 h-14 rounded-xl flex-shrink-0" />
+                    <div className="flex flex-col gap-2 flex-1">
+                      <Skeleton className="h-3.5 w-28" />
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <div className="hidden sm:block w-px bg-white/[0.06] self-stretch shrink-0" />
+                  <div className="flex gap-3 flex-1 min-w-0">
+                    {[0, 1].map((j) => (
+                      <Skeleton key={j} className="flex-1 min-w-[8rem] h-24 rounded-2xl" />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : favorites.players.length === 0 && favorites.teams.length === 0 ? (
             <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 text-center">

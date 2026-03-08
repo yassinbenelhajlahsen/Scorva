@@ -8,14 +8,15 @@ import AISummary from "../components/ui/AISummary.jsx";
 import slugify from "../utilities/slugify.js";
 import computeTopPlayers from "../utilities/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
-import LoadingPage from "./LoadingPage.jsx";
 import formatDate, { getPeriodLabel } from "../utilities/formatDate.js";
 import { useGame } from "../hooks/useGame.js";
+import GamePageSkeleton from "../components/skeletons/GamePageSkeleton.jsx";
+import ErrorState from "../components/ui/ErrorState.jsx";
 
 export default function GamePage() {
   const location = useLocation();
   const { league, gameId } = useParams();
-  const { gameData, loading, error } = useGame(league, gameId);
+  const { gameData, loading, error, retry } = useGame(league, gameId);
 
   useEffect(() => {
     if (!gameData || !location.hash) return;
@@ -45,8 +46,9 @@ export default function GamePage() {
     });
   }, [gameData, location.hash]);
 
-  if (loading) return <LoadingPage />;
-  if (error || !gameData?.json_build_object) {
+  if (loading) return <GamePageSkeleton />;
+  if (error && !gameData) return <ErrorState message="Could not load game data." onRetry={retry} />;
+  if (!gameData?.json_build_object) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3">Game Not Found</h1>
@@ -173,7 +175,7 @@ export default function GamePage() {
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                className="text-text-tertiary text-xs"
+                className="text-loss text-xs"
               >
                 {parseFloat(game.clock) === 0
                   ? `End of ${getPeriodLabel(game.currentPeriod, league)}`

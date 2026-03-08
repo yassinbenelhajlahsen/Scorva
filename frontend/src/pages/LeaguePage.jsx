@@ -4,18 +4,19 @@ import { motion } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utilities/LeagueData";
-import LoadingPage from "./LoadingPage.jsx";
 import slugify from "../utilities/slugify.js";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
 import { useLeagueData } from "../hooks/useLeagueData.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
+import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
+import ErrorState from "../components/ui/ErrorState.jsx";
 
 export default function LeaguePage() {
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { games, standings, loading, error, displayData } = useLeagueData(league, selectedSeason);
+  const { games, standings, loading, error, displayData, retry } = useLeagueData(league, selectedSeason);
 
   if (!data) {
     return (
@@ -33,8 +34,6 @@ export default function LeaguePage() {
       </div>
     );
   }
-
-  if (error) return <div className="p-6 text-loss text-sm">{error}</div>;
 
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
@@ -69,9 +68,9 @@ export default function LeaguePage() {
       </div>
 
       {loading || !displayData ? (
-        <LoadingPage />
+        <LeaguePageSkeleton />
       ) : error ? (
-        <div className="p-6 text-loss text-sm">{error}</div>
+        <ErrorState message={error} onRetry={retry} />
       ) : (
         <>
           {/* Standings */}

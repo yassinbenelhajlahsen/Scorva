@@ -3,7 +3,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { usePlayer } from "../hooks/usePlayer.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
-import LoadingPage from "./LoadingPage.jsx";
+import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
+import ErrorState from "../components/ui/ErrorState.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import slugify from "../utilities/slugify.js";
@@ -73,11 +74,12 @@ export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { playerData, loading } = usePlayer(league, slug, selectedSeason);
+  const { playerData, loading, error, retry } = usePlayer(league, slug, selectedSeason);
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("player", session ? playerData?.id : null);
 
-  if (loading) return <LoadingPage />;
+  if (loading) return <PlayerPageSkeleton />;
+  if (error) return <ErrorState message={error} onRetry={retry} />;
 
   if (!playerData) {
     return (

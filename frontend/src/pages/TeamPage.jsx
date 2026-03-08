@@ -3,24 +3,26 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
-import LoadingPage from "./LoadingPage.jsx";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
 import { useTeam } from "../hooks/useTeam.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/useFavoriteToggle.js";
+import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
+import ErrorState from "../components/ui/ErrorState.jsx";
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { team, games, teamRecord, loading, error } = useTeam(league, teamId, selectedSeason);
+  const { team, games, teamRecord, loading, error, retry } = useTeam(league, teamId, selectedSeason);
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("team", session ? team?.id : null);
 
-  if (loading) return <LoadingPage />;
-  if (error || !team) {
+  if (loading) return <TeamPageSkeleton />;
+  if (error && !team) return <ErrorState message={error} onRetry={retry} />;
+  if (!team) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3">Team Not Found</h1>
