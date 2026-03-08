@@ -380,7 +380,6 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
       expect(response.body.summary).toBe(
         "AI summary unavailable for this game."
       );
-      expect(response.body.reason).toBe("OpenAI API key not configured");
       expect(mockOpenAI.chat.completions.create).not.toHaveBeenCalled();
     });
 

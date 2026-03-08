@@ -49,7 +49,6 @@ export async function getAiSummary(req, res) {
       console.error("OPENAI_API_KEY not configured");
       return res.json({
         summary: "AI summary unavailable for this game.",
-        reason: "OpenAI API key not configured",
         cached: false,
       });
     }
