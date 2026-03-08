@@ -68,7 +68,7 @@ export async function getGames(league, { teamId, season, live } = {}) {
             AND (
               (date = $3 AND status NOT IN ('Scheduled', 'Postponed', 'Canceled'))
               OR (
-                date = ($3::date - INTERVAL '1 day')::text
+                date = ($3::date - INTERVAL '1 day')
                 AND (
                   status ILIKE '%In Progress%'
                   OR status ILIKE '%End of Period%'
@@ -92,7 +92,7 @@ export async function getGames(league, { teamId, season, live } = {}) {
           AND (
             g.date = $3
             OR (
-              g.date = ($3::date - INTERVAL '1 day')::text
+              g.date = ($3::date - INTERVAL '1 day')
               AND (
                 g.status ILIKE '%In Progress%'
                 OR g.status ILIKE '%End of Period%'
