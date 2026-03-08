@@ -50,7 +50,7 @@ export default function GameCard({ game }) {
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">
 
         {/* Teams & Scores */}
-        <div className="flex items-center justify-between gap-4 min-h-[110px]">
+        <div className="flex items-center justify-between gap-4 h-[120px]">
           {/* Home */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
             <img
@@ -80,7 +80,7 @@ export default function GameCard({ game }) {
           </div>
 
           {/* Center */}
-          <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
+          <div className="flex flex-col items-center justify-center flex-shrink-0 gap-0.5 h-full overflow-hidden">
             <span className="text-xs text-text-tertiary">
               {!isFinal && !inProgress && game.start_time
                 ? formatDateShortWithTime(game.date, game.start_time)
@@ -120,8 +120,8 @@ export default function GameCard({ game }) {
               </p>
             )}
             {isPlayoff && (
-              <div className="mt-1 flex items-center justify-center h-20 w-20">
-                <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-1.5" : ""}`} />
+              <div className="mt-1 flex items-center justify-center h-10 w-10">
+                <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-0.5" : ""}`} />
               </div>
             )}
           </div>
@@ -157,10 +157,9 @@ export default function GameCard({ game }) {
 
         {/* Quarter breakdown — NHL */}
         {nhl && (
+          <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
           <ul
-            className={`mt-3 text-sm text-text-secondary font-mono overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] space-y-1 border-t border-white/[0.06] pt-3 ${
-              isExpanded ? "max-h-[300px]" : "max-h-0 pt-0 border-t-0"
-            }`}
+            className="mt-3 text-sm text-text-secondary font-mono space-y-1 border-t border-white/[0.06] pt-3"
           >
             <li className="text-text-primary text-xs font-semibold text-center mb-1">
               {game.status}
@@ -206,14 +205,14 @@ export default function GameCard({ game }) {
               </span>
             </li>
           </ul>
+          </div>
         )}
 
         {/* Quarter breakdown — NBA / NFL */}
         {(isFinal || inProgress) && !nhl && (
+          <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
           <ul
-            className={`mt-3 text-sm text-text-secondary font-mono overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] space-y-1 border-t border-white/[0.06] pt-3 ${
-              isExpanded ? "max-h-[300px]" : "max-h-0 pt-0 border-t-0"
-            }`}
+            className="mt-3 text-sm text-text-secondary font-mono space-y-1 border-t border-white/[0.06] pt-3"
           >
             <li className="text-text-primary text-xs font-semibold text-center mb-1">
               {game.status}
@@ -262,6 +261,7 @@ export default function GameCard({ game }) {
               </span>
             </li>
           </ul>
+          </div>
         )}
 
         {/* Playoff round label */}
@@ -284,7 +284,7 @@ export default function GameCard({ game }) {
               });
             }}
             aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
-            className="[@media(hover:hover)]:hidden mt-3 mx-auto flex items-center gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
+            className="[@media(hover:hover)]:hidden [@media(hover:hover)]:mt-0 mt-3 mx-auto flex items-center gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
           >
             <svg
               className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
