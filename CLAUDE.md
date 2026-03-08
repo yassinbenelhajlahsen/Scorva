@@ -5,7 +5,7 @@ Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → Post
 
 ## Stack
 - **Frontend**: React 19, Vite 6, React Router 7, Tailwind CSS v4, Framer Motion 12
-- **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only)
+- **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), helmet (security headers)
 - **Auth**: Supabase Auth — email/password + Google OAuth; JWT verified server-side
 - **AI**: OpenAI SDK for game summaries
 - **Caching**: Redis via `ioredis` (graceful no-op fallback when `REDIS_URL` unset)
@@ -48,7 +48,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | What | Where |
 |---|---|
 | Backend entry | `backend/src/index.js` |
-| CORS + rate limits | `backend/src/middleware/index.js` |
+| CORS, rate limits, SSE limiter | `backend/src/middleware/index.js` |
 | JWT auth middleware | `backend/src/middleware/auth.js` |
 | Routes | `backend/src/routes/` |
 | Controllers | `backend/src/controllers/` |
@@ -109,8 +109,8 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `POST /favorites/teams/:teamId` — requires auth; adds team favorite
 - `DELETE /favorites/teams/:teamId` — requires auth; removes team favorite
 - `GET /user/profile` — requires auth; returns user row (`id`, `email`, `first_name`, `last_name`, `default_league`)
-- `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; uses COALESCE so omitted fields are unchanged
-- `DELETE /user/account` — requires auth; deletes DB row (cascades favorites) then calls `supabaseAdmin.auth.admin.deleteUser()`
+- `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; validates `defaultLeague` against `["nba", "nfl", "nhl"]` (400 if invalid); uses COALESCE so omitted fields are unchanged
+- `DELETE /user/account` — requires auth; deletes Supabase auth user via `supabaseAdmin.auth.admin.deleteUser()`, then deletes DB row (cascades favorites)
 - `POST /webhooks/supabase-auth` — Supabase auth webhook; verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>` header; inserts new user into `users` table on signup
 
 ## Frontend routes
@@ -133,7 +133,9 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 
 ## Important conventions
 - **Never edit** `backend/src/generated/prisma/` — regenerate with `prisma generate`
-- **CORS allowlist** in `backend/src/middleware/index.js` — update `corsOrigins` for new origins
+- **Security headers** — `helmet` middleware in `backend/src/index.js` sets `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`, etc.
+- **CORS allowlist** in `backend/src/middleware/index.js` — production only includes `scorva.vercel.app` and `scorva.dev`; localhost and LAN IPs are included only when `NODE_ENV !== "production"`. Update `corsOrigins` for new origins.
+- **Middleware chain** in `index.js`: `helmet` → `requestLogger` → `cors` → `express.json()` → `webhooksRoute` → `aiSummaryRoute` → `sseConnectionLimiter` (on `/api/live`) → `liveRoute` → `generalLimiter` → all other routes
 - **AI route** uses stricter `aiLimiter` (applied inside `routes/aiSummary.js`) + `requireAuth` middleware
 - **AI summaries** are cache-first, persisted to `games.ai_summary`, only generated for finalized games, requires auth
 - **Auth middleware** (`requireAuth`) calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `PROJECT_URL` env vars
@@ -149,11 +151,11 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **Users table** (`users`) stores Supabase auth UUIDs + `email`, `first_name`, `last_name`, `default_league` (nullable, defaults to `"nba"` on frontend). Populated via Supabase webhook on signup. Email/password users pass name via `options.data` in `supabase.auth.signUp()`; Google OAuth users have `full_name` split on first space. `favoritesService.ensureUser()` is a fallback that upserts on first favorite action. Webhook secret stored in `SUPABASE_WEBHOOK_SECRET` env var.
 - **User preferences** (`default_league`) stored in `users` table. Fetched via `useUserPrefs` hook (`GET /api/user/profile`). Homepage defers rendering league tabs until prefs resolve to avoid NBA→preference flicker. Settings page allows editing via `PATCH /api/user/profile`.
 - **Settings page** (`/settings`) — sidebar navigation (desktop) / drill-down (mobile). Tabs: Favorites (manage favorites + default league selector) and Account (edit name, change password, delete account). Navbar shows gear icon linking to `/settings` when logged in; "Sign In" pill when logged out. Google OAuth users see "Signed in with Google" badge; password change section is hidden for them.
-- **Account deletion** — two-step: `DELETE /api/user/account` deletes DB row (cascades favorites), then calls Supabase Admin API to delete auth user. Uses `SUPABASE_SECRET_KEY` env var (same key as auth middleware) — no separate service role key needed.
+- **Account deletion** — two-step: `DELETE /api/user/account` deletes Supabase auth user first via `supabaseAdmin.auth.admin.deleteUser()`, then deletes DB row (cascades favorites). Uses `SUPABASE_SECRET_KEY` env var (same key as auth middleware) — no separate service role key needed.
 - **Auth modal** — fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
 - **apiFetch** (`frontend/src/api/client.js`) supports `method` and `body` params; sets `Content-Type: application/json` when body present; handles 204 (no-content) responses.
-- **Favorites** all routes require `requireAuth`; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
-- **SSE live endpoints** (`/api/live/:league/games` and `/api/live/:league/games/:gameId`) — mounted before `generalLimiter`; reuse `gamesService`/`gameInfoService` directly in controller (no new service layer); 30s data interval, 15s `: ping` heartbeat, `X-Accel-Buffering: no` for Railway. Frontend: `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` hooks — pass `null` to deactivate without breaking hooks rules. 3-failure REST fallback. SSE URL helpers in `frontend/src/api/games.js` use `import.meta.env.VITE_API_URL` directly. `useLiveGame` integrated into `useGame`; `useLiveGames` integrated into `useHomeGames` (3x) and `useLeagueData`.
+- **Favorites** all routes require `requireAuth`; controller validates numeric `playerId`/`teamId` params (returns 400 for non-numeric); `checkFavorites` uses `Number.isFinite` to filter invalid IDs from comma-separated query params; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
+- **SSE live endpoints** (`/api/live/:league/games` and `/api/live/:league/games/:gameId`) — mounted before `generalLimiter` but behind `sseConnectionLimiter` (max 6 concurrent per IP to prevent pg pool exhaustion); reuse `gamesService`/`gameInfoService` directly in controller (no new service layer); 15s `: ping` heartbeat, `X-Accel-Buffering: no` for Railway. Frontend: `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` hooks — pass `null` to deactivate without breaking hooks rules. 3-failure REST fallback. SSE URL helpers in `frontend/src/api/games.js` use `import.meta.env.VITE_API_URL` directly. `useLiveGame` integrated into `useGame`; `useLiveGames` integrated into `useHomeGames` (3x) and `useLeagueData`.
 - **Loading states** — all pages use page-specific shimmer skeleton components (`frontend/src/components/skeletons/`) instead of a generic spinner. `Skeleton.jsx` is the shared `animate-pulse bg-white/[0.06] rounded-lg` primitive. `LoadingPage.jsx` is no longer used by main pages but still exists.
 - **Error state** — `ErrorState.jsx` (`frontend/src/components/ui/`) is the standard error UI: card with warning icon, message, and "Try Again" button. Always centered via `min-h-[60vh]` flex wrapper with `px-4 sm:px-6` mobile padding. Props: `{ message?, onRetry? }`. Pages distinguish network errors (show `ErrorState`) from not-found (show dedicated "Not Found" layout).
 - **Hook retry pattern** — all data-fetching hooks (`useHomeGames`, `useLeagueData`, `useTeam`, `usePlayer`, `useGame`) expose a `retry()` function. Pattern: `const [retryCount, setRetryCount] = useState(0)` added to deps array; `const retry = useCallback(() => setRetryCount(c => c + 1), [])` returned alongside data.
