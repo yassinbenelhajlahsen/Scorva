@@ -77,6 +77,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
 | SSE live route | `backend/src/routes/live.js`, `backend/src/controllers/liveController.js` |
 | SSE live hooks | `frontend/src/hooks/useLiveGame.js`, `frontend/src/hooks/useLiveGames.js` |
+| Skeleton primitive | `frontend/src/components/ui/Skeleton.jsx` |
+| Error state component | `frontend/src/components/ui/ErrorState.jsx` |
+| Page skeleton layouts | `frontend/src/components/skeletons/` |
 | Backend test suite | `backend/__tests__/` |
 | Backend test helpers | `backend/__tests__/helpers/testHelpers.js` |
 | Frontend test suite | `frontend/src/__tests__/` |
@@ -142,6 +145,12 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 - **apiFetch** (`frontend/src/api/client.js`) supports `method` and `body` params; sets `Content-Type: application/json` when body present; handles 204 (no-content) responses.
 - **Favorites** all routes require `requireAuth`; service uses `ROW_NUMBER()` window functions to get 3 most recent finalized stats/games per favorite
 - **SSE live endpoints** (`/api/live/:league/games` and `/api/live/:league/games/:gameId`) — mounted before `generalLimiter`; reuse `gamesService`/`gameInfoService` directly in controller (no new service layer); 30s data interval, 15s `: ping` heartbeat, `X-Accel-Buffering: no` for Railway. Frontend: `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` hooks — pass `null` to deactivate without breaking hooks rules. 3-failure REST fallback. SSE URL helpers in `frontend/src/api/games.js` use `import.meta.env.VITE_API_URL` directly. `useLiveGame` integrated into `useGame`; `useLiveGames` integrated into `useHomeGames` (3x) and `useLeagueData`.
+- **Loading states** — all pages use page-specific shimmer skeleton components (`frontend/src/components/skeletons/`) instead of a generic spinner. `Skeleton.jsx` is the shared `animate-pulse bg-white/[0.06] rounded-lg` primitive. `LoadingPage.jsx` is no longer used by main pages but still exists.
+- **Error state** — `ErrorState.jsx` (`frontend/src/components/ui/`) is the standard error UI: card with warning icon, message, and "Try Again" button. Always centered via `min-h-[60vh]` flex wrapper with `px-4 sm:px-6` mobile padding. Props: `{ message?, onRetry? }`. Pages distinguish network errors (show `ErrorState`) from not-found (show dedicated "Not Found" layout).
+- **Hook retry pattern** — all data-fetching hooks (`useHomeGames`, `useLeagueData`, `useTeam`, `usePlayer`, `useGame`) expose a `retry()` function. Pattern: `const [retryCount, setRetryCount] = useState(0)` added to deps array; `const retry = useCallback(() => setRetryCount(c => c + 1), [])` returned alongside data.
+- **usePlayer** now returns `{ playerData, loading, error, retry }` — previously had no `error` state and silently swallowed fetch failures by setting `playerData` to null.
+- **inProgress detection** — both `GameCard.jsx` and `GamePage.jsx` treat `"Halftime"` as an in-progress status alongside `"In Progress"` and `"End of Period"`.
+- **GamePage live clock** — clock/period text (`Q3 · 5:32`) uses `text-loss` (red `#ff453a`). GameCard clock still uses `text-live/70` (orange). The "Live" badge is `text-live` in both.
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
