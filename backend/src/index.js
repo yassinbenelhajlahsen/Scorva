@@ -1,10 +1,12 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import "./config/env.js";
 import { closeCache } from "./cache/cache.js";
 import {
   requestLogger,
   generalLimiter,
+  sseConnectionLimiter,
   corsOrigins,
   log,
 } from "./middleware/index.js";
@@ -27,6 +29,9 @@ const app = express();
 // Trust proxy for accurate IP detection behind reverse proxies (Railway, Vercel, etc.)
 app.set("trust proxy", 1);
 
+// Security headers
+app.use(helmet());
+
 // Request logging
 app.use(requestLogger);
 
@@ -43,6 +48,7 @@ app.use("/api", webhooksRoute);
 app.use("/api", aiSummaryRoute);
 
 // SSE live endpoints — mounted before rate limiter (long-lived connections)
+app.use("/api/live", sseConnectionLimiter);
 app.use("/api", liveRoute);
 
 // Apply general rate limiter to all other /api routes
