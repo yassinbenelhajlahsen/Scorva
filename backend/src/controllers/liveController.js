@@ -73,6 +73,7 @@ export async function streamGames(req, res) {
     listenClient.on("notification", send);
   } catch (err) {
     console.error("SSE LISTEN setup error:", err);
+    if (listenClient) { listenClient.release(); listenClient = null; }
   }
 
   await send();
@@ -136,6 +137,7 @@ export async function streamGame(req, res) {
     listenClient.on("notification", send);
   } catch (err) {
     console.error("SSE LISTEN setup error:", err);
+    if (listenClient) { listenClient.release(); listenClient = null; }
   }
 
   await send();
