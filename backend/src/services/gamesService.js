@@ -65,8 +65,17 @@ export async function getGames(league, { teamId, season, live } = {}) {
           SELECT 1 FROM games
           WHERE league = $1
             AND season = COALESCE($2, ${currentSeasonSubquery})
-            AND date = $3
-            AND status NOT IN ('Scheduled', 'Postponed', 'Canceled')
+            AND (
+              (date = $3 AND status NOT IN ('Scheduled', 'Postponed', 'Canceled'))
+              OR (
+                date = ($3::date - INTERVAL '1 day')::text
+                AND (
+                  status ILIKE '%In Progress%'
+                  OR status ILIKE '%End of Period%'
+                  OR status ILIKE '%Halftime%'
+                )
+              )
+            )
         ) AS has_today_games
       `;
       ({ rows: [{ has_today_games }] } = await pool.query(checkQuery, params));
@@ -74,11 +83,23 @@ export async function getGames(league, { teamId, season, live } = {}) {
 
     let query;
     if (has_today_games) {
-      // Today has live/final games — show ALL of today's slate, ordered live > final > scheduled
+      // Today has live/final games — show ALL of today's slate plus any carry-over live games
+      // from the previous day (games that started before midnight and are still in progress),
+      // ordered live > final > scheduled
       query = selectFrom + `
         WHERE g.league = $1
           AND ${seasonClause}
-          AND g.date = $3
+          AND (
+            g.date = $3
+            OR (
+              g.date = ($3::date - INTERVAL '1 day')::text
+              AND (
+                g.status ILIKE '%In Progress%'
+                OR g.status ILIKE '%End of Period%'
+                OR g.status ILIKE '%Halftime%'
+              )
+            )
+          )
         ORDER BY
           CASE
             WHEN g.status ILIKE '%In Progress%' OR g.status ILIKE '%End of Period%' OR g.status ILIKE '%Halftime%' THEN 1
