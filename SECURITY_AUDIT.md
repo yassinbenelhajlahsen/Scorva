@@ -10,7 +10,7 @@
 
 The codebase follows solid security practices overall — parameterized SQL queries, proper auth middleware, no hardcoded secrets in source, and good `.gitignore` coverage. However, there are several medium-severity issues around input validation, missing security headers, verbose error logging, and a weak SSL configuration that should be addressed.
 
-**Findings:** 0 Critical, 2 High, 6 Medium, 5 Low, 3 Info
+**Findings:** 0 Critical, 2 High, 7 Medium, 5 Low, 3 Info
 
 ---
 
@@ -111,7 +111,20 @@ The Supabase webhook endpoint (`POST /api/webhooks/supabase-auth`) is mounted be
 
 ---
 
-### M6. `express.json()` has no body size limit
+### M6. Webhook secret comparison vulnerable to timing attack
+**File:** `backend/src/controllers/webhooksController.js:6`
+
+```js
+if (!secret || req.headers.authorization !== secret) {
+```
+
+The webhook secret is compared using `!==` (standard string equality). This is theoretically vulnerable to timing-based attacks where an attacker measures response times to guess the secret character by character. While practically difficult to exploit over a network, it violates cryptographic best practices.
+
+**Fix:** Use `crypto.timingSafeEqual(Buffer.from(req.headers.authorization), Buffer.from(secret))` for constant-time comparison.
+
+---
+
+### M7. `express.json()` has no body size limit
 **File:** `backend/src/index.js:37`
 
 ```js
@@ -216,7 +229,8 @@ All SQL queries across all services use `$1, $2, ...` parameterized queries via 
 | MEDIUM | M3: Reduce error log verbosity | Medium |
 | MEDIUM | M4: Rate-limit SSE connections | Medium |
 | MEDIUM | M5: Rate-limit webhook endpoint | Small |
-| MEDIUM | M6: Explicit JSON body size limit | Small |
+| MEDIUM | M6: Use timing-safe webhook secret comparison | Small |
+| MEDIUM | M7: Explicit JSON body size limit | Small |
 | LOW | L1: Remove local IPs from prod CORS | Small |
 | LOW | L2: Validate parseInt results | Small |
 | LOW | L3: Limit search term length | Small |
