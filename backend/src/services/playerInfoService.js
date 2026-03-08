@@ -81,7 +81,7 @@ export async function getNbaPlayer(playerId, season) {
             JOIN games g    ON s2.gameid = g.id
             JOIN teams ht   ON g.hometeamid = ht.id
             JOIN teams at   ON g.awayteamid = at.id
-            WHERE s2.playerid = p.id AND g.season = $3 AND g.game_label IS NULL
+            WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
             LIMIT 12
           ) AS game_data
@@ -90,7 +90,7 @@ export async function getNbaPlayer(playerId, season) {
     FROM players p
     JOIN teams t ON p.teamid = t.id
     LEFT JOIN stats s ON p.id = s.playerid
-    LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.game_label IS NULL
+    LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
@@ -154,7 +154,7 @@ export async function getNflPlayer(playerId, season) {
             JOIN games g    ON s2.gameid = g.id
             JOIN teams ht   ON g.hometeamid = ht.id
             JOIN teams at   ON g.awayteamid = at.id
-            WHERE s2.playerid = p.id AND g.season = $3 AND g.game_label IS NULL
+            WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
             LIMIT 12
           ) AS game_data
@@ -163,7 +163,7 @@ export async function getNflPlayer(playerId, season) {
     FROM players p
     JOIN teams t ON p.teamid = t.id
     LEFT JOIN stats s ON p.id = s.playerid
-    LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.game_label IS NULL
+    LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
@@ -238,7 +238,7 @@ export async function getNhlPlayer(playerId, season) {
             JOIN games g    ON s2.gameid = g.id
             JOIN teams ht   ON g.hometeamid = ht.id
             JOIN teams at   ON g.awayteamid = at.id
-            WHERE s2.playerid = p.id AND g.season = $3 AND g.game_label IS NULL
+            WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
             LIMIT 12
           ) AS game_data
@@ -247,7 +247,7 @@ export async function getNhlPlayer(playerId, season) {
     FROM players p
     JOIN teams t ON p.teamid = t.id
     LEFT JOIN stats s ON p.id = s.playerid
-    LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.game_label IS NULL
+    LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,

@@ -20,7 +20,7 @@ export async function getStandings(league, season) {
             SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL
           ))
           AND g.status ILIKE 'Final%'
-          AND g.game_label IS NULL
+          AND g.type = 'regular'
         WHERE t.league = $1
         GROUP BY t.id, t.name, t.shortname, t.location, t.conf, t.logo_url
         ORDER BY t.conf, wins DESC, losses ASC`,

@@ -31,6 +31,7 @@ export async function getNbaGame(gameId) {
     'season', g.season,
     'winnerId', g.winnerid,
     'gameLabel', g.game_label,
+    'gameType', g.type,
     'currentPeriod', g.current_period,
     'clock', g.clock,
     'startTime', g.start_time
@@ -164,6 +165,7 @@ export async function getNflGame(gameId) {
     'season', g.season,
     'winnerId', g.winnerid,
     'gameLabel', g.game_label,
+    'gameType', g.type,
     'currentPeriod', g.current_period,
     'clock', g.clock,
     'startTime', g.start_time
@@ -284,6 +286,7 @@ export async function getNhlGame(gameId) {
     'season', g.season,
     'winnerId', g.winnerid,
     'gameLabel', g.game_label,
+    'gameType', g.type,
     'currentPeriod', g.current_period,
     'clock', g.clock,
     'startTime', g.start_time

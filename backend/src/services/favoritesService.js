@@ -62,7 +62,7 @@ export async function getFavorites(userId) {
         `SELECT rg.*
          FROM (
            SELECT g.id, g.league, g.date, g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
-                  g.status, g.winnerid, g.game_label,
+                  g.status, g.winnerid, g.game_label, g.type,
                   g.firstqtr, g.secondqtr, g.thirdqtr, g.fourthqtr,
                   g.ot1, g.ot2, g.ot3, g.ot4,
                   th.name AS home_team_name, th.shortname AS home_shortname, th.logo_url AS home_logo,
