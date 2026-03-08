@@ -102,6 +102,7 @@ function makeFinalEvent(id = "401584583") {
 
 function mockFetch(events) {
   global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
     json: () => Promise.resolve({ events }),
   });
 }

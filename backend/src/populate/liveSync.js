@@ -41,6 +41,10 @@ function isLiveEvent(e) {
 
 async function fetchTodayEvents(sport, leagueSlug) {
   const res = await fetch(SCOREBOARD_URL(sport, leagueSlug));
+  if (!res.ok) {
+    console.error(`[liveSync] ESPN scoreboard returned ${res.status} for ${leagueSlug}`);
+    throw new Error(`ESPN API error: ${res.status}`);
+  }
   const data = await res.json();
   return data.events ?? [];
 }
