@@ -554,6 +554,56 @@ describe("eventProcessor", () => {
       );
     });
 
+    it("should classify NBA Cup Championship as cup-final via compType CC", async () => {
+      const cupFinalEvent = createMockEvent({
+        season: { year: 2024, type: 2 },
+      });
+      cupFinalEvent.competitions[0].notes = [
+        { headline: "NBA In-Season Tournament Championship" },
+      ];
+      cupFinalEvent.competitions[0].type = { id: "39", abbreviation: "CC" };
+
+      mockAxiosGet.mockResolvedValue({
+        data: { boxscore: { players: [] } },
+      });
+
+      await processEvent(mockClient, "nba", cupFinalEvent);
+
+      expect(mockUpsertGame).toHaveBeenCalledWith(
+        mockClient,
+        "nba",
+        expect.objectContaining({
+          gameLabel: "NBA In-Season Tournament Championship",
+          gameType: "cup-final",
+        })
+      );
+    });
+
+    it("should classify NBA Cup Quarterfinals as regular", async () => {
+      const cupQFEvent = createMockEvent({
+        season: { year: 2024, type: 2 },
+      });
+      cupQFEvent.competitions[0].notes = [
+        { headline: "NBA In-Season Tournament - Quarterfinals" },
+      ];
+      cupQFEvent.competitions[0].type = { id: "1", abbreviation: "STD" };
+
+      mockAxiosGet.mockResolvedValue({
+        data: { boxscore: { players: [] } },
+      });
+
+      await processEvent(mockClient, "nba", cupQFEvent);
+
+      expect(mockUpsertGame).toHaveBeenCalledWith(
+        mockClient,
+        "nba",
+        expect.objectContaining({
+          gameLabel: "NBA In-Season Tournament - Quarterfinals",
+          gameType: "regular",
+        })
+      );
+    });
+
     it("should begin and commit transaction on success", async () => {
       mockAxiosGet.mockResolvedValue({
         data: { boxscore: { players: [] } },

@@ -497,25 +497,18 @@ export async function processEvent(client, leagueSlug, event) {
     } else {
       // season.type === 2 (regular) or unknown
       const headline = (gameLabel || '').toLowerCase();
-      // Check all available metadata for NBA Cup / In-Season Tournament indicators
-      const eventMeta = [
-        event.name,
-        event.shortName,
-        event.season?.slug,
-        event.competitions?.[0]?.type?.text,
-        event.competitions?.[0]?.type?.abbreviation,
-        headline,
-      ].filter(Boolean).join(' ').toLowerCase();
-      const isCupKnockout = leagueSlug === 'nba' && (
-        eventMeta.includes('nba cup') ||
-        eventMeta.includes('in-season tournament') ||
-        eventMeta.includes('ist')
+      // NBA Cup Championship: ESPN sets compType.abbreviation = "CC"
+      // and headline contains "championship". QF/SF have compType "STD"
+      // and count as regular season — only the championship is excluded.
+      const compAbbr = (event.competitions?.[0]?.type?.abbreviation || '').toUpperCase();
+      const isCupChampionship = leagueSlug === 'nba' && (
+        compAbbr === 'CC' ||
+        (headline.includes('championship') && (headline.includes('nba cup') || headline.includes('in-season tournament')))
       );
       if (headline.includes('makeup')) {
         gameType = 'makeup';
-      } else if (isCupKnockout) {
-        // NBA Cup knockout games (QF, SF, Championship) don't count as regular season
-        gameType = 'cup';
+      } else if (isCupChampionship) {
+        gameType = 'cup-final';
       } else {
         gameType = 'regular';
       }
