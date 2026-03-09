@@ -497,8 +497,25 @@ export async function processEvent(client, leagueSlug, event) {
     } else {
       // season.type === 2 (regular) or unknown
       const headline = (gameLabel || '').toLowerCase();
+      // Check all available metadata for NBA Cup / In-Season Tournament indicators
+      const eventMeta = [
+        event.name,
+        event.shortName,
+        event.season?.slug,
+        event.competitions?.[0]?.type?.text,
+        event.competitions?.[0]?.type?.abbreviation,
+        headline,
+      ].filter(Boolean).join(' ').toLowerCase();
+      const isCupKnockout = leagueSlug === 'nba' && (
+        eventMeta.includes('nba cup') ||
+        eventMeta.includes('in-season tournament') ||
+        eventMeta.includes('ist')
+      );
       if (headline.includes('makeup')) {
         gameType = 'makeup';
+      } else if (isCupKnockout) {
+        // NBA Cup knockout games (QF, SF, Championship) don't count as regular season
+        gameType = 'cup';
       } else {
         gameType = 'regular';
       }
