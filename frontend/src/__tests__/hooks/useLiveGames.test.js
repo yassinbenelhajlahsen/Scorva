@@ -70,16 +70,17 @@ describe("useLiveGames", () => {
   });
 
   it("updates liveGames state on message event", async () => {
+    vi.useFakeTimers();
     const mockGames = [{ id: 1, status: "In Progress" }];
     const { result } = renderHook(() => useLiveGames("nba"));
 
-    act(() => {
+    await act(async () => {
       MockEventSource.instances[0].dispatchMessage(mockGames);
+      await vi.advanceTimersByTimeAsync(1000);
     });
 
-    await waitFor(() => {
-      expect(result.current.liveGames).toEqual(mockGames);
-    });
+    expect(result.current.liveGames).toEqual(mockGames);
+    vi.useRealTimers();
   });
 
   it("closes EventSource on done event", async () => {

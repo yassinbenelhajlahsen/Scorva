@@ -41,6 +41,7 @@ export default function FavoritePlayersSection({ players }) {
                 className="flex items-center gap-4 shrink-0 hover:opacity-80 transition-opacity w-full sm:w-52"
               >
                 <img
+                  loading="lazy"
                   src={player.image_url || "/images/placeholder.png"}
                   alt={player.name}
                   className="w-14 h-14 rounded-xl object-cover ring-1 ring-white/[0.08]"

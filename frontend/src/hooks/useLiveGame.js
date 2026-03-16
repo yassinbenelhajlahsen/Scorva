@@ -12,6 +12,8 @@ export function useLiveGame(league, gameId, isLive) {
   const esRef = useRef(null);
   const pollRef = useRef(null);
   const failureCount = useRef(0);
+  const pendingRef = useRef(null);
+  const throttleRef = useRef(null);
 
   useEffect(() => {
     if (!isLive || !league || !gameId) return;
@@ -36,6 +38,8 @@ export function useLiveGame(league, gameId, isLive) {
       }
       clearInterval(pollRef.current);
       pollRef.current = null;
+      clearTimeout(throttleRef.current);
+      throttleRef.current = null;
     }
 
     const es = new EventSource(getLiveGameUrl(league, gameId));
@@ -46,7 +50,16 @@ export function useLiveGame(league, gameId, isLive) {
     es.onmessage = (event) => {
       failureCount.current = 0;
       try {
-        setLiveData(JSON.parse(event.data));
+        pendingRef.current = JSON.parse(event.data);
+        if (!throttleRef.current) {
+          throttleRef.current = setTimeout(() => {
+            if (pendingRef.current) {
+              setLiveData(pendingRef.current);
+              pendingRef.current = null;
+            }
+            throttleRef.current = null;
+          }, 1000);
+        }
       } catch {
         // ignore parse errors
       }

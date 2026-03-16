@@ -96,6 +96,7 @@ export default function LeaguePage() {
                         <div className="flex items-center gap-3">
                           <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">{index + 1}</span>
                           <img
+                            loading="lazy"
                             src={team.logo_url}
                             alt={`${team.name} logo`}
                             className="w-6 h-6 object-contain"
@@ -128,6 +129,7 @@ export default function LeaguePage() {
                         <div className="flex items-center gap-3">
                           <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">{index + 1}</span>
                           <img
+                            loading="lazy"
                             src={team.logo_url}
                             alt={`${team.name} logo`}
                             className="w-6 h-6 object-contain"

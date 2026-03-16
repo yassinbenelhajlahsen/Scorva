@@ -52,6 +52,7 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
               >
                 {item.imageUrl && (
                   <img
+                    loading="lazy"
                     src={item.imageUrl}
                     alt={item.name}
                     className={`mr-3 ${

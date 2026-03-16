@@ -59,8 +59,8 @@ export default function Homepage() {
         <motion.h1
           className="font-bold leading-[0.95] tracking-[-0.04em] bg-gradient-to-br from-white via-[#f0ece6] to-[#e8863a] bg-clip-text text-transparent text-[4.5rem] sm:text-[6.5rem] lg:text-[8rem]"
           variants={{
-            hidden: { opacity: 0, y: 28 },
-            visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] } },
+            hidden: { opacity: 1, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
           }}
         >
           Scorva

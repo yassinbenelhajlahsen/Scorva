@@ -1,5 +1,5 @@
 import { Link, useParams, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { scoreUpdateVariants } from "../utilities/motion.js";
 
@@ -46,6 +46,20 @@ export default function GamePage() {
     });
   }, [gameData, location.hash]);
 
+  const gameObj = gameData?.json_build_object;
+  const homeTeamData = gameObj?.homeTeam;
+  const awayTeamData = gameObj?.awayTeam;
+
+  const allPlayerStats = useMemo(
+    () => [...(homeTeamData?.players || []), ...(awayTeamData?.players || [])],
+    [homeTeamData?.players, awayTeamData?.players]
+  );
+
+  const topPlayers = useMemo(
+    () => gameObj ? computeTopPlayers(gameObj.game, allPlayerStats, league) : {},
+    [gameObj, allPlayerStats, league]
+  );
+
   if (loading) return <GamePageSkeleton />;
   if (error && !gameData) return <ErrorState message="Could not load game data." onRetry={retry} />;
   if (!gameData?.json_build_object) {
@@ -66,9 +80,10 @@ export default function GamePage() {
   }
 
   const { game, homeTeam, awayTeam } = gameData.json_build_object;
+  const { topPerformer, topScorer, impactPlayer } = topPlayers;
   const isFinal = game.status.includes("Final");
   const inProgress =
-    game.status.includes("In Progress") || 
+    game.status.includes("In Progress") ||
     game.status.includes("Halftime") ||
     game.status.includes("End of Period");
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
@@ -78,20 +93,9 @@ export default function GamePage() {
   const isPlayoffGame = gameType === 'playoff' || gameType === 'final';
   const isChampionship = gameType === 'final';
   const playoffLogo = isPlayoffGame
-    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
+    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.webp`
     : null;
   const quarterKeys = nhl ? ["q1", "q2", "q3"] : ["q1", "q2", "q3", "q4"];
-
-  const allPlayerStats = [
-    ...(homeTeam?.players || []),
-    ...(awayTeam?.players || []),
-  ];
-
-  const { topPerformer, topScorer, impactPlayer } = computeTopPlayers(
-    game,
-    allPlayerStats,
-    league
-  );
 
   const scoreColor = (won, lost) => {
     if (!isFinal && !inProgress) return "text-text-primary";

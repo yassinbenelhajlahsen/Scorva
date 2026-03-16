@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utilities/formatDate";
 import { scoreUpdateVariants } from "../../utilities/motion.js";
 
-export default function GameCard({ game }) {
+function GameCard({ game }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function GameCard({ game }) {
   const isChampionship = gameType === 'final';
 
   const playoffLogo = isPlayoff
-    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.png`
+    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.webp`
     : null;
 
   const scoreColor = (isWinner, isLoser) => {
@@ -54,6 +54,7 @@ export default function GameCard({ game }) {
           {/* Home */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
             <img
+              loading="lazy"
               src={game.home_logo || "/backupTeamLogo.webp"}
               alt={`${game.homeTeam} logo`}
               className="w-12 h-12 object-contain"
@@ -129,6 +130,7 @@ export default function GameCard({ game }) {
           {/* Away */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
             <img
+              loading="lazy"
               src={game.away_logo || "/backupTeamLogo.webp"}
               alt={`${game.awayteam} logo`}
               className="w-12 h-12 object-contain"
@@ -299,3 +301,10 @@ export default function GameCard({ game }) {
     </Link>
   );
 }
+
+export default memo(GameCard, (prev, next) => {
+  const p = prev.game, n = next.game;
+  return p.id === n.id && p.homescore === n.homescore && p.awayscore === n.awayscore &&
+    p.status === n.status && p.clock === n.clock && p.current_period === n.current_period &&
+    p.winnerid === n.winnerid;
+});

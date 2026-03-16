@@ -20,6 +20,7 @@ export default function FavoriteTeamsSection({ teams }) {
               className="flex items-center gap-4 shrink-0 hover:opacity-80 transition-opacity w-full sm:w-52"
             >
               <img
+                loading="lazy"
                 src={team.logo_url || "/images/placeholder.png"}
                 alt={team.name}
                 className="w-14 h-14 object-contain"
