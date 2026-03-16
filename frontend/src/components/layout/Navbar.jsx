@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import logo from "../../assets/favicon.png";
+import logo from "/favicon.webp";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/useSearch.js";
 import { useAuth } from "../../context/AuthContext.jsx";
