@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
+import logger from "../logger.js";
+
+const log = logger.child({ worker: "historicalUpsert" });
 import {
   runDateRangeProcessing,
   clearPlayerCache,
@@ -52,14 +55,12 @@ const leagues = [
 
     // Log cache stats before clearing (useful for monitoring optimization impact)
     const cacheStats = getPlayerCacheStats();
-    console.log(
-      `📊 Player cache size: ${cacheStats.size} entries (avoided that many ESPN API re-calls)`,
-    );
+    log.info({ cacheSize: cacheStats.size }, "player cache stats");
 
     // Clear the player cache to free memory after run completes
     clearPlayerCache();
   } catch (err) {
-    console.error("❌ [historicalUpsert] Fatal error:", err);
+    log.error({ err }, "fatal error");
   } finally {
     // Always clear cache on exit to prevent memory leaks
     clearPlayerCache();

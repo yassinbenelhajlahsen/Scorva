@@ -3,12 +3,12 @@ import cors from "cors";
 import helmet from "helmet";
 import "./config/env.js";
 import { closeCache } from "./cache/cache.js";
+import logger from "./logger.js";
 import {
   requestLogger,
   generalLimiter,
   sseConnectionLimiter,
   corsOrigins,
-  log,
 } from "./middleware/index.js";
 import teamsRouter from "./routes/teams.js";
 import standingsRouter from "./routes/standings.js";
@@ -66,10 +66,11 @@ app.use("/api", userRoute);
 
 const port = process.env.PORT || 8080;
 app.listen(port, "0.0.0.0", () => {
-  log("info", "server ready", { port });
+  logger.info({ port }, "server ready");
 });
 
 process.on("SIGTERM", async () => {
+  logger.info("shutting down");
   await closeCache();
   process.exit(0);
 });

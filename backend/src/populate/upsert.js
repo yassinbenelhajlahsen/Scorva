@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
+import logger from "../logger.js";
+
+const log = logger.child({ worker: "upsert" });
 import {
   runTodayProcessing,
   runUpcomingProcessing,
@@ -36,46 +39,34 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
 )}, ${nowEST.toFormat("yyyy")} @ ${nowEST.toFormat("h:mma").toLowerCase()}`;
 
 (async () => {
-  console.log(`\n${"=".repeat(60)}`);
-  console.log(`🚀 Starting upsert at ${formattedTime}`);
-  console.log(`${"=".repeat(60)}`);
+  log.info({ time: formattedTime }, "starting upsert");
 
   try {
     const leagues = ["nba", "nfl", "nhl"];
 
     for (const league of leagues) {
-      console.log(`\n📋 Processing ${league.toUpperCase()}...`);
+      log.info({ league }, "processing league");
       try {
         await runTodayProcessing(league, pool);
         await runUpcomingProcessing(league, pool);
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
       } catch (err) {
-        console.error(`❌ Failed processing ${league.toUpperCase()}:`, err.message);
+        log.error({ err, league }, "failed processing league");
       }
     }
 
     // Log optimization stats before clearing (useful for monitoring impact)
     const stats = getPlayerCacheStats();
 
-    console.log(`\n${"=".repeat(60)}`);
-    console.log(`📊 RUN SUMMARY`);
-    console.log(`${"=".repeat(60)}`);
-    console.log(`   Games processed:     ${stats.gamesProcessed}`);
-    console.log(`   FINAL games skipped: ${stats.skippedFinalGames}`);
-    console.log(`   Players upserted:    ${stats.playersUpserted}`);
-    console.log(`   Stats upserted:      ${stats.statsUpserted}`);
-    console.log(`   ESPN API calls:      ${stats.espnApiCalls}`);
-    console.log(`   Cache hits:          ${stats.cacheHits}`);
-    console.log(`   DB hits:             ${stats.dbHits}`);
-    console.log(`${"=".repeat(60)}`);
+    log.info({ stats }, "run summary");
 
     // Clear the player cache to free memory after run completes
     clearPlayerCache();
 
-    console.log(`\n✅ Upsert completed successfully at ${formattedTime}\n`);
+    log.info({ time: formattedTime }, "upsert completed");
   } catch (err) {
-    console.error("❌ [upsert] fatal error:", err);
+    log.error({ err }, "fatal error");
   } finally {
     // Always clear cache on exit to prevent memory leaks
     clearPlayerCache();

@@ -1,4 +1,5 @@
 import pool from "../db/db.js";
+import logger from "../logger.js";
 
 export async function getPlayerIdBySlug(slugOrId, league) {
   try {
@@ -16,7 +17,7 @@ export async function getPlayerIdBySlug(slugOrId, league) {
     );
     return result.rows[0]?.id ?? null;
   } catch (err) {
-    console.error("Error looking up player by slug:", err);
+    logger.error({ err }, "Error looking up player by slug");
     return null;
   }
 }

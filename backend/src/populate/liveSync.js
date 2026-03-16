@@ -5,6 +5,9 @@ import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
 import { invalidate, invalidatePattern, closeCache } from "../cache/cache.js";
+import logger from "../logger.js";
+
+const log = logger.child({ worker: "liveSync" });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../../.env") });
@@ -42,7 +45,7 @@ function isLiveEvent(e) {
 async function fetchTodayEvents(sport, leagueSlug) {
   const res = await fetch(SCOREBOARD_URL(sport, leagueSlug));
   if (!res.ok) {
-    console.error(`[liveSync] ESPN scoreboard returned ${res.status} for ${leagueSlug}`);
+    log.error({ status: res.status, league: leagueSlug }, "ESPN scoreboard error");
     throw new Error(`ESPN API error: ${res.status}`);
   }
   const data = await res.json();
@@ -132,7 +135,7 @@ export async function tick(liveLeagues) {
     try {
       allEvents = await fetchTodayEvents(sport, slug);
     } catch (err) {
-      console.error(`[liveSync] Failed to fetch ${slug} scoreboard: ${err.message}`);
+      log.error({ err, league: slug }, "Failed to fetch scoreboard");
       stillLive.push({ slug, sport }); // keep retrying this league
       continue;
     }
@@ -141,7 +144,7 @@ export async function tick(liveLeagues) {
 
     if (!liveEvents.length) {
       const states = allEvents.map((e) => `${e.id}:${e.status?.type?.state}`).join(", ");
-      console.log(`[liveSync] ${slug}: no live events (${allEvents.length} total). States: ${states || "none"}`);
+      log.info({ league: slug, total: allEvents.length, states: states || "none" }, "no live events");
     }
 
     // Games that were being tracked but have now transitioned to "post" (Final),
@@ -174,7 +177,7 @@ export async function tick(liveLeagues) {
                 eventState.set(eventId, { lastFullUpdate: now, lastPeriod: currentPeriod });
                 await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
               } catch (err) {
-                console.error(`[liveSync] Full update failed for event ${eventId}: ${err.message}`);
+                log.error({ err, eventId }, "Full update failed for event");
                 // Fall back to fast path
                 try {
                   await client.query("ROLLBACK");
@@ -197,7 +200,7 @@ export async function tick(liveLeagues) {
           await processEvent(client, slug, event);
           await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
         } catch (err) {
-          console.error(`[liveSync] Final update failed for event ${eventId}: ${err.message}`);
+          log.error({ err, eventId }, "Final update failed for event");
           try {
             await client.query("ROLLBACK");
           } catch (_) { /* ignore */ }
@@ -222,7 +225,7 @@ export function sleep(ms) {
 }
 
 async function main() {
-  console.log("[liveSync] Worker started.");
+  log.info("worker started");
 
   let shuttingDown = false;
   let handle = null;
@@ -230,7 +233,7 @@ async function main() {
   const shutdown = async () => {
     shuttingDown = true;
     if (handle) clearTimeout(handle);
-    console.log("[liveSync] Shutting down...");
+    log.info("shutting down");
     clearPlayerCache();
     await closeCache();
     await pool.end();
@@ -249,17 +252,17 @@ async function main() {
         const events = await fetchTodayEvents(sport, slug);
         if (events.some(isLiveEvent)) liveLeagues.push({ slug, sport });
       } catch (err) {
-        console.error(`[liveSync] Failed to check ${slug}: ${err.message}`);
+        log.error({ err, league: slug }, "Failed to check league");
       }
     }
 
     if (!liveLeagues.length) {
-      console.log(`[liveSync] No live games. Sleeping ${NO_GAMES_SLEEP_MS / 60000} min...`);
+      log.info({ sleepMin: NO_GAMES_SLEEP_MS / 60000 }, "no live games, sleeping");
       await sleep(NO_GAMES_SLEEP_MS);
       continue;
     }
 
-    console.log(`[liveSync] Live games: ${liveLeagues.map((l) => l.slug).join(", ")}. Starting 30s sync.`);
+    log.info({ leagues: liveLeagues.map((l) => l.slug) }, "live games detected, starting sync");
 
     // Run ticks until no games remain; re-discover all leagues each iteration
     // so leagues that go live after initial discovery are picked up immediately.
@@ -273,11 +276,11 @@ async function main() {
           try {
             const events = await fetchTodayEvents(league.sport, league.slug);
             if (events.some(isLiveEvent)) {
-              console.log(`[liveSync] ${league.slug} games started — adding to live sync.`);
+              log.info({ league: league.slug }, "games started, adding to live sync");
               liveLeagues.push(league);
             }
           } catch (err) {
-            console.error(`[liveSync] Failed to check ${league.slug}: ${err.message}`);
+            log.error({ err, league: league.slug }, "Failed to check league");
           }
         }
       }
@@ -285,7 +288,7 @@ async function main() {
     }
 
     if (!shuttingDown) {
-      console.log("[liveSync] All games finished. Returning to idle.");
+      log.info("all games finished, returning to idle");
       clearPlayerCache();
       eventState.clear();
     }
@@ -294,7 +297,7 @@ async function main() {
 
 if (process.env.NODE_ENV !== "test") {
   main().catch((err) => {
-    console.error("[liveSync] Fatal:", err);
+    log.error({ err }, "fatal error");
     process.exit(1);
   });
 }

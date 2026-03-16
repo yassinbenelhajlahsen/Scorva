@@ -1,4 +1,5 @@
 import { search } from "../services/searchService.js";
+import logger from "../logger.js";
 
 export async function searchAll(req, res) {
   const { term } = req.query;
@@ -11,7 +12,7 @@ export async function searchAll(req, res) {
     const results = await search(term);
     res.json(results);
   } catch (error) {
-    console.error("Error in /search:", error);
+    logger.error({ err: error }, "Error in /search");
     res.status(500).json({ error: "Internal server error" });
   }
 }

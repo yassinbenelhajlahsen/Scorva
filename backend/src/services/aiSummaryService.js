@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import pool from "../db/db.js";
+import logger from "../logger.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -287,7 +288,7 @@ export async function generateAISummary(gameData, league) {
 
     return completion.choices[0].message.content.trim();
   } catch (error) {
-    console.error("OpenAI API error:", error);
+    logger.error({ err: error }, "OpenAI API error");
     throw error;
   }
 }

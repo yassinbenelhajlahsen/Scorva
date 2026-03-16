@@ -1,4 +1,5 @@
 import { getNbaGame, getNflGame, getNhlGame } from "../services/gameInfoService.js";
+import logger from "../logger.js";
 
 const leagueHandlers = {
   nba: getNbaGame,
@@ -21,7 +22,7 @@ export async function getGameInfo(req, res) {
     }
     return res.json(game);
   } catch (err) {
-    console.error(`❌ ${league.toUpperCase()} game fetch error:`, err);
+    logger.error({ err, league }, "game fetch error");
     return res.status(500).send("Server error");
   }
 }

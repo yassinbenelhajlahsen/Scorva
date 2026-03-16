@@ -7,6 +7,9 @@ import upsertStat from "./upsertStat.js";
 import upsertGame from "./upsertGame.js";
 import { espnImage } from "./espnImage.js";
 import { DateTime } from "luxon";
+import logger from "../../logger.js";
+
+const log = logger.child({ worker: "eventProcessor" });
 
 // ============================================================================
 // OPTIMIZATION 1: In-memory cache for player details
@@ -197,9 +200,7 @@ export async function fetchPlayerDetails(espnId, leagueSlug) {
     return resp.data.athlete || null;
   } catch (err) {
     // If ESPN returns 404 or similar, skip details
-    console.warn(
-      `    ⚠️  [ESPN API] Could not fetch athlete ${espnId}: ${err.message}`,
-    );
+    log.warn({ err, espnId }, "Could not fetch athlete from ESPN");
     return null;
   }
 }
@@ -256,10 +257,7 @@ export async function getEventsByDate(dateString, leagueSlug) {
     const resp = await axios.get(url);
     return resp.data.events || [];
   } catch (err) {
-    console.error(
-      `🔴 [getEventsByDate] error fetching ${dateString} ${leagueSlug}:`,
-      err.message || err.response?.status || err,
-    );
+    log.error({ err, date: dateString, league: leagueSlug }, "error fetching events by date");
 
     return [];
   }
@@ -276,9 +274,7 @@ export async function getTodayEvents(leagueSlug) {
     const resp = await axios.get(url);
     return resp.data.events || [];
   } catch (err) {
-    console.error(
-      `🔴 [getTodayEvents] error fetching today’s ${leagueSlug}: ${err.message}`,
-    );
+    log.error({ err, league: leagueSlug }, "error fetching today’s events");
     return [];
   }
 }
@@ -296,9 +292,7 @@ export async function processEvent(client, leagueSlug, event) {
   // 5a) Ensure event.id is a number
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
-    console.warn(
-      `⚠️ [processEvent] invalid event.id ("${event.id}") → skipping`,
-    );
+    log.warn({ eventId: event.id }, "invalid event.id, skipping");
     return null;
   }
 
@@ -316,9 +310,7 @@ export async function processEvent(client, leagueSlug, event) {
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
   if (!homeComp || !awayComp) {
-    console.warn(
-      `⚠️ [processEvent] missing home/away for event ${espnEventId}`,
-    );
+    log.warn({ eventId: espnEventId }, "missing home/away competitor for event");
     return null;
   }
 
@@ -564,7 +556,7 @@ export async function processEvent(client, leagueSlug, event) {
     try {
       statsResp = await axios.get(boxscoreUrl);
     } catch (err) {
-      console.warn(`    ⚠️  No boxscore available: ${err.message}`);
+      log.warn({ err }, "No boxscore available");
       await client.query("COMMIT");
       return gameId;
     }
@@ -676,12 +668,12 @@ export async function processEvent(client, leagueSlug, event) {
       await client.query("COMMIT");
       return gameId;
     } catch (err) {
-      console.log(err);
+      log.error({ err }, "processEvent inner error");
       await client.query("ROLLBACK");
       return null;
     }
   } catch (err) {
-    console.log(err);
+    log.error({ err }, "processEvent outer error");
     await client.query("ROLLBACK");
     return null;
   }
@@ -692,9 +684,7 @@ export async function processEvent(client, leagueSlug, event) {
  *    (historical script will call this repeatedly for each date)
  */
 export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
-  console.log(
-    `▶ Starting import for ${leagueSlug}: ${dateStrings.length} dates`,
-  );
+  log.info({ league: leagueSlug, dates: dateStrings.length }, "starting import");
 
   const EVENT_BATCH_SIZE = 5;
   let lastLoggedMonth = null;
@@ -703,7 +693,7 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
     const date = dateStrings[i];
     const month = date.slice(0, 6); // YYYYMM
     if (month !== lastLoggedMonth) {
-      console.log(`  📅 [${leagueSlug}] Processing ${date.slice(0, 4)}-${date.slice(4, 6)}...`);
+      log.info({ league: leagueSlug, month: `${date.slice(0, 4)}-${date.slice(4, 6)}` }, "processing month");
       lastLoggedMonth = month;
     }
     const events = await getEventsByDate(date, leagueSlug);
@@ -716,10 +706,7 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
           try {
             await processEvent(client, leagueSlug, event);
           } catch (err) {
-            console.error(
-              `❌ Error processing event ${event.id}:`,
-              err.message,
-            );
+            log.error({ err, eventId: event.id }, "error processing event");
           } finally {
             client.release();
           }
@@ -729,9 +716,7 @@ export async function runDateRangeProcessing(leagueSlug, dateStrings, pool) {
   }
   const now = new Date();
 
-  console.log(
-    `✅ Finished import for ${leagueSlug} at ${now.toLocaleString()}`,
-  );
+  log.info({ league: leagueSlug }, "finished import");
 }
 
 /**
@@ -780,9 +765,7 @@ export async function runUpcomingProcessing(leagueSlug, pool) {
     }
   }
 
-  console.log(
-    `  📅 [${leagueSlug}] Found ${upcomingEvents.length} upcoming game(s) (${tomorrow} + ${dayAfter})`,
-  );
+  log.info({ league: leagueSlug, count: upcomingEvents.length, tomorrow, dayAfter }, "found upcoming games");
 
   for (const event of upcomingEvents) {
     const client = await pool.connect();

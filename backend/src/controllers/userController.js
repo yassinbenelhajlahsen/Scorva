@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import * as userService from "../services/userService.js";
+import logger from "../logger.js";
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -11,7 +12,7 @@ export async function getProfile(req, res) {
     const user = await userService.getUser(req.user.id);
     res.json(user ?? { id: req.user.id, default_league: null });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to fetch profile");
     res.status(500).json({ error: "Failed to fetch profile" });
   }
 }
@@ -30,7 +31,7 @@ export async function updateProfile(req, res) {
     const user = await userService.updateUser(req.user.id, { firstName, lastName, defaultLeague });
     res.json({ ok: true, user });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to update profile");
     res.status(500).json({ error: "Failed to update profile" });
   }
 }
@@ -44,7 +45,7 @@ export async function deleteAccount(req, res) {
     await userService.deleteUser(req.user.id);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to delete account");
     res.status(500).json({ error: "Failed to delete account" });
   }
 }

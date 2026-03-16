@@ -1,4 +1,5 @@
 import { getGames } from "../services/gamesService.js";
+import logger from "../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
 
@@ -11,7 +12,7 @@ export async function getGamesList(req, res) {
     const games = await getGames(league, { teamId, season });
     res.json(games);
   } catch (err) {
-    console.error("Error fetching games:", err);
+    logger.error({ err }, "Error fetching games");
     res.status(500).json({ error: "Failed to fetch games." });
   }
 }

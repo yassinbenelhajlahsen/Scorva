@@ -1,4 +1,5 @@
 import * as favoritesService from "../services/favoritesService.js";
+import logger from "../logger.js";
 
 function profileFromUser(user) {
   const meta = user.user_metadata ?? {};
@@ -17,7 +18,7 @@ export async function getFavorites(req, res) {
     const data = await favoritesService.getFavorites(req.user.id);
     res.json(data);
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to fetch favorites");
     res.status(500).json({ error: "Failed to fetch favorites" });
   }
 }
@@ -34,7 +35,7 @@ export async function addFavoritePlayer(req, res) {
     await favoritesService.addFavoritePlayer(req.user.id, playerId, profileFromUser(req.user));
     res.status(201).json({ ok: true });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to add favorite player");
     res.status(500).json({ error: "Failed to add favorite player" });
   }
 }
@@ -46,7 +47,7 @@ export async function removeFavoritePlayer(req, res) {
     await favoritesService.removeFavoritePlayer(req.user.id, playerId);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to remove favorite player");
     res.status(500).json({ error: "Failed to remove favorite player" });
   }
 }
@@ -58,7 +59,7 @@ export async function addFavoriteTeam(req, res) {
     await favoritesService.addFavoriteTeam(req.user.id, teamId, profileFromUser(req.user));
     res.status(201).json({ ok: true });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to add favorite team");
     res.status(500).json({ error: "Failed to add favorite team" });
   }
 }
@@ -70,7 +71,7 @@ export async function removeFavoriteTeam(req, res) {
     await favoritesService.removeFavoriteTeam(req.user.id, teamId);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to remove favorite team");
     res.status(500).json({ error: "Failed to remove favorite team" });
   }
 }
@@ -90,7 +91,7 @@ export async function checkFavorites(req, res) {
     );
     res.json(result);
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to check favorites");
     res.status(500).json({ error: "Failed to check favorites" });
   }
 }

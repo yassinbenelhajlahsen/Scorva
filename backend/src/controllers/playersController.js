@@ -1,4 +1,5 @@
 import { getPlayersByLeague } from "../services/playersService.js";
+import logger from "../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
 
@@ -10,7 +11,7 @@ export async function getPlayers(req, res) {
     const players = await getPlayersByLeague(league);
     res.json(players);
   } catch (err) {
-    console.error("Error fetching players:", err);
+    logger.error({ err }, "Error fetching players");
     res.status(500).send("Server error");
   }
 }

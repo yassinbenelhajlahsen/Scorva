@@ -1,6 +1,7 @@
 import pool from "../db/db.js";
 import { getGames } from "../services/gamesService.js";
 import { getNbaGame, getNflGame, getNhlGame } from "../services/gameInfoService.js";
+import logger from "../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
 const HEARTBEAT_INTERVAL_MS = 15_000;
@@ -53,7 +54,7 @@ export async function streamGames(req, res) {
         res.end();
       }
     } catch (err) {
-      console.error("SSE streamGames error:", err);
+      logger.error({ err }, "SSE streamGames error");
     }
   }
 
@@ -72,7 +73,7 @@ export async function streamGames(req, res) {
     await listenClient.query("LISTEN game_updated");
     listenClient.on("notification", send);
   } catch (err) {
-    console.error("SSE LISTEN setup error:", err);
+    logger.error({ err }, "SSE LISTEN setup error");
     if (listenClient) { listenClient.release(); listenClient = null; }
   }
 
@@ -117,7 +118,7 @@ export async function streamGame(req, res) {
         res.end();
       }
     } catch (err) {
-      console.error("SSE streamGame error:", err);
+      logger.error({ err }, "SSE streamGame error");
     }
   }
 
@@ -136,7 +137,7 @@ export async function streamGame(req, res) {
     await listenClient.query("LISTEN game_updated");
     listenClient.on("notification", send);
   } catch (err) {
-    console.error("SSE LISTEN setup error:", err);
+    logger.error({ err }, "SSE LISTEN setup error");
     if (listenClient) { listenClient.release(); listenClient = null; }
   }
 

@@ -1,4 +1,5 @@
 import { getPlayerIdBySlug } from "../utils/slugResolver.js";
+import logger from "../logger.js";
 import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "../services/playerInfoService.js";
 import { getCurrentSeason } from "../cache/seasons.js";
 
@@ -31,7 +32,7 @@ export async function getPlayerInfo(req, res) {
 
     return res.json(player);
   } catch (err) {
-    console.error(`Error fetching ${league.toUpperCase()} player:`, err);
+    logger.error({ err, league }, "Error fetching player");
     return res.status(500).json({ error: "Server error" });
   }
 }

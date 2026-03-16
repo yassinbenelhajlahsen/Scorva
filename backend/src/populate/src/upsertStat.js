@@ -1,3 +1,7 @@
+import logger from "../../logger.js";
+
+const log = logger.child({ worker: "upsertStat" });
+
 function parseInteger(value) {
   const parsed = parseInt(value, 10);
   return isNaN(parsed) ? null : parsed;
@@ -130,7 +134,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
     const res = await client.query(query, values);
     return res.rows[0].id;
   } catch (err) {
-    console.error("🔴 [ERROR upsertStat] Failed SQL:", err.message);
+    log.error({ err }, "Failed SQL");
     throw err;
   }
 }

@@ -1,42 +1,25 @@
 import rateLimit from "express-rate-limit";
+import pinoHttp from "pino-http";
+import logger from "../logger.js";
 
-export const log = (level, message, meta = {}) => {
-  const entry = { time: new Date().toISOString(), level, message, ...meta };
-  const out = JSON.stringify(entry);
-  if (level === "error") {
-    process.stderr.write(out + "\n");
-  } else {
-    process.stdout.write(out + "\n");
-  }
-};
-
-
-export const requestLogger = (req, res, next) => {
-  const startTime = Date.now();
-  let logged = false;
-  const originalEnd = res.end;
-
-  res.end = function (...args) {
-    if (!logged) {
-      logged = true;
-      const duration = Date.now() - startTime;
-      const status = res.statusCode;
-      const level = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
-      log(level, "request", {
-        method: req.method,
-        url: req.originalUrl,
-        status,
-        duration_ms: duration,
-      });
-    }
-    originalEnd.apply(res, args);
-  };
-
-  next();
-};
+export const requestLogger = pinoHttp({
+  logger,
+  customLogLevel: (_req, res, err) => {
+    if (res.statusCode >= 500 || err) return "error";
+    if (res.statusCode >= 400) return "warn";
+    return "info";
+  },
+  customSuccessMessage: (req, res) =>
+    `${req.method} ${req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res) =>
+    `${req.method} ${req.url} ${res.statusCode}`,
+  serializers: {
+    req: () => undefined,
+    res: () => undefined,
+  },
+});
 
 const isProd = process.env.NODE_ENV === "production";
-log("info", "server starting", { env: process.env.NODE_ENV || "development" });
 // General rate limiter for all API endpoints
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

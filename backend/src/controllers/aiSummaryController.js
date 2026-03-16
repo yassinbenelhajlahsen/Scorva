@@ -6,6 +6,7 @@ import {
   buildGameData,
   generateAISummary,
 } from "../services/aiSummaryService.js";
+import logger from "../logger.js";
 
 export async function getAiSummary(req, res) {
   const { id } = req.params;
@@ -46,7 +47,7 @@ export async function getAiSummary(req, res) {
 
     // Step 5: Validate OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY not configured");
+      logger.error("OPENAI_API_KEY not configured");
       return res.json({
         summary: "AI summary unavailable for this game.",
         cached: false,
@@ -62,7 +63,7 @@ export async function getAiSummary(req, res) {
     // Step 8: Return generated summary
     return res.json({ summary, cached: false });
   } catch (error) {
-    console.error("Error generating AI summary:", error);
+    logger.error({ err: error }, "Error generating AI summary");
     return res.status(500).json({
       summary: "AI summary unavailable for this game.",
       cached: false,

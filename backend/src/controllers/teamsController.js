@@ -1,4 +1,5 @@
 import { getTeamsByLeague } from "../services/teamsService.js";
+import logger from "../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
 
@@ -10,7 +11,7 @@ export async function getTeams(req, res) {
     const teams = await getTeamsByLeague(league);
     res.json(teams);
   } catch (err) {
-    console.error("Error fetching teams:", err);
+    logger.error({ err }, "Error fetching teams");
     res.status(500).send("Server error");
   }
 }
