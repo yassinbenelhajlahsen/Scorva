@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { supabase } from "../../lib/supabase.js";
 import { updateProfile, deleteAccount } from "../../api/user.js";
@@ -64,14 +64,14 @@ function Feedback({ message, type }) {
   return (
     <AnimatePresence>
       {message && (
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           className={`text-xs ${type === "error" ? "text-loss" : "text-win"}`}
         >
           {message}
-        </motion.p>
+        </m.p>
       )}
     </AnimatePresence>
   );
@@ -339,7 +339,7 @@ export default function AccountTab() {
             </button>
           </div>
         ) : (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col gap-4"
@@ -375,7 +375,7 @@ export default function AccountTab() {
                 {deleting ? "Deleting…" : "Confirm Delete"}
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </Section>
 

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utilities/LeagueData.js";
 import { useHomeGames } from "../hooks/useHomeGames.js";
@@ -50,31 +50,14 @@ export default function Homepage() {
     <div className="flex flex-col w-full max-w-[1200px] mx-auto px-5 sm:px-8 py-12">
 
       {/* Hero */}
-      <motion.div
-        className="text-center mb-20 mt-8"
-        initial="hidden"
-        animate="visible"
-        variants={{ visible: { transition: { staggerChildren: 0.14 } } }}
-      >
-        <motion.h1
-          className="font-bold leading-[0.95] tracking-[-0.04em] bg-gradient-to-br from-white via-[#f0ece6] to-[#e8863a] bg-clip-text text-transparent text-[4.5rem] sm:text-[6.5rem] lg:text-[8rem]"
-          variants={{
-            hidden: { opacity: 1, y: 20 },
-            visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-          }}
-        >
+      <div className="text-center mb-20 mt-8">
+        <h1 className="animate-hero-up font-bold leading-[0.95] tracking-[-0.04em] bg-gradient-to-br from-white via-[#f0ece6] to-[#e8863a] bg-clip-text text-transparent text-[4.5rem] sm:text-[6.5rem] lg:text-[8rem]">
           Scorva
-        </motion.h1>
-        <motion.p
-          className="text-base sm:text-[1.0625rem] text-text-secondary max-w-[460px] mx-auto mt-8 leading-[1.65] tracking-[-0.005em]"
-          variants={{
-            hidden: { opacity: 0, y: 14 },
-            visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
-          }}
-        >
+        </h1>
+        <p className="animate-hero-up [animation-delay:0.14s] text-base sm:text-[1.0625rem] text-text-secondary max-w-[460px] mx-auto mt-8 leading-[1.65] tracking-[-0.005em]">
           Real-time scores, stats, and insights across NBA, NFL, and NHL.
-        </motion.p>
-      </motion.div>
+        </p>
+      </div>
 
       {/* Favorites section — only visible when logged in */}
       {session && (
@@ -111,7 +94,7 @@ export default function Homepage() {
               <p className="text-text-secondary text-sm font-medium">Star teams or players to see them here</p>
             </div>
           ) : (
-            <motion.div
+            <m.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -124,7 +107,7 @@ export default function Homepage() {
               {favorites.teams.length > 0 && (
                 <FavoriteTeamsSection teams={favorites.teams} />
               )}
-            </motion.div>
+            </m.div>
           )}
         </div>
       )}
@@ -150,7 +133,7 @@ export default function Homepage() {
         </div>
 
         {/* Games grid */}
-        <motion.div
+        <m.div
           key={activeLeague}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"
           variants={containerVariants}
@@ -158,11 +141,11 @@ export default function Homepage() {
           animate="visible"
         >
           {games[activeLeague].slice(0, 6).map((game) => (
-            <motion.div key={game.id} variants={itemVariants} className="w-full">
+            <m.div key={game.id} variants={itemVariants} className="w-full">
               <GameCard game={game} />
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
 
         {/* View All */}
         <div className="flex justify-center mt-10">

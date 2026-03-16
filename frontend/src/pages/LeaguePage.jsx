@@ -1,6 +1,6 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utilities/LeagueData";
@@ -152,18 +152,18 @@ export default function LeaguePage() {
             <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-10 text-center">
               Games
             </h2>
-            <motion.div
+            <m.div
               className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
               {games.map((game) => (
-                <motion.div key={game.id} variants={itemVariants} className="w-full">
+                <m.div key={game.id} variants={itemVariants} className="w-full">
                   <GameCard game={game} />
-                </motion.div>
+                </m.div>
               ))}
-            </motion.div>
+            </m.div>
           </div>
         </>
       )}

@@ -1,6 +1,6 @@
 import { Link, useParams, useLocation } from "react-router-dom";
 import { useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { scoreUpdateVariants } from "../utilities/motion.js";
 
 import BoxScore from "../components/ui/BoxScore.jsx";
@@ -137,7 +137,7 @@ export default function GamePage() {
             </Link>
             {(isFinal || inProgress) && (
               <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                   key={game.score.home}
                   variants={scoreUpdateVariants}
                   initial="initial"
@@ -146,7 +146,7 @@ export default function GamePage() {
                   className={`text-3xl sm:text-5xl font-bold tabular-nums mt-1 ${scoreColor(homeWon, awayWon && isFinal)}`}
                 >
                   {game.score.home}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             )}
           </div>
@@ -168,17 +168,17 @@ export default function GamePage() {
           )}
           <span className="text-sm font-medium text-text-tertiary">vs</span>
           {inProgress && (
-            <motion.span
+            <m.span
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
               className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full"
             >
               Live
-            </motion.span>
+            </m.span>
           )}
           {inProgress && game.clock && (
             <AnimatePresence mode="wait">
-              <motion.span
+              <m.span
                 key={`${game.currentPeriod}-${game.clock}`}
                 variants={scoreUpdateVariants}
                 initial="initial"
@@ -189,7 +189,7 @@ export default function GamePage() {
                 {parseFloat(game.clock) === 0
                   ? `End of ${getPeriodLabel(game.currentPeriod, league)}`
                   : `${getPeriodLabel(game.currentPeriod, league)} · ${game.clock}`}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
           )}
           {!inProgress && !isFinal && (
@@ -208,7 +208,7 @@ export default function GamePage() {
             </Link>
             {(isFinal || inProgress) && (
               <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                   key={game.score.away}
                   variants={scoreUpdateVariants}
                   initial="initial"
@@ -217,7 +217,7 @@ export default function GamePage() {
                   className={`text-3xl sm:text-5xl font-bold tabular-nums mt-1 ${scoreColor(awayWon, homeWon && isFinal)}`}
                 >
                   {game.score.away}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             )}
           </div>

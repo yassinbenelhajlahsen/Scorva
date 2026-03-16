@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
 import { FloatingInput } from "../components/ui/FloatingInput.tsx";
 
@@ -72,7 +72,7 @@ export default function AuthCallback() {
 
   return (
     <div className="min-h-screen bg-surface-primary flex items-center justify-center p-4">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -83,7 +83,7 @@ export default function AuthCallback() {
         <div className="px-7 pt-7 pb-8">
           <AnimatePresence mode="wait" initial={false}>
             {view === "done" ? (
-              <motion.div
+              <m.div
                 key="done"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -108,9 +108,9 @@ export default function AuthCallback() {
                 >
                   Go to Scorva
                 </button>
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="reset"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -142,7 +142,7 @@ export default function AuthCallback() {
 
                   <AnimatePresence>
                     {error && (
-                      <motion.p
+                      <m.p
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -150,7 +150,7 @@ export default function AuthCallback() {
                         className="text-[12px] text-loss px-1 overflow-hidden"
                       >
                         {error}
-                      </motion.p>
+                      </m.p>
                     )}
                   </AnimatePresence>
 
@@ -164,11 +164,11 @@ export default function AuthCallback() {
                     </button>
                   </div>
                 </form>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

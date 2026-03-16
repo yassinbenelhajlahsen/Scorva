@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useFavorites } from "../../hooks/useFavorites.js";
 import { useUserPrefs } from "../../hooks/useUserPrefs.js";
@@ -78,7 +78,7 @@ function AddFavoriteSearch({ session, onAdded }) {
 
       <AnimatePresence>
         {showDropdown && (
-          <motion.ul
+          <m.ul
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -122,7 +122,7 @@ function AddFavoriteSearch({ session, onAdded }) {
                 </li>
               ))
             )}
-          </motion.ul>
+          </m.ul>
         )}
       </AnimatePresence>
     </div>
@@ -154,7 +154,7 @@ function FavoriteRow({ item, type, onRemove }) {
       : [item.location, item.record].filter(Boolean).join(" · ");
 
   return (
-    <motion.div
+    <m.div
       layout
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
@@ -193,7 +193,7 @@ function FavoriteRow({ item, type, onRemove }) {
           </svg>
         )}
       </button>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -244,7 +244,7 @@ export default function FavoritesTab() {
                 }`}
               >
                 {active && (
-                  <motion.div
+                  <m.div
                     layoutId="default-league-indicator"
                     className="absolute inset-0 bg-surface-overlay rounded-lg shadow-sm"
                     transition={{ type: "spring", stiffness: 400, damping: 35 }}

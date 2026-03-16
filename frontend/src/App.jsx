@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import PageWrapper from "./components/layout/PageWrapper.jsx";
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
@@ -107,22 +107,24 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route
-          path="*"
-          element={
-            <AuthProvider>
-              <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
-                <Navbar />
-                <ScrollToTop />
-                <AnimatedRoutes />
-                <Footer />
-              </div>
-            </AuthProvider>
-          }
-        />
-      </Routes>
+      <LazyMotion features={domAnimation} strict>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route
+            path="*"
+            element={
+              <AuthProvider>
+                <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
+                  <Navbar />
+                  <ScrollToTop />
+                  <AnimatedRoutes />
+                  <Footer />
+                </div>
+              </AuthProvider>
+            }
+          />
+        </Routes>
+      </LazyMotion>
     </BrowserRouter>
   );
 }

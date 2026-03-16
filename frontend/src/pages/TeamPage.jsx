@@ -1,6 +1,6 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
@@ -117,18 +117,18 @@ export default function TeamPage() {
           {selectedSeason ? `${selectedSeason} Schedule` : "Season Schedule"}
         </h2>
         {games.length > 0 ? (
-          <motion.div
+          <m.div
             className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
             {games.map((game) => (
-              <motion.div key={game.id} variants={itemVariants} className="w-full">
+              <m.div key={game.id} variants={itemVariants} className="w-full">
                 <GameCard game={game} />
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
+          </m.div>
         ) : (
           <p className="text-center text-text-tertiary text-sm mt-8">
             No recent games to show.

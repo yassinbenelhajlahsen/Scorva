@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 
 const variants = {
   initial: { opacity: 0, y: 8 },
@@ -14,7 +14,7 @@ export default function PageWrapper({ children }) {
   }
 
   return (
-    <motion.div
+    <m.div
       variants={variants}
       initial="initial"
       animate="animate"
@@ -23,6 +23,6 @@ export default function PageWrapper({ children }) {
       className="w-full h-full"
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

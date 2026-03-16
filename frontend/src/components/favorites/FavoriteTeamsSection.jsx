@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Link } from "react-router-dom";
 import GameCard from "../cards/GameCard.jsx";
 import slugify from "../../utilities/slugify.js";
@@ -10,7 +10,7 @@ export default function FavoriteTeamsSection({ teams }) {
       <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold mb-4">Favorite Teams</h2>
       <div className="flex flex-col gap-3">
         {teams.map((team) => (
-          <motion.div
+          <m.div
             key={team.id}
             variants={itemVariants}
             className="w-full bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 flex flex-col sm:flex-row gap-5 items-stretch"
@@ -45,7 +45,7 @@ export default function FavoriteTeamsSection({ teams }) {
                 ))
               )}
             </div>
-          </motion.div>
+          </m.div>
         ))}
       </div>
     </div>

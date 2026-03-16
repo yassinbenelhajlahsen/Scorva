@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 import FavoritesTab from "../components/settings/FavoritesTab.jsx";
@@ -72,7 +72,7 @@ export default function SettingsPage() {
         <div className="sm:hidden relative overflow-hidden">
           <AnimatePresence mode="popLayout" initial={false}>
             {activeTab ? (
-              <motion.div
+              <m.div
                 key="detail"
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -89,9 +89,9 @@ export default function SettingsPage() {
                   Settings
                 </button>
                 {tabContent}
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div
+              <m.div
                 key="menu"
                 initial={{ opacity: 0, x: -40 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -123,7 +123,7 @@ export default function SettingsPage() {
                     </span>
                   </button>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -143,7 +143,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {isActive && (
-                      <motion.div
+                      <m.div
                         layoutId="settings-tab-bg"
                         className="absolute inset-0 bg-surface-elevated border border-white/[0.08] rounded-xl"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
@@ -168,7 +168,7 @@ export default function SettingsPage() {
 
           <div className="flex-1 min-w-0">
             <AnimatePresence mode="wait">
-              <motion.div
+              <m.div
                 key={activeTab ?? "favorites"}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -176,7 +176,7 @@ export default function SettingsPage() {
                 transition={{ duration: 0.18 }}
               >
                 {activeTab ? tabContent : <FavoritesTab />}
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
         </div>

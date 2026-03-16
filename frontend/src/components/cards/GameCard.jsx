@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utilities/formatDate";
 import { scoreUpdateVariants } from "../../utilities/motion.js";
 
@@ -67,7 +67,7 @@ function GameCard({ game }) {
               {game.home_shortname}
             </div>
             <AnimatePresence mode="wait">
-              <motion.div
+              <m.div
                 key={game.homescore}
                 variants={scoreUpdateVariants}
                 initial="initial"
@@ -76,7 +76,7 @@ function GameCard({ game }) {
                 className={`text-lg font-bold min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}
               >
                 {game.homescore}
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
 
@@ -90,16 +90,16 @@ function GameCard({ game }) {
             <div className="text-xs font-medium text-text-tertiary">vs</div>
             {inProgress && (
               <>
-                <motion.span
+                <m.span
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                   className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full mt-1"
                 >
                   Live
-                </motion.span>
+                </m.span>
                 {game.clock && (
                   <AnimatePresence mode="wait">
-                    <motion.span
+                    <m.span
                       key={`${game.current_period}-${game.clock}`}
                       variants={scoreUpdateVariants}
                       initial="initial"
@@ -110,7 +110,7 @@ function GameCard({ game }) {
                       {parseFloat(game.clock) === 0
                         ? `End of ${getPeriodLabel(game.current_period, game.league)}`
                         : `${getPeriodLabel(game.current_period, game.league)} ${game.clock}`}
-                    </motion.span>
+                    </m.span>
                   </AnimatePresence>
                 )}
               </>
@@ -143,7 +143,7 @@ function GameCard({ game }) {
               {game.away_shortname}
             </div>
             <AnimatePresence mode="wait">
-              <motion.div
+              <m.div
                 key={game.awayscore}
                 variants={scoreUpdateVariants}
                 initial="initial"
@@ -152,7 +152,7 @@ function GameCard({ game }) {
                 className={`text-lg font-bold min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}
               >
                 {game.awayscore}
-              </motion.div>
+              </m.div>
             </AnimatePresence>
           </div>
         </div>

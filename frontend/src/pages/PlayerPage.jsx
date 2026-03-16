@@ -1,6 +1,6 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { usePlayer } from "../hooks/usePlayer.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
@@ -180,7 +180,7 @@ export default function PlayerPage() {
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-8">
           Recent Performances
         </h2>
-        <motion.div
+        <m.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           variants={containerVariants}
           initial="hidden"
@@ -201,7 +201,7 @@ export default function PlayerPage() {
               value: game[statKey] ?? "0",
             }));
             return (
-              <motion.div key={i} variants={itemVariants}>
+              <m.div key={i} variants={itemVariants}>
                 <StatCard
                   league={league}
                   stats={statsProps}
@@ -214,10 +214,10 @@ export default function PlayerPage() {
                   status={game.status}
                   id={id}
                 />
-              </motion.div>
+              </m.div>
             );
           })}
-        </motion.div>
+        </m.div>
       </div>
     </div>
   );

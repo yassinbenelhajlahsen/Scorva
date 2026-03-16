@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase.js";
 import { FloatingInput } from "./FloatingInput.tsx";
 import { PasswordChecklist, passwordMeetsRequirements } from "./PasswordChecklist.jsx";
@@ -123,7 +123,7 @@ export default function AuthModal({ onClose }) {
   }
 
   return (
-    <motion.div
+    <m.div
       className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -135,7 +135,7 @@ export default function AuthModal({ onClose }) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-2xl" onClick={onClose} />
 
       {/* Sheet */}
-      <motion.div
+      <m.div
         layout
         className="relative w-full sm:max-w-[360px] bg-[rgba(22,22,26,0.96)] backdrop-blur-3xl border border-white/[0.07] rounded-[20px] shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-none"
         initial={{ opacity: 0, y: 28 }}
@@ -159,7 +159,7 @@ export default function AuthModal({ onClose }) {
         {/* Completion screen — password reset sent */}
         <AnimatePresence mode="wait" initial={false}>
           {view === "reset-sent" && (
-            <motion.div
+            <m.div
               key="reset-sent"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -187,7 +187,7 @@ export default function AuthModal({ onClose }) {
               >
                 Back to sign in
               </button>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -196,7 +196,7 @@ export default function AuthModal({ onClose }) {
           <div style={{ overflow: "hidden" }}>
             <AnimatePresence mode="popLayout" custom={direction} initial={false}>
               {view === "reset" ? (
-                <motion.div
+                <m.div
                   key="reset-page"
                   custom={direction}
                   variants={slideVariants}
@@ -221,7 +221,7 @@ export default function AuthModal({ onClose }) {
                     />
                     <AnimatePresence>
                       {error && (
-                        <motion.p
+                        <m.p
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
@@ -229,7 +229,7 @@ export default function AuthModal({ onClose }) {
                           className="text-[12px] text-loss px-1 overflow-hidden"
                         >
                           {error}
-                        </motion.p>
+                        </m.p>
                       )}
                     </AnimatePresence>
                     <div className="pt-1">
@@ -249,9 +249,9 @@ export default function AuthModal({ onClose }) {
                   >
                     Back to sign in
                   </button>
-                </motion.div>
+                </m.div>
               ) : (
-                <motion.div
+                <m.div
                   key="main-page"
                   custom={direction}
                   variants={slideVariants}
@@ -265,7 +265,7 @@ export default function AuthModal({ onClose }) {
                   <div className="text-center mb-6">
                     <div className="overflow-hidden h-[30px] flex items-center justify-center">
                       <AnimatePresence mode="wait" initial={false}>
-                        <motion.h2
+                        <m.h2
                           key={mode}
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -274,7 +274,7 @@ export default function AuthModal({ onClose }) {
                           className="text-[22px] font-semibold tracking-[-0.015em] text-text-primary absolute"
                         >
                           {mode === "signin" ? "Sign In" : "Create Account"}
-                        </motion.h2>
+                        </m.h2>
                       </AnimatePresence>
                     </div>
                     <p className="text-[13px] text-text-tertiary mt-1">to continue to Scorva</p>
@@ -308,7 +308,7 @@ export default function AuthModal({ onClose }) {
                     {/* First / Last name — signup only */}
                     <AnimatePresence initial={false}>
                       {mode === "signup" && (
-                        <motion.div
+                        <m.div
                           key="name-fields"
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -333,7 +333,7 @@ export default function AuthModal({ onClose }) {
                             label="Last name"
                             autoComplete="family-name"
                           />
-                        </motion.div>
+                        </m.div>
                       )}
                     </AnimatePresence>
                     <FloatingInput
@@ -393,7 +393,7 @@ export default function AuthModal({ onClose }) {
                     {/* Confirm password — signup only */}
                     <AnimatePresence initial={false}>
                       {mode === "signup" && (
-                        <motion.div
+                        <m.div
                           key="confirm"
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -428,13 +428,13 @@ export default function AuthModal({ onClose }) {
                               </button>
                             }
                           />
-                        </motion.div>
+                        </m.div>
                       )}
                     </AnimatePresence>
 
                     <AnimatePresence>
                       {error && (
-                        <motion.p
+                        <m.p
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
@@ -442,7 +442,7 @@ export default function AuthModal({ onClose }) {
                           className="text-[12px] text-loss px-1 overflow-hidden"
                         >
                           {error}
-                        </motion.p>
+                        </m.p>
                       )}
                     </AnimatePresence>
 
@@ -453,7 +453,7 @@ export default function AuthModal({ onClose }) {
                         className="relative w-full bg-accent hover:bg-accent-hover text-white text-[15px] font-semibold rounded-[10px] py-[13px] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden"
                       >
                         <AnimatePresence mode="wait" initial={false}>
-                          <motion.span
+                          <m.span
                             key={mode + loading}
                             initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -464,7 +464,7 @@ export default function AuthModal({ onClose }) {
                             {loading
                               ? mode === "signin" ? "Signing in…" : "Creating account…"
                               : mode === "signin" ? "Sign In" : "Create Account"}
-                          </motion.span>
+                          </m.span>
                         </AnimatePresence>
                       </button>
                     </div>
@@ -473,7 +473,7 @@ export default function AuthModal({ onClose }) {
                   {/* Switch mode */}
                   <div className="flex items-center justify-center gap-1 mt-5 text-[13px]">
                     <AnimatePresence mode="wait" initial={false}>
-                      <motion.span
+                      <m.span
                         key={mode + "-label"}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -482,7 +482,7 @@ export default function AuthModal({ onClose }) {
                         className="text-text-tertiary"
                       >
                         {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
-                      </motion.span>
+                      </m.span>
                     </AnimatePresence>
                     <button
                       type="button"
@@ -492,13 +492,13 @@ export default function AuthModal({ onClose }) {
                       {mode === "signin" ? "Sign up" : "Sign in"}
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </div>
         )}
         </div>{/* end scrollable */}
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

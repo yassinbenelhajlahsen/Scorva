@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export default function StatCard({
   stats = [],
@@ -36,13 +36,13 @@ export default function StatCard({
         {(opponent || date) && (
           <div className="text-text-tertiary text-xs mb-4 text-center flex items-center justify-center gap-2">
             {inProgress && (
-              <motion.span
+              <m.span
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                 className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full"
               >
                 Live
-              </motion.span>
+              </m.span>
             )}
             {isFinal && result && (
               <span
