@@ -5,6 +5,7 @@ import upsertTeam from "./upsertTeam.js";
 import upsertPlayer from "./upsertPlayer.js";
 import upsertStat from "./upsertStat.js";
 import upsertGame from "./upsertGame.js";
+import { espnImage } from "./espnImage.js";
 import { DateTime } from "luxon";
 
 // ============================================================================
@@ -332,7 +333,7 @@ export async function processEvent(client, leagueSlug, event) {
     name: homeComp.team.displayName,
     shortname: homeComp.team.name,
     location: homeComp.team.location,
-    logo_url: homeComp.team.logo,
+    logo_url: espnImage(homeComp.team.logo, 200, 200),
     record: homeComp.records?.[0]?.summary || "0-0",
     homerecord:
       homeComp.records?.find((r) => r.type === "home")?.summary || "0-0",
@@ -344,7 +345,7 @@ export async function processEvent(client, leagueSlug, event) {
     name: awayComp.team.displayName,
     shortname: awayComp.team.name,
     location: awayComp.team.location,
-    logo_url: awayComp.team.logo,
+    logo_url: espnImage(awayComp.team.logo, 200, 200),
     record: awayComp.records?.[0]?.summary || "0-0",
     homerecord:
       awayComp.records?.find((r) => r.type === "home")?.summary || "0-0",
