@@ -31,7 +31,7 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     proxy: {
-      "/api": "http://192.168.1.68:3000", //backend port
+      "/api": "http://192.168.1.68:8080", //backend port
     },
   },
 });

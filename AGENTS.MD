@@ -105,7 +105,7 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
 
 ## Environment
 - Frontend env example: `frontend/.env.example`
-  - `VITE_API_URL=http://localhost:3000`
+  - `VITE_API_URL=http://localhost:8080`
 - Backend env example: `backend/.env.example`
   - `DATABASE_URL=...`
   - `OPENAI_API_KEY=...`
@@ -113,7 +113,7 @@ Generated client lives at `backend/src/generated/prisma/` — never edit directl
 
 ## Constraints and Gotchas
 - Frontend API base URL is always `VITE_API_URL`; all fetch calls use the `api/client.js` wrapper.
-- Vite dev proxy target is hardcoded to `http://192.168.1.68:3000` in `frontend/vite.config.js`.
+- Vite dev proxy target is hardcoded to `http://192.168.1.68:8080` in `frontend/vite.config.js`.
 - Backend CORS is allowlist-based (`backend/src/middleware/index.js`): `localhost:5173–5175`, `192.168.1.68:5173–5175`, and `https://scorva.dev`. Update `corsOrigins` for new origins.
 - Rate limiting (`backend/src/middleware/index.js`):
   - General limiter on all `/api` routes.

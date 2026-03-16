@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Must stub env before importing module
-vi.stubEnv("VITE_API_URL", "http://localhost:3000");
+vi.stubEnv("VITE_API_URL", "http://localhost:8080");
 
 const { apiFetch } = await import("../../api/client.js");
 
@@ -25,7 +25,7 @@ describe("apiFetch", () => {
   it("constructs the correct URL from path", async () => {
     await apiFetch("/api/test");
     const [url] = fetch.mock.calls[0];
-    expect(url.toString()).toBe("http://localhost:3000/api/test");
+    expect(url.toString()).toBe("http://localhost:8080/api/test");
   });
 
   it("appends query params", async () => {

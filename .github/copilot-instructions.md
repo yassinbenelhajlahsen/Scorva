@@ -33,7 +33,7 @@ This file gives targeted, actionable guidance so an AI coding agent can be produ
 - API routing: all routers live in `backend/src/routes/` and are mounted under `/api` in `backend/src/index.js`.
 - Layer separation: routes contain no logic; controllers contain no SQL; services return plain data only.
 - Frontend API calls: all calls go to `VITE_API_URL` via wrappers in `frontend/src/api/`. The AI summary and all user/favorites endpoints require an `Authorization: Bearer <token>` header. `apiFetch` in `frontend/src/api/client.js` handles auth, method, body serialization, and 204 responses.
-- Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:3000` during development.
+- Frontend dev proxy: `frontend/vite.config.js` proxies `/api` to `http://192.168.1.68:8080` during development.
 - ESM everywhere: both packages use `"type": "module"`. Always use `.js` extensions in imports.
 - CORS: allowlist in `backend/src/middleware/index.js` — update `corsOrigins` when adding new origins.
 - Tailwind v4: all token/theme config is in `frontend/src/index.css` under `@theme`. There is no `tailwind.config.js`.
