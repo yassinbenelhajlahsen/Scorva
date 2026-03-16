@@ -56,7 +56,7 @@ function GameCard({ game }) {
             <img
               loading="lazy"
               src={game.home_logo || "/backupTeamLogo.webp"}
-              alt={`${game.homeTeam} logo`}
+              alt={`${game.home_team_name} logo`}
               className="w-12 h-12 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
@@ -132,7 +132,7 @@ function GameCard({ game }) {
             <img
               loading="lazy"
               src={game.away_logo || "/backupTeamLogo.webp"}
-              alt={`${game.awayteam} logo`}
+              alt={`${game.away_team_name} logo`}
               className="w-12 h-12 object-contain"
               onError={(e) => {
                 e.target.onerror = null;
