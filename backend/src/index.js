@@ -38,8 +38,8 @@ app.use(requestLogger);
 // CORS configuration
 app.use(cors({ origin: corsOrigins }));
 
-// JSON body parser
-app.use(express.json());
+// JSON body parser (10kb limit — all payloads in this app are small)
+app.use(express.json({ limit: "10kb" }));
 
 // Supabase auth webhook — no rate limiter, verified by secret header
 app.use("/api", webhooksRoute);

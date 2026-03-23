@@ -8,6 +8,10 @@ export async function getGamesList(req, res) {
   if (!VALID_LEAGUES.includes(league)) return res.status(400).json({ error: "Invalid league" });
   const { teamId, season } = req.query;
 
+  if (teamId !== undefined && Number.isNaN(parseInt(teamId, 10))) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
+
   try {
     const games = await getGames(league, { teamId, season });
     res.json(games);

@@ -93,6 +93,10 @@ export async function streamGame(req, res) {
     return res.status(400).json({ error: "Invalid league" });
   }
 
+  if (Number.isNaN(parseInt(gameId, 10))) {
+    return res.status(400).json({ error: "Invalid game ID" });
+  }
+
   const handler = leagueHandlers[league.toLowerCase()];
   setSSEHeaders(res);
 

@@ -15,6 +15,10 @@ export async function getGameInfo(req, res) {
     return res.status(400).send("Invalid league");
   }
 
+  if (Number.isNaN(parseInt(gameId, 10))) {
+    return res.status(400).send("Invalid game ID");
+  }
+
   try {
     const game = await handler(gameId);
     if (!game) {

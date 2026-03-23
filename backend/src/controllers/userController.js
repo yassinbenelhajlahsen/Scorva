@@ -25,6 +25,12 @@ export async function updateProfile(req, res) {
     if (firstName === undefined && lastName === undefined && defaultLeague === undefined) {
       return res.status(400).json({ error: "At least one field required" });
     }
+    if (firstName !== undefined && typeof firstName !== "string") {
+      return res.status(400).json({ error: "firstName must be a string" });
+    }
+    if (lastName !== undefined && typeof lastName !== "string") {
+      return res.status(400).json({ error: "lastName must be a string" });
+    }
     if (defaultLeague !== undefined && !VALID_LEAGUES.includes(defaultLeague)) {
       return res.status(400).json({ error: "Invalid league. Must be nba, nfl, or nhl" });
     }

@@ -46,7 +46,9 @@ export const aiLimiter = rateLimit({
 
 // Per-IP concurrent SSE connection limiter (prevents pg pool exhaustion)
 const SSE_MAX_PER_IP = 6;
+const SSE_MAX_GLOBAL = 100;
 const sseConnections = new Map();
+let sseGlobalCount = 0;
 
 export function sseConnectionLimiter(req, res, next) {
   const ip = req.ip;
@@ -54,11 +56,16 @@ export function sseConnectionLimiter(req, res, next) {
   if (count >= SSE_MAX_PER_IP) {
     return res.status(429).json({ error: "Too many live connections" });
   }
+  if (sseGlobalCount >= SSE_MAX_GLOBAL) {
+    return res.status(503).json({ error: "Server at capacity, try again later" });
+  }
   sseConnections.set(ip, count + 1);
+  sseGlobalCount++;
   res.on("close", () => {
     const cur = sseConnections.get(ip) || 1;
     if (cur <= 1) sseConnections.delete(ip);
     else sseConnections.set(ip, cur - 1);
+    sseGlobalCount = Math.max(0, sseGlobalCount - 1);
   });
   next();
 }

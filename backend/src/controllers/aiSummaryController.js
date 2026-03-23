@@ -11,6 +11,10 @@ import logger from "../logger.js";
 export async function getAiSummary(req, res) {
   const { id } = req.params;
 
+  if (Number.isNaN(parseInt(id, 10))) {
+    return res.status(400).json({ error: "Invalid game ID" });
+  }
+
   try {
     // Step 1: Check if summary already exists (CACHE CHECK)
     const cached = await getCachedSummary(id);

@@ -279,15 +279,10 @@ describe("Game Info Route - GET /:league/games/:gameId", () => {
       ]);
     });
 
-    it("should handle string game IDs", async () => {
-      mockPool.query.mockResolvedValue({ rows: [] });
-
-      await request(app).get("/api/nba/games/abc123");
-
-      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [
-        "abc123",
-        "nba",
-      ]);
+    it("should reject non-numeric game IDs with 400", async () => {
+      const res = await request(app).get("/api/nba/games/abc123");
+      expect(res.status).toBe(400);
+      expect(mockPool.query).not.toHaveBeenCalled();
     });
   });
 

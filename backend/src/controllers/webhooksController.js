@@ -1,9 +1,15 @@
+import { timingSafeEqual } from "crypto";
 import pool from "../db/db.js";
 import logger from "../logger.js";
 
 export async function handleSupabaseAuth(req, res) {
   const secret = process.env.SUPABASE_WEBHOOK_SECRET;
-  if (!secret || req.headers.authorization !== secret) {
+  const incoming = req.headers.authorization ?? "";
+  const valid =
+    secret &&
+    incoming.length === secret.length &&
+    timingSafeEqual(Buffer.from(incoming), Buffer.from(secret));
+  if (!valid) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
