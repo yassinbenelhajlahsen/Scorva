@@ -8,6 +8,7 @@ import ScrollToTop from "./components/layout/ScrollToTop.jsx";
 import LoadingPage from "./pages/LoadingPage.jsx";
 import Homepage from "./pages/Homepage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { ChatProvider } from "./context/ChatContext.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 
 const About        = lazy(() => import("./pages/About.jsx"));
@@ -114,12 +115,14 @@ export default function App() {
             path="*"
             element={
               <AuthProvider>
-                <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
-                  <Navbar />
-                  <ScrollToTop />
-                  <AnimatedRoutes />
-                  <Footer />
-                </div>
+                <ChatProvider>
+                  <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
+                    <Navbar />
+                    <ScrollToTop />
+                    <AnimatedRoutes />
+                    <Footer />
+                  </div>
+                </ChatProvider>
               </AuthProvider>
             }
           />
