@@ -136,6 +136,30 @@ model users {
   default_league       String?
   favorite_players     user_favorite_players[]
   favorite_teams       user_favorite_teams[]
+  chat_conversations   chat_conversations[]
+}
+
+model chat_conversations {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id   String          @db.Uuid
+  created_at DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at DateTime       @default(now()) @db.Timestamptz(6)
+  users     users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages  chat_messages[]
+
+  @@index([user_id], map: "chat_conversations_user_idx")
+}
+
+model chat_messages {
+  id              Int                @id @default(autoincrement())
+  conversation_id String             @db.Uuid
+  role            String
+  content         String
+  page_context    Json?
+  created_at      DateTime           @default(now()) @db.Timestamptz(6)
+  conversation    chat_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id, created_at], map: "chat_messages_conversation_idx")
 }
 
 model user_favorite_players {
