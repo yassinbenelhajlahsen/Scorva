@@ -11,7 +11,7 @@ const mockPool = createMockPool();
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
 
-const servicePath = resolve(__dirname, "../../src/services/headToHeadService.js");
+const servicePath = resolve(__dirname, "../../src/services/chatTools/headToHeadService.js");
 const { getHeadToHead } = await import(servicePath);
 
 describe("headToHeadService", () => {

@@ -49,19 +49,19 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/teamsService.js"
 jest.unstable_mockModule(resolve(__dirname, "../../src/services/seasonsService.js"), () => ({
   getSeasons: mockGetSeasons,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/headToHeadService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/headToHeadService.js"), () => ({
   getHeadToHead: mockGetHeadToHead,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/statLeadersService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/statLeadersService.js"), () => ({
   getStatLeaders: mockGetStatLeaders,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/playerComparisonService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/playerComparisonService.js"), () => ({
   getPlayerComparison: mockGetPlayerComparison,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/teamStatsService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/teamStatsService.js"), () => ({
   getTeamStats: mockGetTeamStats,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/webSearchService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/webSearchService.js"), () => ({
   webSearch: mockWebSearch,
 }));
 jest.unstable_mockModule(resolve(__dirname, "../../src/cache/seasons.js"), () => ({

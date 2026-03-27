@@ -1,4 +1,4 @@
-import pool from "../db/db.js";
+import pool from "../../db/db.js";
 
 export async function getPlayerComparison(league, playerId1, playerId2, season = null) {
   const statsSelect = {

@@ -1,4 +1,4 @@
-import logger from "../logger.js";
+import logger from "../../logger.js";
 
 const TAVILY_URL = "https://api.tavily.com/search";
 

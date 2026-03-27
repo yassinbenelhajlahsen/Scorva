@@ -1,4 +1,4 @@
-import pool from "../db/db.js";
+import pool from "../../db/db.js";
 
 export async function getHeadToHead(league, teamId1, teamId2, limit = 10) {
   const result = await pool.query(

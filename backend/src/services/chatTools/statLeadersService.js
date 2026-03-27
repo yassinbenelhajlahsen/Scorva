@@ -1,4 +1,4 @@
-import pool from "../db/db.js";
+import pool from "../../db/db.js";
 
 const VALID_STATS = {
   nba: ["points", "assists", "rebounds", "steals", "blocks", "turnovers", "minutes"],

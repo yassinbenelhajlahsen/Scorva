@@ -5,11 +5,11 @@ import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "./playerInfoService.js
 import { getStandings } from "./standingsService.js";
 import { getTeamsByLeague } from "./teamsService.js";
 import { getSeasons } from "./seasonsService.js";
-import { getHeadToHead } from "./headToHeadService.js";
-import { getStatLeaders } from "./statLeadersService.js";
-import { getPlayerComparison } from "./playerComparisonService.js";
-import { getTeamStats } from "./teamStatsService.js";
-import { webSearch } from "./webSearchService.js";
+import { getHeadToHead } from "./chatTools/headToHeadService.js";
+import { getStatLeaders } from "./chatTools/statLeadersService.js";
+import { getPlayerComparison } from "./chatTools/playerComparisonService.js";
+import { getTeamStats } from "./chatTools/teamStatsService.js";
+import { webSearch } from "./chatTools/webSearchService.js";
 import { getCurrentSeason } from "../cache/seasons.js";
 
 export const TOOL_DEFINITIONS = [
