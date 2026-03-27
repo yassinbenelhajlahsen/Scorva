@@ -44,6 +44,18 @@ export const aiLimiter = rateLimit({
   },
 });
 
+// Chat agent rate limiter — stricter than AI summary (each turn may make multiple LLM calls)
+export const chatLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: isProd ? 30 : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many chat messages, please try again later.",
+    retryAfter: "15 minutes",
+  },
+});
+
 // Per-IP concurrent SSE connection limiter (prevents pg pool exhaustion)
 const SSE_MAX_PER_IP = 6;
 const SSE_MAX_GLOBAL = 100;

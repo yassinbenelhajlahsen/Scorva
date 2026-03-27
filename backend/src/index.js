@@ -18,6 +18,7 @@ import playerInfoRoute from "./routes/playerInfo.js";
 import gamesRoute from "./routes/games.js";
 import searchRoute from "./routes/search.js";
 import aiSummaryRoute from "./routes/aiSummary.js";
+import chatRoute from "./routes/chat.js";
 import seasonsRoute from "./routes/seasons.js";
 import favoritesRoute from "./routes/favorites.js";
 import userRoute from "./routes/user.js";
@@ -46,6 +47,9 @@ app.use("/api", webhooksRoute);
 
 // AI summary endpoint (stricter rate limiter applied inside the route)
 app.use("/api", aiSummaryRoute);
+
+// Chat agent endpoint (auth-gated, chatLimiter applied inside the route)
+app.use("/api", chatRoute);
 
 // SSE live endpoints — mounted before rate limiter (long-lived connections)
 app.use("/api/live", sseConnectionLimiter);
