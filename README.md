@@ -36,7 +36,7 @@ https://scorva.dev
 | Frontend | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6 |
 | Backend | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis) |
 | Auth | Supabase Auth — email/password + Google OAuth; JWT verified server-side |
-| AI | OpenAI GPT-4o-mini |
+| AI | OpenAI GPT-4o-mini (game summaries) · GPT-4.1-mini (chat agent, tool-calling) |
 | Database | PostgreSQL — `pg_trgm` GIN indexes, window functions, `ON CONFLICT DO UPDATE` |
 | Deployment | Vercel (frontend) · Railway (API server + live sync worker) |
 
@@ -65,7 +65,7 @@ Scorva
 │   │   ├── main.jsx              # Vite entry point
 │   │   ├── index.css             # Tailwind v4 theme tokens and global styles
 │   │   ├── lib/supabase.js       # Supabase client singleton
-│   │   ├── context/              # AuthContext — session state and auth modal
+│   │   ├── context/              # AuthContext — session state and auth modal; ChatContext — chat panel state
 │   │   ├── api/                  # Backend API client and per-resource wrappers
 │   │   ├── hooks/                # Data-fetching and state hooks
 │   │   ├── components/           # Reusable UI (cards, layout, ui primitives)
@@ -147,6 +147,18 @@ A dedicated Railway worker (`liveSync.js`) runs a two-tier update cycle across a
 - Mounted before `generalLimiter` to avoid SSE connections being counted against rate limits
 - Frontend `useLiveGames` and `useLiveGame` hooks integrate into `useHomeGames`, `useLeagueData`, and `useGame`; fall back to REST polling after 3 consecutive SSE failures. Pass `null` to deactivate without breaking hook rules.
 
+### AI Chat Assistant
+
+A floating chat panel (FAB → slide-in panel) available on every page, powered by a multi-turn agent loop:
+
+- **Requires auth** — unauthenticated users see the sign-in modal instead
+- **Streaming SSE** — `POST /api/chat` returns a server-sent event stream; the frontend reads deltas and appends them character-by-character into the message bubble
+- **Tool-calling agent** — up to 5 rounds per turn; tools available: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `get_teams`, `get_seasons`, `web_search`
+- **Page context** — the frontend sends the current URL slug with each message; the backend resolves it to an entity name + ID via DB lookup (e.g. `/nba/players/lebron-james` → `{ name: "LeBron James", id: 2544 }`), injecting it into the system prompt so the model answers contextually without requiring clarification
+- **Conversation history** — stored in `chat_conversations` / `chat_messages` tables; last 20 messages are loaded per turn; cascade-deleted with the user's account
+- **Rate limiting** — `chatLimiter`: 30 requests per 15 minutes in production (IP-based), stricter than the AI summary limiter since each turn can trigger multiple LLM calls
+- **Cancel** — stop button aborts the fetch, removes the incomplete bubble, and gates any buffered SSE deltas via a `cancelledRef` flag
+
 ### AI Game Summaries
 
 - On-demand, lazy-generated analysis for completed games via OpenAI GPT-4o-mini
@@ -217,13 +229,14 @@ Impact      = (+/− × 1.5) + G + A
 
 ## Database Schema
 
-Seven tables: `games`, `teams`, `players`, `stats`, `users`, `user_favorite_players`, `user_favorite_teams`.
+Nine tables: `games`, `teams`, `players`, `stats`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`.
 
 - `pg_trgm` GIN indexes on `players.name`, `teams.name`, and `teams.shortname` for sub-millisecond fuzzy search
 - Compound unique constraints on `(espn_playerid, league)` and `(eventid, league)` to support safe multi-league upserts
 - `stats` uses a composite primary key `(gameid, playerid)` — no surrogate key
 - Cascade deletes: `users` → favorites; `teams`/`players` → `stats`; `games` → `stats`
 - `games.ai_summary` caches LLM output; `games.game_label` stores playoff labels; `games.current_period` and `games.clock` are written by the live sync worker
+- `chat_conversations` links to `users` with cascade delete; `chat_messages` stores role, content, and `page_context` (JSONB) per turn; indexed on `(conversation_id, created_at)`
 
 ---
 

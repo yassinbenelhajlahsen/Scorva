@@ -12,7 +12,7 @@ Multi-league sports stats web app (NBA, NFL, NHL). Data flows: ESPN API → Post
 - **Frontend**: React 19, Vite 6, React Router 7, Tailwind CSS v4, Framer Motion 12
 - **Backend**: Node.js + Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), helmet (security headers)
 - **Auth**: Supabase Auth — email/password + Google OAuth; JWT verified server-side
-- **AI**: OpenAI SDK for game summaries
+- **AI**: OpenAI SDK — game summaries (`gpt-4o-mini`) + chat agent (`gpt-4.1-mini`, tool-calling loop)
 - **Caching**: Redis via `ioredis` (graceful no-op fallback when `REDIS_URL` unset)
 - **Testing**: Jest 29 + Supertest (backend), Vitest + Testing Library + jsdom (frontend)
 - All packages use ESM (`"type": "module"`). Always use `.js` extensions in imports.
@@ -89,6 +89,15 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Skeleton primitive | `frontend/src/components/ui/Skeleton.jsx` |
 | Error state component | `frontend/src/components/ui/ErrorState.jsx` |
 | Page skeleton layouts | `frontend/src/components/skeletons/` |
+| Chat route | `backend/src/routes/chat.js` |
+| Chat controller | `backend/src/controllers/chatController.js` |
+| Chat agent (LLM loop) | `backend/src/services/chatAgentService.js` |
+| Chat tools | `backend/src/services/chatToolsService.js` |
+| Chat history | `backend/src/services/chatHistoryService.js` |
+| Chat API (frontend) | `frontend/src/api/chat.js` |
+| Chat context | `frontend/src/context/ChatContext.jsx` |
+| Chat actions hook | `frontend/src/hooks/useChatActions.js` |
+| Chat components | `frontend/src/components/chat/` |
 | Backend test suite | `backend/__tests__/` |
 | Backend test helpers | `backend/__tests__/helpers/testHelpers.js` |
 | Frontend test suite | `frontend/src/__tests__/` |
@@ -117,6 +126,7 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; validates `defaultLeague` against `["nba", "nfl", "nhl"]`
 - `DELETE /user/account` — requires auth; deletes Supabase auth user then DB row (cascades favorites)
 - `POST /webhooks/supabase-auth` — verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>`; inserts user on signup
+- `POST /chat` — **requires auth**; SSE stream; body `{ message, conversationId?, pageContext? }`; emits `delta`, `done`, `error` events; rate-limited by `chatLimiter` (30 req/15 min prod)
 
 ## Frontend routes
 - `/` → Homepage
@@ -146,6 +156,10 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **`games.type`** — single source of truth for game classification; see `docs/ARCHITECTURE.md`
 - **`useUserPrefs`** — pass `controller.signal` to `getProfile()` so AbortController signal is forwarded
 - **`userController`** — delete Supabase auth user before DB delete (not after)
+- **Chat agent** — `runAgentLoop` in `chatAgentService.js`; max 5 tool rounds; streams deltas via `onDelta` callback; `resolveContextEntity` does a DB lookup to get entity name from URL slug before building the system prompt
+- **Chat page context** — frontend sends `{ type, league, playerSlug|teamSlug|gameId }` (slugs, not IDs); `sanitizePageContext` validates slugs against `/^[a-z0-9-]{1,100}$/`; backend resolves slug → `{ id, name }` via `getPlayerIdBySlug` / SQL
+- **Chat DB tables** — `chat_conversations` (id, user_id, created_at) and `chat_messages` (id, conversation_id, role, content, page_context, created_at); cascade delete on conversation
+- **Chat cancel** — frontend `cancelledRef` gates `onDelta`/`onDone`/`onError` after abort; `cancelStream` also removes the trailing assistant message from state
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
