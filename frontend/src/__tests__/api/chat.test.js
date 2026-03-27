@@ -10,7 +10,6 @@ function mockSSEResponse(...events) {
     .map((e) => `data: ${JSON.stringify(e)}\n\n`)
     .join("");
   const encoder = new TextEncoder();
-  let readCount = 0;
   return {
     ok: true,
     body: {

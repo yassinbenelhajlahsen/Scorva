@@ -21,9 +21,9 @@ vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
     {
-      get: (_, tag) =>
-        ({ children, className, animate, initial, exit, transition, ...props }) => (
-          <div className={className} {...props}>
+      get: () =>
+        ({ children, className }) => (
+          <div className={className}>
             {children}
           </div>
         ),

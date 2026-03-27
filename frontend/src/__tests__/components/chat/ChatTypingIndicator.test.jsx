@@ -5,8 +5,8 @@ vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
     {
-      get: (_, tag) =>
-        ({ children, className, ...props }) => (
+      get: () =>
+        ({ children, className }) => (
           <span data-testid="dot" className={className}>
             {children}
           </span>

@@ -5,9 +5,9 @@ vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
     {
-      get: (_, tag) =>
-        ({ children, className, ...props }) => (
-          <div className={className} {...props}>
+      get: () =>
+        ({ children, className, ...rest }) => (
+          <div className={className} {...rest}>
             {children}
           </div>
         ),
@@ -77,9 +77,6 @@ describe("MessageBubble", () => {
       <MessageBubble role="assistant" content="Error occurred." isError={true} isStreaming={false} />
     );
 
-    const bubble = container.querySelector(".border-loss\\/\\[0\\.2\\]") ||
-      container.querySelector("[class*='border-loss']");
-    // Check that the error class is present somewhere in rendered HTML
     expect(container.innerHTML).toContain("border-loss");
   });
 
@@ -92,8 +89,6 @@ describe("MessageBubble", () => {
       />
     );
 
-    const bolds = screen.getAllByRole("strong", { hidden: true });
-    // strong is not a WAI-ARIA role, so query by tag
     const strongs = document.querySelectorAll("strong");
     expect(strongs).toHaveLength(2);
     expect(strongs[0].textContent).toBe("LeBron");

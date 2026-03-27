@@ -23,7 +23,7 @@ vi.mock("../../components/chat/ChatPanel.jsx", () => ({
 
 vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
-  m: new Proxy({}, { get: (_, tag) => ({ children, ...props }) => <div {...props}>{children}</div> }),
+  m: new Proxy({}, { get: () => ({ children, ...props }) => <div {...props}>{children}</div> }),
 }));
 
 const { useAuth } = await import("../../context/AuthContext.jsx");

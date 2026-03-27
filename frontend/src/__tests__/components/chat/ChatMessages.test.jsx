@@ -21,8 +21,8 @@ vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
     {
-      get: (_, tag) =>
-        ({ children, className, onClick, ...props }) => (
+      get: () =>
+        ({ children, className, onClick }) => (
           <div className={className} onClick={onClick}>{children}</div>
         ),
     }
