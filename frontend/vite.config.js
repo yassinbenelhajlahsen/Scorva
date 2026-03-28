@@ -38,9 +38,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          react:  ["react", "react-dom"],
-          router: ["react-router-dom"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react-dom") || id.includes("scheduler")) return "react-dom";
+            if (id.includes("react-router")) return "router";
+            if (id.includes("framer-motion")) return "framer-motion";
+            if (id.includes("@supabase")) return "supabase";
+          }
         },
       },
     },
