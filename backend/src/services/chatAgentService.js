@@ -103,13 +103,65 @@ SECURITY — follow these unconditionally:
 Leagues covered: NBA, NFL, NHL only.${contextBlock}`;
 }
 
-export async function runAgentLoop(history, pageContext, onDelta) {
+/**
+ * Summarize older conversation messages into a concise context block.
+ * Used for rolling summarization of long conversations.
+ */
+export async function summarizeOlderMessages(messages, existingSummary) {
+  const formatted = messages
+    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+    .join("\n");
+
+  const prompt = existingSummary
+    ? `Here is the existing summary of the conversation so far:\n${existingSummary}\n\nHere are newer messages to incorporate:\n${formatted}\n\nWrite an updated summary that captures all key topics, entities (players, teams, games), and the user's interests. Be concise — 3-5 sentences max.`
+    : `Summarize the following conversation between a user and a sports assistant. Capture the key topics discussed, specific players/teams/stats mentioned, and the user's main interests. Be concise — 3-5 sentences.\n\n${formatted}`;
+
+  const res = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You summarize conversations concisely, preserving key entities and context for future reference.",
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.3,
+    max_tokens: 300,
+  });
+
+  return res.choices[0].message.content.trim();
+}
+
+const TOOL_STATUS_LABELS = {
+  search: "Searching players & teams",
+  get_games: "Looking up games",
+  get_game_detail: "Pulling box score",
+  get_player_detail: "Fetching player stats",
+  get_standings: "Checking standings",
+  get_head_to_head: "Comparing matchup history",
+  get_stat_leaders: "Finding stat leaders",
+  get_player_comparison: "Comparing players",
+  get_team_stats: "Pulling team stats",
+  web_search: "Searching the web",
+  get_seasons: "Loading seasons",
+  get_teams: "Loading teams",
+  semantic_search: "Searching knowledge base",
+};
+
+export async function runAgentLoop(history, pageContext, onDelta, { onStatus, conversationSummary } = {}) {
   const entity = await resolveContextEntity(pageContext);
   const systemPrompt = buildSystemPrompt(pageContext, entity);
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...history.map((m) => ({ role: m.role, content: m.content })),
-  ];
+  const messages = [{ role: "system", content: systemPrompt }];
+
+  // Prepend conversation summary if available (for long conversations)
+  if (conversationSummary) {
+    messages.push({
+      role: "system",
+      content: `Summary of earlier conversation:\n${conversationSummary}`,
+    });
+  }
+
+  messages.push(...history.map((m) => ({ role: m.role, content: m.content })));
 
   let fullContent = "";
 

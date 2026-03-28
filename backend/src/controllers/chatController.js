@@ -1,7 +1,12 @@
-import { runAgentLoop } from "../services/chatAgentService.js";
+import { runAgentLoop, summarizeOlderMessages } from "../services/chatAgentService.js";
 import {
   getOrCreateConversation,
   getConversationMessages,
+  getConversationSummary,
+  getConversationSummaryWithMeta,
+  getMessageCount,
+  getMessagesForSummarization,
+  updateConversationSummary,
   saveMessage,
 } from "../services/chatHistoryService.js";
 import logger from "../logger.js";
@@ -22,6 +27,30 @@ function sanitizePageContext(ctx) {
   const teamSlug = typeof ctx.teamSlug === "string" && SLUG_RE.test(ctx.teamSlug) ? ctx.teamSlug : null;
   const gameId = Number.isInteger(ctx.gameId) ? ctx.gameId : null;
   return { type, league, playerSlug, teamSlug, gameId };
+}
+
+async function triggerSummarization(conversationId) {
+  const [totalCount, meta] = await Promise.all([
+    getMessageCount(conversationId),
+    getConversationSummaryWithMeta(conversationId),
+  ]);
+  const summarizedUpTo = meta.summarized_up_to ?? 0;
+  const existingSummary = meta.summary;
+
+  // Only summarize if there are unsummarized messages beyond the recent window
+  const unsummarizedCount = totalCount - 20; // messages outside the 20-message window
+  if (unsummarizedCount <= 0 || unsummarizedCount <= summarizedUpTo) return;
+
+  // Get messages that need to be summarized (between summarizedUpTo and the window boundary)
+  const messagesToSummarize = await getMessagesForSummarization(
+    conversationId,
+    summarizedUpTo,
+    unsummarizedCount - summarizedUpTo,
+  );
+  if (messagesToSummarize.length === 0) return;
+
+  const newSummary = await summarizeOlderMessages(messagesToSummarize, existingSummary);
+  await updateConversationSummary(conversationId, newSummary, unsummarizedCount);
 }
 
 export async function streamChat(req, res) {
@@ -55,14 +84,27 @@ export async function streamChat(req, res) {
     convoId = await getOrCreateConversation(userId, conversationId || null);
     await saveMessage(convoId, "user", cleanMessage, safeContext);
 
-    const history = await getConversationMessages(convoId, 20);
+    const [history, existingSummary] = await Promise.all([
+      getConversationMessages(convoId, 20),
+      getConversationSummary(convoId),
+    ]);
 
     const assistantContent = await runAgentLoop(history, safeContext, (delta) => {
       res.write(`data: ${JSON.stringify({ type: "delta", content: delta })}\n\n`);
+    }, {
+      onStatus: (status) => {
+        res.write(`data: ${JSON.stringify({ type: "status", content: status })}\n\n`);
+      },
+      conversationSummary: existingSummary,
     });
 
     await saveMessage(convoId, "assistant", assistantContent);
     res.write(`data: ${JSON.stringify({ type: "done", conversationId: convoId })}\n\n`);
+
+    // Async: summarize older messages if conversation is long
+    triggerSummarization(convoId).catch((err) =>
+      logger.warn({ err }, "Background summarization failed"),
+    );
   } catch (err) {
     logger.error({ err }, "Chat agent error");
     res.write(

@@ -37,7 +37,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
 }));
 
 const servicePath = resolve(__dirname, "../../src/services/chatAgentService.js");
-const { runAgentLoop } = await import(servicePath);
+const { runAgentLoop, summarizeOlderMessages } = await import(servicePath);
 
 // --- Helpers ---
 
@@ -284,6 +284,85 @@ describe("chatAgentService — runAgentLoop", () => {
     );
   });
 
+  it("calls onStatus with friendly label when tools are invoked", async () => {
+    mockExecuteTool.mockResolvedValueOnce({ leaders: [] });
+    mockCreate
+      .mockReturnValueOnce(
+        fakeStream([toolCallChunk(0, "call-1", "get_standings", '{"league":"nba"}')])
+      )
+      .mockReturnValueOnce(fakeStream([contentChunk("Eastern leads.")]));
+
+    const onStatus = jest.fn();
+    await runAgentLoop([], null, () => {}, { onStatus });
+
+    expect(onStatus).toHaveBeenCalledWith("Checking standings");
+  });
+
+  it("calls onStatus with joined labels when multiple tools invoked in one round", async () => {
+    mockExecuteTool
+      .mockResolvedValueOnce({ player: "LeBron" })
+      .mockResolvedValueOnce({ player: "Curry" });
+    mockCreate
+      .mockReturnValueOnce(
+        fakeStream([
+          toolCallChunk(0, "c1", "get_player_detail", '{"league":"nba","playerId":1}'),
+          toolCallChunk(1, "c2", "get_player_comparison", '{"league":"nba","playerId1":1,"playerId2":2}'),
+        ])
+      )
+      .mockReturnValueOnce(fakeStream([contentChunk("Done.")]));
+
+    const onStatus = jest.fn();
+    await runAgentLoop([], null, () => {}, { onStatus });
+
+    expect(onStatus).toHaveBeenCalledWith("Fetching player stats · Comparing players");
+  });
+
+  it("does not throw when onStatus is not provided", async () => {
+    mockExecuteTool.mockResolvedValueOnce({});
+    mockCreate
+      .mockReturnValueOnce(
+        fakeStream([toolCallChunk(0, "c1", "get_teams", '{"league":"nba"}')])
+      )
+      .mockReturnValueOnce(fakeStream([contentChunk("Here are the teams.")]));
+
+    await expect(runAgentLoop([], null, () => {})).resolves.toBe("Here are the teams.");
+  });
+
+  it("prepends conversationSummary as a system message before history", async () => {
+    mockCreate.mockReturnValueOnce(fakeStream([contentChunk("Answer.")]));
+
+    await runAgentLoop(
+      [{ role: "user", content: "Latest question" }],
+      null,
+      () => {},
+      { conversationSummary: "User has been asking about LeBron James." }
+    );
+
+    const messages = mockCreate.mock.calls[0][0].messages;
+    // messages: [system prompt, summary system msg, user history]
+    const summaryMsg = messages.find(
+      (m) => m.role === "system" && m.content.includes("Summary of earlier conversation")
+    );
+    expect(summaryMsg).toBeDefined();
+    expect(summaryMsg.content).toContain("User has been asking about LeBron James.");
+    // Summary message should come before history
+    const summaryIdx = messages.indexOf(summaryMsg);
+    const historyIdx = messages.findIndex((m) => m.content === "Latest question");
+    expect(summaryIdx).toBeLessThan(historyIdx);
+  });
+
+  it("does not add summary system message when conversationSummary is null", async () => {
+    mockCreate.mockReturnValueOnce(fakeStream([contentChunk("Answer.")]));
+
+    await runAgentLoop([], null, () => {}, { conversationSummary: null });
+
+    const messages = mockCreate.mock.calls[0][0].messages;
+    const summaryMsg = messages.find(
+      (m) => m.role === "system" && m.content.includes("Summary of earlier conversation")
+    );
+    expect(summaryMsg).toBeUndefined();
+  });
+
   it("builds up tool call name and arguments from incremental delta chunks", async () => {
     mockExecuteTool.mockResolvedValueOnce([]);
     mockCreate
@@ -301,5 +380,72 @@ describe("chatAgentService — runAgentLoop", () => {
     await runAgentLoop([], null, () => {});
 
     expect(mockExecuteTool).toHaveBeenCalledWith("search", { term: "LeBron" });
+  });
+});
+
+// summarizeOlderMessages uses non-streaming completions: { choices: [{ message: { content } }] }
+function fakeSummaryResponse(text) {
+  return { choices: [{ message: { content: text } }] };
+}
+
+describe("chatAgentService — summarizeOlderMessages", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPool.query.mockResolvedValue({ rows: [] });
+  });
+
+  it("calls OpenAI to produce a fresh summary when no existing summary", async () => {
+    mockCreate.mockResolvedValueOnce(fakeSummaryResponse("User asked about LeBron and standings."));
+
+    const messages = [
+      { role: "user", content: "How is LeBron doing?" },
+      { role: "assistant", content: "LeBron is averaging 28 points." },
+    ];
+
+    const result = await summarizeOlderMessages(messages, null);
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    // The call should use gpt-4o-mini
+    expect(mockCreate.mock.calls[0][0].model).toBe("gpt-4o-mini");
+    expect(result).toBe("User asked about LeBron and standings.");
+  });
+
+  it("formats messages as 'User:' / 'Assistant:' lines in the prompt", async () => {
+    mockCreate.mockResolvedValueOnce(fakeSummaryResponse("Summary."));
+
+    const messages = [
+      { role: "user", content: "Hello" },
+      { role: "assistant", content: "Hi there" },
+    ];
+
+    await summarizeOlderMessages(messages, null);
+
+    const userPrompt = mockCreate.mock.calls[0][0].messages[1].content;
+    expect(userPrompt).toContain("User: Hello");
+    expect(userPrompt).toContain("Assistant: Hi there");
+  });
+
+  it("incorporates existing summary into prompt when provided", async () => {
+    mockCreate.mockResolvedValueOnce(fakeSummaryResponse("Updated summary."));
+
+    const messages = [{ role: "user", content: "New question" }];
+    const existingSummary = "User was discussing LeBron James earlier.";
+
+    await summarizeOlderMessages(messages, existingSummary);
+
+    const userPrompt = mockCreate.mock.calls[0][0].messages[1].content;
+    expect(userPrompt).toContain("User was discussing LeBron James earlier.");
+    expect(userPrompt).toContain("New question");
+  });
+
+  it("returns the trimmed content from the model response", async () => {
+    mockCreate.mockResolvedValueOnce(fakeSummaryResponse("  Trimmed summary.  "));
+
+    const result = await summarizeOlderMessages(
+      [{ role: "user", content: "Hi" }],
+      null
+    );
+
+    expect(result).toBe("Trimmed summary.");
   });
 });

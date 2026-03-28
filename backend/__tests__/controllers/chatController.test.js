@@ -8,20 +8,31 @@ const __dirname = dirname(__filename);
 // --- Mocks ---
 
 const mockRunAgentLoop = jest.fn();
+const mockSummarizeOlderMessages = jest.fn();
 jest.unstable_mockModule(
   resolve(__dirname, "../../src/services/chatAgentService.js"),
-  () => ({ runAgentLoop: mockRunAgentLoop })
+  () => ({ runAgentLoop: mockRunAgentLoop, summarizeOlderMessages: mockSummarizeOlderMessages })
 );
 
 const mockGetOrCreateConversation = jest.fn();
 const mockGetConversationMessages = jest.fn();
 const mockSaveMessage = jest.fn();
+const mockGetConversationSummary = jest.fn();
+const mockGetConversationSummaryWithMeta = jest.fn();
+const mockGetMessageCount = jest.fn();
+const mockGetMessagesForSummarization = jest.fn();
+const mockUpdateConversationSummary = jest.fn();
 jest.unstable_mockModule(
   resolve(__dirname, "../../src/services/chatHistoryService.js"),
   () => ({
     getOrCreateConversation: mockGetOrCreateConversation,
     getConversationMessages: mockGetConversationMessages,
     saveMessage: mockSaveMessage,
+    getConversationSummary: mockGetConversationSummary,
+    getConversationSummaryWithMeta: mockGetConversationSummaryWithMeta,
+    getMessageCount: mockGetMessageCount,
+    getMessagesForSummarization: mockGetMessagesForSummarization,
+    updateConversationSummary: mockUpdateConversationSummary,
   })
 );
 
@@ -61,6 +72,12 @@ describe("chatController — streamChat", () => {
     mockGetOrCreateConversation.mockResolvedValue("conv-1");
     mockGetConversationMessages.mockResolvedValue([]);
     mockSaveMessage.mockResolvedValue();
+    mockGetConversationSummary.mockResolvedValue(null);
+    mockGetConversationSummaryWithMeta.mockResolvedValue({ summary: null, summarized_up_to: 0 });
+    mockGetMessageCount.mockResolvedValue(0);
+    mockGetMessagesForSummarization.mockResolvedValue([]);
+    mockUpdateConversationSummary.mockResolvedValue();
+    mockSummarizeOlderMessages.mockResolvedValue("Summary.");
     mockRunAgentLoop.mockResolvedValue("The answer.");
   });
 
@@ -321,6 +338,78 @@ describe("chatController — streamChat", () => {
       await streamChat(req, res);
 
       expect(res.end).toHaveBeenCalledTimes(1);
+    });
+
+    it("emits SSE status event when onStatus is called by runAgentLoop", async () => {
+      mockRunAgentLoop.mockImplementation(async (_history, _ctx, _onDelta, { onStatus } = {}) => {
+        onStatus("Checking standings");
+        return "Done.";
+      });
+
+      const req = makeReq({ message: "Who leads?" });
+      const res = makeRes();
+
+      await streamChat(req, res);
+
+      const statusEvent = res.written.find((w) => w.includes('"type":"status"'));
+      expect(statusEvent).toBeDefined();
+      expect(parseSseEvent(statusEvent)).toEqual({ type: "status", content: "Checking standings" });
+    });
+
+    it("fetches conversation summary and passes it to runAgentLoop", async () => {
+      mockGetConversationSummary.mockResolvedValueOnce("User was asking about LeBron.");
+
+      const req = makeReq({ message: "More about LeBron?" });
+      const res = makeRes();
+
+      await streamChat(req, res);
+
+      const callOptions = mockRunAgentLoop.mock.calls[0][3];
+      expect(callOptions.conversationSummary).toBe("User was asking about LeBron.");
+    });
+
+    it("passes null conversationSummary to runAgentLoop when no summary exists", async () => {
+      mockGetConversationSummary.mockResolvedValueOnce(null);
+
+      const req = makeReq({ message: "Hi" });
+      const res = makeRes();
+
+      await streamChat(req, res);
+
+      const callOptions = mockRunAgentLoop.mock.calls[0][3];
+      expect(callOptions.conversationSummary).toBeNull();
+    });
+
+    it("calls triggerSummarization fire-and-forget after saving assistant message", async () => {
+      // Set up enough messages to trigger summarization (totalCount > 20)
+      mockGetMessageCount.mockResolvedValue(25);
+      mockGetConversationSummaryWithMeta.mockResolvedValue({ summary: null, summarized_up_to: 0 });
+      mockGetMessagesForSummarization.mockResolvedValue([
+        { role: "user", content: "Old question" },
+        { role: "assistant", content: "Old answer" },
+      ]);
+
+      const req = makeReq({ message: "Hi" });
+      const res = makeRes();
+
+      await streamChat(req, res);
+
+      // Allow microtasks/promises to flush so the fire-and-forget chain runs
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(mockGetMessageCount).toHaveBeenCalledWith("conv-1");
+      expect(mockSummarizeOlderMessages).toHaveBeenCalled();
+      expect(mockUpdateConversationSummary).toHaveBeenCalledWith("conv-1", "Summary.", 5);
+    });
+
+    it("does not throw when triggerSummarization fails (fire-and-forget)", async () => {
+      mockGetMessageCount.mockRejectedValueOnce(new Error("DB error"));
+
+      const req = makeReq({ message: "Hi" });
+      const res = makeRes();
+
+      // Should not throw even though triggerSummarization rejects
+      await expect(streamChat(req, res)).resolves.toBeUndefined();
     });
   });
 });
