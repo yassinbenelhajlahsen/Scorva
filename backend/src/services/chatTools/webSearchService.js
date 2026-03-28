@@ -15,10 +15,11 @@ export async function webSearch(query) {
       body: JSON.stringify({
         api_key: apiKey,
         query,
-        search_depth: "basic",
+        search_depth: "advanced",
         max_results: 5,
         include_answer: true,
         topic: "news",
+        days: 180,
       }),
       signal: AbortSignal.timeout(10000),
     });

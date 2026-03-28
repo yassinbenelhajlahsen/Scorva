@@ -48,7 +48,7 @@ export const TOOL_DEFINITIONS = [
           },
           season: {
             type: "string",
-            description: "Season identifier, e.g. '2025-26' for NBA/NHL or '2025' for NFL. Omit for current season.",
+            description: "Season identifier in 'YYYY-YY' format, e.g. '2024-25'. All leagues use this format. Omit for current season.",
           },
         },
         required: ["league"],
