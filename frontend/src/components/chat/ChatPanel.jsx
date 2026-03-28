@@ -5,7 +5,7 @@ import ChatInput from "./ChatInput.jsx";
 import { useChatActions } from "../../hooks/useChatActions.js";
 
 export default function ChatPanel({ onClose }) {
-  const { resetConversation, isStreaming } = useChat();
+  const { resetConversation, isStreaming, messages } = useChat();
   const { sendMessage } = useChatActions();
   const restartControls = useAnimation();
 
@@ -46,7 +46,7 @@ export default function ChatPanel({ onClose }) {
             disabled={isStreaming}
             title="New conversation"
             aria-label="New conversation"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-35 disabled:cursor-not-allowed"
+            className={`w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-35 disabled:cursor-not-allowed ${messages.length === 0 ? "invisible" : ""}`}
           >
             <m.svg
               animate={restartControls}
