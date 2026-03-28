@@ -36,8 +36,8 @@ https://scorva.dev
 | Frontend | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6 |
 | Backend | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis) |
 | Auth | Supabase Auth — email/password + Google OAuth; JWT verified server-side |
-| AI | OpenAI GPT-4o-mini (game summaries) · GPT-4.1-mini (chat agent, tool-calling) |
-| Database | PostgreSQL — `pg_trgm` GIN indexes, window functions, `ON CONFLICT DO UPDATE` |
+| AI | OpenAI GPT-4o-mini (game summaries + summarization) · GPT-4.1-mini (chat agent, tool-calling) · `text-embedding-3-small` (RAG) |
+| Database | PostgreSQL — `pg_trgm` GIN indexes, `pgvector` cosine similarity, window functions, `ON CONFLICT DO UPDATE` |
 | Deployment | Vercel (frontend) · Railway (API server + live sync worker) |
 
 ## Project Structure
@@ -153,9 +153,12 @@ A floating chat panel (FAB → slide-in panel) available on every page, powered 
 
 - **Requires auth** — unauthenticated users see the sign-in modal instead
 - **Streaming SSE** — `POST /api/chat` returns a server-sent event stream; the frontend reads deltas and appends them character-by-character into the message bubble
-- **Tool-calling agent** — up to 5 rounds per turn; tools available: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `get_teams`, `get_seasons`, `web_search`
+- **Tool-calling agent** — up to 5 rounds per turn; 13 tools: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `get_teams`, `get_seasons`, `web_search`, `semantic_search`
+- **Semantic search (RAG)** — `semantic_search` tool performs cosine similarity search over `game_embeddings` (pgvector, 1536-dim `text-embedding-3-small` vectors). Embeddings are generated fire-and-forget whenever an AI game summary is saved. Best for narrative queries like "biggest upsets this week" or "overtime thrillers".
+- **Tool status streaming** — as tools execute, the agent emits SSE `status` events with friendly labels (e.g. "Checking standings · Fetching player stats") shown below the typing indicator; cleared once content begins streaming
+- **Conversation summarization** — once a conversation exceeds 20 messages, older messages are compressed via `gpt-4o-mini` and stored in `chat_conversations.summary`; the rolling summary is prepended to the system prompt each turn so no context is lost
 - **Page context** — the frontend sends the current URL slug with each message; the backend resolves it to an entity name + ID via DB lookup (e.g. `/nba/players/lebron-james` → `{ name: "LeBron James", id: 2544 }`), injecting it into the system prompt so the model answers contextually without requiring clarification
-- **Conversation history** — stored in `chat_conversations` / `chat_messages` tables; last 20 messages are loaded per turn; cascade-deleted with the user's account
+- **Conversation history** — stored in `chat_conversations` / `chat_messages` tables; last 10 messages loaded per turn (older context covered by rolling summary); cascade-deleted with the user's account
 - **Rate limiting** — `chatLimiter`: 30 requests per 15 minutes in production (IP-based), stricter than the AI summary limiter since each turn can trigger multiple LLM calls
 - **Cancel** — stop button aborts the fetch, removes the incomplete bubble, and gates any buffered SSE deltas via a `cancelledRef` flag
 
@@ -229,14 +232,16 @@ Impact      = (+/− × 1.5) + G + A
 
 ## Database Schema
 
-Nine tables: `games`, `teams`, `players`, `stats`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`.
+Ten tables: `games`, `teams`, `players`, `stats`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`, `game_embeddings`.
 
 - `pg_trgm` GIN indexes on `players.name`, `teams.name`, and `teams.shortname` for sub-millisecond fuzzy search
+- `pgvector` extension — `game_embeddings.embedding vector(1536)` with cosine similarity search (`<=>` operator) for RAG-style semantic retrieval
 - Compound unique constraints on `(espn_playerid, league)` and `(eventid, league)` to support safe multi-league upserts
 - `stats` uses a composite primary key `(gameid, playerid)` — no surrogate key
 - Cascade deletes: `users` → favorites; `teams`/`players` → `stats`; `games` → `stats`
 - `games.ai_summary` caches LLM output; `games.game_label` stores playoff labels; `games.current_period` and `games.clock` are written by the live sync worker
-- `chat_conversations` links to `users` with cascade delete; `chat_messages` stores role, content, and `page_context` (JSONB) per turn; indexed on `(conversation_id, created_at)`
+- `chat_conversations` links to `users` with cascade delete; `chat_messages` stores role, content, and `page_context` (JSONB) per turn; indexed on `(conversation_id, created_at)`; `summary` and `summarized_up_to` columns track rolling compression state
+- `game_embeddings` stores `(game_id, content, embedding)` — content is a rich text chunk with league, teams, score, date, and the AI summary; unique on `game_id`
 
 ---
 
@@ -264,7 +269,7 @@ cd frontend && npm run verify
 - **Database layer** — connection pooling, `pg` Pool error handling
 - **Data ingestion** — `mapStatsToSchema`, `upsertPlayer`, `upsertTeam`, `upsertGame`, `upsertStat`, `eventProcessor`, `upsertGameScoreboard` (live sync fast path)
 - **Cache module** — Redis `cached()`, `invalidate()`, `invalidatePattern()`, graceful fallback when `REDIS_URL` unset
-- **Service unit tests** — `aiSummaryService` cache-first logic, summary generation, error handling
+- **Service unit tests** — `aiSummaryService` cache-first logic, summary generation, error handling; `embeddingService` (generate, store, search); `semanticSearchService` (result mapping, error handling); `chatHistoryService` (summarization queries); `chatAgentService` (summarizeOlderMessages, conversationSummary injection, onStatus labels); `chatToolsService` (tool definitions, executeTool dispatch)
 - **Integration** — full Express app behavior across all mounted routes
 - Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`; season-aware routes also mock `cache/seasons.js`
 
