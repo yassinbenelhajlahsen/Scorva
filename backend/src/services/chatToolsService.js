@@ -10,6 +10,7 @@ import { getStatLeaders } from "./chatTools/statLeadersService.js";
 import { getPlayerComparison } from "./chatTools/playerComparisonService.js";
 import { getTeamStats } from "./chatTools/teamStatsService.js";
 import { webSearch } from "./chatTools/webSearchService.js";
+import { semanticSearch } from "./chatTools/semanticSearchService.js";
 import { getCurrentSeason } from "../cache/seasons.js";
 
 export const TOOL_DEFINITIONS = [
@@ -232,6 +233,30 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "semantic_search",
+      description:
+        "Search game summaries using semantic similarity. Best for broad or narrative queries like " +
+        "'biggest upsets this week', 'overtime thrillers', 'blowout wins', or 'games where a player dominated'. " +
+        "Returns relevant game recaps ranked by relevance.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Natural language query describing the type of game or event to find",
+          },
+          limit: {
+            type: "integer",
+            description: "Number of results to return (default 5, max 10)",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
 ];
 
 const gameDetailHandlers = {
@@ -305,6 +330,9 @@ export async function executeTool(name, args) {
 
     case "get_teams":
       return getTeamsByLeague(args.league);
+
+    case "semantic_search":
+      return semanticSearch(args.query, Math.min(args.limit || 5, 10));
 
     default:
       return { error: `Unknown tool: ${name}` };

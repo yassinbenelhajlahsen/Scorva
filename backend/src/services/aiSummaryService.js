@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import pool from "../db/db.js";
 import logger from "../logger.js";
+import { embedGameSummary } from "./embeddingService.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -69,6 +70,8 @@ export async function saveSummary(id, summary) {
     summary,
     id,
   ]);
+  // Fire-and-forget: generate embedding for RAG semantic search
+  embedGameSummary(id).catch(() => {});
 }
 
 export function buildGameData(game, stats) {

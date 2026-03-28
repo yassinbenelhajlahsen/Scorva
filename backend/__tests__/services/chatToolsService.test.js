@@ -68,6 +68,11 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/cache/seasons.js"), () =>
   getCurrentSeason: mockGetCurrentSeason,
 }));
 
+const mockSemanticSearch = jest.fn();
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/semanticSearchService.js"), () => ({
+  semanticSearch: mockSemanticSearch,
+}));
+
 const servicePath = resolve(__dirname, "../../src/services/chatToolsService.js");
 const { TOOL_DEFINITIONS, executeTool } = await import(servicePath);
 
@@ -80,7 +85,7 @@ describe("chatToolsService", () => {
   describe("TOOL_DEFINITIONS", () => {
     it("exports an array of tool definitions", () => {
       expect(Array.isArray(TOOL_DEFINITIONS)).toBe(true);
-      expect(TOOL_DEFINITIONS.length).toBe(12);
+      expect(TOOL_DEFINITIONS.length).toBe(13);
     });
 
     it("every definition has type 'function' and a function.name", () => {
@@ -105,6 +110,14 @@ describe("chatToolsService", () => {
       expect(names).toContain("web_search");
       expect(names).toContain("get_seasons");
       expect(names).toContain("get_teams");
+      expect(names).toContain("semantic_search");
+    });
+
+    it("semantic_search definition has required 'query' property", () => {
+      const def = TOOL_DEFINITIONS.find((d) => d.function.name === "semantic_search");
+      expect(def).toBeDefined();
+      const required = def.function.parameters.required;
+      expect(required).toContain("query");
     });
   });
 
@@ -270,6 +283,31 @@ describe("chatToolsService", () => {
       await executeTool("get_teams", { league: "nba" });
 
       expect(mockGetTeamsByLeague).toHaveBeenCalledWith("nba");
+    });
+
+    it("delegates 'semantic_search' to semanticSearch()", async () => {
+      mockSemanticSearch.mockResolvedValueOnce({ results: [] });
+
+      const result = await executeTool("semantic_search", { query: "overtime thrillers", limit: 3 });
+
+      expect(mockSemanticSearch).toHaveBeenCalledWith("overtime thrillers", 3);
+      expect(result).toEqual({ results: [] });
+    });
+
+    it("caps semantic_search limit to 10 when args.limit exceeds 10", async () => {
+      mockSemanticSearch.mockResolvedValueOnce({ results: [] });
+
+      await executeTool("semantic_search", { query: "blowouts", limit: 15 });
+
+      expect(mockSemanticSearch).toHaveBeenCalledWith("blowouts", 10);
+    });
+
+    it("uses default limit of 5 for semantic_search when limit not provided", async () => {
+      mockSemanticSearch.mockResolvedValueOnce({ results: [] });
+
+      await executeTool("semantic_search", { query: "close games" });
+
+      expect(mockSemanticSearch).toHaveBeenCalledWith("close games", 5);
     });
   });
 
