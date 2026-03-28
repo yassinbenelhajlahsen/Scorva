@@ -80,6 +80,42 @@ describe("MessageBubble", () => {
     expect(container.innerHTML).toContain("border-loss");
   });
 
+  it("renders statusText below typing indicator when streaming with no content and statusText set", () => {
+    render(
+      <MessageBubble role="assistant" content="" isStreaming={true} statusText="Checking standings" />
+    );
+
+    expect(screen.getByTestId("typing-indicator")).toBeInTheDocument();
+    expect(screen.getByText("Checking standings")).toBeInTheDocument();
+  });
+
+  it("does not render statusText when content is present", () => {
+    render(
+      <MessageBubble role="assistant" content="Answer here" isStreaming={true} statusText="Checking standings" />
+    );
+
+    expect(screen.queryByText("Checking standings")).not.toBeInTheDocument();
+    expect(screen.getByText("Answer here")).toBeInTheDocument();
+  });
+
+  it("does not render statusText when not streaming", () => {
+    render(
+      <MessageBubble role="assistant" content="" isStreaming={false} statusText="Checking standings" />
+    );
+
+    expect(screen.queryByText("Checking standings")).not.toBeInTheDocument();
+  });
+
+  it("does not render statusText when statusText is null", () => {
+    render(
+      <MessageBubble role="assistant" content="" isStreaming={true} statusText={null} />
+    );
+
+    expect(screen.getByTestId("typing-indicator")).toBeInTheDocument();
+    // No status text rendered
+    expect(screen.queryByText(/checking/i)).not.toBeInTheDocument();
+  });
+
   it("renders multiple bold sections in one message", () => {
     render(
       <MessageBubble

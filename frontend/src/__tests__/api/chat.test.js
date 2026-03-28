@@ -219,6 +219,40 @@ describe("streamChatMessage", () => {
     expect(onDone).toHaveBeenCalledWith("c2");
   });
 
+  it("calls onStatus when a status SSE event is received", async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockSSEResponse(
+        { type: "status", content: "Checking standings" },
+        { type: "done", conversationId: "c1" }
+      )
+    );
+
+    const onStatus = vi.fn();
+    const onDone = vi.fn();
+    streamChatMessage({ message: "Hi", token: "t", onDelta: vi.fn(), onDone, onError: vi.fn(), onStatus });
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
+
+    expect(onStatus).toHaveBeenCalledWith("Checking standings");
+  });
+
+  it("does not throw when onStatus is not provided (status event is silently ignored)", async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockSSEResponse(
+        { type: "status", content: "Checking standings" },
+        { type: "done", conversationId: "c1" }
+      )
+    );
+
+    const onDone = vi.fn();
+    // No onStatus passed — should not throw
+    streamChatMessage({ message: "Hi", token: "t", onDelta: vi.fn(), onDone, onError: vi.fn() });
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
+    // If we got here without throwing, the test passes
+    expect(onDone).toHaveBeenCalledWith("c1");
+  });
+
   it("passes signal to fetch for abort support", () => {
     const controller = new AbortController();
     mockFetch.mockResolvedValueOnce(mockSSEResponse({ type: "done", conversationId: "c1" }));

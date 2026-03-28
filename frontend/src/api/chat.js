@@ -8,6 +8,7 @@ export function streamChatMessage({
   onDelta,
   onDone,
   onError,
+  onStatus,
   signal,
 }) {
   fetch(`${BASE}/api/chat`, {
@@ -42,6 +43,7 @@ export function streamChatMessage({
           try {
             const event = JSON.parse(line.slice(6));
             if (event.type === "delta") onDelta(event.content);
+            else if (event.type === "status") onStatus?.(event.content);
             else if (event.type === "done") onDone(event.conversationId);
             else if (event.type === "error") onError(event.message);
           } catch {

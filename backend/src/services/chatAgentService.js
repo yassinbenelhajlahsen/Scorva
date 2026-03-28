@@ -222,6 +222,13 @@ export async function runAgentLoop(history, pageContext, onDelta, { onStatus, co
       tool_calls: toolCalls,
     });
 
+    // Emit status for each tool being executed
+    const toolNames = toolCalls.map((tc) => tc.function.name);
+    if (onStatus) {
+      const labels = toolNames.map((n) => TOOL_STATUS_LABELS[n] || n);
+      onStatus(labels.join(" · "));
+    }
+
     // Execute all tool calls in parallel
     const toolResults = await Promise.all(
       toolCalls.map(async (tc) => {

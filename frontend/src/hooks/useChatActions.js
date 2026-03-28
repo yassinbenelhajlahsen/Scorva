@@ -31,6 +31,7 @@ export function useChatActions() {
   const location = useLocation();
   const abortRef = useRef(null);
   const cancelledRef = useRef(false);
+  const msgIdRef = useRef(0);
 
   const sendMessage = useCallback(
     (text) => {
@@ -45,8 +46,8 @@ export function useChatActions() {
 
       setMessages((prev) => [
         ...prev,
-        { role: "user", content: text.trim() },
-        { role: "assistant", content: "" },
+        { role: "user", content: text.trim(), id: ++msgIdRef.current },
+        { role: "assistant", content: "", id: ++msgIdRef.current },
       ]);
       setIsStreaming(true);
 
@@ -62,6 +63,17 @@ export function useChatActions() {
             const updated = [...prev];
             const last = { ...updated[updated.length - 1] };
             last.content += delta;
+            last.statusText = null; // Clear status once content starts flowing
+            updated[updated.length - 1] = last;
+            return updated;
+          });
+        },
+        onStatus: (status) => {
+          if (cancelledRef.current) return;
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = { ...updated[updated.length - 1] };
+            last.statusText = status;
             updated[updated.length - 1] = last;
             return updated;
           });
@@ -76,9 +88,10 @@ export function useChatActions() {
           setMessages((prev) => {
             const updated = [...prev];
             updated[updated.length - 1] = {
-              role: "assistant",
+              ...updated[updated.length - 1],
               content: msg,
               isError: true,
+              statusText: null,
             };
             return updated;
           });

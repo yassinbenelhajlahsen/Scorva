@@ -90,8 +90,8 @@ describe("useChatActions", () => {
 
       const msgs = setMessages.getMessages();
       expect(msgs).toHaveLength(2);
-      expect(msgs[0]).toEqual({ role: "user", content: "Hello" });
-      expect(msgs[1]).toEqual({ role: "assistant", content: "" });
+      expect(msgs[0]).toMatchObject({ role: "user", content: "Hello" });
+      expect(msgs[1]).toMatchObject({ role: "assistant", content: "" });
     });
 
     it("sets isStreaming to true", () => {
@@ -228,12 +228,52 @@ describe("useChatActions", () => {
       act(() => onError("Something went wrong."));
 
       const msgs = setMessages.getMessages();
-      expect(msgs[msgs.length - 1]).toEqual({
+      expect(msgs[msgs.length - 1]).toMatchObject({
         role: "assistant",
         content: "Something went wrong.",
         isError: true,
       });
       expect(setIsStreaming).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe("onStatus callback", () => {
+    it("sets statusText on the last assistant message", () => {
+      const { result } = renderHook(() => useChatActions());
+      act(() => result.current.sendMessage("Hello"));
+
+      const onStatus = streamChatMessage.mock.calls[0][0].onStatus;
+      act(() => onStatus("Checking standings"));
+
+      const msgs = setMessages.getMessages();
+      expect(msgs[msgs.length - 1].statusText).toBe("Checking standings");
+    });
+
+    it("clears statusText to null when onDelta fires", () => {
+      const { result } = renderHook(() => useChatActions());
+      act(() => result.current.sendMessage("Hello"));
+
+      const { onStatus, onDelta } = streamChatMessage.mock.calls[0][0];
+      act(() => onStatus("Fetching player stats"));
+      act(() => onDelta("LeBron is"));
+
+      const msgs = setMessages.getMessages();
+      expect(msgs[msgs.length - 1].statusText).toBeNull();
+    });
+
+    it("is gated by cancelledRef (not called after cancel)", () => {
+      const { result } = renderHook(() => useChatActions());
+      act(() => result.current.sendMessage("Hello"));
+
+      const onStatus = streamChatMessage.mock.calls[0][0].onStatus;
+      act(() => result.current.cancelStream());
+
+      // Reset call count to detect new setMessages calls
+      setMessages.mockClear();
+      act(() => onStatus("Checking standings"));
+
+      // setMessages should NOT have been called after cancel
+      expect(setMessages).not.toHaveBeenCalled();
     });
   });
 

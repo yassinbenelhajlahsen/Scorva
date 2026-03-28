@@ -89,19 +89,22 @@ export default function ChatMessages({ onSuggest }) {
           transition={{ duration: 0.2 }}
           className="flex-1 overflow-y-auto px-4 py-4"
         >
-          {messages.map((msg, i) => {
-            const isLastAssistant =
-              msg.role === "assistant" && i === messages.length - 1;
-            return (
-              <MessageBubble
-                key={i}
-                role={msg.role}
-                content={msg.content}
-                isError={msg.isError}
-                isStreaming={isStreaming && isLastAssistant}
-              />
-            );
-          })}
+          <AnimatePresence initial={false}>
+            {messages.map((msg, i) => {
+              const isLastAssistant =
+                msg.role === "assistant" && i === messages.length - 1;
+              return (
+                <MessageBubble
+                  key={msg.id ?? i}
+                  role={msg.role}
+                  content={msg.content}
+                  isError={msg.isError}
+                  isStreaming={isStreaming && isLastAssistant}
+                  statusText={isStreaming && isLastAssistant ? msg.statusText : null}
+                />
+              );
+            })}
+          </AnimatePresence>
           <div ref={bottomRef} />
         </m.div>
       )}

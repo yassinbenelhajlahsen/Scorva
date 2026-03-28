@@ -11,7 +11,7 @@ function renderContent(text) {
   });
 }
 
-export default function MessageBubble({ role, content, isError, isStreaming }) {
+export default function MessageBubble({ role, content, isError, isStreaming, statusText }) {
   const isUser = role === "user";
   const isEmpty = !content;
 
@@ -33,7 +33,20 @@ export default function MessageBubble({ role, content, isError, isStreaming }) {
         ].join(" ")}
       >
         {isStreaming && isEmpty ? (
-          <ChatTypingIndicator />
+          <div className="flex flex-col gap-1.5">
+            <ChatTypingIndicator />
+            {statusText && (
+              <m.p
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-[11px] text-text-tertiary"
+                key={statusText}
+              >
+                {statusText}
+              </m.p>
+            )}
+          </div>
         ) : (
           renderContent(content)
         )}
