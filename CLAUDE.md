@@ -93,6 +93,9 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 | Chat controller | `backend/src/controllers/chatController.js` |
 | Chat agent (LLM loop) | `backend/src/services/chatAgentService.js` |
 | Chat tools | `backend/src/services/chatToolsService.js` |
+| Chat tool services | `backend/src/services/chatTools/` |
+| Embedding service (RAG) | `backend/src/services/embeddingService.js` |
+| Semantic search tool | `backend/src/services/chatTools/semanticSearchService.js` |
 | Chat history | `backend/src/services/chatHistoryService.js` |
 | Chat API (frontend) | `frontend/src/api/chat.js` |
 | Chat context | `frontend/src/context/ChatContext.jsx` |
@@ -156,10 +159,14 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **`games.type`** — single source of truth for game classification; see `docs/ARCHITECTURE.md`
 - **`useUserPrefs`** — pass `controller.signal` to `getProfile()` so AbortController signal is forwarded
 - **`userController`** — delete Supabase auth user before DB delete (not after)
-- **Chat agent** — `runAgentLoop` in `chatAgentService.js`; max 5 tool rounds; streams deltas via `onDelta` callback; `resolveContextEntity` does a DB lookup to get entity name from URL slug before building the system prompt
+- **Chat agent** — `runAgentLoop` in `chatAgentService.js`; max 5 tool rounds; streams deltas via `onDelta` callback; `onStatus` callback emits tool execution progress; `resolveContextEntity` does a DB lookup to get entity name from URL slug before building the system prompt
 - **Chat page context** — frontend sends `{ type, league, playerSlug|teamSlug|gameId }` (slugs, not IDs); `sanitizePageContext` validates slugs against `/^[a-z0-9-]{1,100}$/`; backend resolves slug → `{ id, name }` via `getPlayerIdBySlug` / SQL
-- **Chat DB tables** — `chat_conversations` (id, user_id, created_at) and `chat_messages` (id, conversation_id, role, content, page_context, created_at); cascade delete on conversation
-- **Chat cancel** — frontend `cancelledRef` gates `onDelta`/`onDone`/`onError` after abort; `cancelStream` also removes the trailing assistant message from state
+- **Chat DB tables** — `chat_conversations` (id, user_id, summary, summarized_up_to, created_at) and `chat_messages` (id, conversation_id, role, content, page_context, created_at); cascade delete on conversation
+- **Chat SSE events** — `delta` (content streaming), `status` (tool execution progress), `done` (with conversationId), `error` (with message)
+- **Chat cancel** — frontend `cancelledRef` gates `onDelta`/`onDone`/`onError`/`onStatus` after abort; `cancelStream` also removes the trailing assistant message from state
+- **Chat conversation summarization** — when conversations exceed 20 messages, older messages are summarized via `gpt-4o-mini` and stored in `chat_conversations.summary`; `summarized_up_to` tracks the offset to avoid re-summarizing; summary is prepended to system prompt as context
+- **RAG (pgvector)** — `game_embeddings` table stores vector embeddings (1536-dim, `text-embedding-3-small`) of AI game summaries; `embeddingService.js` generates/stores/queries embeddings; `semantic_search` chat tool performs cosine similarity search; embeddings auto-generated on AI summary save (fire-and-forget)
+- **Chat tools** — 13 tools total: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `web_search`, `get_seasons`, `get_teams`, `semantic_search`
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
