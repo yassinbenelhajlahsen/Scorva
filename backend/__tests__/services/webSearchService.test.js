@@ -149,7 +149,7 @@ describe("webSearchService", () => {
     expect(body).toMatchObject({
       api_key: "test-tavily-key",
       query: "NBA injury report",
-      search_depth: "basic",
+      search_depth: "advanced",
       max_results: 5,
       include_answer: true,
       topic: "news",

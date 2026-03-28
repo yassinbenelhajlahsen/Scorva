@@ -45,7 +45,7 @@ describe("ChatPanel", () => {
     resetConversation = vi.fn();
     sendMessage = vi.fn();
 
-    useChat.mockReturnValue({ resetConversation, isStreaming: false });
+    useChat.mockReturnValue({ resetConversation, isStreaming: false, messages: [] });
     useChatActions.mockReturnValue({ sendMessage });
   });
 
@@ -85,7 +85,7 @@ describe("ChatPanel", () => {
   });
 
   it("disables reset button while streaming", () => {
-    useChat.mockReturnValue({ resetConversation, isStreaming: true });
+    useChat.mockReturnValue({ resetConversation, isStreaming: true, messages: [] });
 
     render(<ChatPanel onClose={vi.fn()} />);
 
@@ -94,7 +94,7 @@ describe("ChatPanel", () => {
   });
 
   it("does not call resetConversation when streaming and reset clicked", () => {
-    useChat.mockReturnValue({ resetConversation, isStreaming: true });
+    useChat.mockReturnValue({ resetConversation, isStreaming: true, messages: [] });
 
     render(<ChatPanel onClose={vi.fn()} />);
 
