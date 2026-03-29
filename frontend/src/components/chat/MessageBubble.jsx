@@ -1,13 +1,67 @@
 import { m } from "framer-motion";
 import ChatTypingIndicator from "./ChatTypingIndicator.jsx";
 
-function renderContent(text) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
+function renderInline(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
     }
     return part;
+  });
+}
+
+function renderContent(text) {
+  const lines = text.split("\n");
+  const blocks = [];
+  let current = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^[-*] /.test(trimmed)) {
+      if (current?.type !== "ul") {
+        current = { type: "ul", lines: [] };
+        blocks.push(current);
+      }
+      current.lines.push(trimmed.replace(/^[-*] /, ""));
+    } else if (/^\d+\.\s/.test(trimmed)) {
+      if (current?.type !== "ol") {
+        current = { type: "ol", lines: [] };
+        blocks.push(current);
+      }
+      current.lines.push(trimmed.replace(/^\d+\.\s/, ""));
+    } else if (trimmed === "") {
+      current = null;
+    } else {
+      if (current?.type !== "p") {
+        current = { type: "p", lines: [] };
+        blocks.push(current);
+      }
+      current.lines.push(trimmed);
+    }
+  }
+
+  return blocks.map((block, i) => {
+    if (block.type === "ul") {
+      return (
+        <ul key={i}>
+          {block.lines.map((l, j) => <li key={j}>{renderInline(l)}</li>)}
+        </ul>
+      );
+    }
+    if (block.type === "ol") {
+      return (
+        <ol key={i}>
+          {block.lines.map((l, j) => <li key={j}>{renderInline(l)}</li>)}
+        </ol>
+      );
+    }
+    return (
+      <p key={i}>
+        {block.lines.flatMap((l, j) =>
+          j > 0 ? [<br key={`br-${j}`} />, ...renderInline(l)] : renderInline(l)
+        )}
+      </p>
+    );
   });
 }
 
@@ -48,7 +102,7 @@ export default function MessageBubble({ role, content, isError, isStreaming, sta
             )}
           </div>
         ) : (
-          renderContent(content)
+          <div className="chat-markdown">{renderContent(content)}</div>
         )}
       </div>
     </m.div>

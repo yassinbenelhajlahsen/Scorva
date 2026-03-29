@@ -130,4 +130,90 @@ describe("MessageBubble", () => {
     expect(strongs[0].textContent).toBe("LeBron");
     expect(strongs[1].textContent).toBe("28 points");
   });
+
+  it("renders an unordered list from - prefixed lines", () => {
+    render(
+      <MessageBubble
+        role="assistant"
+        content={"- LeBron James\n- Stephen Curry\n- Kevin Durant"}
+        isStreaming={false}
+      />
+    );
+
+    const list = document.querySelector("ul");
+    expect(list).toBeInTheDocument();
+    const items = document.querySelectorAll("li");
+    expect(items).toHaveLength(3);
+    expect(items[0].textContent).toBe("LeBron James");
+    expect(items[1].textContent).toBe("Stephen Curry");
+    expect(items[2].textContent).toBe("Kevin Durant");
+  });
+
+  it("renders a numbered list from 1. prefixed lines", () => {
+    render(
+      <MessageBubble
+        role="assistant"
+        content={"1. First pick\n2. Second pick\n3. Third pick"}
+        isStreaming={false}
+      />
+    );
+
+    const list = document.querySelector("ol");
+    expect(list).toBeInTheDocument();
+    const items = document.querySelectorAll("li");
+    expect(items).toHaveLength(3);
+    expect(items[0].textContent).toBe("First pick");
+  });
+
+  it("renders a short intro paragraph followed by a bullet list", () => {
+    render(
+      <MessageBubble
+        role="assistant"
+        content={"Top scorers this week:\n- LeBron: 32 pts\n- Curry: 29 pts"}
+        isStreaming={false}
+      />
+    );
+
+    expect(screen.getByText("Top scorers this week:")).toBeInTheDocument();
+    const items = document.querySelectorAll("li");
+    expect(items).toHaveLength(2);
+  });
+
+  it("renders bold text inside a list item", () => {
+    render(
+      <MessageBubble
+        role="assistant"
+        content={"- **LeBron** scored 28\n- **Curry** hit 7 threes"}
+        isStreaming={false}
+      />
+    );
+
+    const strongs = document.querySelectorAll("strong");
+    expect(strongs).toHaveLength(2);
+    expect(strongs[0].textContent).toBe("LeBron");
+    expect(strongs[1].textContent).toBe("Curry");
+  });
+
+  it("wraps content in chat-markdown div", () => {
+    const { container } = render(
+      <MessageBubble role="assistant" content="Hello world" isStreaming={false} />
+    );
+
+    expect(container.querySelector(".chat-markdown")).toBeInTheDocument();
+  });
+
+  it("renders blank-line-separated text as separate paragraph blocks", () => {
+    render(
+      <MessageBubble
+        role="assistant"
+        content={"First paragraph.\n\nSecond paragraph."}
+        isStreaming={false}
+      />
+    );
+
+    const paragraphs = document.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(2);
+    expect(paragraphs[0].textContent).toBe("First paragraph.");
+    expect(paragraphs[1].textContent).toBe("Second paragraph.");
+  });
 });

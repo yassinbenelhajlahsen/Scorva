@@ -51,6 +51,43 @@
     color: #f5f5f7;
   }
 
+  .chat-markdown p {
+    margin-bottom: 0.35rem;
+  }
+  .chat-markdown p:last-child {
+    margin-bottom: 0;
+  }
+  .chat-markdown ul,
+  .chat-markdown ol {
+    margin: 0.25rem 0;
+    padding-left: 1.15rem;
+  }
+  .chat-markdown ul:last-child,
+  .chat-markdown ol:last-child {
+    margin-bottom: 0;
+  }
+  .chat-markdown ul {
+    list-style-type: disc;
+  }
+  .chat-markdown ol {
+    list-style-type: decimal;
+  }
+  .chat-markdown li {
+    margin-bottom: 0.2rem;
+  }
+  .chat-markdown li::marker {
+    color: var(--color-text-tertiary);
+  }
+  /* Space between a player's stats and the next player's name */
+  .chat-markdown ul + p,
+  .chat-markdown ol + p {
+    margin-top: 0.65rem;
+  }
+  .chat-markdown strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
 }
 
 /* Chrome autofill override — must be outside @layer to beat Tailwind utilities */
