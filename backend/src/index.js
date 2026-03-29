@@ -8,6 +8,7 @@ import {
   requestLogger,
   generalLimiter,
   sseConnectionLimiter,
+  chatSseConnectionLimiter,
   corsOrigins,
 } from "./middleware/index.js";
 import teamsRouter from "./routes/teams.js";
@@ -49,6 +50,7 @@ app.use("/api", webhooksRoute);
 app.use("/api", aiSummaryRoute);
 
 // Chat agent endpoint (auth-gated, chatLimiter applied inside the route)
+app.use("/api/chat", chatSseConnectionLimiter);
 app.use("/api", chatRoute);
 
 // SSE live endpoints — mounted before rate limiter (long-lived connections)

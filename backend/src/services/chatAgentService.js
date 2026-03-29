@@ -148,7 +148,7 @@ const TOOL_STATUS_LABELS = {
   semantic_search: "Searching knowledge base",
 };
 
-export async function runAgentLoop(history, pageContext, onDelta, { onStatus, conversationSummary } = {}) {
+export async function runAgentLoop(history, pageContext, onDelta, { onStatus, conversationSummary, signal } = {}) {
   const entity = await resolveContextEntity(pageContext);
   const systemPrompt = buildSystemPrompt(pageContext, entity);
   const messages = [{ role: "system", content: systemPrompt }];
@@ -166,6 +166,8 @@ export async function runAgentLoop(history, pageContext, onDelta, { onStatus, co
   let fullContent = "";
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    if (signal?.aborted) break;
+
     const stream = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages,
@@ -174,7 +176,7 @@ export async function runAgentLoop(history, pageContext, onDelta, { onStatus, co
       temperature: 0.7,
       max_tokens: 1024,
       stream: true,
-    });
+    }, { signal });
 
     const toolCalls = [];
     let roundContent = "";
@@ -239,7 +241,7 @@ export async function runAgentLoop(history, pageContext, onDelta, { onStatus, co
           result = await executeTool(tc.function.name, args);
         } catch (err) {
           logger.warn({ err, tool: tc.function.name }, "Tool execution error");
-          result = { error: `Tool ${tc.function.name} failed: ${err.message}` };
+          result = { error: "No data available for this request." };
         }
         return {
           role: "tool",

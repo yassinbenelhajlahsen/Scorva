@@ -46,7 +46,7 @@ const { streamChat } = await import(controllerPath);
 // --- Helpers ---
 
 function makeReq(body = {}, user = { id: "user-1" }) {
-  return { body, user };
+  return { body, user, on: jest.fn() };
 }
 
 function makeRes() {
@@ -397,9 +397,9 @@ describe("chatController — streamChat", () => {
       // Allow microtasks/promises to flush so the fire-and-forget chain runs
       await new Promise((r) => setTimeout(r, 0));
 
-      expect(mockGetMessageCount).toHaveBeenCalledWith("conv-1");
+      expect(mockGetMessageCount).toHaveBeenCalledWith("conv-1", "user-1");
       expect(mockSummarizeOlderMessages).toHaveBeenCalled();
-      expect(mockUpdateConversationSummary).toHaveBeenCalledWith("conv-1", "Summary.", 5);
+      expect(mockUpdateConversationSummary).toHaveBeenCalledWith("conv-1", "user-1", "Summary.", 5);
     });
 
     it("does not throw when triggerSummarization fails (fire-and-forget)", async () => {

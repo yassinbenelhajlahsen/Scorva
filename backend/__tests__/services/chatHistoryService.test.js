@@ -72,7 +72,7 @@ describe("chatHistoryService", () => {
         ],
       });
 
-      const result = await getConversationMessages("conv-1");
+      const result = await getConversationMessages("conv-1", "user-1");
 
       expect(result).toEqual([
         { role: "user", content: "Hello" },
@@ -83,25 +83,36 @@ describe("chatHistoryService", () => {
     it("passes limit parameter to query", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      await getConversationMessages("conv-1", 5);
+      await getConversationMessages("conv-1", "user-1", 5);
 
-      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", 5]);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", "user-1", 5]);
     });
 
-    it("defaults limit to 20", async () => {
+    it("defaults limit to 10", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      await getConversationMessages("conv-1");
+      await getConversationMessages("conv-1", "user-1");
 
-      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", 10]);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", "user-1", 10]);
     });
 
     it("returns empty array when no messages found", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      const result = await getConversationMessages("conv-1");
+      const result = await getConversationMessages("conv-1", "user-1");
 
       expect(result).toEqual([]);
+    });
+
+    it("filters by user_id via EXISTS subquery", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await getConversationMessages("conv-1", "user-1");
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("user_id"),
+        expect.any(Array)
+      );
     });
   });
 
@@ -162,16 +173,16 @@ describe("chatHistoryService", () => {
         rows: [{ summary: "User asked about LeBron stats." }],
       });
 
-      const result = await getConversationSummary("conv-1");
+      const result = await getConversationSummary("conv-1", "user-1");
 
       expect(result).toBe("User asked about LeBron stats.");
-      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1"]);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", "user-1"]);
     });
 
     it("returns null when conversation has no summary", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [{ summary: null }] });
 
-      const result = await getConversationSummary("conv-1");
+      const result = await getConversationSummary("conv-1", "user-1");
 
       expect(result).toBeNull();
     });
@@ -179,9 +190,20 @@ describe("chatHistoryService", () => {
     it("returns null when conversation not found", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      const result = await getConversationSummary("missing-conv");
+      const result = await getConversationSummary("missing-conv", "user-1");
 
       expect(result).toBeNull();
+    });
+
+    it("filters by user_id", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await getConversationSummary("conv-1", "user-1");
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("user_id"),
+        ["conv-1", "user-1"]
+      );
     });
   });
 
@@ -191,7 +213,7 @@ describe("chatHistoryService", () => {
         rows: [{ summary: "Prior context.", summarized_up_to: 10 }],
       });
 
-      const result = await getConversationSummaryWithMeta("conv-1");
+      const result = await getConversationSummaryWithMeta("conv-1", "user-1");
 
       expect(result).toEqual({ summary: "Prior context.", summarized_up_to: 10 });
     });
@@ -199,9 +221,20 @@ describe("chatHistoryService", () => {
     it("returns defaults when conversation not found", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      const result = await getConversationSummaryWithMeta("missing-conv");
+      const result = await getConversationSummaryWithMeta("missing-conv", "user-1");
 
       expect(result).toEqual({ summary: null, summarized_up_to: 0 });
+    });
+
+    it("filters by user_id", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await getConversationSummaryWithMeta("conv-1", "user-1");
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("user_id"),
+        ["conv-1", "user-1"]
+      );
     });
   });
 
@@ -209,21 +242,32 @@ describe("chatHistoryService", () => {
     it("returns integer count of messages in a conversation", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [{ count: 25 }] });
 
-      const result = await getMessageCount("conv-1");
+      const result = await getMessageCount("conv-1", "user-1");
 
       expect(result).toBe(25);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("COUNT(*)"),
-        ["conv-1"]
+        ["conv-1", "user-1"]
       );
     });
 
     it("returns 0 when no messages exist", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [{ count: 0 }] });
 
-      const result = await getMessageCount("conv-1");
+      const result = await getMessageCount("conv-1", "user-1");
 
       expect(result).toBe(0);
+    });
+
+    it("filters by user_id via EXISTS subquery", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [{ count: 0 }] });
+
+      await getMessageCount("conv-1", "user-1");
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("user_id"),
+        expect.any(Array)
+      );
     });
   });
 
@@ -236,22 +280,33 @@ describe("chatHistoryService", () => {
         ],
       });
 
-      const result = await getMessagesForSummarization("conv-1", 0, 10);
+      const result = await getMessagesForSummarization("conv-1", "user-1", 0, 10);
 
       expect(result).toEqual([
         { role: "user", content: "Hello" },
         { role: "assistant", content: "Hi there" },
       ]);
-      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", 0, 10]);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["conv-1", "user-1", 0, 10]);
     });
 
     it("orders messages ASC by created_at", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      await getMessagesForSummarization("conv-1", 5, 10);
+      await getMessagesForSummarization("conv-1", "user-1", 5, 10);
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("ORDER BY created_at ASC"),
+        expect.any(Array)
+      );
+    });
+
+    it("filters by user_id via EXISTS subquery", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await getMessagesForSummarization("conv-1", "user-1", 0, 10);
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("user_id"),
         expect.any(Array)
       );
     });
@@ -261,21 +316,32 @@ describe("chatHistoryService", () => {
     it("updates summary, summarized_up_to and updated_at on the conversation", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      await updateConversationSummary("conv-1", "New summary text.", 20);
+      await updateConversationSummary("conv-1", "user-1", "New summary text.", 20);
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE chat_conversations"),
-        ["New summary text.", 20, "conv-1"]
+        ["conv-1", "user-1", "New summary text.", 20]
       );
     });
 
     it("includes updated_at = NOW() in the update", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      await updateConversationSummary("conv-1", "Summary.", 10);
+      await updateConversationSummary("conv-1", "user-1", "Summary.", 10);
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("updated_at = NOW()"),
+        expect.any(Array)
+      );
+    });
+
+    it("filters by user_id", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await updateConversationSummary("conv-1", "user-1", "Summary.", 10);
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("user_id"),
         expect.any(Array)
       );
     });

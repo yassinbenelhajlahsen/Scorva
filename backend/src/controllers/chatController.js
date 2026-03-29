@@ -29,10 +29,10 @@ function sanitizePageContext(ctx) {
   return { type, league, playerSlug, teamSlug, gameId };
 }
 
-async function triggerSummarization(conversationId) {
+async function triggerSummarization(conversationId, userId) {
   const [totalCount, meta] = await Promise.all([
-    getMessageCount(conversationId),
-    getConversationSummaryWithMeta(conversationId),
+    getMessageCount(conversationId, userId),
+    getConversationSummaryWithMeta(conversationId, userId),
   ]);
   const summarizedUpTo = meta.summarized_up_to ?? 0;
   const existingSummary = meta.summary;
@@ -44,13 +44,14 @@ async function triggerSummarization(conversationId) {
   // Get messages that need to be summarized (between summarizedUpTo and the window boundary)
   const messagesToSummarize = await getMessagesForSummarization(
     conversationId,
+    userId,
     summarizedUpTo,
     unsummarizedCount - summarizedUpTo,
   );
   if (messagesToSummarize.length === 0) return;
 
   const newSummary = await summarizeOlderMessages(messagesToSummarize, existingSummary);
-  await updateConversationSummary(conversationId, newSummary, unsummarizedCount);
+  await updateConversationSummary(conversationId, userId, newSummary, unsummarizedCount);
 }
 
 export async function streamChat(req, res) {
@@ -77,6 +78,10 @@ export async function streamChat(req, res) {
     "X-Accel-Buffering": "no",
   });
 
+  // Abort the agent loop if the client disconnects to avoid wasted LLM API calls
+  const abortController = new AbortController();
+  req.on("close", () => abortController.abort());
+
   let convoId;
   try {
     const safeContext = sanitizePageContext(pageContext);
@@ -85,8 +90,8 @@ export async function streamChat(req, res) {
     await saveMessage(convoId, "user", cleanMessage, safeContext);
 
     const [history, existingSummary] = await Promise.all([
-      getConversationMessages(convoId, 20),
-      getConversationSummary(convoId),
+      getConversationMessages(convoId, userId, 20),
+      getConversationSummary(convoId, userId),
     ]);
 
     const assistantContent = await runAgentLoop(history, safeContext, (delta) => {
@@ -96,16 +101,23 @@ export async function streamChat(req, res) {
         res.write(`data: ${JSON.stringify({ type: "status", content: status })}\n\n`);
       },
       conversationSummary: existingSummary,
+      signal: abortController.signal,
     });
 
-    await saveMessage(convoId, "assistant", assistantContent);
-    res.write(`data: ${JSON.stringify({ type: "done", conversationId: convoId })}\n\n`);
+    if (!abortController.signal.aborted) {
+      await saveMessage(convoId, "assistant", assistantContent);
+      res.write(`data: ${JSON.stringify({ type: "done", conversationId: convoId })}\n\n`);
 
-    // Async: summarize older messages if conversation is long
-    triggerSummarization(convoId).catch((err) =>
-      logger.warn({ err }, "Background summarization failed"),
-    );
+      // Async: summarize older messages if conversation is long
+      triggerSummarization(convoId, userId).catch((err) =>
+        logger.warn({ err }, "Background summarization failed"),
+      );
+    }
   } catch (err) {
+    if (abortController.signal.aborted) {
+      // Client disconnected — nothing to write, just clean up
+      return;
+    }
     logger.error({ err }, "Chat agent error");
     res.write(
       `data: ${JSON.stringify({ type: "error", message: "Something went wrong. Please try again." })}\n\n`

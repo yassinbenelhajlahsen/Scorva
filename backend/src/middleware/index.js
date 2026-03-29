@@ -57,30 +57,35 @@ export const chatLimiter = rateLimit({
 });
 
 // Per-IP concurrent SSE connection limiter (prevents pg pool exhaustion)
-const SSE_MAX_PER_IP = 6;
-const SSE_MAX_GLOBAL = 100;
-const sseConnections = new Map();
-let sseGlobalCount = 0;
-
-export function sseConnectionLimiter(req, res, next) {
-  const ip = req.ip;
-  const count = sseConnections.get(ip) || 0;
-  if (count >= SSE_MAX_PER_IP) {
-    return res.status(429).json({ error: "Too many live connections" });
-  }
-  if (sseGlobalCount >= SSE_MAX_GLOBAL) {
-    return res.status(503).json({ error: "Server at capacity, try again later" });
-  }
-  sseConnections.set(ip, count + 1);
-  sseGlobalCount++;
-  res.on("close", () => {
-    const cur = sseConnections.get(ip) || 1;
-    if (cur <= 1) sseConnections.delete(ip);
-    else sseConnections.set(ip, cur - 1);
-    sseGlobalCount = Math.max(0, sseGlobalCount - 1);
-  });
-  next();
+function makeSseConnectionLimiter(maxPerIp, maxGlobal, errorMsg) {
+  const connections = new Map();
+  let globalCount = 0;
+  return function sseConnectionLimiter(req, res, next) {
+    const ip = req.ip;
+    const count = connections.get(ip) || 0;
+    if (count >= maxPerIp) {
+      return res.status(429).json({ error: errorMsg });
+    }
+    if (globalCount >= maxGlobal) {
+      return res.status(503).json({ error: "Server at capacity, try again later" });
+    }
+    connections.set(ip, count + 1);
+    globalCount++;
+    res.on("close", () => {
+      const cur = connections.get(ip) || 1;
+      if (cur <= 1) connections.delete(ip);
+      else connections.set(ip, cur - 1);
+      globalCount = Math.max(0, globalCount - 1);
+    });
+    next();
+  };
 }
+
+// Live game SSE endpoints — 6 per IP, 100 global
+export const sseConnectionLimiter = makeSseConnectionLimiter(6, 100, "Too many live connections");
+
+// Chat SSE endpoint — tighter limit (each connection runs LLM calls)
+export const chatSseConnectionLimiter = makeSseConnectionLimiter(3, 50, "Too many chat connections");
 
 export const corsOrigins = [
   "https://scorva.vercel.app",
