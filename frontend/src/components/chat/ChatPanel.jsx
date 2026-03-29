@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { m, useAnimation } from "framer-motion";
 import { useChat } from "../../context/ChatContext.jsx";
 import ChatMessages from "./ChatMessages.jsx";
@@ -8,6 +9,14 @@ export default function ChatPanel({ onClose }) {
   const { resetConversation, isStreaming, messages } = useChat();
   const { sendMessage } = useChatActions();
   const restartControls = useAnimation();
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   function handleSuggest(q) {
     sendMessage(q);
