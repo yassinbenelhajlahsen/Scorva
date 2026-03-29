@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { m } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
+import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
 import leagueData from "../utilities/LeagueData.js";
 import { useHomeGames } from "../hooks/useHomeGames.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
@@ -10,7 +11,6 @@ import { useFavorites } from "../hooks/useFavorites.js";
 import { useUserPrefs } from "../hooks/useUserPrefs.js";
 import FavoritePlayersSection from "../components/favorites/FavoritePlayersSection.jsx";
 import FavoriteTeamsSection from "../components/favorites/FavoriteTeamsSection.jsx";
-import HomepageSkeleton from "../components/skeletons/HomepageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 
@@ -37,9 +37,6 @@ export default function Homepage() {
     setUserPicked(true);
   }
 
-  if (loading) return <HomepageSkeleton session={session} />;
-  if (error) return <ErrorState message={error} onRetry={retry} />;
-
   const leagues = Object.entries(leagueData).map(([id, data]) => ({
     id,
     name: data.name,
@@ -49,7 +46,7 @@ export default function Homepage() {
   return (
     <div className="flex flex-col w-full max-w-[1200px] mx-auto px-5 sm:px-8 py-12">
 
-      {/* Hero */}
+      {/* Hero — always real, no data dependency */}
       <div className="text-center mb-20 mt-8">
         <h1 className="animate-hero-up font-bold leading-[0.95] tracking-[-0.04em] bg-gradient-to-br from-white via-[#f0ece6] to-[#e8863a] bg-clip-text text-transparent text-[4.5rem] sm:text-[6.5rem] lg:text-[8rem]">
           Scorva
@@ -63,28 +60,9 @@ export default function Homepage() {
       {session && (
         <div className="mb-14">
           {favLoading || !favorites ? (
-            <div className="flex flex-col gap-3">
-              {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 flex flex-col sm:flex-row gap-5 items-stretch"
-                >
-                  <div className="flex items-center gap-4 shrink-0 w-full sm:w-52">
-                    <Skeleton className="w-14 h-14 rounded-xl flex-shrink-0" />
-                    <div className="flex flex-col gap-2 flex-1">
-                      <Skeleton className="h-3.5 w-28" />
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                  </div>
-                  <div className="hidden sm:block w-px bg-white/[0.06] self-stretch shrink-0" />
-                  <div className="flex gap-3 flex-1 min-w-0">
-                    {[0, 1].map((j) => (
-                      <Skeleton key={j} className="flex-1 min-w-[8rem] h-24 rounded-2xl" />
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 flex flex-col items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              <Skeleton className="h-3.5 w-52" />
             </div>
           ) : favorites.players.length === 0 && favorites.teams.length === 0 ? (
             <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 text-center">
@@ -113,53 +91,72 @@ export default function Homepage() {
       )}
 
       {/* League tabs + Games */}
-      {activeLeague && <div>
-        {/* Tab pills */}
-        <div className="flex justify-center mb-8 gap-2">
-          {leagues.map((league) => (
-            <button
-              key={league.id}
-              onClick={() => pickLeague(league.id)}
-              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                activeLeague === league.id
-                  ? "bg-accent/15 text-accent border border-accent/25"
-                  : "bg-transparent text-text-secondary border border-white/[0.08] hover:text-text-primary hover:border-white/[0.14]"
-              }`}
-            >
-              <img src={league.logo} alt={league.name} className="w-5 h-5 object-contain" />
-              <span>{league.name}</span>
-            </button>
-          ))}
-        </div>
+      {error ? (
+        <ErrorState message={error} onRetry={retry} />
+      ) : loading || !activeLeague ? (
+        <>
+          {/* Skeleton tab pills */}
+          <div className="flex justify-center mb-8 gap-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-10 w-24 rounded-full" />
+            ))}
+          </div>
+          {/* Skeleton game grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <GameCardSkeleton key={i} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div>
+          {/* Tab pills */}
+          <div className="flex justify-center mb-8 gap-2">
+            {leagues.map((league) => (
+              <button
+                key={league.id}
+                onClick={() => pickLeague(league.id)}
+                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  activeLeague === league.id
+                    ? "bg-accent/15 text-accent border border-accent/25"
+                    : "bg-transparent text-text-secondary border border-white/[0.08] hover:text-text-primary hover:border-white/[0.14]"
+                }`}
+              >
+                <img src={league.logo} alt={league.name} className="w-5 h-5 object-contain" />
+                <span>{league.name}</span>
+              </button>
+            ))}
+          </div>
 
-        {/* Games grid */}
-        <m.div
-          key={activeLeague}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {games[activeLeague].slice(0, 6).map((game) => (
-            <m.div key={game.id} variants={itemVariants} className="w-full">
-              <GameCard game={game} />
-            </m.div>
-          ))}
-        </m.div>
-
-        {/* View All */}
-        <div className="flex justify-center mt-10">
-          <Link
-            to={`/${activeLeague}`}
-            className="inline-flex items-center gap-2 bg-accent text-white font-semibold px-6 py-3 rounded-full transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent-hover hover:shadow-[0_0_24px_rgba(232,134,58,0.3)] text-sm"
+          {/* Games grid */}
+          <m.div
+            key={activeLeague}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            <span>View All {activeLeague.toUpperCase()} Games</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+            {games[activeLeague].slice(0, 6).map((game) => (
+              <m.div key={game.id} variants={itemVariants} className="w-full">
+                <GameCard game={game} />
+              </m.div>
+            ))}
+          </m.div>
+
+          {/* View All */}
+          <div className="flex justify-center mt-10">
+            <Link
+              to={`/${activeLeague}`}
+              className="inline-flex items-center gap-2 bg-accent text-white font-semibold px-6 py-3 rounded-full transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent-hover hover:shadow-[0_0_24px_rgba(232,134,58,0.3)] text-sm"
+            >
+              <span>View All {activeLeague.toUpperCase()} Games</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
         </div>
-      </div>}
+      )}
     </div>
   );
 }
