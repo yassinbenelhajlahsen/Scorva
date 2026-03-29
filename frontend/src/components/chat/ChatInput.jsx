@@ -41,7 +41,7 @@ export default function ChatInput() {
           placeholder="Ask anything about NBA, NFL, or NHL…"
           rows={1}
           disabled={isStreaming}
-          className="flex-1 bg-transparent text-text-primary placeholder:text-text-tertiary/70 text-sm resize-none outline-none leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-200"
+          className="flex-1 bg-transparent text-text-primary placeholder:text-text-tertiary/70 text-base resize-none outline-none leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-200"
           style={{ maxHeight: 96 }}
         />
 

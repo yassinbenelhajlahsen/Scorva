@@ -18,6 +18,14 @@ export default function ChatPanel({ onClose }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    const isMobile = typeof window.matchMedia === "function" && window.matchMedia("(max-width: 639px)").matches;
+    if (!isMobile) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   function handleSuggest(q) {
     sendMessage(q);
   }
@@ -93,7 +101,7 @@ export default function ChatPanel({ onClose }) {
       <ChatInput />
 
       {/* Footer */}
-      <p className="text-center text-[11px] text-text-tertiary/60 px-4 pb-3 pt-1 flex-shrink-0">
+      <p className="text-center text-[11px] text-text-tertiary/60 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-1 flex-shrink-0">
         AI-generated — verify important stats before relying on them
       </p>
     </m.div>

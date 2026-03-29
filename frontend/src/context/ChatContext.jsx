@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "./AuthContext.jsx";
 import ChatFAB from "../components/chat/ChatFAB.jsx";
 import ChatPanel from "../components/chat/ChatPanel.jsx";
@@ -45,6 +45,17 @@ export function ChatProvider({ children }) {
         <ChatFAB onClick={togglePanel} isOpen={isOpen} />
       )}
       <AnimatePresence>
+        {isOpen && (
+          <m.div
+            key="chat-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[89] bg-black/60 sm:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
         {isOpen && <ChatPanel onClose={() => setIsOpen(false)} />}
       </AnimatePresence>
     </ChatContext.Provider>

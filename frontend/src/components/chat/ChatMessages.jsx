@@ -35,79 +35,73 @@ export default function ChatMessages({ onSuggest }) {
   }, [messages]);
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {messages.length === 0 ? (
-        <m.div
-          key="empty"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="flex-1 overflow-y-auto px-4 py-6 flex flex-col"
-        >
+    <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
+      <AnimatePresence>
+        {messages.length === 0 && (
           <m.div
-            className="mb-5"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col py-2"
           >
-            <p className="text-text-secondary text-sm font-medium mb-1">Ask me anything</p>
-            <p className="text-text-tertiary text-xs leading-relaxed">
-              Stats, matchups, player comparisons, team form
-            </p>
-          </m.div>
+            <m.div
+              className="mb-5"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <p className="text-text-secondary text-sm font-medium mb-1">Ask me anything</p>
+              <p className="text-text-tertiary text-xs leading-relaxed">
+                Stats, matchups, player comparisons, team form
+              </p>
+            </m.div>
 
-          <m.div
-            className="flex flex-col gap-2"
-            variants={listVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <m.p variants={itemVariants} className="text-text-tertiary text-[11px] uppercase tracking-widest mb-0.5 text-center mt-5">
-              Suggestions
-            </m.p>
-            {SUGGESTED.map((q) => (
-              <m.button
-                key={q}
-                variants={itemVariants}
-                onClick={() => onSuggest(q)}
-                whileHover={{ x: 4, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
-                whileTap={{ scale: 0.98 }}
-                className="text-left text-sm text-text-secondary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-xl px-3.5 py-2.5 transition-colors duration-200"
-              >
-                {q}
-              </m.button>
-            ))}
+            <m.div
+              className="flex flex-col gap-2"
+              variants={listVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <m.p variants={itemVariants} className="text-text-tertiary text-[11px] uppercase tracking-widest mb-0.5 text-center mt-5">
+                Suggestions
+              </m.p>
+              {SUGGESTED.map((q) => (
+                <m.button
+                  key={q}
+                  variants={itemVariants}
+                  onClick={() => onSuggest(q)}
+                  whileHover={{ x: 4, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
+                  whileTap={{ scale: 0.98 }}
+                  className="text-left text-sm text-text-secondary bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-xl px-3.5 py-2.5 transition-colors duration-200"
+                >
+                  {q}
+                </m.button>
+              ))}
+            </m.div>
           </m.div>
-        </m.div>
-      ) : (
-        <m.div
-          key="messages"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="flex-1 overflow-y-auto px-4 py-4"
-        >
-          <AnimatePresence initial={false}>
-            {messages.map((msg, i) => {
-              const isLastAssistant =
-                msg.role === "assistant" && i === messages.length - 1;
-              return (
-                <MessageBubble
-                  key={msg.id ?? i}
-                  role={msg.role}
-                  content={msg.content}
-                  isError={msg.isError}
-                  isStreaming={isStreaming && isLastAssistant}
-                  statusText={isStreaming && isLastAssistant ? msg.statusText : null}
-                />
-              );
-            })}
-          </AnimatePresence>
-          <div ref={bottomRef} />
-        </m.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence initial={false}>
+        {messages.map((msg, i) => {
+          const isLastAssistant =
+            msg.role === "assistant" && i === messages.length - 1;
+          return (
+            <MessageBubble
+              key={msg.id ?? i}
+              role={msg.role}
+              content={msg.content}
+              isError={msg.isError}
+              isStreaming={isStreaming && isLastAssistant}
+              statusText={isStreaming && isLastAssistant ? msg.statusText : null}
+            />
+          );
+        })}
+      </AnimatePresence>
+
+      <div ref={bottomRef} />
+    </div>
   );
 }
