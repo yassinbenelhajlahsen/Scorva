@@ -35,7 +35,7 @@ export default function ChatMessages({ onSuggest }) {
   }, [messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
+    <div className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 flex flex-col">
       <AnimatePresence>
         {messages.length === 0 && (
           <m.div

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { m, useAnimation } from "framer-motion";
 import { useChat } from "../../context/ChatContext.jsx";
 import ChatMessages from "./ChatMessages.jsx";
@@ -9,6 +9,7 @@ export default function ChatPanel({ onClose }) {
   const { resetConversation, isStreaming, messages } = useChat();
   const { sendMessage } = useChatActions();
   const restartControls = useAnimation();
+  const panelRef = useRef(null);
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -18,12 +19,46 @@ export default function ChatPanel({ onClose }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  // Lock scroll on html + body so background page can't scroll while panel is open
   useEffect(() => {
     const isMobile = typeof window.matchMedia === "function" && window.matchMedia("(max-width: 639px)").matches;
     if (!isMobile) return;
-    const prev = document.body.style.overflow;
+    const htmlEl = document.documentElement;
+    const prevHtml = htmlEl.style.overflow;
+    const prevBody = document.body.style.overflow;
+    htmlEl.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      htmlEl.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+    };
+  }, []);
+
+  // Keep the panel anchored to the visual viewport on iOS — when the software keyboard
+  // opens it shrinks the visual viewport while the layout viewport stays fixed, causing
+  // fixed elements to slide partially off-screen and revealing the page background.
+  // The visualViewport API lets us track the real visible area and compensate.
+  useEffect(() => {
+    const isMobile = typeof window.matchMedia === "function" && window.matchMedia("(max-width: 639px)").matches;
+    if (!isMobile || !window.visualViewport) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const vv = window.visualViewport;
+
+    function update() {
+      panel.style.top = `${vv.offsetTop}px`;
+      panel.style.height = `${vv.height}px`;
+    }
+
+    update();
+    vv.addEventListener("resize", update, { passive: true });
+    vv.addEventListener("scroll", update, { passive: true });
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      panel.style.top = "";
+      panel.style.height = "";
+    };
   }, []);
 
   function handleSuggest(q) {
@@ -42,6 +77,7 @@ export default function ChatPanel({ onClose }) {
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 48, scale: 0.97 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      ref={panelRef}
       className="fixed top-0 right-0 bottom-0 z-[90] w-full sm:w-[380px] bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Header */}
