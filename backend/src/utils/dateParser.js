@@ -1,6 +1,11 @@
 import { DateTime } from "luxon";
 
-const CURRENT_SEASON = "2025-26";
+function deriveCurrentSeason() {
+  const now = DateTime.now().setZone("utc");
+  const startYear = now.month >= 7 ? now.year : now.year - 1;
+  const endSuffix = String(startYear + 1).slice(-2);
+  return `${startYear}-${endSuffix}`;
+}
 
 function getSeasonYears(season) {
   const [startYearText, endYearSuffix] = season.split("-");
@@ -20,7 +25,7 @@ function getSeasonYears(season) {
   return { startYear, endYear };
 }
 
-function getSeasonYearForMonth(month, season = CURRENT_SEASON) {
+function getSeasonYearForMonth(month, season = deriveCurrentSeason()) {
   const years = getSeasonYears(season);
 
   if (!years) {
