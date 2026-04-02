@@ -76,7 +76,9 @@ describe("apiFetch", () => {
     const controller = new AbortController();
     await apiFetch("/api/teams", { signal: controller.signal });
     const [, options] = fetch.mock.calls[0];
-    expect(options.signal).toBe(controller.signal);
+    // signal is a composed AbortSignal (caller + timeout), not the original reference
+    expect(options.signal).toBeDefined();
+    expect(options.signal.aborted).toBe(false);
   });
 
   it("uses GET as default method", async () => {

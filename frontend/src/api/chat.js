@@ -1,4 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL;
+const MAX_BUFFER_SIZE = 1024 * 1024; // 1MB
 
 export function streamChatMessage({
   message,
@@ -34,6 +35,11 @@ export function streamChatMessage({
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
+        if (buffer.length > MAX_BUFFER_SIZE) {
+          reader.cancel();
+          onError("Response too large. Please try again.");
+          return;
+        }
 
         const lines = buffer.split("\n");
         buffer = lines.pop();
