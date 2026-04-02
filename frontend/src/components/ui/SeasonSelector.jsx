@@ -3,7 +3,15 @@ import { useSeasons } from "../../hooks/useSeasons.js";
 export default function SeasonSelector({ league, selectedSeason, onSeasonChange }) {
   const { seasons } = useSeasons(league);
 
-  if (seasons.length === 0) return null;
+  if (seasons.length === 0) {
+    return (
+      <div className="relative inline-flex items-center">
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-xl px-4 py-2 pr-8 text-sm font-medium text-transparent select-none">
+          &nbsp;
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative inline-flex items-center">

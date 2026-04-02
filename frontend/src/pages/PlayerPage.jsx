@@ -78,7 +78,7 @@ export default function PlayerPage() {
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("player", session ? playerData?.id : null);
 
-  if (loading) return <PlayerPageSkeleton />;
+  if (loading) return <PlayerPageSkeleton slug={slug} league={league} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
 
   if (!playerData) {
