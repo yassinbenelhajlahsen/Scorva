@@ -136,3 +136,70 @@ Both `GameCard.jsx` and `GamePage.jsx` treat `"Halftime"` as in-progress alongsi
 - **Network error** → `<ErrorState onRetry={retry} />` (`frontend/src/components/ui/ErrorState.jsx`)
 - **Not found** → dedicated "Not Found" layout with back CTA
 - **Hook retry pattern**: all data hooks expose `retry()` — `const [retryCount, setRetryCount] = useState(0)` in deps, `const retry = useCallback(() => setRetryCount(c => c + 1), [])`
+
+## ErrorBoundary
+`frontend/src/components/ErrorBoundary.jsx` wraps `<AnimatedRoutes />` in `App.jsx`. Catches
+render crashes and shows a reload prompt instead of a white screen.
+
+## Google OAuth popup flow
+`skipBrowserRedirect: true` suppresses Supabase's default redirect. The auth flow opens in a
+popup. `/auth/callback` (AuthCallback page) calls `postMessage` to the opener and closes itself.
+The parent modal listens for the message and closes. AuthCallback has no layout shell and is
+excluded from AnimatedRoutes.
+
+## Chat system
+
+### Agent loop (`chatAgentService.js`)
+`runAgentLoop` drives the multi-turn tool-calling cycle: max 5 tool rounds per request.
+`resolveContextEntity` does a DB lookup (slug → `{ id, name }`) before building the system
+prompt so the model has entity context without requiring clarification.
+
+Callbacks:
+- `onDelta(chunk)` — called for each streaming content token
+- `onStatus(label)` — called before each tool execution round; emitted to the client as an SSE
+  `status` event showing friendly progress text
+
+### Page context
+Frontend sends `{ type, league, playerSlug|teamSlug|gameId }` — slugs, not IDs.
+`sanitizePageContext` validates slugs against `/^[a-z0-9-]{1,100}$/`.
+Backend resolves slug → `{ id, name }` via `getPlayerIdBySlug` / SQL and injects into the
+system prompt.
+
+### Chat DB tables
+- `chat_conversations` — `id`, `user_id`, `summary`, `summarized_up_to`, `created_at`
+- `chat_messages` — `id`, `conversation_id`, `role`, `content`, `page_context` (JSONB), `created_at`
+
+Cascade delete: removing a `chat_conversations` row removes all its `chat_messages`.
+
+### Chat SSE events (`POST /api/chat`)
+| Event | Payload |
+|---|---|
+| `delta` | Streaming content token |
+| `status` | Tool execution progress label |
+| `done` | `{ conversationId }` |
+| `error` | `{ message }` |
+
+### Cancel flow
+Frontend `cancelledRef` is set on abort. All four callbacks (`onDelta`, `onDone`, `onError`,
+`onStatus`) check `cancelledRef` before acting. `cancelStream` also removes the trailing
+incomplete assistant message from state.
+`frontend/src/api/chat.js` enforces a 1 MB SSE buffer cap; disconnects with `onError` if exceeded.
+
+### Conversation summarization
+When a conversation exceeds 20 messages, older messages are compressed via `gpt-4o-mini`.
+The result is stored in `chat_conversations.summary`; `summarized_up_to` tracks the last
+summarized offset to avoid re-processing. The summary is prepended to the system prompt as a
+system message each turn.
+
+### RAG / pgvector
+`game_embeddings` table stores `text-embedding-3-small` 1536-dim vectors of AI game summaries.
+`embeddingService.js` generates, stores, and queries embeddings. `semantic_search` chat tool
+performs cosine similarity search (`<=>` operator). Embeddings are generated fire-and-forget
+inside `saveSummary()`.
+
+### 13 chat tools
+`search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`,
+`get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,
+`web_search`, `get_seasons`, `get_teams`, `semantic_search`
+
+Defined in `chatToolsService.js`; individual tool logic in `services/chatTools/`.
