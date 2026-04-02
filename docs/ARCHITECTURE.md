@@ -13,6 +13,8 @@ Two-tier update strategy:
 - Deployed as a separate Railway service (`npm run live-sync`)
 - `main()` is guarded by `NODE_ENV !== 'test'`; `upsertGameScoreboard` is a named export for unit testing
 - Check `res.ok` on ESPN fetch — 5xx returns silently treated as "no games" is a known past bug (fixed)
+- **Per-event client**: `tick()` acquires a separate `pool.connect()` per event inside `Promise.all` — `processEvent` runs its own `BEGIN`/`COMMIT`/`ROLLBACK` and sharing one client across concurrent calls corrupts transaction state
+- Uses the shared `pool` from `db/db.js` (not its own `new Pool()`)
 
 ## Scheduled upsert (`upsert.js`)
 - Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
@@ -27,6 +29,8 @@ Two-tier update strategy:
 - 15s `: ping` heartbeat; `X-Accel-Buffering: no` header for Railway
 - Reuse `gamesService`/`gameInfoService` directly in controller (no new service layer)
 - Release PG client in catch block if `LISTEN` fails — otherwise connection leaks
+- `cleanup()` calls `client.removeListener("notification", send)` before UNLISTEN + release
+- `send()` error catch calls `cleanup()` + `res.end()` — prevents zombie connections that would hold a PG LISTEN client open indefinitely
 
 ## Frontend SSE hooks
 - `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` — pass `null` to deactivate without breaking hooks rules

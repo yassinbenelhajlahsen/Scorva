@@ -171,6 +171,20 @@ Test mapping functions with various input formats and edge cases.
 
 Test SSE controllers directly using mock req/res objects (EventEmitter-based client for LISTEN/NOTIFY). Supertest is not used for SSE — `res.write`, `res.writeHead`, and `res.end` are mocked as `jest.fn()`. The mock `listenClient` is a Node.js `EventEmitter` so `notification` events can be simulated.
 
+### 8. liveSync worker tests
+
+`liveSync.js` imports the shared pool from `db/db.js` (not `pg` directly). Mock it with:
+
+```javascript
+let mockPoolInstance;
+jest.unstable_mockModule(resolve(__dirname, "../../src/db/db.js"), () => {
+  mockPoolInstance = { connect: jest.fn(), end: jest.fn(), query: jest.fn() };
+  return { default: mockPoolInstance };
+});
+```
+
+Do **not** mock `pg` — liveSync no longer creates its own `Pool`.
+
 ### 7. Season-Aware Route Tests
 
 Route tests for `games`, `standings`, and `playerInfo` must mock `../../src/cache/seasons.js` with `jest.unstable_mockModule()` so `getCurrentSeason()` never calls `pool.query` in tests:

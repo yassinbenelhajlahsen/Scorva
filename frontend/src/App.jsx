@@ -5,6 +5,7 @@ import PageWrapper from "./components/layout/PageWrapper.jsx";
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ScrollToTop from "./components/layout/ScrollToTop.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import LoadingPage from "./pages/LoadingPage.jsx";
 import Homepage from "./pages/Homepage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
@@ -119,7 +120,9 @@ export default function App() {
                   <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
                     <Navbar />
                     <ScrollToTop />
-                    <AnimatedRoutes />
+                    <ErrorBoundary>
+                      <AnimatedRoutes />
+                    </ErrorBoundary>
                     <Footer />
                   </div>
                 </ChatProvider>

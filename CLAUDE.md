@@ -152,8 +152,8 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `SUPABASE_URL`
 - **Prisma** — schema/migrations only; runtime uses `pg` directly
 - **League validation** — all 8 league-param controllers (teams, standings, games, gameInfo, players, playerInfo, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid)
-- **`apiFetch`** (`frontend/src/api/client.js`) — supports `method` + `body`; sets `Content-Type: application/json` when body present; handles 204 responses
-- **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isFinite` to filter comma-separated params; service uses `ROW_NUMBER()` for 3 most recent per favorite
+- **`apiFetch`** (`frontend/src/api/client.js`) — supports `method` + `body` + `timeout` (default 15 000 ms); sets `Content-Type: application/json` when body present; handles 204 responses; uses `AbortSignal.any([callerSignal, AbortSignal.timeout(ms)])` so callers can still cancel
+- **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isInteger(n) && n > 0` and caps at 50 IDs per array; service uses `ROW_NUMBER()` for 3 most recent per favorite
 - **Google OAuth popup** — `skipBrowserRedirect: true` → popup → `/auth/callback` closes via `postMessage` → parent modal closes
 - **`game_label`** — display-only text, null for regular season; never use for classification logic
 - **`games.type`** — single source of truth for game classification; see `docs/ARCHITECTURE.md`
@@ -167,6 +167,12 @@ Route (routes/) → Controller (controllers/) → Service (services/) → DB (db
 - **Chat conversation summarization** — when conversations exceed 20 messages, older messages are summarized via `gpt-4o-mini` and stored in `chat_conversations.summary`; `summarized_up_to` tracks the offset to avoid re-summarizing; summary is prepended to system prompt as context
 - **RAG (pgvector)** — `game_embeddings` table stores vector embeddings (1536-dim, `text-embedding-3-small`) of AI game summaries; `embeddingService.js` generates/stores/queries embeddings; `semantic_search` chat tool performs cosine similarity search; embeddings auto-generated on AI summary save (fire-and-forget)
 - **Chat tools** — 13 tools total: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `web_search`, `get_seasons`, `get_teams`, `semantic_search`
+- **`liveSync` pool** — imports the shared `pool` from `db/db.js` (not its own `new Pool()`); `tick()` acquires a separate client **per event** inside `Promise.all` — never share one client across concurrent callbacks that call `processEvent` (which runs `BEGIN`/`COMMIT`/`ROLLBACK`)
+- **SSE cleanup** — `liveController` `cleanup()` calls `client.removeListener("notification", send)` before UNLISTEN + release; `send()` catch block calls `cleanup()` + `res.end()` to prevent zombie connections
+- **`gameInfoService` player arrays** — all 6 `json_agg()` subqueries are wrapped with `COALESCE(..., '[]'::json)` so games with no stats return `[]` not `null`
+- **Search input** — term capped at 200 chars; LIKE metacharacters (`%`, `_`, `\`) escaped before building the ILIKE pattern to prevent full-table scans
+- **ErrorBoundary** — `frontend/src/components/ErrorBoundary.jsx` wraps `<AnimatedRoutes />` in App.jsx; catches render crashes and shows a reload prompt instead of white screen
+- **Chat SSE buffer** — `frontend/src/api/chat.js` enforces a 1 MB buffer cap; disconnects with `onError` if exceeded
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
