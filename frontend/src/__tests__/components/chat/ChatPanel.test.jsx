@@ -21,12 +21,29 @@ vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
     {
-      get: () =>
-        ({ children, className }) => (
-          <div className={className}>
-            {children}
-          </div>
-        ),
+      get: (_, tag) => {
+        const El = ({
+          children,
+          className,
+          onClick,
+          animate,
+          initial,
+          exit,
+          transition,
+          whileHover,
+          whileTap,
+          ...props
+        }) => {
+          const Tag = tag;
+          return (
+            <Tag className={className} onClick={onClick} {...props}>
+              {children}
+            </Tag>
+          );
+        };
+        El.displayName = tag;
+        return El;
+      },
     }
   ),
   useAnimation: () => ({ set: vi.fn(), start: vi.fn() }),

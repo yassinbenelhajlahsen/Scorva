@@ -98,6 +98,7 @@ describe("useSearch — successful fetch", () => {
 
 describe("useSearch — error handling", () => {
   it("sets results to empty and clears loading on non-abort error", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     search.mockRejectedValue(new Error("Network error"));
     const { result } = renderHook(() => useSearch("lebron"));
 
@@ -106,6 +107,7 @@ describe("useSearch — error handling", () => {
 
     expect(result.current.loading).toBe(false);
     expect(result.current.results).toEqual([]);
+    consoleSpy.mockRestore();
   });
 
   it("does not wipe results on AbortError", async () => {
