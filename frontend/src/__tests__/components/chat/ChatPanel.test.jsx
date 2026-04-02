@@ -17,24 +17,20 @@ vi.mock("../../../components/chat/ChatInput.jsx", () => ({
   default: () => <div data-testid="chat-input" />,
 }));
 
+const MOTION_PROPS = new Set([
+  "animate", "initial", "exit", "transition", "whileHover", "whileTap",
+]);
+
 vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
     {
       get: (_, tag) => {
-        const El = ({
-          children,
-          className,
-          onClick,
-          animate,
-          initial,
-          exit,
-          transition,
-          whileHover,
-          whileTap,
-          ...props
-        }) => {
+        const El = ({ children, className, onClick, ...rest }) => {
           const Tag = tag;
+          const props = Object.fromEntries(
+            Object.entries(rest).filter(([k]) => !MOTION_PROPS.has(k))
+          );
           return (
             <Tag className={className} onClick={onClick} {...props}>
               {children}
