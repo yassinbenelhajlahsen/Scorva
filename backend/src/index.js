@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import "./config/env.js";
 import { closeCache } from "./cache/cache.js";
+import pool from "./db/db.js";
 import logger from "./logger.js";
 import {
   requestLogger,
@@ -71,12 +72,14 @@ app.use("/api", favoritesRoute);
 app.use("/api", userRoute);
 
 const port = process.env.PORT || 8080;
-app.listen(port, "0.0.0.0", () => {
+const server = app.listen(port, "0.0.0.0", () => {
   logger.info({ port }, "server ready");
 });
 
 process.on("SIGTERM", async () => {
   logger.info("shutting down");
+  server.close();
   await closeCache();
+  await pool.end();
   process.exit(0);
 });
