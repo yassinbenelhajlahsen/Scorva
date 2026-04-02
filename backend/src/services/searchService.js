@@ -51,9 +51,11 @@ LIMIT 15;
 
 export async function search(term) {
   const sanitizedTerm = term.trim();
+  if (!sanitizedTerm || sanitizedTerm.length > 200) return [];
+  const escapedTerm = sanitizedTerm.replace(/[%_\\]/g, "\\$&");
   const result = await pool.query(SEARCH_QUERY, [
-    `%${sanitizedTerm}%`,
-    sanitizedTerm,
+    `%${escapedTerm}%`,
+    escapedTerm,
     tryParseDate(sanitizedTerm),
   ]);
   return result.rows;

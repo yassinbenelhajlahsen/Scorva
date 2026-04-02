@@ -28,6 +28,10 @@ function parseId(value) {
   return Number.isNaN(n) ? null : n;
 }
 
+function parseIdList(csv) {
+  return csv ? csv.split(",").map(Number).filter(n => Number.isInteger(n) && n > 0).slice(0, 50) : [];
+}
+
 export async function addFavoritePlayer(req, res) {
   try {
     const playerId = parseId(req.params.playerId);
@@ -78,12 +82,8 @@ export async function removeFavoriteTeam(req, res) {
 
 export async function checkFavorites(req, res) {
   try {
-    const playerIds = req.query.playerIds
-      ? req.query.playerIds.split(",").map(s => parseInt(s, 10)).filter(Number.isFinite)
-      : [];
-    const teamIds = req.query.teamIds
-      ? req.query.teamIds.split(",").map(s => parseInt(s, 10)).filter(Number.isFinite)
-      : [];
+    const playerIds = parseIdList(req.query.playerIds);
+    const teamIds = parseIdList(req.query.teamIds);
     const result = await favoritesService.checkFavorites(
       req.user.id,
       playerIds,

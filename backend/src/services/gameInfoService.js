@@ -49,7 +49,7 @@ export async function getNbaGame(gameId) {
       'conference', ht.conf
     ),
     'players', (
-      SELECT json_agg(json_build_object(
+      SELECT COALESCE(json_agg(json_build_object(
         'id', p.id,
         'name', p.name,
         'position', p.position,
@@ -74,7 +74,7 @@ export async function getNbaGame(gameId) {
           '3PT', s.threept,
           'FT', s.ft
         )
-      ))
+      )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
       WHERE s.gameid = g.id AND p.teamid = g.hometeamid
@@ -93,7 +93,7 @@ export async function getNbaGame(gameId) {
       'conference', at.conf
     ),
     'players', (
-      SELECT json_agg(json_build_object(
+      SELECT COALESCE(json_agg(json_build_object(
         'id', p.id,
         'name', p.name,
         'position', p.position,
@@ -118,7 +118,7 @@ export async function getNbaGame(gameId) {
           '3PT', s.threept,
           'FT', s.ft
         )
-      ))
+      )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
       WHERE s.gameid = g.id AND p.teamid = g.awayteamid
@@ -183,7 +183,7 @@ export async function getNflGame(gameId) {
       'conference', ht.conf
     ),
     'players', (
-      SELECT json_agg(json_build_object(
+      SELECT COALESCE(json_agg(json_build_object(
         'id', p.id,
         'name', p.name,
         'position', p.position,
@@ -201,7 +201,7 @@ export async function getNflGame(gameId) {
           'TD', s.td,
           'INT', s.interceptions
         )
-      ))
+      )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
       WHERE s.gameid = g.id AND p.teamid = g.hometeamid
@@ -220,7 +220,7 @@ export async function getNflGame(gameId) {
       'conference', at.conf
     ),
     'players', (
-      SELECT json_agg(json_build_object(
+      SELECT COALESCE(json_agg(json_build_object(
         'id', p.id,
         'name', p.name,
         'position', p.position,
@@ -238,7 +238,7 @@ export async function getNflGame(gameId) {
           'TD', s.td,
           'INT', s.interceptions
         )
-      ))
+      )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
       WHERE s.gameid = g.id AND p.teamid = g.awayteamid
@@ -304,7 +304,7 @@ export async function getNhlGame(gameId) {
       'conference', ht.conf
     ),
     'players', (
-      SELECT json_agg(json_build_object(
+      SELECT COALESCE(json_agg(json_build_object(
         'id', p.id,
         'name', p.name,
         'position', p.position,
@@ -331,7 +331,7 @@ export async function getNhlGame(gameId) {
           'TK', s.tk,
           'GV', s.gv
         )
-      ))
+      )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
       WHERE s.gameid = g.id AND p.teamid = g.hometeamid
@@ -350,7 +350,7 @@ export async function getNhlGame(gameId) {
       'conference', at.conf
     ),
     'players', (
-      SELECT json_agg(json_build_object(
+      SELECT COALESCE(json_agg(json_build_object(
         'id', p.id,
         'name', p.name,
         'position', p.position,
@@ -377,7 +377,7 @@ export async function getNhlGame(gameId) {
           'TK', s.tk,
           'GV', s.gv
         )
-      ))
+      )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
       WHERE s.gameid = g.id AND p.teamid = g.awayteamid
