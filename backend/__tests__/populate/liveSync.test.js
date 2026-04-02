@@ -9,19 +9,16 @@ import { dirname, resolve } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Capture the pool mock instance when Pool is constructed so tick() tests
-// can control pool.connect() and the returned client.
+// Mock the shared db pool so liveSync doesn't open real connections
 let mockPoolInstance;
-jest.unstable_mockModule("pg", () => ({
-  Pool: jest.fn().mockImplementation(() => {
-    mockPoolInstance = {
-      connect: jest.fn(),
-      end: jest.fn(),
-      query: jest.fn(),
-    };
-    return mockPoolInstance;
-  }),
-}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/db/db.js"), () => {
+  mockPoolInstance = {
+    connect: jest.fn(),
+    end: jest.fn(),
+    query: jest.fn(),
+  };
+  return { default: mockPoolInstance };
+});
 
 // Mock eventProcessor so processEvent doesn't make real ESPN calls
 const eventProcessorPath = resolve(
@@ -314,7 +311,7 @@ describe("tick — justFinalized handling", () => {
     // Should still remove from eventState even after fallback
     expect(eventState.has(eventId)).toBe(false);
 
-    // ROLLBACK + upsertGameScoreboard UPDATE + pg_notify
+    // upsertGameScoreboard UPDATE + pg_notify (no ROLLBACK — processEvent handles its own tx)
     const updateCalls = mockClient.query.mock.calls.filter(([sql]) =>
       sql.includes("UPDATE games")
     );

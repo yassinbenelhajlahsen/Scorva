@@ -1,24 +1,10 @@
-import dotenv from "dotenv";
-import { Pool } from "pg";
 import { processEvent, clearPlayerCache } from "./src/eventProcessor.js";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
 import { invalidate, invalidatePattern, closeCache } from "../cache/cache.js";
 import logger from "../logger.js";
+import pool from "../db/db.js";
 
 const log = logger.child({ worker: "liveSync" });
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, "../../.env") });
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
-});
 
 const LEAGUES = [
   { slug: "nba", sport: "basketball" },
@@ -158,19 +144,21 @@ export async function tick(liveLeagues) {
     if (liveEvents.length) stillLive.push({ slug, sport });
 
     const now = Date.now();
-    const client = await pool.connect();
-    try {
-      // Process in-progress games (existing two-tier logic)
-      for (let i = 0; i < liveEvents.length; i += 5) {
-        await Promise.all(
-          liveEvents.slice(i, i + 5).map(async (event) => {
-            const eventId = parseInt(event.id, 10);
-            const state = eventState.get(eventId) ?? { lastFullUpdate: 0, lastPeriod: null };
-            const currentPeriod = event.status?.period ?? null;
-            const periodChanged = currentPeriod !== state.lastPeriod;
-            const needsFullUpdate =
-              now - state.lastFullUpdate > FULL_UPDATE_INTERVAL_MS || periodChanged;
 
+    // Process in-progress games — each event gets its own client to prevent
+    // concurrent transactions from corrupting each other's state.
+    for (let i = 0; i < liveEvents.length; i += 5) {
+      await Promise.all(
+        liveEvents.slice(i, i + 5).map(async (event) => {
+          const eventId = parseInt(event.id, 10);
+          const state = eventState.get(eventId) ?? { lastFullUpdate: 0, lastPeriod: null };
+          const currentPeriod = event.status?.period ?? null;
+          const periodChanged = currentPeriod !== state.lastPeriod;
+          const needsFullUpdate =
+            now - state.lastFullUpdate > FULL_UPDATE_INTERVAL_MS || periodChanged;
+
+          const client = await pool.connect();
+          try {
             if (needsFullUpdate) {
               try {
                 await processEvent(client, slug, event);
@@ -178,10 +166,7 @@ export async function tick(liveLeagues) {
                 await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
               } catch (err) {
                 log.error({ err, eventId }, "Full update failed for event");
-                // Fall back to fast path
-                try {
-                  await client.query("ROLLBACK");
-                } catch (_) { /* ignore */ }
+                // Fall back to fast path — processEvent already committed/rolled back
                 await upsertGameScoreboard(client, slug, event);
                 eventState.set(eventId, { ...state, lastPeriod: currentPeriod });
               }
@@ -189,31 +174,33 @@ export async function tick(liveLeagues) {
               await upsertGameScoreboard(client, slug, event);
               eventState.set(eventId, { ...state, lastPeriod: currentPeriod });
             }
-          })
-        );
-      }
+          } finally {
+            client.release();
+          }
+        })
+      );
+    }
 
-      // Write Final status for games that just ended and remove from tracking
-      for (const event of justFinalized) {
-        const eventId = parseInt(event.id, 10);
+    // Write Final status for games that just ended — each gets its own client
+    for (const event of justFinalized) {
+      const eventId = parseInt(event.id, 10);
+      const client = await pool.connect();
+      try {
         try {
           await processEvent(client, slug, event);
           await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
         } catch (err) {
           log.error({ err, eventId }, "Final update failed for event");
-          try {
-            await client.query("ROLLBACK");
-          } catch (_) { /* ignore */ }
           await upsertGameScoreboard(client, slug, event);
         }
-        eventState.delete(eventId);
+      } finally {
+        client.release();
       }
-      // Standings change when games finalize
-      if (justFinalized.length > 0) {
-        await invalidatePattern(`standings:${slug}:*`);
-      }
-    } finally {
-      client.release();
+      eventState.delete(eventId);
+    }
+    // Standings change when games finalize
+    if (justFinalized.length > 0) {
+      await invalidatePattern(`standings:${slug}:*`);
     }
   }
 
