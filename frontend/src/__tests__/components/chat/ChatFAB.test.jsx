@@ -6,11 +6,25 @@ vi.mock("framer-motion", () => ({
     {},
     {
       get: (_, tag) => {
-        const El = ({ children, className, onClick, ...props }) => (
-          <button className={className} onClick={onClick} {...props}>
-            {children}
-          </button>
-        );
+        const El = ({
+          children,
+          className,
+          onClick,
+          whileHover,
+          whileTap,
+          initial,
+          animate,
+          exit,
+          transition,
+          ...props
+        }) => {
+          const Tag = tag;
+          return (
+            <Tag className={className} onClick={onClick} {...props}>
+              {children}
+            </Tag>
+          );
+        };
         El.displayName = tag;
         return El;
       },
