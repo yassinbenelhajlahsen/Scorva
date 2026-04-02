@@ -55,6 +55,8 @@ export async function streamGames(req, res) {
       }
     } catch (err) {
       logger.error({ err }, "SSE streamGames error");
+      cleanup();
+      if (!res.writableEnded) res.end();
     }
   }
 
@@ -63,6 +65,7 @@ export async function streamGames(req, res) {
     const client = listenClient;
     listenClient = null;
     if (client) {
+      client.removeListener("notification", send);
       try { await client.query("UNLISTEN game_updated"); } catch { /* ignore */ }
       client.release();
     }
@@ -123,6 +126,8 @@ export async function streamGame(req, res) {
       }
     } catch (err) {
       logger.error({ err }, "SSE streamGame error");
+      cleanup();
+      if (!res.writableEnded) res.end();
     }
   }
 
@@ -131,6 +136,7 @@ export async function streamGame(req, res) {
     const client = listenClient;
     listenClient = null;
     if (client) {
+      client.removeListener("notification", send);
       try { await client.query("UNLISTEN game_updated"); } catch { /* ignore */ }
       client.release();
     }
