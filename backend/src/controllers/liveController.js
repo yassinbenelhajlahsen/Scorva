@@ -1,6 +1,6 @@
-import pool from "../db/db.js";
 import { getGames } from "../services/gamesService.js";
 import { getNbaGame, getNflGame, getNhlGame } from "../services/gameInfoService.js";
+import { subscribe, unsubscribe } from "../db/notificationBus.js";
 import logger from "../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
@@ -38,7 +38,6 @@ export async function streamGames(req, res) {
 
   setSSEHeaders(res);
 
-  let listenClient = null;
   let heartbeat;
 
   async function send() {
@@ -62,23 +61,10 @@ export async function streamGames(req, res) {
 
   async function cleanup() {
     clearInterval(heartbeat);
-    const client = listenClient;
-    listenClient = null;
-    if (client) {
-      client.removeListener("notification", send);
-      try { await client.query("UNLISTEN game_updated"); } catch { /* ignore */ }
-      client.release();
-    }
+    await unsubscribe(send);
   }
 
-  try {
-    listenClient = await pool.connect();
-    await listenClient.query("LISTEN game_updated");
-    listenClient.on("notification", send);
-  } catch (err) {
-    logger.error({ err }, "SSE LISTEN setup error");
-    if (listenClient) { listenClient.release(); listenClient = null; }
-  }
+  await subscribe(send);
 
   await send();
   if (res.writableEnded) { await cleanup(); return; }
@@ -103,7 +89,6 @@ export async function streamGame(req, res) {
   const handler = leagueHandlers[league.toLowerCase()];
   setSSEHeaders(res);
 
-  let listenClient = null;
   let heartbeat;
 
   async function send() {
@@ -133,23 +118,10 @@ export async function streamGame(req, res) {
 
   async function cleanup() {
     clearInterval(heartbeat);
-    const client = listenClient;
-    listenClient = null;
-    if (client) {
-      client.removeListener("notification", send);
-      try { await client.query("UNLISTEN game_updated"); } catch { /* ignore */ }
-      client.release();
-    }
+    await unsubscribe(send);
   }
 
-  try {
-    listenClient = await pool.connect();
-    await listenClient.query("LISTEN game_updated");
-    listenClient.on("notification", send);
-  } catch (err) {
-    logger.error({ err }, "SSE LISTEN setup error");
-    if (listenClient) { listenClient.release(); listenClient = null; }
-  }
+  await subscribe(send);
 
   await send();
   if (res.writableEnded) { await cleanup(); return; }

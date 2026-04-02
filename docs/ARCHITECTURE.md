@@ -28,9 +28,16 @@ Two-tier update strategy:
 - Mounted **before** `generalLimiter` but **behind** `sseConnectionLimiter` (max 6 concurrent per IP)
 - 15s `: ping` heartbeat; `X-Accel-Buffering: no` header for Railway
 - Reuse `gamesService`/`gameInfoService` directly in controller (no new service layer)
-- Release PG client in catch block if `LISTEN` fails — otherwise connection leaks
-- `cleanup()` calls `client.removeListener("notification", send)` before UNLISTEN + release
-- `send()` error catch calls `cleanup()` + `res.end()` — prevents zombie connections that would hold a PG LISTEN client open indefinitely
+- `send()` error catch calls `cleanup()` + `res.end()` — prevents zombie connections
+
+### Notification bus (`backend/src/db/notificationBus.js`)
+Holds a **single** shared PG `LISTEN` connection for all SSE clients, fanning out via an in-process EventEmitter. This prevents N clients each consuming one pool connection.
+
+- `subscribe(callback)` — adds listener; acquires connection on first subscriber
+- `unsubscribe(callback)` — removes listener; releases connection when subscriber count reaches 0
+- `shutdown()` — UNLISTEN + release; called in SIGTERM handler before `pool.end()`
+- Auto-reconnects on PG client error after 1s if subscribers remain (`setTimeout(...).unref()`)
+- `shuttingDown` flag reset on `subscribe()` so the bus can restart after shutdown in tests
 
 ## Frontend SSE hooks
 - `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` — pass `null` to deactivate without breaking hooks rules

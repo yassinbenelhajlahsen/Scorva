@@ -8,23 +8,31 @@ import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { createMockPool, fixtures } from "../helpers/testHelpers.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import EventEmitter from "events";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // ---------------------------------------------------------------------------
-// Mock pool — client must be an EventEmitter so LISTEN notifications work
+// Mock notificationBus — subscribe/unsubscribe instead of pool.connect
 // ---------------------------------------------------------------------------
 
+let subscribedCallbacks = [];
+
+const mockSubscribe = jest.fn(async (cb) => { subscribedCallbacks.push(cb); });
+const mockUnsubscribe = jest.fn(async (cb) => {
+  subscribedCallbacks = subscribedCallbacks.filter((s) => s !== cb);
+});
+const mockShutdown = jest.fn();
+
+const busPath = resolve(__dirname, "../../src/db/notificationBus.js");
+jest.unstable_mockModule(busPath, () => ({
+  subscribe: mockSubscribe,
+  unsubscribe: mockUnsubscribe,
+  shutdown: mockShutdown,
+}));
+
+// Mock pool for getGames / getGameInfo queries (pool.query, not pool.connect)
 const mockPool = createMockPool();
-
-// Replace the connect mock with an EventEmitter-based client
-const mockListenClient = new EventEmitter();
-mockListenClient.query = jest.fn().mockResolvedValue({ rows: [] });
-mockListenClient.release = jest.fn();
-mockPool.connect = jest.fn().mockResolvedValue(mockListenClient);
-
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({
   default: mockPool,
@@ -39,6 +47,8 @@ const { streamGames, streamGame } = await import(controllerPath);
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+import EventEmitter from "events";
 
 function makeReq(params = {}) {
   const emitter = new EventEmitter();
@@ -77,6 +87,11 @@ function makeLiveGame(overrides = {}) {
   return { ...fixtures.game(), status: "In Progress", ...overrides };
 }
 
+// Fire all currently subscribed notification callbacks
+async function fireNotification() {
+  await Promise.all(subscribedCallbacks.map((cb) => cb()));
+}
+
 // ---------------------------------------------------------------------------
 // streamGames
 // ---------------------------------------------------------------------------
@@ -84,10 +99,8 @@ function makeLiveGame(overrides = {}) {
 describe("streamGames", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPool.connect.mockResolvedValue(mockListenClient);
-    mockListenClient.query.mockResolvedValue({ rows: [] });
-    mockListenClient.release.mockReset();
-    mockListenClient.removeAllListeners();
+    subscribedCallbacks = [];
+    mockPool.query.mockReset();
   });
 
   it("returns 400 for invalid league", async () => {
@@ -141,7 +154,6 @@ describe("streamGames", () => {
     const res = makeRes();
     await streamGames(req, res);
 
-    // Only 1 pool.query call (no EXISTS check), plus the LISTEN on the client
     expect(mockPool.query).toHaveBeenCalledTimes(1);
     expect(mockPool.query).toHaveBeenCalledWith(
       expect.not.stringContaining("EXISTS"),
@@ -173,7 +185,7 @@ describe("streamGames", () => {
     expect(res.end).not.toHaveBeenCalled();
   });
 
-  it("calls LISTEN game_updated on setup", async () => {
+  it("subscribes to notificationBus on setup", async () => {
     const liveGame = makeLiveGame();
     mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
 
@@ -181,12 +193,12 @@ describe("streamGames", () => {
     const res = makeRes();
     await streamGames(req, res);
 
-    expect(mockListenClient.query).toHaveBeenCalledWith("LISTEN game_updated");
+    expect(mockSubscribe).toHaveBeenCalledTimes(1);
+    expect(mockSubscribe).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  it("pushes data on pg notification", async () => {
+  it("pushes data on notification", async () => {
     const liveGame = makeLiveGame();
-    // live: true skips EXISTS check — one query per getGames() call.
     mockPool.query
       .mockResolvedValueOnce({ rows: [liveGame] })  // initial send
       .mockResolvedValueOnce({ rows: [liveGame] }); // notification-triggered send
@@ -197,11 +209,7 @@ describe("streamGames", () => {
 
     const framesBefore = res.written.filter((w) => w.startsWith("data:")).length;
 
-    // Simulate pg notification
-    await new Promise((resolve) => {
-      mockListenClient.emit("notification", { channel: "game_updated", payload: "12345" });
-      setImmediate(resolve);
-    });
+    await fireNotification();
 
     const framesAfter = res.written.filter((w) => w.startsWith("data:")).length;
     expect(framesAfter).toBeGreaterThan(framesBefore);
@@ -215,7 +223,7 @@ describe("streamGames", () => {
     await expect(streamGames(req, res)).resolves.toBeUndefined();
   });
 
-  it("UNLISTENs and releases client on close", async () => {
+  it("unsubscribes from notificationBus on close", async () => {
     const liveGame = makeLiveGame();
     mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
 
@@ -224,11 +232,9 @@ describe("streamGames", () => {
     await streamGames(req, res);
 
     req.emit("close");
-    // Allow async cleanup
     await new Promise((r) => setImmediate(r));
 
-    expect(mockListenClient.query).toHaveBeenCalledWith("UNLISTEN game_updated");
-    expect(mockListenClient.release).toHaveBeenCalled();
+    expect(mockUnsubscribe).toHaveBeenCalled();
   });
 });
 
@@ -239,10 +245,8 @@ describe("streamGames", () => {
 describe("streamGame", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPool.connect.mockResolvedValue(mockListenClient);
-    mockListenClient.query.mockResolvedValue({ rows: [] });
-    mockListenClient.release.mockReset();
-    mockListenClient.removeAllListeners();
+    subscribedCallbacks = [];
+    mockPool.query.mockReset();
   });
 
   it("returns 400 for invalid league", async () => {
@@ -309,5 +313,30 @@ describe("streamGame", () => {
     const req = makeReq({ league: "nba", gameId: "1" });
     const res = makeRes();
     await expect(streamGame(req, res)).resolves.toBeUndefined();
+  });
+
+  it("subscribes to notificationBus on setup", async () => {
+    const gameRow = { json_build_object: { game: { status: "In Progress" } } };
+    mockPool.query.mockResolvedValueOnce({ rows: [gameRow] });
+
+    const req = makeReq({ league: "nba", gameId: "1" });
+    const res = makeRes();
+    await streamGame(req, res);
+
+    expect(mockSubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("unsubscribes from notificationBus on close", async () => {
+    const gameRow = { json_build_object: { game: { status: "In Progress" } } };
+    mockPool.query.mockResolvedValueOnce({ rows: [gameRow] });
+
+    const req = makeReq({ league: "nba", gameId: "1" });
+    const res = makeRes();
+    await streamGame(req, res);
+
+    req.emit("close");
+    await new Promise((r) => setImmediate(r));
+
+    expect(mockUnsubscribe).toHaveBeenCalled();
   });
 });

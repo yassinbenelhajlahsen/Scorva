@@ -4,6 +4,7 @@ import helmet from "helmet";
 import "./config/env.js";
 import { closeCache } from "./cache/cache.js";
 import pool from "./db/db.js";
+import { shutdown as shutdownNotificationBus } from "./db/notificationBus.js";
 import logger from "./logger.js";
 import {
   requestLogger,
@@ -79,6 +80,7 @@ const server = app.listen(port, "0.0.0.0", () => {
 process.on("SIGTERM", async () => {
   logger.info("shutting down");
   server.close();
+  await shutdownNotificationBus();
   await closeCache();
   await pool.end();
   process.exit(0);
