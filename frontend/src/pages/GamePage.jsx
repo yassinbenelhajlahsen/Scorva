@@ -230,103 +230,133 @@ export default function GamePage() {
         </div>
       </div>
 
-      {/* Game info + Top performers */}
-      <div className="flex flex-col lg:flex-row gap-6 mb-10">
-        {/* Game info card */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0 w-80 min-h-[164px] flex flex-col">
-          <div className="grid grid-cols-[max-content_auto] gap-x-8 content-between flex-1">
-            <span className="text-sm text-text-tertiary">Date</span>
-            <span className="text-sm font-medium text-text-primary">
-              {!isFinal && !inProgress && game.startTime
-                ? formatDateWithTime(game.date, game.startTime)
-                : formatDate(game.date)}
-            </span>
-            <span className="text-sm text-text-tertiary">Status</span>
-            <span className="text-sm font-medium text-text-primary">{game.status}</span>
-            <span className="text-sm text-text-tertiary">Location</span>
-            <span className="text-sm font-medium text-text-primary">{game.venue}</span>
-            {game.broadcast && (
-              <>
-                <span className="text-sm text-text-tertiary">Broadcast</span>
-                <span className="text-sm font-medium text-text-primary">{game.broadcast}</span>
-              </>
-            )}
-          </div>
+      {/* Game info + Quarter scores */}
+      <div className={`mb-6 ${isFinal || inProgress ? "grid grid-cols-1 lg:grid-cols-[32.5%_1fr] gap-4" : ""}`}>
+        {/* Game info */}
+        <div className={`bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] ${isFinal || inProgress ? "p-4 flex flex-col" : "px-6 py-5"}`}>
+          {isFinal || inProgress ? (
+            /* Compact vertical layout beside quarter scores */
+            <div className="flex flex-col justify-between h-full">
+              {[
+                { label: "Date",      value: formatDate(game.date) },
+                { label: "Status",    value: game.status },
+                { label: "Location",  value: game.venue },
+                ...(game.broadcast ? [{ label: "Broadcast", value: game.broadcast }] : []),
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-baseline gap-3">
+                  <span className="text-xs text-text-tertiary shrink-0 w-14">{label}</span>
+                  <span className="text-xs font-medium text-text-primary">{value}</span>
+                </div>
+              ))}</div>
+          ) : (
+            /* Pre-game: evenly distributed columns across full width */
+            <div className="flex items-center justify-between gap-4 flex-wrap min-h-[56px] py-2">
+              <div className="flex flex-col gap-1 flex-1 min-w-[100px]">
+                <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Date</span>
+                <span className="text-sm font-semibold text-text-primary">
+                  {game.startTime ? formatDateWithTime(game.date, game.startTime) : formatDate(game.date)}
+                </span>
+              </div>
+              <div className="w-px h-8 bg-white/[0.06] shrink-0 hidden sm:block" />
+              <div className="flex flex-col gap-1 flex-1 min-w-[80px]">
+                <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Status</span>
+                <span className="text-sm font-semibold text-text-primary">{game.status}</span>
+              </div>
+              <div className="w-px h-8 bg-white/[0.06] shrink-0 hidden sm:block" />
+              <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Location</span>
+                <span className="text-sm font-semibold text-text-primary">{game.venue}</span>
+              </div>
+              {game.broadcast && (
+                <>
+                  <div className="w-px h-8 bg-white/[0.06] shrink-0 hidden sm:block" />
+                  <div className="flex flex-col gap-1 flex-1 min-w-[80px]">
+                    <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Broadcast</span>
+                    <span className="text-sm font-semibold text-text-primary">{game.broadcast}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Top performers */}
-        <div className="flex-1 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <TopPerformerCard title="Top Performer" player={topPerformer} league={league} />
-          <TopPerformerCard title="Top Scorer"    player={topScorer}    league={league} />
-          <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
-        </div>
-      </div>
-
-      {/* Quarter-by-quarter */}
-      {(isFinal || inProgress) && (
-        <div className="max-w-2xl mx-auto mb-2">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            <ul className="text-sm text-text-secondary font-mono space-y-2">
-              {/* Header */}
-              <li className="flex items-center justify-center gap-x-6 text-text-tertiary text-xs uppercase tracking-widest">
-                <span className="w-24" />
+        {/* Quarter-by-quarter */}
+        {(isFinal || inProgress) && (
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            <div className="font-mono text-sm w-full">
+              {/* Header row */}
+              <div className="flex items-center gap-x-2 text-[10px] uppercase tracking-widest text-text-tertiary pb-2 border-b border-white/[0.06]">
+                <span className="flex-1 min-w-0">Team</span>
                 {quarterKeys.map((_, i) => (
-                  <span key={i} className="w-10 text-center">{i + 1}</span>
+                  <span key={i} className="w-9 text-center shrink-0">{i + 1}</span>
                 ))}
                 {game.score.quarters.ot.map(
-                  (val, i) =>
-                    val && (
-                      <span key={`OT${i + 1}`} className="w-10 text-center">OT{i > 0 ? i + 1 : ""}</span>
-                    )
+                  (val, i) => val && (
+                    <span key={`OT${i + 1}`} className="w-9 text-center shrink-0">
+                      {i === 0 ? "OT" : `OT${i + 1}`}
+                    </span>
+                  )
                 )}
-                <span className="w-10 text-center font-semibold text-text-secondary">T</span>
-              </li>
+                <span className="w-9 text-center shrink-0 font-semibold text-text-secondary">T</span>
+              </div>
 
-              {/* Home */}
-              <li className="flex items-center justify-center gap-x-6">
-                <span className="w-24 font-semibold text-left text-text-primary text-sm">
+              {/* Home row */}
+              <div className="flex items-center gap-x-2 pt-2.5 pb-1.5">
+                <span className="flex-1 min-w-0 font-semibold text-text-primary truncate">
                   {homeTeam.info.shortName}
                 </span>
                 {quarterKeys.map((q) => (
-                  <span key={q} className="w-10 text-center text-sm">
+                  <span key={q} className="w-9 text-center shrink-0 text-text-secondary">
                     {game.score.quarters[q]?.split("-")[0] ?? "–"}
                   </span>
                 ))}
                 {game.score.quarters.ot.map(
-                  (val, i) =>
-                    val && (
-                      <span key={`home-OT${i + 1}`} className="w-10 text-center">{val.split("-")[0]}</span>
-                    )
+                  (val, i) => val && (
+                    <span key={`home-OT${i + 1}`} className="w-9 text-center shrink-0 text-text-secondary">
+                      {val.split("-")[0]}
+                    </span>
+                  )
                 )}
-                <span className={`w-10 text-center font-bold text-sm tabular-nums ${scoreColor(homeWon, awayWon && isFinal)}`}>
-                  {isFinal && game.score.home}
+                <span className={`w-9 text-center shrink-0 font-bold tabular-nums ${scoreColor(homeWon, awayWon && isFinal)}`}>
+                  {(isFinal || inProgress) && game.score.home}
                 </span>
-              </li>
+              </div>
 
-              {/* Away */}
-              <li className="flex items-center justify-center gap-x-6">
-                <span className="w-24 font-semibold text-left text-text-primary text-sm">
+              {/* Divider */}
+              <div className="border-t border-white/[0.04]" />
+
+              {/* Away row */}
+              <div className="flex items-center gap-x-2 pt-1.5">
+                <span className="flex-1 min-w-0 font-semibold text-text-primary truncate">
                   {awayTeam.info.shortName}
                 </span>
                 {quarterKeys.map((q) => (
-                  <span key={q} className="w-10 text-center text-sm">
+                  <span key={q} className="w-9 text-center shrink-0 text-text-secondary">
                     {game.score.quarters[q]?.split("-")[1] ?? "–"}
                   </span>
                 ))}
                 {game.score.quarters.ot.map(
-                  (val, i) =>
-                    val && (
-                      <span key={`away-OT${i + 1}`} className="w-10 text-center">{val.split("-")[1]}</span>
-                    )
+                  (val, i) => val && (
+                    <span key={`away-OT${i + 1}`} className="w-9 text-center shrink-0 text-text-secondary">
+                      {val.split("-")[1]}
+                    </span>
+                  )
                 )}
-                <span className={`w-10 text-center font-bold text-sm tabular-nums ${scoreColor(awayWon, homeWon && isFinal)}`}>
-                  {isFinal && game.score.away}
+                <span className={`w-9 text-center shrink-0 font-bold tabular-nums ${scoreColor(awayWon, homeWon && isFinal)}`}>
+                  {(isFinal || inProgress) && game.score.away}
                 </span>
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Top performers */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <TopPerformerCard title="Top Performer" player={topPerformer} league={league} />
+        <TopPerformerCard title="Top Scorer"    player={topScorer}    league={league} />
+        <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
+      </div>
 
       {/* AI Summary */}
       {isFinal && <AISummary gameId={gameId} />}

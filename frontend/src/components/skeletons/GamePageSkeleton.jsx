@@ -2,13 +2,23 @@ import Skeleton from "../ui/Skeleton.jsx";
 
 function TopPerformerSkeleton() {
   return (
-    <div className="flex items-center gap-4 bg-surface-elevated border border-white/[0.08] p-4 rounded-2xl">
-      <Skeleton className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex-shrink-0" />
-      <div className="flex-1 flex flex-col gap-2">
-        <Skeleton className="h-2.5 w-16" />
-        <Skeleton className="h-3.5 w-28" />
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-24" />
+    <div className="flex items-stretch bg-surface-elevated border border-white/[0.08] rounded-2xl h-[108px] overflow-hidden">
+      {/* Left slab */}
+      <div className="w-[88px] shrink-0 bg-white/[0.03] border-r border-white/[0.05] flex flex-col items-center justify-center gap-2">
+        <Skeleton className="w-12 h-12 rounded-full" />
+        <Skeleton className="h-2 w-14" />
+      </div>
+      {/* Right zone */}
+      <div className="flex-1 flex flex-col justify-between px-3.5 py-3">
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-3.5 w-28" />
+          <Skeleton className="h-2.5 w-16" />
+        </div>
+        <div className="flex gap-3.5">
+          <Skeleton className="h-4 w-7" />
+          <Skeleton className="h-4 w-7" />
+          <Skeleton className="h-4 w-7" />
+        </div>
       </div>
     </div>
   );
@@ -41,28 +51,52 @@ export default function GamePageSkeleton() {
         <TeamSideSkeleton />
       </div>
 
-      {/* Game info + top performers */}
-      <div className="flex flex-col lg:flex-row gap-6 mb-10">
-        {/* Game info card */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0 w-80 min-h-[164px] flex flex-col">
-          <div className="grid grid-cols-[max-content_auto] gap-x-8 content-between flex-1">
-            <Skeleton className="h-5 w-10" />
-            <Skeleton className="h-5 w-28" />
-            <Skeleton className="h-5 w-14" />
-            <Skeleton className="h-5 w-16" />
-            <Skeleton className="h-5 w-16" />
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-5 w-20" />
-            <Skeleton className="h-5 w-16" />
+      {/* Game info + Quarter scores */}
+      <div className="grid grid-cols-1 lg:grid-cols-[32.5%_1fr] gap-4 mb-6">
+        {/* Game info — compact */}
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col">
+          <div className="flex flex-col justify-between h-full gap-2">
+            {["Date", "Status", "Location", "Broadcast"].map((label) => (
+              <div key={label} className="flex items-baseline gap-3">
+                <Skeleton className="h-3 w-14 shrink-0" />
+                <Skeleton className={`h-3 ${label === "Location" ? "w-28" : label === "Date" ? "w-24" : "w-16"}`} />
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Top performer cards */}
-        <div className="flex-1 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <TopPerformerSkeleton key={i} />
-          ))}
+        {/* Quarter scores */}
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          {/* Header row */}
+          <div className="flex items-center gap-x-2 pb-2 border-b border-white/[0.06]">
+            <Skeleton className="h-3 flex-1" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-3 w-9 shrink-0" />
+            ))}
+          </div>
+          {/* Home row */}
+          <div className="flex items-center gap-x-2 pt-2.5 pb-1.5">
+            <Skeleton className="h-3.5 flex-1" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
+            ))}
+          </div>
+          <div className="border-t border-white/[0.04]" />
+          {/* Away row */}
+          <div className="flex items-center gap-x-2 pt-1.5">
+            <Skeleton className="h-3.5 flex-1" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Top performer cards */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <TopPerformerSkeleton key={i} />
+        ))}
       </div>
 
       {/* Quarter-by-quarter */}
