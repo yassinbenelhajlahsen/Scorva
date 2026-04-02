@@ -7,7 +7,7 @@ export default function SeasonSelector({ league, selectedSeason, onSeasonChange 
     return (
       <div className="relative inline-flex items-center">
         <div className="bg-surface-elevated border border-white/[0.08] rounded-xl px-4 py-2 pr-8 text-sm font-medium text-transparent select-none">
-          &nbsp;
+          2025-26
         </div>
       </div>
     );

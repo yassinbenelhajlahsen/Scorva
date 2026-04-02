@@ -44,14 +44,16 @@ export default function GamePageSkeleton() {
       {/* Game info + top performers */}
       <div className="flex flex-col lg:flex-row gap-6 mb-10">
         {/* Game info card */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0">
-          <div className="grid grid-cols-[max-content_auto] gap-x-8 gap-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <>
-                <Skeleton key={`l${i}`} className="h-3 w-16" />
-                <Skeleton key={`v${i}`} className="h-3 w-40" />
-              </>
-            ))}
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0 w-80 min-h-[164px] flex flex-col">
+          <div className="grid grid-cols-[max-content_auto] gap-x-8 content-between flex-1">
+            <Skeleton className="h-5 w-10" />
+            <Skeleton className="h-5 w-28" />
+            <Skeleton className="h-5 w-14" />
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-5 w-16" />
           </div>
         </div>
 

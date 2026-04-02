@@ -55,9 +55,7 @@ export default function PlayerPageSkeleton({ slug, league }) {
         {/* Info card + averages */}
         <div className="flex-1 flex flex-col gap-6">
           <div className="flex justify-end">
-            <div className="relative inline-flex items-center">
-              <Skeleton className="rounded-xl px-4 py-2 pr-8 text-sm font-medium w-36" />
-            </div>
+            <Skeleton className="h-9 w-28 rounded-xl" />
           </div>
 
           {/* Info card — use real text-sm spans for exact row height */}
@@ -65,14 +63,14 @@ export default function PlayerPageSkeleton({ slug, league }) {
             <div className="grid grid-cols-[max-content_auto] gap-x-10 gap-y-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <>
-                  <div key={`l${i}`} className="relative">
-                    <span className="text-sm text-transparent select-none">Height / Weight</span>
+                  <span key={`l${i}`} className="relative text-sm text-transparent select-none">
+                    Height / Weight
                     <Skeleton className="absolute inset-0 rounded" />
-                  </div>
-                  <div key={`v${i}`} className="relative">
-                    <span className="text-sm font-medium text-transparent select-none">6&apos; 9&quot; / 250 lbs</span>
+                  </span>
+                  <span key={`v${i}`} className="relative text-sm font-medium text-transparent select-none">
+                    6&apos; 9&quot; / 250 lbs
                     <Skeleton className="absolute inset-0 rounded" />
-                  </div>
+                  </span>
                 </>
               ))}
             </div>
@@ -90,8 +88,11 @@ export default function PlayerPageSkeleton({ slug, league }) {
               <div className="flex flex-wrap gap-y-6 gap-x-10 justify-center">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center min-w-[72px]">
-                    <Skeleton className="h-2.5 w-10" />
-                    <Skeleton className="h-10 w-14 rounded-lg mt-1" />
+                    <div className="relative">
+                      <span className="text-[10px] uppercase tracking-widest font-medium text-transparent select-none">PTS</span>
+                      <Skeleton className="absolute inset-0 rounded" />
+                    </div>
+                    <Skeleton className="h-9 w-14 rounded-lg mt-1" />
                   </div>
                 ))}
               </div>

@@ -233,8 +233,8 @@ export default function GamePage() {
       {/* Game info + Top performers */}
       <div className="flex flex-col lg:flex-row gap-6 mb-10">
         {/* Game info card */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0">
-          <div className="grid grid-cols-[max-content_auto] gap-x-8 gap-y-3">
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] shrink-0 w-80 min-h-[164px] flex flex-col">
+          <div className="grid grid-cols-[max-content_auto] gap-x-8 content-between flex-1">
             <span className="text-sm text-text-tertiary">Date</span>
             <span className="text-sm font-medium text-text-primary">
               {!isFinal && !inProgress && game.startTime

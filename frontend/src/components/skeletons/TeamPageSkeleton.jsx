@@ -34,9 +34,9 @@ export default function TeamPageSkeleton({ teamId }) {
         </div>
 
         {/* Stats card */}
-        <div className="flex-1">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            <div className="grid grid-cols-2 gap-x-10 content-between h-full">
               {Array.from({ length: 4 }).map((_, i) => (
                 <>
                   <Skeleton key={`l${i}`} className="h-5 w-20" />
@@ -52,9 +52,11 @@ export default function TeamPageSkeleton({ teamId }) {
       <Skeleton className="h-6 w-40 mb-8 rounded-xl" />
 
       {/* Game grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start">
         {Array.from({ length: 6 }).map((_, i) => (
-          <GameCardSkeleton key={i} />
+          <div key={i} className="w-full">
+            <GameCardSkeleton />
+          </div>
         ))}
       </div>
     </div>

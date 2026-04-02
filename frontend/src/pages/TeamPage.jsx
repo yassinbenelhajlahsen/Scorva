@@ -89,9 +89,9 @@ export default function TeamPage() {
         </div>
 
         {/* Stats card */}
-        <div className="flex-1">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            <div className="grid grid-cols-2 gap-x-10 content-between h-full">
               <span className="text-sm text-text-tertiary">Location</span>
               <span className="text-sm font-medium text-text-primary">{team.location}</span>
               <span className="text-sm text-text-tertiary">Record</span>
