@@ -1,7 +1,15 @@
 import Skeleton from "../ui/Skeleton.jsx";
 import GameCardSkeleton from "./GameCardSkeleton.jsx";
 
-export default function TeamPageSkeleton() {
+function unslugify(slug) {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+export default function TeamPageSkeleton({ teamId }) {
+  const displayName = teamId ? unslugify(teamId) : "";
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link placeholder */}
@@ -16,7 +24,12 @@ export default function TeamPageSkeleton() {
       <div className="flex flex-col md:flex-row gap-10 mb-12">
         {/* Logo + name */}
         <div className="flex flex-col items-center md:items-start gap-4">
-          <Skeleton className="h-8 w-48 rounded-xl" />
+          <div className="relative">
+            <span className="text-3xl sm:text-4xl font-bold tracking-tight text-transparent select-none">
+              {displayName}
+            </span>
+            <Skeleton className="absolute inset-0 rounded-xl" />
+          </div>
           <Skeleton className="w-44 h-44 rounded-2xl" />
         </div>
 
@@ -26,8 +39,8 @@ export default function TeamPageSkeleton() {
             <div className="grid grid-cols-2 gap-x-10 gap-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <>
-                  <Skeleton key={`l${i}`} className="h-3 w-20" />
-                  <Skeleton key={`v${i}`} className="h-3 w-24" />
+                  <Skeleton key={`l${i}`} className="h-5 w-20" />
+                  <Skeleton key={`v${i}`} className="h-5 w-24" />
                 </>
               ))}
             </div>

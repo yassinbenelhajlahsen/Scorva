@@ -20,7 +20,7 @@ export default function TeamPage() {
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("team", session ? team?.id : null);
 
-  if (loading) return <TeamPageSkeleton />;
+  if (loading) return <TeamPageSkeleton teamId={teamId} />;
   if (error && !team) return <ErrorState message={error} onRetry={retry} />;
   if (!team) {
     return (
