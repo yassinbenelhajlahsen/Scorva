@@ -23,14 +23,17 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Frontend router | `frontend/src/App.jsx` |
 | Design tokens | `frontend/src/index.css` (`@theme`) |
 | Supabase client | `frontend/src/lib/supabase.js` |
-| Auth context + modal | `frontend/src/context/AuthContext.jsx` |
+| Auth context | `frontend/src/context/AuthContext.jsx` |
+| Auth modal | `frontend/src/components/auth/AuthModal.jsx` |
+| Auth components | `frontend/src/components/auth/` (AuthModal, PasswordChecklist) |
 | OAuth callback page | `frontend/src/pages/AuthCallback.jsx` |
 | API wrappers | `frontend/src/api/` |
-| Data hooks | `frontend/src/hooks/` |
+| Data hooks | `frontend/src/hooks/{ai,data,live,user}/` |
+| Frontend utilities | `frontend/src/utils/` |
 | Favorites API | `frontend/src/api/favorites.js` |
-| Favorites hooks | `frontend/src/hooks/useFavorites.js`, `frontend/src/hooks/useFavoriteToggle.js` |
+| Favorites hooks | `frontend/src/hooks/user/useFavorites.js`, `frontend/src/hooks/user/useFavoriteToggle.js` |
 | User API | `frontend/src/api/user.js` |
-| User prefs hook | `frontend/src/hooks/useUserPrefs.js` |
+| User prefs hook | `frontend/src/hooks/user/useUserPrefs.js` |
 | Settings page | `frontend/src/pages/SettingsPage.jsx` |
 | Settings tabs | `frontend/src/components/settings/FavoritesTab.jsx`, `frontend/src/components/settings/AccountTab.jsx` |
 | User controller | `backend/src/controllers/userController.js` |
@@ -38,11 +41,12 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | User route | `backend/src/routes/user.js` |
 | Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
 | SSE live route | `backend/src/routes/live.js`, `backend/src/controllers/liveController.js` |
-| SSE live hooks | `frontend/src/hooks/useLiveGame.js`, `frontend/src/hooks/useLiveGames.js` |
+| SSE live hooks | `frontend/src/hooks/live/useLiveGame.js`, `frontend/src/hooks/live/useLiveGames.js` |
 | Skeleton primitive | `frontend/src/components/ui/Skeleton.jsx` |
 | Error state component | `frontend/src/components/ui/ErrorState.jsx` |
 | Date navigation (strip + calendar) | `frontend/src/components/ui/DateNavigation.jsx`, `DateStrip.jsx`, `CalendarPopup.jsx` |
-| Game dates hook | `frontend/src/hooks/useGameDates.js` |
+| Navigation components | `frontend/src/components/navigation/` (MonthNavigation, SeasonSelector) |
+| Game dates hook | `frontend/src/hooks/data/useGameDates.js` |
 | Game dates controller | `backend/src/controllers/gameDatesController.js` |
 | Game dates service | `backend/src/services/gameDatesService.js` |
 | PG date → string util | `backend/src/utils/pgDateToString.js` |
@@ -57,10 +61,11 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat history | `backend/src/services/chat/historyService.js` |
 | Chat API (frontend) | `frontend/src/api/chat.js` |
 | Chat context | `frontend/src/context/ChatContext.jsx` |
-| Chat actions hook | `frontend/src/hooks/useChatActions.js` |
+| Chat actions hook | `frontend/src/hooks/ai/useChatActions.js` |
 | Chat components | `frontend/src/components/chat/` |
 | Backend test suite | `backend/__tests__/` |
 | Backend test helpers | `backend/__tests__/helpers/testHelpers.js` |
 | Frontend test suite | `frontend/src/__tests__/` |
 | Frontend test setup | `frontend/src/__tests__/setup.js` |
 | Frontend test helpers | `frontend/src/__tests__/helpers/testUtils.jsx` |
+| Frontend utility tests | `frontend/src/__tests__/utils/` |
