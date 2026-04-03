@@ -15,9 +15,9 @@ import {
 } from "./middleware/index.js";
 import teamsRouter from "./routes/teams.js";
 import standingsRouter from "./routes/standings.js";
-import gamesInfoRoute from "./routes/gameInfo.js";
+import gamesInfoRoute from "./routes/gameDetail.js";
 import playersRoute from "./routes/players.js";
-import playerInfoRoute from "./routes/playerInfo.js";
+import playerInfoRoute from "./routes/playerDetail.js";
 import gamesRoute from "./routes/games.js";
 import searchRoute from "./routes/search.js";
 import aiSummaryRoute from "./routes/aiSummary.js";

@@ -30,12 +30,12 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/searchService.js
 jest.unstable_mockModule(resolve(__dirname, "../../src/services/gamesService.js"), () => ({
   getGames: mockGetGames,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/gameInfoService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/gameDetailService.js"), () => ({
   getNbaGame: mockGetNbaGame,
   getNflGame: mockGetNflGame,
   getNhlGame: mockGetNhlGame,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/playerInfoService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/playerDetailService.js"), () => ({
   getNbaPlayer: mockGetNbaPlayer,
   getNflPlayer: mockGetNflPlayer,
   getNhlPlayer: mockGetNhlPlayer,

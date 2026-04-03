@@ -12,11 +12,11 @@ https://scorva.dev
 
 ## Demos
 
-| | |
-|---|---|
-| ![Homepage](demos/Homepage.gif) | ![Live Games](demos/LiveGames.gif) |
-| Homepage — favorites, league tabs, live scores | Live game updates via SSE |
-| ![Player Page](demos/PlayerPage.gif) | ![Favorites](demos/Favorites.gif) |
+|                                                    |                                             |
+| -------------------------------------------------- | ------------------------------------------- |
+| ![Homepage](demos/Homepage.gif)                    | ![Live Games](demos/LiveGames.gif)          |
+| Homepage — favorites, league tabs, live scores     | Live game updates via SSE                   |
+| ![Player Page](demos/PlayerPage.gif)               | ![Favorites](demos/Favorites.gif)           |
 | Player profile — stats, game log, top performances | Adding favorites and setting default league |
 
 <div align="center">
@@ -31,14 +31,14 @@ https://scorva.dev
 
 ## Tech Stack
 
-| Layer | Technologies |
-|---|---|
-| Frontend | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6 |
-| Backend | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis) |
-| Auth | Supabase Auth — email/password + Google OAuth; JWT verified server-side |
-| AI | OpenAI GPT-4o-mini (game summaries + summarization) · GPT-4.1-mini (chat agent, tool-calling) · `text-embedding-3-small` (RAG) |
-| Database | PostgreSQL — `pg_trgm` GIN indexes, `pgvector` cosine similarity, window functions, `ON CONFLICT DO UPDATE` |
-| Deployment | Vercel (frontend) · Railway (API server + live sync worker) |
+| Layer      | Technologies                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend   | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6                                                               |
+| Backend    | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis)                                      |
+| Auth       | Supabase Auth — email/password + Google OAuth; JWT verified server-side                                                        |
+| AI         | OpenAI GPT-4o-mini (game summaries + summarization) · GPT-4.1-mini (chat agent, tool-calling) · `text-embedding-3-small` (RAG) |
+| Database   | PostgreSQL — `pg_trgm` GIN indexes, `pgvector` cosine similarity, window functions, `ON CONFLICT DO UPDATE`                    |
+| Deployment | Vercel (frontend) · Railway (API server + live sync worker)                                                                    |
 
 ## Project Structure
 
@@ -85,17 +85,17 @@ Backend follows a strict 4-layer separation: Routes → Controllers → Services
 
 ## Frontend Routes
 
-| Path | Page |
-|---|---|
-| `/` | Homepage |
-| `/about` | About |
-| `/:league` | LeaguePage |
-| `/:league/teams/:teamId` | TeamPage |
-| `/:league/players/:playerId` | PlayerPage |
-| `/:league/games/:gameId` | GamePage |
-| `/settings` | SettingsPage (requires auth) |
-| `/auth/callback` | AuthCallback (OAuth popup handler) |
-| `*` | ErrorPage (404 catch-all) |
+| Path                         | Page                               |
+| ---------------------------- | ---------------------------------- |
+| `/`                          | Homepage                           |
+| `/about`                     | About                              |
+| `/:league`                   | LeaguePage                         |
+| `/:league/teams/:teamId`     | TeamPage                           |
+| `/:league/players/:playerId` | PlayerPage                         |
+| `/:league/games/:gameId`     | GamePage                           |
+| `/settings`                  | SettingsPage (requires auth)       |
+| `/auth/callback`             | AuthCallback (OAuth popup handler) |
+| `*`                          | ErrorPage (404 catch-all)          |
 
 ---
 
@@ -174,7 +174,7 @@ A floating chat panel (FAB → slide-in panel) available on every page, powered 
 
 Service-layer caching via `ioredis` with tiered TTLs based on data volatility:
 
-- **30-day cache**: finalized game detail (`gameInfoService`), past-season standings, past-season player stats, past-season game lists — immutable once finalized
+- **30-day cache**: finalized game detail (`gameDetailService`), past-season standings, past-season player stats, past-season game lists — immutable once finalized
 - **Short TTL (30s–5min)**: current-season standings (5 min), current-season player stats (2 min), today's default game list (30s)
 - **24h cache**: team lists, player lists, available seasons
 - **Not cached**: favorites, user profile, search, AI summaries (DB-persisted), SSE endpoints
@@ -200,29 +200,32 @@ Single-query, relevance-ranked search across players, teams, and games:
 
 Three deduplicated highlight cards computed on the frontend from box score data (`topPlayers.js`):
 
-| Card | What it measures |
-|---|---|
-| **Top Performer** | Weighted composite score by league |
-| **Top Scorer** | Highest output in the primary scoring category |
-| **Impact Player** | Defensive contribution or on-ice differential |
+| Card              | What it measures                               |
+| ----------------- | ---------------------------------------------- |
+| **Top Performer** | Weighted composite score by league             |
+| **Top Scorer**    | Highest output in the primary scoring category |
+| **Impact Player** | Defensive contribution or on-ice differential  |
 
 Players are deduplicated across slots — if the top performer is also the top scorer, the next best scorer fills that card.
 
 **Scoring formulas:**
 
 NBA (Hollinger-inspired):
+
 ```
 Performance = PTS + (0.4 × REB) + (0.7 × AST) + STL + BLK − TOV
 Impact      = +/− + (1.5 × STL) + BLK
 ```
 
 NFL (position-agnostic):
+
 ```
 Performance = (YDS × 0.05) + (CMP × 0.3) + (TD × 10) − (INT × 4) + (SCKS × 5)
 Impact      = (SCKS × 5) + (INT × 6) + (YDS × 0.02)
 ```
 
 NHL (saves-aware so goalies can surface):
+
 ```
 Performance = (G × 2.0) + (A × 1.5) + (SHOTS × 0.15) + (SAVES × 0.1) + (BS × 0.4) + (HT × 0.2)
 Impact      = (+/− × 1.5) + G + A
@@ -262,7 +265,7 @@ cd frontend && npm run verify
 
 ### Backend (Jest 29 + Supertest)
 
-- **All API routes** — teams, players, games, game detail (`gameInfo`), player detail (`playerInfo`), standings, seasons, search
+- **All API routes** — teams, players, games, game detail (`gameDetail`), player detail (`playerInfo`), standings, seasons, search
 - **Auth-protected routes** — favorites, user profile, AI summary, account deletion
 - **Webhook handler** — Supabase auth event parsing, user creation, name extraction for email and OAuth signup flows
 - **Live SSE routes** — stream lifecycle, 15s heartbeat, `done` event on game completion

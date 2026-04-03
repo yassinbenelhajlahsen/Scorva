@@ -4,7 +4,7 @@ import { getGameDatesList } from "../controllers/gameDatesController.js";
 
 const router = express.Router();
 
-// Must be before /:league/games to avoid :gameId catching "dates" in gameInfo.js
+// Must be before /:league/games to avoid :gameId catching "dates" in gameDetail.js
 router.get("/:league/games/dates", getGameDatesList);
 router.get("/:league/games", getGamesList);
 

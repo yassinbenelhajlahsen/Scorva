@@ -28,7 +28,7 @@ Two-tier update strategy:
 - `GET /api/live/:league/games/:gameId` — pushes full game detail; sends `event: done` when game is Final
 - Mounted **before** `generalLimiter` but **behind** `sseConnectionLimiter` (max 6 concurrent per IP)
 - 15s `: ping` heartbeat; `X-Accel-Buffering: no` header for Railway
-- Reuse `gamesService`/`gameInfoService` directly in controller (no new service layer)
+- Reuse `gamesService`/`gameDetailService` directly in controller (no new service layer)
 - `send()` error catch calls `cleanup()` + `res.end()` — prevents zombie connections
 
 ### Notification bus (`backend/src/db/notificationBus.js`)
@@ -98,19 +98,19 @@ Users can filter the league page to a specific date via a scrollable date strip 
 Single source of truth for game classification. Values: `regular`, `preseason`, `playoff`, `final`, `makeup`, `other`.
 - Derived in `ingestion/eventProcessor.js` from ESPN `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`
 - Set as `$24` in `ingestion/upsertGame.js`
-- `standingsService.js` (1 place) and `playerInfoService.js` (6 places) filter `AND g.type = 'regular'`
-- Frontend: `GameCard.jsx` reads `game.type` (snake_case from `gamesService`); `GamePage.jsx` reads `game.gameType` (camelCase from `gameInfoService`)
+- `standingsService.js` (1 place) and `playerDetailService.js` (6 places) filter `AND g.type = 'regular'`
+- Frontend: `GameCard.jsx` reads `game.type` (snake_case from `gamesService`); `GamePage.jsx` reads `game.gameType` (camelCase from `gameDetailService`)
 
 ### `games.game_label` (TEXT, nullable)
 Display-only text (e.g. `"NBA Finals - Game 1"`, `"Wild Card Round"`). Never use for classification logic.
 
 ### `games.current_period` (Int?) and `games.clock` (String?)
 Populated by liveSync and `upsert.js`. Null for scheduled/final games.
-`gameInfoService.js` exposes as `currentPeriod` and `clock`. Frontend uses `getPeriodLabel(period, league)` from `formatDate.js` — renders Q1–Q4/OT (NBA/NFL) or P1–P3/OT (NHL).
+`gameDetailService.js` exposes as `currentPeriod` and `clock`. Frontend uses `getPeriodLabel(period, league)` from `formatDate.js` — renders Q1–Q4/OT (NBA/NFL) or P1–P3/OT (NHL).
 
 ### `games.start_time` (String?)
 Set once at ingest by `eventProcessor.js` from `event.date` (ESPN UTC ISO timestamp → ET string, e.g. `"7:30PM ET"`). Never updated by liveSync.
-- `gameInfoService.js` exposes as `startTime` (camelCase); `gamesService` exposes as `start_time` (snake_case via `g.*`)
+- `gameDetailService.js` exposes as `startTime` (camelCase); `gamesService` exposes as `start_time` (snake_case via `g.*`)
 - Frontend shows only for scheduled games (not live/final)
 
 ## Auth & users

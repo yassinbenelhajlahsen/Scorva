@@ -1,7 +1,7 @@
 import { search } from "../searchService.js";
 import { getGames } from "../gamesService.js";
-import { getNbaGame, getNflGame, getNhlGame } from "../gameInfoService.js";
-import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "../playerInfoService.js";
+import { getNbaGame, getNflGame, getNhlGame } from "../gameDetailService.js";
+import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "../playerDetailService.js";
 import { getStandings } from "../standingsService.js";
 import { getTeamsByLeague } from "../teamsService.js";
 import { getSeasons } from "../seasonsService.js";

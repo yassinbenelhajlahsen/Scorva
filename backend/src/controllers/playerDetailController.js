@@ -1,6 +1,6 @@
 import { getPlayerIdBySlug } from "../utils/slugResolver.js";
 import logger from "../logger.js";
-import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "../services/playerInfoService.js";
+import { getNbaPlayer, getNflPlayer, getNhlPlayer } from "../services/playerDetailService.js";
 import { getCurrentSeason } from "../cache/seasons.js";
 
 const leagueHandlers = {

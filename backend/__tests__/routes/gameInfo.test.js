@@ -20,7 +20,7 @@ jest.unstable_mockModule(dbPath, () => ({
 }));
 
 // Now import the modules that depend on db
-const routerPath = resolve(__dirname, "../../src/routes/gameInfo.js");
+const routerPath = resolve(__dirname, "../../src/routes/gameDetail.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: gameInfoRouter } = await import(routerPath);
@@ -106,7 +106,7 @@ describe("Game Info Route - GET /:league/games/:gameId", () => {
       expect(response.status).toBe(200);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("json_build_object"),
-        ["1", "nba"]
+        ["1", "nba"],
       );
     });
 
@@ -162,10 +162,10 @@ describe("Game Info Route - GET /:league/games/:gameId", () => {
 
       expect(response.status).toBe(200);
       expect(
-        response.body.json_build_object.homeTeam.players[0].stats
+        response.body.json_build_object.homeTeam.players[0].stats,
       ).toHaveProperty("PTS");
       expect(
-        response.body.json_build_object.homeTeam.players[0].stats
+        response.body.json_build_object.homeTeam.players[0].stats,
       ).toHaveProperty("FG");
     });
   });

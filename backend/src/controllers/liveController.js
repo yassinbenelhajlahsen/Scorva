@@ -1,5 +1,5 @@
 import { getGames } from "../services/gamesService.js";
-import { getNbaGame, getNflGame, getNhlGame } from "../services/gameInfoService.js";
+import { getNbaGame, getNflGame, getNhlGame } from "../services/gameDetailService.js";
 import { subscribe, unsubscribe } from "../db/notificationBus.js";
 import logger from "../logger.js";
 

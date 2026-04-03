@@ -1,4 +1,4 @@
-import { getNbaGame, getNflGame, getNhlGame } from "../services/gameInfoService.js";
+import { getNbaGame, getNflGame, getNhlGame } from "../services/gameDetailService.js";
 import logger from "../logger.js";
 
 const leagueHandlers = {

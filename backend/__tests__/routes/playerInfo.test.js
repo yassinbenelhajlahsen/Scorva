@@ -26,7 +26,7 @@ jest.unstable_mockModule(seasonsPath, () => ({
 }));
 
 // Now import the modules that depend on db
-const routerPath = resolve(__dirname, "../../src/routes/playerInfo.js");
+const routerPath = resolve(__dirname, "../../src/routes/playerDetail.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: playerInfoRouter } = await import(routerPath);
@@ -246,8 +246,7 @@ describe("Player Info Route - GET /:league/players/:slug", () => {
   describe("Slug Resolution", () => {
     it("should handle numeric slugs", async () => {
       // Numeric IDs skip the slug lookup — only the main query runs
-      mockPool.query
-        .mockResolvedValueOnce({ rows: [{ player: { id: 123 } }] });
+      mockPool.query.mockResolvedValueOnce({ rows: [{ player: { id: 123 } }] });
 
       await request(app).get("/api/nba/players/123");
 

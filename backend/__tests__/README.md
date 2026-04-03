@@ -27,7 +27,7 @@ backend/__tests__/
 │   ├── teams.test.js                # GET /:league/teams
 │   ├── players.test.js              # GET /:league/players
 │   ├── games.test.js                # GET /:league/games
-│   ├── gameInfo.test.js             # GET /:league/games/:gameId
+│   ├── gameDetail.test.js             # GET /:league/games/:gameId
 │   ├── playerInfo.test.js           # GET /:league/players/:playerId
 │   ├── standings.test.js            # GET /:league/standings
 │   ├── seasons.test.js              # GET /:league/seasons

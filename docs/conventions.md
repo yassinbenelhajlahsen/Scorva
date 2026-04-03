@@ -15,7 +15,7 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 - **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `SUPABASE_URL`
 
 ## Validation rules
-- **League validation** — all 8 league-param controllers (teams, standings, games, gameInfo, players, playerInfo, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid)
+- **League validation** — all 8 league-param controllers (teams, standings, games, gameDetail, players, playerDetail, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid)
 - **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isInteger(n) && n > 0` and caps at 50 IDs per array; service uses `ROW_NUMBER()` for 3 most recent per favorite
 - **Search input** — term capped at 200 chars; LIKE metacharacters (`%`, `_`, `\`) escaped before building the ILIKE pattern to prevent full-table scans
 
@@ -27,7 +27,7 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Backend conventions
 - **`userController`** — delete Supabase auth user *before* DB delete (not after)
-- **`gameInfoService` player arrays** — all 6 `json_agg()` subqueries wrapped with `COALESCE(..., '[]'::json)` so games with no stats return `[]` not `null`
+- **`gameDetailService` player arrays** — all 6 `json_agg()` subqueries wrapped with `COALESCE(..., '[]'::json)` so games with no stats return `[]` not `null`
 
 ## Adding a new endpoint (checklist)
 1. `backend/src/routes/myRoute.js` — router + controller delegation only
