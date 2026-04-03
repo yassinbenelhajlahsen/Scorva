@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Skeleton from "../ui/Skeleton.jsx";
 
 function TopPerformerSkeleton() {
@@ -36,7 +37,14 @@ function TeamSideSkeleton() {
   );
 }
 
-export default function GamePageSkeleton() {
+const INFO_FIELDS = [
+  { label: "Date",      width: "w-32" },
+  { label: "Status",    width: "w-16" },
+  { label: "Location",  width: "w-28" },
+  { label: "Broadcast", width: "w-16" },
+];
+
+export default function GamePageSkeleton({ scheduled = false }) {
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
@@ -52,63 +60,70 @@ export default function GamePageSkeleton() {
       </div>
 
       {/* Game info + Quarter scores */}
-      <div className="grid grid-cols-1 lg:grid-cols-[32.5%_1fr] gap-4 mb-6">
-        {/* Game info — compact */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col">
-          <div className="flex flex-col justify-between h-full gap-2">
-            {["Date", "Status", "Location", "Broadcast"].map((label) => (
-              <div key={label} className="flex items-baseline gap-3">
+      <div className={`mb-6 ${!scheduled ? "grid grid-cols-1 lg:grid-cols-[32.5%_1fr] gap-4" : ""}`}>
+        {/* Game info */}
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-3">
+          {INFO_FIELDS.map(({ label, width }, i) => (
+            <Fragment key={label}>
+              {i > 0 && <div className="border-t border-white/[0.06]" />}
+              <div className="flex items-center justify-between gap-4">
                 <Skeleton className="h-3 w-14 shrink-0" />
-                <Skeleton className={`h-3 ${label === "Location" ? "w-28" : label === "Date" ? "w-24" : "w-16"}`} />
+                <Skeleton className={`h-3 ${width}`} />
               </div>
-            ))}
-          </div>
+            </Fragment>
+          ))}
         </div>
 
         {/* Quarter scores */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          {/* Header row */}
-          <div className="flex items-center gap-x-2 pb-2 border-b border-white/[0.06]">
-            <Skeleton className="h-3 flex-1" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-3 w-9 shrink-0" />
-            ))}
+        {!scheduled && (
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            {/* Header row */}
+            <div className="flex items-center gap-x-2 pb-2 border-b border-white/[0.06]">
+              <Skeleton className="h-3 flex-1" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-3 w-9 shrink-0" />
+              ))}
+            </div>
+            {/* Home row */}
+            <div className="flex items-center gap-x-2 pt-2.5 pb-1.5">
+              <Skeleton className="h-3.5 flex-1" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
+              ))}
+            </div>
+            <div className="border-t border-white/[0.04]" />
+            {/* Away row */}
+            <div className="flex items-center gap-x-2 pt-1.5">
+              <Skeleton className="h-3.5 flex-1" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
+              ))}
+            </div>
           </div>
-          {/* Home row */}
-          <div className="flex items-center gap-x-2 pt-2.5 pb-1.5">
-            <Skeleton className="h-3.5 flex-1" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
-            ))}
-          </div>
-          <div className="border-t border-white/[0.04]" />
-          {/* Away row */}
-          <div className="flex items-center gap-x-2 pt-1.5">
-            <Skeleton className="h-3.5 flex-1" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Top performer cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <TopPerformerSkeleton key={i} />
-        ))}
-      </div>
+      {/* Top performer cards — only for live/final */}
+      {!scheduled && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <TopPerformerSkeleton key={i} />
+          ))}
+        </div>
+      )}
 
-      {/* Quarter-by-quarter */}
-      <div className="max-w-2xl mx-auto mb-2">
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full rounded" />
-            ))}
+      {/* Box score — only for live/final */}
+      {!scheduled && (
+        <div className="max-w-2xl mx-auto mb-2">
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-4 w-full rounded" />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

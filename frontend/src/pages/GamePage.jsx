@@ -1,5 +1,5 @@
 import { Link, useParams, useLocation } from "react-router-dom";
-import { useEffect, useMemo } from "react";
+import { Fragment, useEffect, useMemo } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { scoreUpdateVariants } from "../utilities/motion.js";
 
@@ -60,7 +60,16 @@ export default function GamePage() {
     [gameObj, allPlayerStats, league]
   );
 
-  if (loading) return <GamePageSkeleton />;
+  if (loading) {
+    const staleStatus = gameData?.json_build_object?.game?.status ?? "";
+    const staleScheduled = staleStatus
+      ? !staleStatus.includes("Final") &&
+        !staleStatus.includes("In Progress") &&
+        !staleStatus.includes("End of Period") &&
+        !staleStatus.includes("Halftime")
+      : false;
+    return <GamePageSkeleton scheduled={staleScheduled} />;
+  }
   if (error && !gameData) return <ErrorState message="Could not load game data." onRetry={retry} />;
   if (!gameData?.json_build_object) {
     return (
@@ -233,57 +242,32 @@ export default function GamePage() {
       {/* Game info + Quarter scores */}
       <div className={`mb-6 ${isFinal || inProgress ? "grid grid-cols-1 lg:grid-cols-[32.5%_1fr] gap-4" : ""}`}>
         {/* Game info */}
-        <div className={`bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.3)] ${isFinal || inProgress ? "p-4 flex flex-col" : "px-6 py-5"}`}>
-          {isFinal || inProgress ? (
-            /* Compact vertical layout beside quarter scores */
-            <div className="flex flex-col justify-between h-full">
-              {[
-                { label: "Date",      value: formatDate(game.date) },
-                { label: "Status",    value: game.status },
-                { label: "Location",  value: game.venue },
-                ...(game.broadcast ? [{ label: "Broadcast", value: game.broadcast }] : []),
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-baseline gap-3">
-                  <span className="text-xs text-text-tertiary shrink-0 w-14">{label}</span>
-                  <span className="text-xs font-medium text-text-primary">{value}</span>
-                </div>
-              ))}</div>
-          ) : (
-            /* Pre-game: evenly distributed columns across full width */
-            <div className="flex items-center justify-between gap-4 flex-wrap min-h-[56px] py-2">
-              <div className="flex flex-col gap-1 flex-1 min-w-[100px]">
-                <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Date</span>
-                <span className="text-sm font-semibold text-text-primary">
-                  {game.startTime ? formatDateWithTime(game.date, game.startTime) : formatDate(game.date)}
-                </span>
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-3">
+          {[
+            {
+              label: "Date",
+              value: game.startTime && !isFinal && !inProgress
+                ? formatDateWithTime(game.date, game.startTime)
+                : formatDate(game.date),
+            },
+            { label: "Status",   value: game.status },
+            { label: "Location", value: game.venue },
+            ...(game.broadcast ? [{ label: "Broadcast", value: game.broadcast }] : []),
+          ].map(({ label, value }, i) => (
+            <Fragment key={label}>
+              {i > 0 && <div className="border-t border-white/[0.06]" />}
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-text-tertiary shrink-0">{label}</span>
+                <span className="text-sm font-medium text-text-primary text-right">{value}</span>
               </div>
-              <div className="w-px h-8 bg-white/[0.06] shrink-0 hidden sm:block" />
-              <div className="flex flex-col gap-1 flex-1 min-w-[80px]">
-                <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Status</span>
-                <span className="text-sm font-semibold text-text-primary">{game.status}</span>
-              </div>
-              <div className="w-px h-8 bg-white/[0.06] shrink-0 hidden sm:block" />
-              <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Location</span>
-                <span className="text-sm font-semibold text-text-primary">{game.venue}</span>
-              </div>
-              {game.broadcast && (
-                <>
-                  <div className="w-px h-8 bg-white/[0.06] shrink-0 hidden sm:block" />
-                  <div className="flex flex-col gap-1 flex-1 min-w-[80px]">
-                    <span className="text-[10px] uppercase tracking-widest text-text-tertiary">Broadcast</span>
-                    <span className="text-sm font-semibold text-text-primary">{game.broadcast}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+            </Fragment>
+          ))}
         </div>
 
         {/* Quarter-by-quarter */}
         {(isFinal || inProgress) && (
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            <div className="font-mono text-sm w-full">
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col">
+            <div className="font-mono text-sm w-full flex flex-col flex-1">
               {/* Header row */}
               <div className="flex items-center gap-x-2 text-[10px] uppercase tracking-widest text-text-tertiary pb-2 border-b border-white/[0.06]">
                 <span className="flex-1 min-w-0">Team</span>
@@ -301,7 +285,7 @@ export default function GamePage() {
               </div>
 
               {/* Home row */}
-              <div className="flex items-center gap-x-2 pt-2.5 pb-1.5">
+              <div className="flex items-center gap-x-2 flex-1">
                 <span className="flex-1 min-w-0 font-semibold text-text-primary truncate">
                   {homeTeam.info.shortName}
                 </span>
@@ -326,7 +310,7 @@ export default function GamePage() {
               <div className="border-t border-white/[0.04]" />
 
               {/* Away row */}
-              <div className="flex items-center gap-x-2 pt-1.5">
+              <div className="flex items-center gap-x-2 flex-1">
                 <span className="flex-1 min-w-0 font-semibold text-text-primary truncate">
                   {awayTeam.info.shortName}
                 </span>
