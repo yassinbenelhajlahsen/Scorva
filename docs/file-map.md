@@ -15,10 +15,10 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Generated client | `backend/src/generated/prisma/` (do not edit) |
 | Cache module | `backend/src/cache/cache.js` |
 | Season cache helper | `backend/src/cache/seasons.js` |
-| Scheduled upsert | `backend/src/populate/upsert.js` |
-| Live sync worker | `backend/src/populate/liveSync.js` |
-| Historical upsert | `backend/src/populate/historicalUpsert.js` |
-| Data ingestion helpers | `backend/src/populate/src/` |
+| Scheduled upsert | `backend/src/ingestion/upsert.js` |
+| Live sync worker | `backend/src/ingestion/liveSync.js` |
+| Historical upsert | `backend/src/ingestion/historicalUpsert.js` |
+| Data ingestion helpers | `backend/src/ingestion/` (flat — no `src/` subfolder) |
 | Frontend entry | `frontend/src/main.jsx` |
 | Frontend router | `frontend/src/App.jsx` |
 | Design tokens | `frontend/src/index.css` (`@theme`) |
@@ -49,12 +49,12 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Page skeleton layouts | `frontend/src/components/skeletons/` |
 | Chat route | `backend/src/routes/chat.js` |
 | Chat controller | `backend/src/controllers/chatController.js` |
-| Chat agent (LLM loop) | `backend/src/services/chatAgentService.js` |
-| Chat tools | `backend/src/services/chatToolsService.js` |
-| Chat tool services | `backend/src/services/chatTools/` |
+| Chat agent (LLM loop) | `backend/src/services/chat/agentService.js` |
+| Chat tools | `backend/src/services/chat/toolsService.js` |
+| Chat tool services | `backend/src/services/chat/tools/` |
 | Embedding service (RAG) | `backend/src/services/embeddingService.js` |
-| Semantic search tool | `backend/src/services/chatTools/semanticSearchService.js` |
-| Chat history | `backend/src/services/chatHistoryService.js` |
+| Semantic search tool | `backend/src/services/chat/tools/semanticSearch.js` |
+| Chat history | `backend/src/services/chat/historyService.js` |
 | Chat API (frontend) | `frontend/src/api/chat.js` |
 | Chat context | `frontend/src/context/ChatContext.jsx` |
 | Chat actions hook | `frontend/src/hooks/useChatActions.js` |
