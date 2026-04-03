@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
@@ -28,6 +28,20 @@ export default function Homepage() {
   const [activeLeague, setActiveLeague] = useState(null);
   const [userPicked, setUserPicked] = useState(false);
   const [tabDirection, setTabDirection] = useState(1);
+  const leagueTabRefs = useRef([]);
+  const leagueNavRef = useRef(null);
+  const [leaguePillBounds, setLeaguePillBounds] = useState(null);
+
+  useLayoutEffect(() => {
+    const idx = leagues.findIndex((l) => l.id === activeLeague);
+    const btn = leagueTabRefs.current[idx];
+    const nav = leagueNavRef.current;
+    if (btn && nav) {
+      const btnRect = btn.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+      setLeaguePillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
+    }
+  }, [activeLeague, loading]);
 
   useEffect(() => {
     if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
@@ -115,23 +129,25 @@ export default function Homepage() {
         <div>
           {/* Tab pills */}
           <div className="flex justify-center mb-8">
-            <div className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-              {leagues.map((league) => (
+            <div ref={leagueNavRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+              {leaguePillBounds && (
+                <m.div
+                  className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
+                  initial={{ left: leaguePillBounds.left, width: leaguePillBounds.width }}
+                  animate={{ left: leaguePillBounds.left, width: leaguePillBounds.width }}
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              {leagues.map((league, i) => (
                 <button
                   key={league.id}
+                  ref={(el) => (leagueTabRefs.current[i] = el)}
                   onClick={() => pickLeague(league.id)}
                   className="relative flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium z-10 transition-colors duration-200"
                   style={{ color: activeLeague === league.id ? "var(--color-accent)" : "var(--color-text-secondary)" }}
                 >
-                  {activeLeague === league.id && (
-                    <m.div
-                      layoutId="tab-indicator"
-                      className="absolute inset-0 rounded-full bg-accent/15 border border-accent/25"
-                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                    />
-                  )}
-                  <img src={league.logo} alt={league.name} className="relative w-5 h-5 object-contain" />
-                  <span className="relative">{league.name}</span>
+                  <img src={league.logo} alt={league.name} className="w-5 h-5 object-contain" />
+                  <span>{league.name}</span>
                 </button>
               ))}
             </div>

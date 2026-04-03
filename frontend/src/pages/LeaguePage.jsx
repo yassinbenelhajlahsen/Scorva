@@ -1,5 +1,5 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
@@ -24,6 +24,20 @@ export default function LeaguePage() {
   const tabs = ["games", "standings"];
   const [activeTab, setActiveTab] = useState("games");
   const [tabDirection, setTabDirection] = useState(1);
+  const tabRefs = useRef([]);
+  const tabNavRef = useRef(null);
+  const [pillBounds, setPillBounds] = useState(null);
+
+  useLayoutEffect(() => {
+    const idx = tabs.indexOf(activeTab);
+    const btn = tabRefs.current[idx];
+    const nav = tabNavRef.current;
+    if (btn && nav) {
+      const btnRect = btn.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+      setPillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
+    }
+  }, [activeTab]);
 
   function pickTab(tab) {
     setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);
@@ -119,22 +133,24 @@ export default function LeaguePage() {
 
       {/* Tab pills */}
       <div className="flex justify-center mb-8">
-        <div className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-          {tabs.map((tab) => (
+        <div ref={tabNavRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+          {pillBounds && (
+            <m.div
+              className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
+              initial={{ left: pillBounds.left, width: pillBounds.width }}
+              animate={{ left: pillBounds.left, width: pillBounds.width }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
+          )}
+          {tabs.map((tab, i) => (
             <button
               key={tab}
+              ref={(el) => (tabRefs.current[i] = el)}
               onClick={() => pickTab(tab)}
               className="relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
               style={{ color: activeTab === tab ? "var(--color-accent)" : "var(--color-text-secondary)" }}
             >
-              {activeTab === tab && (
-                <m.div
-                  layoutId="tab-indicator"
-                  className="absolute inset-0 rounded-full bg-accent/15 border border-accent/25"
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                />
-              )}
-              <span className="relative">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
         </div>
