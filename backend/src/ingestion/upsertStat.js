@@ -7,11 +7,12 @@ function parseInteger(value) {
   return isNaN(parsed) ? null : parsed;
 }
 
-export default async function upsertStat(client, gameId, playerId, stats) {
+export default async function upsertStat(client, gameId, playerId, teamId, stats) {
   const query = `
     INSERT INTO stats (
       gameid,
       playerid,
+      teamid,
       points,
       assists,
       rebounds,
@@ -44,13 +45,14 @@ export default async function upsertStat(client, gameId, playerId, stats) {
       gv,
       fouls
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7,
-      $8, $9, $10, $11, $12, $13,
-      $14, $15, $16, $17, $18, $19, $20,
-      $21, $22, $23, $24, $25, $26, $27,
-      $28, $29, $30, $31, $32, $33
+      $1, $2, $3, $4, $5, $6, $7, $8,
+      $9, $10, $11, $12, $13, $14,
+      $15, $16, $17, $18, $19, $20, $21,
+      $22, $23, $24, $25, $26, $27, $28,
+      $29, $30, $31, $32, $33, $34
     )
     ON CONFLICT (gameid, playerid) DO UPDATE SET
+      teamid       = EXCLUDED.teamid,
       points       = EXCLUDED.points,
       assists      = EXCLUDED.assists,
       rebounds     = EXCLUDED.rebounds,
@@ -97,6 +99,7 @@ export default async function upsertStat(client, gameId, playerId, stats) {
   const values = [
     gameId,
     playerId,
+    teamId ?? null,
     stats.points ?? null,
     stats.assists ?? null,
     stats.rebounds ?? null,

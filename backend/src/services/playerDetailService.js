@@ -69,12 +69,12 @@ export async function getNbaPlayer(playerId, season) {
               s2.turnovers,
               s2.plusminus,
               s2.minutes,
-              CASE WHEN g.hometeamid = p.teamid THEN at.shortname ELSE ht.shortname END AS opponent,
-              CASE WHEN g.hometeamid = p.teamid THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
-              CASE WHEN g.hometeamid = p.teamid THEN true ELSE false END AS isHome,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.shortname ELSE ht.shortname END AS opponent,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN true ELSE false END AS isHome,
               CASE
                 WHEN g.winnerid IS NULL THEN NULL
-                WHEN g.winnerid = p.teamid THEN 'W'
+                WHEN g.winnerid = COALESCE(s2.teamid, p.teamid) THEN 'W'
                 ELSE 'L'
               END AS result
             FROM stats s2
@@ -87,7 +87,15 @@ export async function getNbaPlayer(playerId, season) {
         ), '[]'::json)
     ) AS player
     FROM players p
-    JOIN teams t ON p.teamid = t.id
+    LEFT JOIN LATERAL (
+      SELECT s_t.teamid
+      FROM stats s_t
+      JOIN games g_t ON s_t.gameid = g_t.id
+      WHERE s_t.playerid = p.id AND g_t.season = $3 AND s_t.teamid IS NOT NULL
+      ORDER BY g_t.date DESC
+      LIMIT 1
+    ) season_team ON true
+    JOIN teams t ON t.id = COALESCE(season_team.teamid, p.teamid)
     LEFT JOIN stats s ON p.id = s.playerid
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
@@ -141,12 +149,12 @@ export async function getNflPlayer(playerId, season) {
               s2.sacks  AS "SACK",
               s2.td     AS "TD",
               s2.interceptions AS "INT",
-              CASE WHEN g.hometeamid = p.teamid THEN at.shortname ELSE ht.shortname END AS opponent,
-              CASE WHEN g.hometeamid = p.teamid THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
-              CASE WHEN g.hometeamid = p.teamid THEN true ELSE false END AS isHome,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.shortname ELSE ht.shortname END AS opponent,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN true ELSE false END AS isHome,
               CASE
                 WHEN g.winnerid IS NULL THEN NULL
-                WHEN g.winnerid = p.teamid THEN 'W'
+                WHEN g.winnerid = COALESCE(s2.teamid, p.teamid) THEN 'W'
                 ELSE 'L'
               END AS result
             FROM stats s2
@@ -159,7 +167,15 @@ export async function getNflPlayer(playerId, season) {
         ), '[]'::json)
     ) AS player
     FROM players p
-    JOIN teams t ON p.teamid = t.id
+    LEFT JOIN LATERAL (
+      SELECT s_t.teamid
+      FROM stats s_t
+      JOIN games g_t ON s_t.gameid = g_t.id
+      WHERE s_t.playerid = p.id AND g_t.season = $3 AND s_t.teamid IS NOT NULL
+      ORDER BY g_t.date DESC
+      LIMIT 1
+    ) season_team ON true
+    JOIN teams t ON t.id = COALESCE(season_team.teamid, p.teamid)
     LEFT JOIN stats s ON p.id = s.playerid
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
@@ -224,12 +240,12 @@ export async function getNhlPlayer(playerId, season) {
               s2.tk      AS "TK",
               s2.gv      AS "GV",
               s2.plusminus AS "plusminus",
-              CASE WHEN g.hometeamid = p.teamid THEN at.shortname ELSE ht.shortname END AS opponent,
-              CASE WHEN g.hometeamid = p.teamid THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
-              CASE WHEN g.hometeamid = p.teamid THEN true ELSE false END AS isHome,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.shortname ELSE ht.shortname END AS opponent,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
+              CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN true ELSE false END AS isHome,
               CASE
                 WHEN g.winnerid IS NULL THEN NULL
-                WHEN g.winnerid = p.teamid THEN 'W'
+                WHEN g.winnerid = COALESCE(s2.teamid, p.teamid) THEN 'W'
                 ELSE 'L'
               END AS result
             FROM stats s2
@@ -242,7 +258,15 @@ export async function getNhlPlayer(playerId, season) {
         ), '[]'::json)
     ) AS player
     FROM players p
-    JOIN teams t ON p.teamid = t.id
+    LEFT JOIN LATERAL (
+      SELECT s_t.teamid
+      FROM stats s_t
+      JOIN games g_t ON s_t.gameid = g_t.id
+      WHERE s_t.playerid = p.id AND g_t.season = $3 AND s_t.teamid IS NOT NULL
+      ORDER BY g_t.date DESC
+      LIMIT 1
+    ) season_team ON true
+    JOIN teams t ON t.id = COALESCE(season_team.teamid, p.teamid)
     LEFT JOIN stats s ON p.id = s.playerid
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2

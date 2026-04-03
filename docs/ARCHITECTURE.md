@@ -101,6 +101,13 @@ Single source of truth for game classification. Values: `regular`, `preseason`, 
 - `standingsService.js` (1 place) and `playerDetailService.js` (6 places) filter `AND g.type = 'regular'`
 - Frontend: `GameCard.jsx` reads `game.type` (snake_case from `gamesService`); `GamePage.jsx` reads `game.gameType` (camelCase from `gameDetailService`)
 
+### `stats.teamid` (INT?, FK → teams)
+Records which team a player was on **at the time of the game** — set at ingest by `upsertStat.js` from `teamIdForPlayer` (already derived in `eventProcessor.js` by comparing the ESPN boxscore player-group's team ID against the home competitor).
+- Nullable — ~2,000 games have no `eventid` and cannot be backfilled; `COALESCE(s.teamid, p.teamid)` in queries falls back to the player's current team for those rows
+- `gameDetailService.js`: all 6 player subqueries use `COALESCE(s.teamid, p.teamid) = g.hometeamid/awayteamid` to correctly place traded players in historical box scores
+- `playerDetailService.js`: LATERAL subquery finds the player's most recent team for the selected season (`ORDER BY g.date DESC LIMIT 1`) and falls back to `p.teamid`; game-log CASE expressions (opponent, isHome, result) also use `COALESCE(s2.teamid, p.teamid)`
+- Backfill: `ingestion/backfillStatsTeamid.js` — fetches ESPN boxscores for all games with NULL `stats.teamid` and `eventid IS NOT NULL`, then updates rows in place. Run once after migration.
+
 ### `games.game_label` (TEXT, nullable)
 Display-only text (e.g. `"NBA Finals - Game 1"`, `"Wild Card Round"`). Never use for classification logic.
 

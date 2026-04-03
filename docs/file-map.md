@@ -18,6 +18,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Scheduled upsert | `backend/src/ingestion/upsert.js` |
 | Live sync worker | `backend/src/ingestion/liveSync.js` |
 | Historical upsert | `backend/src/ingestion/historicalUpsert.js` |
+| Stats teamid backfill | `backend/src/ingestion/backfillStatsTeamid.js` |
 | Data ingestion helpers | `backend/src/ingestion/` (flat — no `src/` subfolder) |
 | Frontend entry | `frontend/src/main.jsx` |
 | Frontend router | `frontend/src/App.jsx` |

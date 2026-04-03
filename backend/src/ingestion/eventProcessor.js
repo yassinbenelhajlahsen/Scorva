@@ -516,7 +516,7 @@ export async function processEvent(client, leagueSlug, event) {
       gameType = 'preseason';
     } else if (event.season?.type === 3) {
       const headline = (gameLabel || '').toLowerCase();
-      if (headline.includes('finals') || headline.includes('stanley cup') || headline.includes('super bowl')) {
+      if (headline.includes('nba finals') || headline.includes('stanley cup') || headline.includes('super bowl')) {
         gameType = 'final';
       } else if (headline.includes('makeup')) {
         gameType = 'makeup';
@@ -713,7 +713,7 @@ export async function processEvent(client, leagueSlug, event) {
             });
             const mappedStats = mapStatsToSchema(rawStatsObj, leagueSlug);
             // 5d) Upsert the stat row
-            await upsertStat(client, gameId, playerId, mappedStats);
+            await upsertStat(client, gameId, playerId, teamIdForPlayer, mappedStats);
             runStats.statsUpserted++;
           }
         }

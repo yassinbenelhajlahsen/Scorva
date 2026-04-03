@@ -77,7 +77,7 @@ export async function getNbaGame(gameId) {
       )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
-      WHERE s.gameid = g.id AND p.teamid = g.hometeamid
+      WHERE s.gameid = g.id AND COALESCE(s.teamid, p.teamid) = g.hometeamid
     )
   ),
   'awayTeam', json_build_object(
@@ -121,7 +121,7 @@ export async function getNbaGame(gameId) {
       )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
-      WHERE s.gameid = g.id AND p.teamid = g.awayteamid
+      WHERE s.gameid = g.id AND COALESCE(s.teamid, p.teamid) = g.awayteamid
     )
   )
 )
@@ -204,7 +204,7 @@ export async function getNflGame(gameId) {
       )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
-      WHERE s.gameid = g.id AND p.teamid = g.hometeamid
+      WHERE s.gameid = g.id AND COALESCE(s.teamid, p.teamid) = g.hometeamid
     )
   ),
   'awayTeam', json_build_object(
@@ -241,7 +241,7 @@ export async function getNflGame(gameId) {
       )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
-      WHERE s.gameid = g.id AND p.teamid = g.awayteamid
+      WHERE s.gameid = g.id AND COALESCE(s.teamid, p.teamid) = g.awayteamid
     )
   )
 )
@@ -334,7 +334,7 @@ export async function getNhlGame(gameId) {
       )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
-      WHERE s.gameid = g.id AND p.teamid = g.hometeamid
+      WHERE s.gameid = g.id AND COALESCE(s.teamid, p.teamid) = g.hometeamid
     )
   ),
   'awayTeam', json_build_object(
@@ -380,7 +380,7 @@ export async function getNhlGame(gameId) {
       )), '[]'::json)
       FROM stats s
       JOIN players p ON p.id = s.playerid
-      WHERE s.gameid = g.id AND p.teamid = g.awayteamid
+      WHERE s.gameid = g.id AND COALESCE(s.teamid, p.teamid) = g.awayteamid
     )
   )
 )
