@@ -746,26 +746,37 @@ export async function runTodayProcessing(leagueSlug, pool) {
  */
 export async function runUpcomingProcessing(leagueSlug, pool) {
   const nowEST = DateTime.now().setZone("America/New_York");
-  const tomorrow = nowEST.plus({ days: 1 }).toFormat("yyyyMMdd");
-  const dayAfter = nowEST.plus({ days: 2 }).toFormat("yyyyMMdd");
 
-  // Fetch both dates in parallel
-  const [tomorrowEvents, dayAfterEvents] = await Promise.all([
-    getEventsByDate(tomorrow, leagueSlug),
-    getEventsByDate(dayAfter, leagueSlug),
-  ]);
+  // Generate date strings for days 1-14 ahead
+  const dateStrings = [];
+  for (let i = 1; i <= 14; i++) {
+    dateStrings.push(nowEST.plus({ days: i }).toFormat("yyyyMMdd"));
+  }
 
-  // Deduplicate by ESPN event ID in case ESPN returns the same event on both dates
+  // Fetch in batches of 3 to avoid overwhelming ESPN
+  const BATCH_SIZE = 3;
   const seenIds = new Set();
   const upcomingEvents = [];
-  for (const event of [...tomorrowEvents, ...dayAfterEvents]) {
-    if (!seenIds.has(event.id)) {
-      seenIds.add(event.id);
-      upcomingEvents.push(event);
+
+  for (let i = 0; i < dateStrings.length; i += BATCH_SIZE) {
+    const batch = dateStrings.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map((d) => getEventsByDate(d, leagueSlug))
+    );
+    for (const events of results) {
+      for (const event of events) {
+        if (!seenIds.has(event.id)) {
+          seenIds.add(event.id);
+          upcomingEvents.push(event);
+        }
+      }
     }
   }
 
-  log.info({ league: leagueSlug, count: upcomingEvents.length, tomorrow, dayAfter }, "found upcoming games");
+  log.info(
+    { league: leagueSlug, count: upcomingEvents.length, from: dateStrings[0], to: dateStrings[dateStrings.length - 1] },
+    "found upcoming games"
+  );
 
   for (const event of upcomingEvents) {
     const client = await pool.connect();

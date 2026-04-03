@@ -608,7 +608,7 @@ describe("eventProcessor", () => {
   });
 
   describe("runUpcomingProcessing", () => {
-    it("should fetch tomorrow and day-after events in parallel", async () => {
+    it("should fetch 14 days ahead of events", async () => {
       mockAxiosGet.mockResolvedValue({ data: { events: [] } });
 
       const mockPool = {
@@ -617,8 +617,8 @@ describe("eventProcessor", () => {
 
       await runUpcomingProcessing("nba", mockPool);
 
-      // Two getEventsByDate calls (tomorrow + dayAfter) in parallel
-      expect(mockAxiosGet).toHaveBeenCalledTimes(2);
+      // 14 getEventsByDate calls (days 1-14 ahead)
+      expect(mockAxiosGet).toHaveBeenCalledTimes(14);
       expect(mockAxiosGet).toHaveBeenCalledWith(
         expect.stringContaining("scoreboard?dates=")
       );
@@ -626,11 +626,12 @@ describe("eventProcessor", () => {
 
     it("should deduplicate events with the same ESPN id", async () => {
       const duplicateEvent = createMockEvent({ id: "999" });
-      // Both dates return the same event
+      // First two dates return the same event; remaining 12 return empty
+      // Remaining 12 date fetches fall through to the default; getEventsByDate does
+      // `data.events || []` so a boxscore-shaped response is treated as empty events.
       mockAxiosGet
         .mockResolvedValueOnce({ data: { events: [duplicateEvent] } })
         .mockResolvedValueOnce({ data: { events: [duplicateEvent] } })
-        // Boxscore for the single deduplicated processEvent call
         .mockResolvedValue({ data: { boxscore: { players: [] } } });
 
       const mockClient = createMockClient();
@@ -646,7 +647,6 @@ describe("eventProcessor", () => {
       const client = createMockClient();
       mockAxiosGet
         .mockResolvedValueOnce({ data: { events: [createMockEvent()] } })
-        .mockResolvedValueOnce({ data: { events: [] } })
         .mockResolvedValue({ data: { boxscore: { players: [] } } });
 
       const mockPool = { connect: jest.fn().mockResolvedValue(client) };
