@@ -37,23 +37,60 @@ function getAllDatesInRange(startISO, endISO) {
   return dates;
 }
 
-const leagues = [
-  { slug: "nba", seasonStart: "2023-10-24", seasonEnd: "2025-06-22" }, // 2024-25 playoffs → NBA Finals Game 7
-  { slug: "nhl", seasonStart: "2023-10-10", seasonEnd: "2025-06-17" }, // 2024-25 playoffs → Stanley Cup Final Game 5
-  { slug: "nfl", seasonStart: "2023-09-07", seasonEnd: "2026-01-09" }, // 2025-26 playoffs → Super Bowl LX
-];
+// Each entry is one season (preseason start → finals/playoffs end).
+// Per-season ranges avoid querying thousands of empty off-season days.
+// Current 2024-25 / 2025-26 data is intentionally excluded — it's already seeded and healthy.
+const leagueSeasons = {
+  nba: [
+    { seasonStart: "2015-09-30", seasonEnd: "2016-06-19" }, // 2015-16 → Finals Game 7 (CLE def. GSW)
+    { seasonStart: "2016-09-28", seasonEnd: "2017-06-12" }, // 2016-17 → Finals Game 5 (GSW def. CLE)
+    { seasonStart: "2017-09-28", seasonEnd: "2018-06-08" }, // 2017-18 → Finals Game 4 (GSW def. CLE)
+    { seasonStart: "2018-09-25", seasonEnd: "2019-06-13" }, // 2018-19 → Finals Game 6 (TOR def. GSW)
+    { seasonStart: "2019-09-30", seasonEnd: "2020-10-11" }, // 2019-20 → bubble Finals Game 6 (LAL def. MIA)
+    { seasonStart: "2020-12-01", seasonEnd: "2021-07-20" }, // 2020-21 → Finals Game 6 (MIL def. PHX)
+    { seasonStart: "2021-09-28", seasonEnd: "2022-06-16" }, // 2021-22 → Finals Game 6 (GSW def. BOS)
+    { seasonStart: "2022-09-28", seasonEnd: "2023-06-12" }, // 2022-23 → Finals Game 5 (DEN def. MIA)
+    { seasonStart: "2023-10-03", seasonEnd: "2024-06-17" }, // 2023-24 → Finals Game 5 (BOS def. DAL) — rerun to fix missing stats
+  ],
+  nhl: [
+    { seasonStart: "2015-09-15", seasonEnd: "2016-06-12" }, // 2015-16 → Cup Final Game 6 (PIT def. SJS)
+    { seasonStart: "2016-09-22", seasonEnd: "2017-06-11" }, // 2016-17 → Cup Final Game 6 (PIT def. NSH)
+    { seasonStart: "2017-09-15", seasonEnd: "2018-06-07" }, // 2017-18 → Cup Final Game 5 (WSH def. VGK)
+    { seasonStart: "2018-09-14", seasonEnd: "2019-06-12" }, // 2018-19 → Cup Final Game 7 (STL def. BOS)
+    { seasonStart: "2019-09-12", seasonEnd: "2020-09-28" }, // 2019-20 → bubble Cup Final Game 6 (TBL def. DAL)
+    { seasonStart: "2021-01-01", seasonEnd: "2021-07-07" }, // 2020-21 → Cup Final Game 5 (TBL def. MTL)
+    { seasonStart: "2021-09-23", seasonEnd: "2022-06-26" }, // 2021-22 → Cup Final Game 6 (COL def. TBL)
+    { seasonStart: "2022-09-22", seasonEnd: "2023-06-13" }, // 2022-23 → Cup Final Game 6 (VGK def. FLA)
+    { seasonStart: "2023-09-23", seasonEnd: "2024-06-24" }, // 2023-24 → Cup Final Game 7 (FLA def. EDM) — rerun to fix missing stats
+  ],
+  nfl: [
+    { seasonStart: "2015-08-09", seasonEnd: "2016-02-07" }, // 2015 → Super Bowl 50 (DEN def. CAR)
+    { seasonStart: "2016-08-11", seasonEnd: "2017-02-05" }, // 2016 → Super Bowl LI (NE def. ATL)
+    { seasonStart: "2017-08-03", seasonEnd: "2018-02-04" }, // 2017 → Super Bowl LII (PHI def. NE)
+    { seasonStart: "2018-08-02", seasonEnd: "2019-02-03" }, // 2018 → Super Bowl LIII (NE def. LAR)
+    { seasonStart: "2019-08-01", seasonEnd: "2020-02-02" }, // 2019 → Super Bowl LIV (KC def. SF)
+    { seasonStart: "2020-08-06", seasonEnd: "2021-02-07" }, // 2020 → Super Bowl LV (TB def. KC)
+    { seasonStart: "2021-08-05", seasonEnd: "2022-02-13" }, // 2021 → Super Bowl LVI (LAR def. CIN)
+    { seasonStart: "2022-08-04", seasonEnd: "2023-02-12" }, // 2022 → Super Bowl LVII (KC def. PHI)
+    { seasonStart: "2023-08-03", seasonEnd: "2024-02-11" }, // 2023 → Super Bowl LVIII (KC def. SF) — rerun to fix missing stats
+  ],
+};
 
 (async () => {
   try {
-    // Run all leagues in parallel to save time.
+    // Run 3 league streams in parallel; within each stream seasons are processed sequentially.
     // batchSize/batchDelayMs throttle per-league ESPN concurrency to reduce rate-limit risk.
+    // Max concurrency: 3 leagues × 2 events = 6 simultaneous ESPN requests.
     await Promise.all(
-      leagues.map(({ slug, seasonStart, seasonEnd }) => {
-        const dates = getAllDatesInRange(seasonStart, seasonEnd);
-        return runDateRangeProcessing(slug, dates, pool, {
-          batchSize: 2,       // 2 concurrent events per batch (down from 5)
-          batchDelayMs: 500,  // 500ms pause between event batches
-        });
+      Object.entries(leagueSeasons).map(async ([slug, seasons]) => {
+        for (const { seasonStart, seasonEnd } of seasons) {
+          log.info({ league: slug, seasonStart, seasonEnd }, "starting season");
+          const dates = getAllDatesInRange(seasonStart, seasonEnd);
+          await runDateRangeProcessing(slug, dates, pool, {
+            batchSize: 2,       // 2 concurrent events per batch (down from 5)
+            batchDelayMs: 500,  // 500ms pause between event batches
+          });
+        }
       }),
     );
 
