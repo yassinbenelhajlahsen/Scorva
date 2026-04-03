@@ -3,7 +3,7 @@
 ## Data flow
 ESPN API → PostgreSQL → Express backend → React frontend
 
-## Live sync worker (`liveSync.js`)
+## Live sync worker (`ingestion/liveSync.js`)
 Two-tier update strategy:
 - **Fast path** every 15s: `upsertGameScoreboard` — scoreboard data only
 - **Full path** every 2 min or on period change: `processEvent` — fetches boxscore + player stats
@@ -16,7 +16,7 @@ Two-tier update strategy:
 - **Per-event client**: `tick()` acquires a separate `pool.connect()` per event inside `Promise.all` — `processEvent` runs its own `BEGIN`/`COMMIT`/`ROLLBACK` and sharing one client across concurrent calls corrupts transaction state
 - Uses the shared `pool` from `db/db.js` (not its own `new Pool()`)
 
-## Scheduled upsert (`upsert.js`)
+## Scheduled upsert (`ingestion/upsert.js`)
 - Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
 - Wraps each league in try/catch so one failure doesn't abort subsequent leagues
 - Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
@@ -96,8 +96,8 @@ Users can filter the league page to a specific date via a scrollable date strip 
 
 ### `games.type` (VARCHAR 20, DEFAULT 'regular')
 Single source of truth for game classification. Values: `regular`, `preseason`, `playoff`, `final`, `makeup`, `other`.
-- Derived in `eventProcessor.js` from ESPN `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`
-- Set as `$24` in `upsertGame.js`
+- Derived in `ingestion/eventProcessor.js` from ESPN `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`
+- Set as `$24` in `ingestion/upsertGame.js`
 - `standingsService.js` (1 place) and `playerInfoService.js` (6 places) filter `AND g.type = 'regular'`
 - Frontend: `GameCard.jsx` reads `game.type` (snake_case from `gamesService`); `GamePage.jsx` reads `game.gameType` (camelCase from `gameInfoService`)
 
@@ -164,7 +164,7 @@ excluded from AnimatedRoutes.
 
 ## Chat system
 
-### Agent loop (`chatAgentService.js`)
+### Agent loop (`chat/agentService.js`)
 `runAgentLoop` drives the multi-turn tool-calling cycle: max 5 tool rounds per request.
 `resolveContextEntity` does a DB lookup (slug → `{ id, name }`) before building the system
 prompt so the model has entity context without requiring clarification.
@@ -217,4 +217,4 @@ inside `saveSummary()`.
 `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,
 `web_search`, `get_seasons`, `get_teams`, `semantic_search`
 
-Defined in `chatToolsService.js`; individual tool logic in `services/chatTools/`.
+Defined in `chat/toolsService.js`; individual tool logic in `services/chat/tools/`.
