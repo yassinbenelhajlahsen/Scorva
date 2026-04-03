@@ -83,7 +83,6 @@ export async function getNbaPlayer(playerId, season) {
             JOIN teams at   ON g.awayteamid = at.id
             WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
-            LIMIT 12
           ) AS game_data
         ), '[]'::json)
     ) AS player
@@ -156,7 +155,6 @@ export async function getNflPlayer(playerId, season) {
             JOIN teams at   ON g.awayteamid = at.id
             WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
-            LIMIT 12
           ) AS game_data
         ), '[]'::json)
     ) AS player
@@ -240,7 +238,6 @@ export async function getNhlPlayer(playerId, season) {
             JOIN teams at   ON g.awayteamid = at.id
             WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
-            LIMIT 12
           ) AS game_data
         ), '[]'::json)
     ) AS player

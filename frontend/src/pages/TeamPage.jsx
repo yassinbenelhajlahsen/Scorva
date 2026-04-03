@@ -1,9 +1,10 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { m } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
+import MonthNavigation from "../components/ui/MonthNavigation.jsx";
 import { useTeam } from "../hooks/useTeam.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -17,8 +18,24 @@ export default function TeamPage() {
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
   const { team, games, teamRecord, loading, error, retry } = useTeam(league, teamId, selectedSeason);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+
+  useEffect(() => {
+    setSelectedMonth(null);
+  }, [selectedSeason]);
+
+  useEffect(() => {
+    if (!games?.length) return;
+    const months = [...new Set(games.map((g) => String(g.date).slice(0, 7)))].sort();
+    setSelectedMonth(months[months.length - 1]);
+  }, [games]);
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("team", session ? team?.id : null);
+
+  const filteredGames = useMemo(() => {
+    if (!selectedMonth) return games;
+    return games.filter((g) => String(g.date).slice(0, 7) === selectedMonth);
+  }, [games, selectedMonth]);
 
   if (loading) return <TeamPageSkeleton teamId={teamId} />;
   if (error && !team) return <ErrorState message={error} onRetry={retry} />;
@@ -113,17 +130,22 @@ export default function TeamPage() {
 
       {/* Games */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-8">
+        <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
           {selectedSeason ? `${selectedSeason} Schedule` : "Season Schedule"}
         </h2>
-        {games.length > 0 ? (
+        <MonthNavigation
+          games={games}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
+        {filteredGames.length > 0 ? (
           <m.div
             className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
-            {games.map((game) => (
+            {filteredGames.map((game) => (
               <m.div key={game.id} variants={itemVariants} className="w-full">
                 <GameCard game={game} />
               </m.div>
@@ -131,7 +153,7 @@ export default function TeamPage() {
           </m.div>
         ) : (
           <p className="text-center text-text-tertiary text-sm mt-8">
-            No recent games to show.
+            {games.length > 0 ? "No games this month." : "No recent games to show."}
           </p>
         )}
       </div>

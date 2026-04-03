@@ -1,5 +1,5 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { m } from "framer-motion";
 import { usePlayer } from "../hooks/usePlayer.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
@@ -11,6 +11,7 @@ import slugify from "../utilities/slugify.js";
 import formatDate from "../utilities/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
+import MonthNavigation from "../components/ui/MonthNavigation.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/useFavoriteToggle.js";
 
@@ -74,9 +75,26 @@ export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const { playerData, loading, error, retry } = usePlayer(league, slug, selectedSeason);
+
+  useEffect(() => {
+    setSelectedMonth(null);
+  }, [selectedSeason]);
+
+  useEffect(() => {
+    if (!playerData?.games?.length) return;
+    const months = [...new Set(playerData.games.map((g) => String(g.date).slice(0, 7)))].sort();
+    setSelectedMonth(months[months.length - 1]);
+  }, [playerData?.games]);
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("player", session ? playerData?.id : null);
+
+  const filteredGames = useMemo(() => {
+    if (!playerData?.games) return [];
+    if (!selectedMonth) return playerData.games;
+    return playerData.games.filter((g) => String(g.date).slice(0, 7) === selectedMonth);
+  }, [playerData, selectedMonth]);
 
   if (loading) return <PlayerPageSkeleton slug={slug} league={league} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
@@ -177,47 +195,60 @@ export default function PlayerPage() {
 
       {/* Recent Performances */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-8">
+        <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
           Recent Performances
         </h2>
-        <m.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {playerData?.games?.map((game, i) => {
-            const key = league?.toLowerCase();
-            let config = statConfigs[key] || [];
-            if (key === "nfl" && position) {
-              const relevant = nflStatsByPosition[position.toUpperCase()];
-              if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
-            } else if (key === "nhl" && position) {
-              const relevant = nhlStatsByPosition[position.toUpperCase()];
-              if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
-            }
-            const statsProps = config.map(({ key: statKey, label }) => ({
-              label,
-              value: game[statKey] ?? "0",
-            }));
-            return (
-              <m.div key={i} variants={itemVariants}>
-                <StatCard
-                  league={league}
-                  stats={statsProps}
-                  opponent={game.opponent}
-                  date={formatDate(game.date)}
-                  gameId={game.gameid}
-                  isHome={game.ishome}
-                  opponentLogo={game.opponentlogo}
-                  result={game.result}
-                  status={game.status}
-                  id={id}
-                />
-              </m.div>
-            );
-          })}
-        </m.div>
+        <MonthNavigation
+          games={playerData?.games}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
+        {filteredGames.length > 0 ? (
+          <m.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {filteredGames.map((game, i) => {
+              const key = league?.toLowerCase();
+              let config = statConfigs[key] || [];
+              if (key === "nfl" && position) {
+                const relevant = nflStatsByPosition[position.toUpperCase()];
+                if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
+              } else if (key === "nhl" && position) {
+                const relevant = nhlStatsByPosition[position.toUpperCase()];
+                if (relevant) config = config.filter(({ key: k }) => relevant.includes(k));
+              }
+              const statsProps = config.map(({ key: statKey, label }) => ({
+                label,
+                value: game[statKey] ?? "0",
+              }));
+              return (
+                <m.div key={i} variants={itemVariants}>
+                  <StatCard
+                    league={league}
+                    stats={statsProps}
+                    opponent={game.opponent}
+                    date={formatDate(game.date)}
+                    gameId={game.gameid}
+                    isHome={game.ishome}
+                    opponentLogo={game.opponentlogo}
+                    result={game.result}
+                    status={game.status}
+                    id={id}
+                  />
+                </m.div>
+              );
+            })}
+          </m.div>
+        ) : (
+          <p className="text-center text-text-tertiary text-sm mt-8">
+            {playerData?.games?.length > 0
+              ? "No games this month."
+              : "No recent performances to show."}
+          </p>
+        )}
       </div>
     </div>
   );
