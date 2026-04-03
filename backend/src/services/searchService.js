@@ -2,7 +2,15 @@ import pool from "../db/db.js";
 import { tryParseDate } from "../utils/dateParser.js";
 
 const SEARCH_QUERY = `
-WITH raw_results AS (
+WITH latest_seasons AS (
+  SELECT DISTINCT ON (league) league, season
+  FROM games
+  ORDER BY league, season DESC
+),
+matching_teams AS (
+  SELECT id FROM teams WHERE name ILIKE $1 OR shortname ILIKE $1
+),
+raw_results AS (
   (
     SELECT p.id, p.name, p.league, p.image_url AS "imageUrl", NULL AS shortname, NULL::date AS date, 'player' AS type,
            p.position, t.name AS team_name
@@ -28,14 +36,13 @@ WITH raw_results AS (
            'game' AS type,
            NULL AS position,
            NULL AS team_name
-    FROM games g
+    FROM latest_seasons ls
+    JOIN games g ON g.league = ls.league AND g.season = ls.season
     JOIN teams ht ON g.hometeamid = ht.id
     JOIN teams at ON g.awayteamid = at.id
-    WHERE ht.name ILIKE $1 OR at.name ILIKE $1
-       OR ht.shortname ILIKE $1 OR at.shortname ILIKE $1
-       OR CONCAT(ht.shortname, ' vs ', at.shortname) ILIKE $1
-       OR CONCAT(ht.name, ' vs ', at.name) ILIKE $1
-       OR ($3::date IS NOT NULL AND g.date = $3::date)
+    WHERE (g.hometeamid IN (SELECT id FROM matching_teams)
+        OR g.awayteamid IN (SELECT id FROM matching_teams)
+        OR ($3::date IS NOT NULL AND g.date = $3::date))
   )
 )
 SELECT id, name, league, "imageUrl", shortname, date, type, position, team_name
