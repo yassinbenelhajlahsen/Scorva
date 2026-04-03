@@ -1,4 +1,4 @@
-import { useAISummary } from "../../hooks/useAISummary.js";
+import { useAISummary } from "../../hooks/ai/useAISummary.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function AISummary({ gameId }) {

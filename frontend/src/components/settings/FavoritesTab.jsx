@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { useFavorites } from "../../hooks/useFavorites.js";
-import { useUserPrefs } from "../../hooks/useUserPrefs.js";
-import { useSearch } from "../../hooks/useSearch.js";
+import { useFavorites } from "../../hooks/user/useFavorites.js";
+import { useUserPrefs } from "../../hooks/user/useUserPrefs.js";
+import { useSearch } from "../../hooks/data/useSearch.js";
 import {
   addFavoritePlayer,
   addFavoriteTeam,

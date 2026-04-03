@@ -21,7 +21,7 @@ const { useAuth } = await import("../../context/AuthContext.jsx");
 const { useChat } = await import("../../context/ChatContext.jsx");
 const { streamChatMessage } = await import("../../api/chat.js");
 const { useLocation } = await import("react-router-dom");
-const { useChatActions } = await import("../../hooks/useChatActions.js");
+const { useChatActions } = await import("../../hooks/ai/useChatActions.js");
 
 const mockSession = { access_token: "tok-123", user: { id: "u1" } };
 

@@ -3,13 +3,13 @@ import { useState, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
-import leagueData from "../utilities/LeagueData";
-import slugify from "../utilities/slugify.js";
-import SeasonSelector from "../components/ui/SeasonSelector.jsx";
+import leagueData from "../utils/leagueData";
+import slugify from "../utils/slugify.js";
+import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import DateNavigation from "../components/ui/DateNavigation.jsx";
-import { useLeagueData } from "../hooks/useLeagueData.js";
-import { useGameDates } from "../hooks/useGameDates.js";
-import { containerVariants, itemVariants } from "../utilities/motion.js";
+import { useLeagueData } from "../hooks/data/useLeagueData.js";
+import { useGameDates } from "../hooks/data/useGameDates.js";
+import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 

@@ -1,19 +1,19 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import { m } from "framer-motion";
-import { usePlayer } from "../hooks/usePlayer.js";
-import { containerVariants, itemVariants } from "../utilities/motion.js";
+import { usePlayer } from "../hooks/data/usePlayer.js";
+import { containerVariants, itemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
-import slugify from "../utilities/slugify.js";
-import formatDate from "../utilities/formatDate.js";
+import slugify from "../utils/slugify.js";
+import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
-import SeasonSelector from "../components/ui/SeasonSelector.jsx";
-import MonthNavigation from "../components/ui/MonthNavigation.jsx";
+import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
+import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useFavoriteToggle } from "../hooks/useFavoriteToggle.js";
+import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
 
 const statConfigs = {
   nba: [

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import slugify from "../../utilities/slugify.js";
+import slugify from "../../utils/slugify.js";
 
 // ---------------------------------------------------------------------------
 // Helpers

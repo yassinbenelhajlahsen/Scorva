@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { parseUTC, toUTCDateString, getTodayET, addDays, MONTH_NAMES } from "../../utilities/formatDate.js";
+import { parseUTC, toUTCDateString, getTodayET, addDays, MONTH_NAMES } from "../../utils/formatDate.js";
 
 const DAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 

@@ -49,19 +49,19 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/teamsService.js"
 jest.unstable_mockModule(resolve(__dirname, "../../src/services/seasonsService.js"), () => ({
   getSeasons: mockGetSeasons,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/headToHeadService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/tools/headToHead.js"), () => ({
   getHeadToHead: mockGetHeadToHead,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/statLeadersService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/tools/statLeaders.js"), () => ({
   getStatLeaders: mockGetStatLeaders,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/playerComparisonService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/tools/playerComparison.js"), () => ({
   getPlayerComparison: mockGetPlayerComparison,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/teamStatsService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/tools/teamStats.js"), () => ({
   getTeamStats: mockGetTeamStats,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/webSearchService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/tools/webSearch.js"), () => ({
   webSearch: mockWebSearch,
 }));
 jest.unstable_mockModule(resolve(__dirname, "../../src/cache/seasons.js"), () => ({
@@ -69,11 +69,11 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/cache/seasons.js"), () =>
 }));
 
 const mockSemanticSearch = jest.fn();
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chatTools/semanticSearchService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/tools/semanticSearch.js"), () => ({
   semanticSearch: mockSemanticSearch,
 }));
 
-const servicePath = resolve(__dirname, "../../src/services/chatToolsService.js");
+const servicePath = resolve(__dirname, "../../src/services/chat/toolsService.js");
 const { TOOL_DEFINITIONS, executeTool } = await import(servicePath);
 
 describe("chatToolsService", () => {

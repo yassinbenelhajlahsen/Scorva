@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
-import AuthModal from "../components/ui/AuthModal.jsx";
+import AuthModal from "../components/auth/AuthModal.jsx";
 
 const AuthContext = createContext(null);
 

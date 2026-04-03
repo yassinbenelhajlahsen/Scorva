@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
-import slugify from "../../utilities/slugify.js";
+import slugify from "../../utils/slugify.js";
 
 const colorMap = {
   "Top Performer": "#e8863a",

@@ -1,8 +1,8 @@
 import { m } from "framer-motion";
 import { Link } from "react-router-dom";
 import GameCard from "../cards/GameCard.jsx";
-import slugify from "../../utilities/slugify.js";
-import { itemVariants } from "../../utilities/motion.js";
+import slugify from "../../utils/slugify.js";
+import { itemVariants } from "../../utils/motion.js";
 
 export default function FavoriteTeamsSection({ teams }) {
   return (

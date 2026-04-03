@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utilities/formatDate";
-import { scoreUpdateVariants } from "../../utilities/motion.js";
+import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utils/formatDate";
+import { scoreUpdateVariants } from "../../utils/motion.js";
 
 function GameCard({ game }) {
   const [isExpanded, setIsExpanded] = useState(false);

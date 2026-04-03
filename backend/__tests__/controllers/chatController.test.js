@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const mockRunAgentLoop = jest.fn();
 const mockSummarizeOlderMessages = jest.fn();
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/services/chatAgentService.js"),
+  resolve(__dirname, "../../src/services/chat/agentService.js"),
   () => ({ runAgentLoop: mockRunAgentLoop, summarizeOlderMessages: mockSummarizeOlderMessages })
 );
 
@@ -23,7 +23,7 @@ const mockGetMessageCount = jest.fn();
 const mockGetMessagesForSummarization = jest.fn();
 const mockUpdateConversationSummary = jest.fn();
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/services/chatHistoryService.js"),
+  resolve(__dirname, "../../src/services/chat/historyService.js"),
   () => ({
     getOrCreateConversation: mockGetOrCreateConversation,
     getConversationMessages: mockGetConversationMessages,

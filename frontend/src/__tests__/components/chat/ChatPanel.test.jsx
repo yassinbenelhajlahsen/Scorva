@@ -5,7 +5,7 @@ vi.mock("../../../context/ChatContext.jsx", () => ({
   useChat: vi.fn(),
 }));
 
-vi.mock("../../../hooks/useChatActions.js", () => ({
+vi.mock("../../../hooks/ai/useChatActions.js", () => ({
   useChatActions: vi.fn(),
 }));
 
@@ -46,7 +46,7 @@ vi.mock("framer-motion", () => ({
 }));
 
 const { useChat } = await import("../../../context/ChatContext.jsx");
-const { useChatActions } = await import("../../../hooks/useChatActions.js");
+const { useChatActions } = await import("../../../hooks/ai/useChatActions.js");
 const ChatPanel = (await import("../../../components/chat/ChatPanel.jsx")).default;
 
 describe("ChatPanel", () => {

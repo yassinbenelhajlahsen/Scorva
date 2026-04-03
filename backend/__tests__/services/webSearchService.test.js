@@ -10,7 +10,7 @@ jest.unstable_mockModule(loggerPath, () => ({
   default: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }));
 
-const servicePath = resolve(__dirname, "../../src/services/chatTools/webSearchService.js");
+const servicePath = resolve(__dirname, "../../src/services/chat/tools/webSearch.js");
 const { webSearch } = await import(servicePath);
 
 const mockFetch = jest.fn();

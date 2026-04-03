@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase.js";
-import { FloatingInput } from "../components/ui/FloatingInput.tsx";
+import { FloatingInput } from "../components/ui/FloatingInput.jsx";
 
 function notifyAndClose() {
   // window.opener is null after cross-origin navigation (Google → app), so use BroadcastChannel

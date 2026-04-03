@@ -1,4 +1,4 @@
-import { runAgentLoop, summarizeOlderMessages } from "../services/chatAgentService.js";
+import { runAgentLoop, summarizeOlderMessages } from "../services/chat/agentService.js";
 import {
   getOrCreateConversation,
   getConversationMessages,
@@ -8,7 +8,7 @@ import {
   getMessagesForSummarization,
   updateConversationSummary,
   saveMessage,
-} from "../services/chatHistoryService.js";
+} from "../services/chat/historyService.js";
 import logger from "../logger.js";
 
 const ALLOWED_CONTEXT_TYPES = new Set(["player", "team", "game", "league"]);

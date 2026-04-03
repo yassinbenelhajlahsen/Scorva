@@ -4,7 +4,7 @@ import { renderHook, act } from "@testing-library/react";
 vi.mock("../../api/search.js", () => ({ search: vi.fn() }));
 
 const { search } = await import("../../api/search.js");
-const { useSearch } = await import("../../hooks/useSearch.js");
+const { useSearch } = await import("../../hooks/data/useSearch.js");
 
 const mockResults = [
   { type: "player", id: 1, name: "LeBron James" },

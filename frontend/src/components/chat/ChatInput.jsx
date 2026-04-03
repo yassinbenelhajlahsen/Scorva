@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useChat } from "../../context/ChatContext.jsx";
-import { useChatActions } from "../../hooks/useChatActions.js";
+import { useChatActions } from "../../hooks/ai/useChatActions.js";
 
 export default function ChatInput() {
   const { isStreaming } = useChat();

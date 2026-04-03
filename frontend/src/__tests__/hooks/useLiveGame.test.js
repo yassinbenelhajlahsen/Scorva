@@ -7,7 +7,7 @@ vi.mock("../../api/games.js", () => ({
 }));
 
 const { getLiveGameUrl, getGameById } = await import("../../api/games.js");
-const { useLiveGame } = await import("../../hooks/useLiveGame.js");
+const { useLiveGame } = await import("../../hooks/live/useLiveGame.js");
 
 // ---------------------------------------------------------------------------
 // Mock EventSource

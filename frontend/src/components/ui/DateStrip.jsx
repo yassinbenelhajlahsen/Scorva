@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { parseUTC, getTodayET, addDays } from "../../utilities/formatDate.js";
+import { parseUTC, getTodayET, addDays } from "../../utils/formatDate.js";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 

@@ -8,7 +8,7 @@ vi.mock("../../context/AuthContext.jsx", () => ({
 }));
 
 // Mock useSearch to avoid real API calls
-vi.mock("../../hooks/useSearch.js", () => ({
+vi.mock("../../hooks/data/useSearch.js", () => ({
   useSearch: vi.fn(() => ({ results: [], loading: false })),
 }));
 

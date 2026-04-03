@@ -6,7 +6,7 @@ vi.mock("../../api/user.js", () => ({ getProfile: vi.fn() }));
 
 const { useAuth } = await import("../../context/AuthContext.jsx");
 const { getProfile } = await import("../../api/user.js");
-const { useUserPrefs } = await import("../../hooks/useUserPrefs.js");
+const { useUserPrefs } = await import("../../hooks/user/useUserPrefs.js");
 
 const mockSession = { access_token: "tok" };
 const mockProfile = { id: "u1", email: "test@example.com", default_league: "nfl" };

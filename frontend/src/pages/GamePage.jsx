@@ -1,15 +1,15 @@
 import { Link, useParams, useLocation } from "react-router-dom";
 import { Fragment, useEffect, useMemo } from "react";
 import { m, AnimatePresence } from "framer-motion";
-import { scoreUpdateVariants } from "../utilities/motion.js";
+import { scoreUpdateVariants } from "../utils/motion.js";
 
 import BoxScore from "../components/ui/BoxScore.jsx";
 import AISummary from "../components/ui/AISummary.jsx";
-import slugify from "../utilities/slugify.js";
-import computeTopPlayers from "../utilities/topPlayers.js";
+import slugify from "../utils/slugify.js";
+import computeTopPlayers from "../utils/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
-import formatDate, { formatDateWithTime, getPeriodLabel } from "../utilities/formatDate.js";
-import { useGame } from "../hooks/useGame.js";
+import formatDate, { formatDateWithTime, getPeriodLabel } from "../utils/formatDate.js";
+import { useGame } from "../hooks/data/useGame.js";
 import GamePageSkeleton from "../components/skeletons/GamePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 

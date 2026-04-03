@@ -18,7 +18,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
 
 const servicePath = resolve(
   __dirname,
-  "../../src/services/chatTools/semanticSearchService.js"
+  "../../src/services/chat/tools/semanticSearch.js"
 );
 const { semanticSearch } = await import(servicePath);
 

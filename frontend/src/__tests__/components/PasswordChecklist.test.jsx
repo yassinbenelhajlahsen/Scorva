@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { PasswordChecklist, passwordMeetsRequirements } from "../../components/ui/PasswordChecklist.jsx";
+import { PasswordChecklist, passwordMeetsRequirements } from "../../components/auth/PasswordChecklist.jsx";
 
 describe("passwordMeetsRequirements", () => {
   it("returns true for a valid password", () => {

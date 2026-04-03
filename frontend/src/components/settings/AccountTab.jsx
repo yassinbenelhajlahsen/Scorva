@@ -4,8 +4,8 @@ import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { supabase } from "../../lib/supabase.js";
 import { updateProfile, deleteAccount } from "../../api/user.js";
-import { FloatingInput } from "../ui/FloatingInput.tsx";
-import { PasswordChecklist, passwordMeetsRequirements } from "../ui/PasswordChecklist.jsx";
+import { FloatingInput } from "../ui/FloatingInput.jsx";
+import { PasswordChecklist, passwordMeetsRequirements } from "../auth/PasswordChecklist.jsx";
 
 const LEAGUES = [
   { id: "nba", label: "NBA" },

@@ -18,7 +18,7 @@ const {
   addFavoriteTeam,
   removeFavoriteTeam,
 } = await import("../../api/favorites.js");
-const { useFavoriteToggle } = await import("../../hooks/useFavoriteToggle.js");
+const { useFavoriteToggle } = await import("../../hooks/user/useFavoriteToggle.js");
 
 const mockSession = { access_token: "tok" };
 

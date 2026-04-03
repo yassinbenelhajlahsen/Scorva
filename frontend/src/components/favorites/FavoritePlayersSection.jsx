@@ -1,9 +1,9 @@
 import { m } from "framer-motion";
 import { Link } from "react-router-dom";
 import StatCard from "../cards/StatCard.jsx";
-import slugify from "../../utilities/slugify.js";
-import { itemVariants } from "../../utilities/motion.js";
-import { formatDateShort } from "../../utilities/formatDate.js";
+import slugify from "../../utils/slugify.js";
+import { itemVariants } from "../../utils/motion.js";
+import { formatDateShort } from "../../utils/formatDate.js";
 
 const statKeysForLeague = {
   nba: [

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import DateStrip from "./DateStrip.jsx";
 import CalendarPopup from "./CalendarPopup.jsx";
-import { parseUTC, getTodayET, addDays, MONTH_NAMES } from "../../utilities/formatDate.js";
+import { parseUTC, getTodayET, addDays, MONTH_NAMES } from "../../utils/formatDate.js";
 
 function getDisplayMonth(selectedDate, gameDates, isCurrentSeason) {
   const today = getTodayET();

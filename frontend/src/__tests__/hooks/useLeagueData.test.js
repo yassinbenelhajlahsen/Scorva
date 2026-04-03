@@ -3,12 +3,12 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 
 vi.mock("../../api/games.js", () => ({ getLeagueGames: vi.fn() }));
 vi.mock("../../api/teams.js", () => ({ getStandings: vi.fn() }));
-vi.mock("../../hooks/useLiveGames.js", () => ({ useLiveGames: vi.fn() }));
+vi.mock("../../hooks/live/useLiveGames.js", () => ({ useLiveGames: vi.fn() }));
 
 const { getLeagueGames } = await import("../../api/games.js");
 const { getStandings } = await import("../../api/teams.js");
-const { useLiveGames } = await import("../../hooks/useLiveGames.js");
-const { useLeagueData } = await import("../../hooks/useLeagueData.js");
+const { useLiveGames } = await import("../../hooks/live/useLiveGames.js");
+const { useLeagueData } = await import("../../hooks/data/useLeagueData.js");
 
 beforeEach(() => {
   vi.clearAllMocks();

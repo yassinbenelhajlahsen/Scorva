@@ -3,7 +3,7 @@ import { m, useAnimation } from "framer-motion";
 import { useChat } from "../../context/ChatContext.jsx";
 import ChatMessages from "./ChatMessages.jsx";
 import ChatInput from "./ChatInput.jsx";
-import { useChatActions } from "../../hooks/useChatActions.js";
+import { useChatActions } from "../../hooks/ai/useChatActions.js";
 
 export default function ChatPanel({ onClose }) {
   const { resetConversation, isStreaming, messages } = useChat();

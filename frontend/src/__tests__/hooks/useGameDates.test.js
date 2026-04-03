@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 vi.mock("../../api/games.js", () => ({ getGameDates: vi.fn() }));
 
 const { getGameDates } = await import("../../api/games.js");
-const { useGameDates } = await import("../../hooks/useGameDates.js");
+const { useGameDates } = await import("../../hooks/data/useGameDates.js");
 
 // Helper to build the API response shape
 function makeDates(pairs) {

@@ -6,7 +6,7 @@ vi.mock("../../api/favorites.js", () => ({ getFavorites: vi.fn() }));
 
 const { useAuth } = await import("../../context/AuthContext.jsx");
 const { getFavorites } = await import("../../api/favorites.js");
-const { useFavorites } = await import("../../hooks/useFavorites.js");
+const { useFavorites } = await import("../../hooks/user/useFavorites.js");
 
 const mockSession = { access_token: "tok" };
 const mockData = { players: [{ id: 1 }], teams: [{ id: 2 }] };

@@ -3,12 +3,12 @@ import { useState, useMemo, useEffect } from "react";
 import { m } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
-import SeasonSelector from "../components/ui/SeasonSelector.jsx";
-import MonthNavigation from "../components/ui/MonthNavigation.jsx";
-import { useTeam } from "../hooks/useTeam.js";
-import { containerVariants, itemVariants } from "../utilities/motion.js";
+import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
+import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
+import { useTeam } from "../hooks/data/useTeam.js";
+import { containerVariants, itemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useFavoriteToggle } from "../hooks/useFavoriteToggle.js";
+import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
 import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
