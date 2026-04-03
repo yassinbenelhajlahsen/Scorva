@@ -90,7 +90,7 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
 
     fetchData();
     return () => controller.abort();
-  }, [league, selectedSeason, selectedDate, retryCount]);
+  }, [league, selectedSeason, selectedDate, retryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Activate SSE when viewing today — either the default null view or an explicit today date
   const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });

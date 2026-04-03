@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../api/client.js", () => ({ apiFetch: vi.fn() }));
 
 const { apiFetch } = await import("../../api/client.js");
-const { getLeagueGames, getGameDates, getTeamGames } = await import("../../api/games.js");
+const { getLeagueGames, getGameDates } = await import("../../api/games.js");
 
 beforeEach(() => {
   vi.clearAllMocks();
