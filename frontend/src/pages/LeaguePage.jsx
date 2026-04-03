@@ -1,6 +1,6 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { m } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utilities/LeagueData";
@@ -21,6 +21,14 @@ export default function LeaguePage() {
     searchParams.get("season") || null,
   );
   const [selectedDate, setSelectedDate] = useState(null);
+  const tabs = ["games", "standings"];
+  const [activeTab, setActiveTab] = useState("games");
+  const [tabDirection, setTabDirection] = useState(1);
+
+  function pickTab(tab) {
+    setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);
+    setActiveTab(tab);
+  }
   const { games, standings, loading, gamesLoading, error, displayData, retry, resolvedDate, resolvedSeason } =
     useLeagueData(league, selectedSeason, selectedDate);
   const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
@@ -91,7 +99,7 @@ export default function LeaguePage() {
       </Link>
 
       {/* League header */}
-      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-5 mb-12">
+      <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-5 mb-10">
         <div className="flex items-center gap-5">
           <img
             src={data.logo}
@@ -109,154 +117,189 @@ export default function LeaguePage() {
         />
       </div>
 
+      {/* Tab pills */}
+      <div className="flex justify-center mb-8">
+        <div className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => pickTab(tab)}
+              className="relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
+              style={{ color: activeTab === tab ? "var(--color-accent)" : "var(--color-text-secondary)" }}
+            >
+              {activeTab === tab && (
+                <m.div
+                  layoutId="tab-indicator"
+                  className="absolute inset-0 rounded-full bg-accent/15 border border-accent/25"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
+              <span className="relative">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {!displayData && !error ? (
         <LeaguePageSkeleton />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : (
-        <>
-          {/* Standings */}
-          <div className="mb-20">
-            <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-10 text-center">
-              Standings
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* East / AFC */}
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
-                  {league === "nfl" ? "AFC" : "Eastern Conference"}
-                </h3>
-                <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                  {standings.eastOrAFC.map((team, index) => (
-                    <Link
-                      to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
-                      key={team.id}
-                    >
-                      <div
-                        className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
-                          index < standings.eastOrAFC.length - 1
-                            ? "border-b border-white/[0.04]"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
-                            {index + 1}
-                          </span>
-                          <img
-                            loading="lazy"
-                            src={team.logo_url}
-                            alt={`${team.name} logo`}
-                            className="w-6 h-6 object-contain"
-                          />
-                          <span className="text-sm font-medium text-text-primary">
-                            {team.name}
-                          </span>
-                        </div>
-                        <span className="text-sm text-text-secondary tabular-nums">
-                          {team.wins}–{team.losses}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* West / NFC */}
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
-                  {league === "nfl" ? "NFC" : "Western Conference"}
-                </h3>
-                <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                  {standings.westOrNFC.map((team, index) => (
-                    <Link
-                      to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
-                      key={team.id}
-                    >
-                      <div
-                        className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
-                          index < standings.westOrNFC.length - 1
-                            ? "border-b border-white/[0.04]"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
-                            {index + 1}
-                          </span>
-                          <img
-                            loading="lazy"
-                            src={team.logo_url}
-                            alt={`${team.name} logo`}
-                            className="w-6 h-6 object-contain"
-                          />
-                          <span className="text-sm font-medium text-text-primary">
-                            {team.name}
-                          </span>
-                        </div>
-                        <span className="text-sm text-text-secondary tabular-nums">
-                          {team.wins}–{team.losses}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Date navigation — always shown once valid league, even during load */}
-          <DateNavigation
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            gameDates={gameDates}
-            gameCounts={gameCounts}
-            loading={datesLoading}
-            isCurrentSeason={!selectedSeason}
-          />
-          {/* Games */}
-          <div>
-            {gamesLoading || loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="w-6 h-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-              </div>
-            ) : games.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
-                <svg
-                  className="w-10 h-10 mb-4 opacity-40"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+        <div className="overflow-hidden">
+          <AnimatePresence mode="wait" custom={tabDirection} initial={false}>
+            <m.div
+              key={activeTab}
+              custom={tabDirection}
+              variants={{
+                initial: (dir) => ({ x: dir * 40, opacity: 0 }),
+                animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+                exit: (dir) => ({ x: dir * -40, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
+              }}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              {activeTab === "games" ? (
+                <>
+                  <DateNavigation
+                    selectedDate={selectedDate}
+                    onDateChange={setSelectedDate}
+                    gameDates={gameDates}
+                    gameCounts={gameCounts}
+                    loading={datesLoading}
+                    isCurrentSeason={!selectedSeason}
                   />
-                </svg>
-                <p className="text-sm">No games scheduled for this date.</p>
-              </div>
-            ) : (
-              <m.div
-                className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                {games.map((game) => (
-                  <m.div
-                    key={game.id}
-                    variants={itemVariants}
-                    className="w-full"
-                  >
-                    <GameCard game={game} />
-                  </m.div>
-                ))}
-              </m.div>
-            )}
-          </div>
-        </>
+                  <div>
+                    {gamesLoading || loading ? (
+                      <div className="flex items-center justify-center py-20">
+                        <div className="w-6 h-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+                      </div>
+                    ) : games.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
+                        <svg
+                          className="w-10 h-10 mb-4 opacity-40"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <p className="text-sm">No games scheduled for this date.</p>
+                      </div>
+                    ) : (
+                      <m.div
+                        key={selectedDate}
+                        className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                      >
+                        {games.map((game) => (
+                          <m.div
+                            key={game.id}
+                            variants={itemVariants}
+                            className="w-full"
+                          >
+                            <GameCard game={game} />
+                          </m.div>
+                        ))}
+                      </m.div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* East / AFC */}
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
+                      {league === "nfl" ? "AFC" : "Eastern Conference"}
+                    </h3>
+                    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+                      {standings.eastOrAFC.map((team, index) => (
+                        <Link
+                          to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+                          key={team.id}
+                        >
+                          <div
+                            className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
+                              index < standings.eastOrAFC.length - 1
+                                ? "border-b border-white/[0.04]"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
+                                {index + 1}
+                              </span>
+                              <img
+                                loading="lazy"
+                                src={team.logo_url}
+                                alt={`${team.name} logo`}
+                                className="w-6 h-6 object-contain"
+                              />
+                              <span className="text-sm font-medium text-text-primary">
+                                {team.name}
+                              </span>
+                            </div>
+                            <span className="text-sm text-text-secondary tabular-nums">
+                              {team.wins}–{team.losses}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* West / NFC */}
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
+                      {league === "nfl" ? "NFC" : "Western Conference"}
+                    </h3>
+                    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+                      {standings.westOrNFC.map((team, index) => (
+                        <Link
+                          to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+                          key={team.id}
+                        >
+                          <div
+                            className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
+                              index < standings.westOrNFC.length - 1
+                                ? "border-b border-white/[0.04]"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
+                                {index + 1}
+                              </span>
+                              <img
+                                loading="lazy"
+                                src={team.logo_url}
+                                alt={`${team.name} logo`}
+                                className="w-6 h-6 object-contain"
+                              />
+                              <span className="text-sm font-medium text-text-primary">
+                                {team.name}
+                              </span>
+                            </div>
+                            <span className="text-sm text-text-secondary tabular-nums">
+                              {team.wins}–{team.losses}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </m.div>
+          </AnimatePresence>
+        </div>
       )}
     </div>
   );
