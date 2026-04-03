@@ -41,6 +41,11 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | SSE live hooks | `frontend/src/hooks/useLiveGame.js`, `frontend/src/hooks/useLiveGames.js` |
 | Skeleton primitive | `frontend/src/components/ui/Skeleton.jsx` |
 | Error state component | `frontend/src/components/ui/ErrorState.jsx` |
+| Date navigation (strip + calendar) | `frontend/src/components/ui/DateNavigation.jsx`, `DateStrip.jsx`, `CalendarPopup.jsx` |
+| Game dates hook | `frontend/src/hooks/useGameDates.js` |
+| Game dates controller | `backend/src/controllers/gameDatesController.js` |
+| Game dates service | `backend/src/services/gameDatesService.js` |
+| PG date → string util | `backend/src/utils/pgDateToString.js` |
 | Page skeleton layouts | `frontend/src/components/skeletons/` |
 | Chat route | `backend/src/routes/chat.js` |
 | Chat controller | `backend/src/controllers/chatController.js` |

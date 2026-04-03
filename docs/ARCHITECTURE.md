@@ -20,7 +20,8 @@ Two-tier update strategy:
 - Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
 - Wraps each league in try/catch so one failure doesn't abort subsequent leagues
 - Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
-- Invalidates `games:*` and `standings:*` cache keys per league after batch
+- Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch
+- `runUpcomingProcessing` fetches 14 days ahead (days 1–14) in batches of 3, deduplicating by ESPN event ID
 
 ## SSE endpoints
 - `GET /api/live/:league/games` — pushes game list on each `pg_notify('game_updated')`; sends `event: done` when no live games remain
@@ -44,7 +45,7 @@ Holds a **single** shared PG `LISTEN` connection for all SSE clients, fanning ou
 - 3-failure REST fallback
 - SSE URL helpers in `frontend/src/api/games.js` use `import.meta.env.VITE_API_URL` directly
 - `useLiveGame` integrated into `useGame`; `useLiveGames` integrated into `useHomeGames` (3×) and `useLeagueData`
-- `useLiveGames` only active when `selectedSeason === null` — prevents SSE from overwriting filtered season views
+- `useLiveGames` only active when `selectedSeason === null` AND `selectedDate` is null or equals today's ET date — prevents SSE from overwriting filtered season/date views
 
 ## Redis caching
 Module: `backend/src/cache/cache.js`
@@ -67,15 +68,29 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `players:{league}` | 24h | |
 | `seasons:{league}` | 24h | |
 | `currentSeason:{league}` | 1h | |
+| `gameDates:{league}:{season}` | 5m | All dates + game counts for the season; used by date strip |
+| `games:{league}:{season}:date:{date}` | 30s current / 30d past | Date-filtered games for league page |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.
 
 ### Invalidation
 - `upsertGame.js` — deletes `gameDetail` + `games:*:default:*` on every write
 - `liveSync.js` — deletes today default on scoreboard update; standings on finalize; `closeCache()` on shutdown
-- `upsert.js` — `invalidatePattern('games:*')` and `invalidatePattern('standings:*')` per league after batch
+- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch
 
 `REDIS_URL` must be set on all three Railway services (API, liveSync, upsert).
+
+## Date selection (League Page)
+
+Users can filter the league page to a specific date via a scrollable date strip and a calendar popup (`DateNavigation` → `DateStrip` + `CalendarPopup`).
+
+- **Default view** (`selectedDate = null`): existing behaviour — today's slate or nearest date with games.
+- **Date pick**: `selectedDate` (YYYY-MM-DD) → `useLeagueData` passes `?date=` to `GET /api/:league/games`. Backend returns `{ games, resolvedDate, resolvedSeason }` instead of a flat array.
+- **Nearest-date fallback**: if no games on the requested date, `gamesService` runs a `UNION ALL` of the closest past/future dates and re-queries with the winner. `resolvedDate` is returned so the frontend can sync the strip.
+- **Season resolution**: `getSeasonForDate()` (internal to `gamesService.js`) looks up the season from the `games` table for the requested date; falls back to nearest row by `ABS(EXTRACT(EPOCH FROM (date - $2::date)))`, then `getCurrentSeason`.
+- **Available dates / counts**: `GET /api/:league/games/dates` (`gameDatesService.js`) returns all `{ date, count }` rows for a season (cached 5 min, `gameDates:{league}:{season}`). `useGameDates` builds a `Map<date, count>` for the strip dot indicators.
+- **SSE**: live updates are only active when `selectedDate` is null or equals today's ET date.
+- **Season switch**: resets `selectedDate` to null.
 
 ## Game columns
 
