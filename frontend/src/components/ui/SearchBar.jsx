@@ -75,6 +75,11 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
                       <> · {new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</>
                     )}
                   </div>
+                  {item.type === "player" && (item.position || item.team_name) && (
+                    <div className="text-[10px] text-text-tertiary mt-0.5 truncate">
+                      {[item.position, item.team_name].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
                 </div>
               </li>
             ))
