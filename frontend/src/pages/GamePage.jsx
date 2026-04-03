@@ -123,7 +123,7 @@ export default function GamePage() {
         {/* Home Team */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <img
-            src={homeTeam.info.logoUrl}
+            src={homeTeam.info.logoUrl || "/backupTeamLogo.webp"}
             alt={`${homeTeam.info.name} logo`}
             className="w-20 h-20 sm:w-28 sm:h-28 object-contain"
             onError={(e) => { e.target.onerror = null; e.target.src = "/backupTeamLogo.webp"; }}
@@ -222,7 +222,7 @@ export default function GamePage() {
             )}
           </div>
           <img
-            src={awayTeam.info.logoUrl}
+            src={awayTeam.info.logoUrl || "/backupTeamLogo.webp"}
             alt={`${awayTeam.info.name} logo`}
             className="w-20 h-20 sm:w-28 sm:h-28 object-contain order-1 sm:order-2"
             onError={(e) => { e.target.onerror = null; e.target.src = "/backupTeamLogo.webp"; }}
