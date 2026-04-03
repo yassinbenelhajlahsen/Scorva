@@ -1,4 +1,4 @@
-import { getGameDates } from "../services/gameDatesService.js";
+import { getGameDates } from "../services/gamesService.js";
 import logger from "../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
