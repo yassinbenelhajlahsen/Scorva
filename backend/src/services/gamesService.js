@@ -2,8 +2,27 @@ import pool from "../db/db.js";
 import { DateTime } from "luxon";
 import { cached } from "../cache/cache.js";
 import { getCurrentSeason } from "../cache/seasons.js";
+import pgDateToString from "../utils/pgDateToString.js";
 
-export async function getGames(league, { teamId, season, live } = {}) {
+async function getSeasonForDate(league, date) {
+  // Look up which season this date belongs to
+  const { rows } = await pool.query(
+    `SELECT season FROM games WHERE league = $1 AND date = $2 AND season IS NOT NULL LIMIT 1`,
+    [league, date]
+  );
+  if (rows.length > 0) return rows[0].season;
+  // Fallback: nearest season by date proximity
+  const { rows: fallback } = await pool.query(
+    `SELECT season FROM games
+     WHERE league = $1 AND season IS NOT NULL
+     ORDER BY ABS(EXTRACT(EPOCH FROM (date - $2::date))) ASC
+     LIMIT 1`,
+    [league, date]
+  );
+  return fallback[0]?.season ?? (await getCurrentSeason(league));
+}
+
+export async function getGames(league, { teamId, season, date, live } = {}) {
   const currentSeasonSubquery = `(SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL)`;
   const seasonClause = `g.season = COALESCE($2, ${currentSeasonSubquery})`;
 
@@ -22,6 +41,56 @@ export async function getGames(league, { teamId, season, live } = {}) {
   `;
 
   const params = [league, season || null];
+
+  // Date-specific query (league page date navigation)
+  if (date) {
+    const resolvedSeason = season || (await getSeasonForDate(league, date));
+    const currentSeason = await getCurrentSeason(league);
+    const isCurrent = resolvedSeason === currentSeason;
+    const ttl = isCurrent ? 30 : 30 * 86400;
+    const key = `games:${league}:${resolvedSeason}:date:${date}`;
+
+    return cached(key, ttl, async () => {
+      const dateParams = [league, resolvedSeason, date];
+      const dateQuery =
+        selectFrom +
+        `WHERE g.league = $1 AND g.season = $2 AND g.date = $3
+         ORDER BY
+           CASE
+             WHEN g.status ILIKE '%In Progress%' OR g.status ILIKE '%End of Period%' OR g.status ILIKE '%Halftime%' THEN 1
+             WHEN g.status ILIKE '%Final%' THEN 2
+             ELSE 3
+           END ASC,
+           g.id ASC`;
+
+      let { rows } = await pool.query(dateQuery, dateParams);
+      let resolvedDate = date;
+
+      if (rows.length === 0) {
+        // Find nearest date with games in either direction
+        const { rows: nearest } = await pool.query(
+          `(SELECT date FROM games WHERE league = $1 AND season = $2 AND date < $3::date ORDER BY date DESC LIMIT 1)
+           UNION ALL
+           (SELECT date FROM games WHERE league = $1 AND season = $2 AND date > $3::date ORDER BY date ASC LIMIT 1)`,
+          [league, resolvedSeason, date]
+        );
+
+        if (nearest.length === 0) return { games: [], resolvedDate: date, resolvedSeason };
+
+        const requested = new Date(date).getTime();
+        const closest = nearest.reduce((a, b) => {
+          const da = Math.abs(new Date(a.date).getTime() - requested);
+          const db = Math.abs(new Date(b.date).getTime() - requested);
+          return da <= db ? a : b;
+        });
+        resolvedDate = pgDateToString(closest.date);
+
+        ({ rows } = await pool.query(dateQuery, [league, resolvedSeason, resolvedDate]));
+      }
+
+      return { games: rows, resolvedDate, resolvedSeason };
+    });
+  }
 
   // Team pages or historical season views: preserve original behavior
   if (teamId || season) {
@@ -83,9 +152,9 @@ export async function getGames(league, { teamId, season, live } = {}) {
 
     let query;
     if (has_today_games) {
-      // Today has live/final games — show ALL of today's slate plus any carry-over live games
-      // from the previous day (games that started before midnight and are still in progress),
-      // ordered live > final > scheduled
+      // Today has live/final games — show today's full slate (+ yesterday carry-over live games),
+      // then fill remaining slots with upcoming scheduled games from future dates.
+      // Ordered: live > final > scheduled today > scheduled tomorrow+
       query = selectFrom + `
         WHERE g.league = $1
           AND ${seasonClause}
@@ -99,13 +168,19 @@ export async function getGames(league, { teamId, season, live } = {}) {
                 OR g.status ILIKE '%Halftime%'
               )
             )
+            OR (
+              g.date > $3
+              AND g.status = 'Scheduled'
+            )
           )
         ORDER BY
           CASE
             WHEN g.status ILIKE '%In Progress%' OR g.status ILIKE '%End of Period%' OR g.status ILIKE '%Halftime%' THEN 1
             WHEN g.status ILIKE '%Final%' THEN 2
-            ELSE 3
+            WHEN g.date = $3::date AND g.status = 'Scheduled' THEN 3
+            ELSE 4
           END ASC,
+          g.date ASC,
           g.id ASC
         LIMIT 12
       `;

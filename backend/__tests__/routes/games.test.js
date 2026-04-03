@@ -270,4 +270,190 @@ describe("Games Route - GET /:league/games", () => {
       );
     });
   });
+
+  describe("date path (?date= query param)", () => {
+    describe("validation", () => {
+      it("returns 400 for an invalid date format", async () => {
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "01-15-2025" });
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: "Invalid date format. Use YYYY-MM-DD." });
+        expect(mockPool.query).not.toHaveBeenCalled();
+      });
+
+      it("returns 400 when the date includes a time component", async () => {
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "2025-01-15T00:00:00" });
+        expect(response.status).toBe(400);
+      });
+
+      it("accepts a valid YYYY-MM-DD date and forwards to the service", async () => {
+        // getSeasonForDate query + main date query
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "2025-01-15" });
+
+        expect(response.status).toBe(200);
+      });
+    });
+
+    describe("exact date match", () => {
+      it("returns { games, resolvedDate, resolvedSeason } when games exist on the requested date", async () => {
+        const gameRow = {
+          ...fixtures.game({ status: "Final" }),
+          home_team_name: "LA Lakers",
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_team_name: "Boston Celtics",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        };
+
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] }) // getSeasonForDate
+          .mockResolvedValueOnce({ rows: [gameRow] });               // date query
+
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "2025-01-15" });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+          resolvedDate: "2025-01-15",
+          resolvedSeason: "2025-26",
+          games: [gameRow],
+        });
+      });
+
+      it("orders games by status priority (live first)", async () => {
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        await request(app).get("/api/nba/games").query({ date: "2025-01-15" });
+
+        expect(mockPool.query).toHaveBeenNthCalledWith(
+          2,
+          expect.stringContaining("ILIKE '%In Progress%'"),
+          expect.any(Array)
+        );
+      });
+    });
+
+    describe("nearest-date fallback", () => {
+      it("finds the nearest date and returns games from that date", async () => {
+        const gameRow = {
+          ...fixtures.game({ status: "Final", date: "2025-01-14" }),
+          home_team_name: "LA Lakers",
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_team_name: "Boston Celtics",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        };
+
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] })     // getSeasonForDate
+          .mockResolvedValueOnce({ rows: [] })                           // exact date query → empty
+          .mockResolvedValueOnce({ rows: [{ date: new Date("2025-01-14T00:00:00Z") }] }) // nearest UNION
+          .mockResolvedValueOnce({ rows: [gameRow] });                   // re-query with nearest date
+
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "2025-01-15" });
+
+        expect(response.status).toBe(200);
+        expect(response.body.resolvedDate).toBe("2025-01-14");
+        expect(response.body.games).toHaveLength(1);
+        expect(mockPool.query).toHaveBeenCalledTimes(4);
+      });
+
+      it("returns empty games when no nearest date exists", async () => {
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] }) // getSeasonForDate
+          .mockResolvedValueOnce({ rows: [] })                       // exact date query → empty
+          .mockResolvedValueOnce({ rows: [] });                      // nearest UNION → empty
+
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "2025-01-15" });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+          games: [],
+          resolvedDate: "2025-01-15",
+          resolvedSeason: "2025-26",
+        });
+      });
+
+      it("uses a UNION ALL query to find the nearest date in both directions", async () => {
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] })
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        await request(app).get("/api/nba/games").query({ date: "2025-01-15" });
+
+        expect(mockPool.query).toHaveBeenNthCalledWith(
+          3,
+          expect.stringContaining("UNION ALL"),
+          ["nba", "2025-26", "2025-01-15"]
+        );
+      });
+    });
+
+    describe("season resolution", () => {
+      it("resolves season from the games table when a matching game row exists", async () => {
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2024-25" }] }) // getSeasonForDate hit
+          .mockResolvedValueOnce({ rows: [] });
+
+        await request(app).get("/api/nba/games").query({ date: "2024-12-15" });
+
+        // The main date query should use the resolved season "2024-25"
+        expect(mockPool.query).toHaveBeenNthCalledWith(
+          2,
+          expect.any(String),
+          ["nba", "2024-25", "2024-12-15"]
+        );
+      });
+
+      it("falls back to getCurrentSeason when no game row matches the date", async () => {
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [] })    // getSeasonForDate: no direct hit
+          .mockResolvedValueOnce({ rows: [] })    // getSeasonForDate: no nearest either
+          .mockResolvedValueOnce({ rows: [] });   // main date query
+
+        // getCurrentSeason mock returns "2025-26" — so the date query should use that
+        await request(app).get("/api/nba/games").query({ date: "2025-01-15" });
+
+        expect(mockPool.query).toHaveBeenNthCalledWith(
+          3,
+          expect.any(String),
+          ["nba", "2025-26", "2025-01-15"]
+        );
+      });
+    });
+
+    describe("error handling", () => {
+      it("returns 500 when the database throws during the date query", async () => {
+        mockPool.query
+          .mockResolvedValueOnce({ rows: [{ season: "2025-26" }] })
+          .mockRejectedValueOnce(new Error("DB error"));
+
+        const response = await request(app)
+          .get("/api/nba/games")
+          .query({ date: "2025-01-15" });
+
+        expect(response.status).toBe(500);
+        expect(response.body).toEqual({ error: "Failed to fetch games." });
+      });
+    });
+  });
 });

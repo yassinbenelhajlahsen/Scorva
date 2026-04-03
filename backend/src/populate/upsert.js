@@ -51,6 +51,7 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
         await runUpcomingProcessing(league, pool);
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
+        await invalidatePattern(`gameDates:${league}:*`);
       } catch (err) {
         log.error({ err, league }, "failed processing league");
       }
