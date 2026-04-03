@@ -8,8 +8,12 @@ export function getAllLeagueGames(signal) {
   ).then(([nba, nhl, nfl]) => ({ nba, nhl, nfl }));
 }
 
-export function getLeagueGames(league, { season, signal } = {}) {
-  return apiFetch(`/api/${league}/games`, { signal, params: { season } });
+export function getLeagueGames(league, { season, date, signal } = {}) {
+  return apiFetch(`/api/${league}/games`, { signal, params: { season, date } });
+}
+
+export function getGameDates(league, { season, signal } = {}) {
+  return apiFetch(`/api/${league}/games/dates`, { signal, params: { season } });
 }
 
 export function getTeamGames(league, teamId, { season, signal } = {}) {

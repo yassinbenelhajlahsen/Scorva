@@ -1,12 +1,14 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { m } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utilities/LeagueData";
 import slugify from "../utilities/slugify.js";
 import SeasonSelector from "../components/ui/SeasonSelector.jsx";
+import DateNavigation from "../components/ui/DateNavigation.jsx";
 import { useLeagueData } from "../hooks/useLeagueData.js";
+import { useGameDates } from "../hooks/useGameDates.js";
 import { containerVariants, itemVariants } from "../utilities/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -15,15 +17,45 @@ export default function LeaguePage() {
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
   const [searchParams] = useSearchParams();
-  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { games, standings, loading, error, displayData, retry } = useLeagueData(league, selectedSeason);
+  const [selectedSeason, setSelectedSeason] = useState(
+    searchParams.get("season") || null,
+  );
+  const [selectedDate, setSelectedDate] = useState(null);
+  const { games, standings, loading, gamesLoading, error, displayData, retry, resolvedDate, resolvedSeason } =
+    useLeagueData(league, selectedSeason, selectedDate);
+  const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
+
+  // Sync date strip when backend resolved a nearest-date redirect.
+  // Only depend on resolvedDate — not selectedDate — to avoid overriding
+  // a new selection with a stale resolvedDate from a previous fetch.
+  useEffect(() => {
+    if (resolvedDate) setSelectedDate(resolvedDate);
+  }, [resolvedDate]);
+
+  useEffect(() => {
+    // Only sync resolvedSeason when an explicit season is already selected —
+    // never convert selectedSeason=null (current season) to an explicit string,
+    // as that would trigger a full reload on the first date pick.
+    if (resolvedSeason && selectedSeason !== null && resolvedSeason !== selectedSeason) {
+      setSelectedSeason(resolvedSeason);
+    }
+  }, [resolvedSeason]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset date selection when user switches seasons
+  function handleSeasonChange(season) {
+    setSelectedSeason(season);
+    setSelectedDate(null);
+  }
 
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3">League Not Found</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3">
+          League Not Found
+        </h1>
         <p className="text-text-secondary text-sm mb-8 text-center max-w-md">
-          The league you&apos;re looking for doesn&apos;t exist or isn&apos;t supported yet.
+          The league you&apos;re looking for doesn&apos;t exist or isn&apos;t
+          supported yet.
         </p>
         <Link
           to="/"
@@ -42,8 +74,18 @@ export default function LeaguePage() {
         to="/"
         className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 mb-8 text-sm"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
         <span>Home</span>
       </Link>
@@ -63,11 +105,11 @@ export default function LeaguePage() {
         <SeasonSelector
           league={league}
           selectedSeason={selectedSeason}
-          onSeasonChange={setSelectedSeason}
+          onSeasonChange={handleSeasonChange}
         />
       </div>
 
-      {loading || (!displayData && !error) ? (
+      {!displayData && !error ? (
         <LeaguePageSkeleton />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
@@ -90,18 +132,26 @@ export default function LeaguePage() {
                       to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                       key={team.id}
                     >
-                      <div className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
-                        index < standings.eastOrAFC.length - 1 ? "border-b border-white/[0.04]" : ""
-                      }`}>
+                      <div
+                        className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
+                          index < standings.eastOrAFC.length - 1
+                            ? "border-b border-white/[0.04]"
+                            : ""
+                        }`}
+                      >
                         <div className="flex items-center gap-3">
-                          <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">{index + 1}</span>
+                          <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
+                            {index + 1}
+                          </span>
                           <img
                             loading="lazy"
                             src={team.logo_url}
                             alt={`${team.name} logo`}
                             className="w-6 h-6 object-contain"
                           />
-                          <span className="text-sm font-medium text-text-primary">{team.name}</span>
+                          <span className="text-sm font-medium text-text-primary">
+                            {team.name}
+                          </span>
                         </div>
                         <span className="text-sm text-text-secondary tabular-nums">
                           {team.wins}–{team.losses}
@@ -123,18 +173,26 @@ export default function LeaguePage() {
                       to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                       key={team.id}
                     >
-                      <div className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
-                        index < standings.westOrNFC.length - 1 ? "border-b border-white/[0.04]" : ""
-                      }`}>
+                      <div
+                        className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
+                          index < standings.westOrNFC.length - 1
+                            ? "border-b border-white/[0.04]"
+                            : ""
+                        }`}
+                      >
                         <div className="flex items-center gap-3">
-                          <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">{index + 1}</span>
+                          <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
+                            {index + 1}
+                          </span>
                           <img
                             loading="lazy"
                             src={team.logo_url}
                             alt={`${team.name} logo`}
                             className="w-6 h-6 object-contain"
                           />
-                          <span className="text-sm font-medium text-text-primary">{team.name}</span>
+                          <span className="text-sm font-medium text-text-primary">
+                            {team.name}
+                          </span>
                         </div>
                         <span className="text-sm text-text-secondary tabular-nums">
                           {team.wins}–{team.losses}
@@ -146,24 +204,57 @@ export default function LeaguePage() {
               </div>
             </div>
           </div>
-
+          
+          {/* Date navigation — always shown once valid league, even during load */}
+          <DateNavigation
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            gameDates={gameDates}
+            gameCounts={gameCounts}
+            loading={datesLoading}
+            isCurrentSeason={!selectedSeason}
+          />
           {/* Games */}
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-10 text-center">
-              Games
-            </h2>
-            <m.div
-              className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {games.map((game) => (
-                <m.div key={game.id} variants={itemVariants} className="w-full">
-                  <GameCard game={game} />
-                </m.div>
-              ))}
-            </m.div>
+            {gamesLoading || loading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-6 h-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+              </div>
+            ) : games.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
+                <svg
+                  className="w-10 h-10 mb-4 opacity-40"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <p className="text-sm">No games scheduled for this date.</p>
+              </div>
+            ) : (
+              <m.div
+                className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {games.map((game) => (
+                  <m.div
+                    key={game.id}
+                    variants={itemVariants}
+                    className="w-full"
+                  >
+                    <GameCard game={game} />
+                  </m.div>
+                ))}
+              </m.div>
+            )}
           </div>
         </>
       )}

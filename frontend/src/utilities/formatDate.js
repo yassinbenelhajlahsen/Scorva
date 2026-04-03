@@ -130,3 +130,30 @@ export function formatDateWithTime(dateInput, startTime) {
 }
 
 export default formatDate;
+
+export function parseUTC(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+export function toUTCDateString(date) {
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function getTodayET() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+}
+
+export function addDays(dateStr, n) {
+  const d = parseUTC(dateStr);
+  d.setUTCDate(d.getUTCDate() + n);
+  return toUTCDateString(d);
+}
+
+export const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
