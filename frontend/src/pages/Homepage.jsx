@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { m } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
 import leagueData from "../utilities/LeagueData.js";
@@ -27,12 +27,15 @@ export default function Homepage() {
 
   const [activeLeague, setActiveLeague] = useState(null);
   const [userPicked, setUserPicked] = useState(false);
+  const [tabDirection, setTabDirection] = useState(1);
 
   useEffect(() => {
     if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
   }, [resolvedLeague, userPicked]);
 
   function pickLeague(id) {
+    const order = Object.keys(leagueData);
+    setTabDirection(order.indexOf(id) > order.indexOf(activeLeague) ? 1 : -1);
     setActiveLeague(id);
     setUserPicked(true);
   }
@@ -111,37 +114,59 @@ export default function Homepage() {
       ) : (
         <div>
           {/* Tab pills */}
-          <div className="flex justify-center mb-8 gap-2">
-            {leagues.map((league) => (
-              <button
-                key={league.id}
-                onClick={() => pickLeague(league.id)}
-                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  activeLeague === league.id
-                    ? "bg-accent/15 text-accent border border-accent/25"
-                    : "bg-transparent text-text-secondary border border-white/[0.08] hover:text-text-primary hover:border-white/[0.14]"
-                }`}
-              >
-                <img src={league.logo} alt={league.name} className="w-5 h-5 object-contain" />
-                <span>{league.name}</span>
-              </button>
-            ))}
+          <div className="flex justify-center mb-8">
+            <div className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+              {leagues.map((league) => (
+                <button
+                  key={league.id}
+                  onClick={() => pickLeague(league.id)}
+                  className="relative flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium z-10 transition-colors duration-200"
+                  style={{ color: activeLeague === league.id ? "var(--color-accent)" : "var(--color-text-secondary)" }}
+                >
+                  {activeLeague === league.id && (
+                    <m.div
+                      layoutId="tab-indicator"
+                      className="absolute inset-0 rounded-full bg-accent/15 border border-accent/25"
+                      transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                    />
+                  )}
+                  <img src={league.logo} alt={league.name} className="relative w-5 h-5 object-contain" />
+                  <span className="relative">{league.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Games grid */}
-          <m.div
-            key={activeLeague}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {games[activeLeague].slice(0, 6).map((game) => (
-              <m.div key={game.id} variants={itemVariants} className="w-full">
-                <GameCard game={game} />
+          <div className="overflow-hidden">
+            <AnimatePresence mode="wait" custom={tabDirection} initial={false}>
+              <m.div
+                key={activeLeague}
+                custom={tabDirection}
+                variants={{
+                  initial: (dir) => ({ x: dir * 40, opacity: 0 }),
+                  animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+                  exit: (dir) => ({ x: dir * -40, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
+                }}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                <m.div
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {games[activeLeague].slice(0, 6).map((game) => (
+                    <m.div key={game.id} variants={itemVariants} className="w-full">
+                      <GameCard game={game} />
+                    </m.div>
+                  ))}
+                </m.div>
               </m.div>
-            ))}
-          </m.div>
+            </AnimatePresence>
+          </div>
 
           {/* View All */}
           <div className="flex justify-center mt-10">
