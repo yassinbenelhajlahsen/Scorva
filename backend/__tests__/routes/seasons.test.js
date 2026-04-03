@@ -79,7 +79,7 @@ describe("Seasons Route - GET /:league/seasons", () => {
     await request(app).get("/api/nba/seasons");
 
     expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("LIMIT 15"),
+      expect.stringContaining("LIMIT 10"),
       ["nba"]
     );
   });
