@@ -721,14 +721,13 @@ export async function processEvent(client, leagueSlug, event) {
       await client.query("COMMIT");
       return gameId;
     } catch (err) {
-      log.error({ err }, "processEvent inner error");
-      await client.query("ROLLBACK");
-      return null;
+      try { await client.query("ROLLBACK"); } catch (_) {}
+      throw err; // propagate so runDateRangeProcessing retry wrapper can handle deadlocks
     }
   } catch (err) {
-    log.error({ err }, "processEvent outer error");
-    await client.query("ROLLBACK");
-    return null;
+    if (err.code !== "40P01") log.error({ err }, "processEvent error");
+    try { await client.query("ROLLBACK"); } catch (_) {}
+    throw err;
   }
 }
 
@@ -759,13 +758,24 @@ export async function runDateRangeProcessing(
 
       await Promise.all(
         batch.map(async (event) => {
-          const client = await pool.connect();
-          try {
-            await processEvent(client, leagueSlug, event);
-          } catch (err) {
-            log.error({ err, eventId: event.id }, "error processing event");
-          } finally {
-            client.release();
+          const MAX_DEADLOCK_RETRIES = 3;
+          for (let attempt = 1; attempt <= MAX_DEADLOCK_RETRIES; attempt++) {
+            const client = await pool.connect();
+            try {
+              await processEvent(client, leagueSlug, event);
+              return; // success
+            } catch (err) {
+              if (err.code === "40P01" && attempt < MAX_DEADLOCK_RETRIES) {
+                const delay = 250 * attempt;
+                log.warn({ eventId: event.id, attempt, delayMs: delay }, "deadlock detected, retrying");
+                await new Promise((r) => setTimeout(r, delay));
+              } else {
+                log.error({ err, eventId: event.id }, "error processing event");
+                return;
+              }
+            } finally {
+              client.release();
+            }
           }
         }),
       );

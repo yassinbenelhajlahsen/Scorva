@@ -358,7 +358,8 @@ describe("eventProcessor", () => {
       mockClient.query
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [{ id: 50, status: "Final" }] }); // game status check
+        .mockResolvedValueOnce({ rows: [{ id: 50, status: "Final" }] }) // game status check
+        .mockResolvedValueOnce({ rows: [{ cnt: "50" }] }); // stat count check (≥ minRows → skip)
 
       mockAxiosGet.mockResolvedValue({
         data: { boxscore: { players: [] } },
@@ -567,9 +568,9 @@ describe("eventProcessor", () => {
     });
 
     it("should rollback on processing error", async () => {
-      mockUpsertTeam.mockRejectedValue(new Error("Team insert failed"));
+      mockUpsertTeam.mockRejectedValueOnce(new Error("Team insert failed"));
 
-      await processEvent(mockClient, "nba", createMockEvent());
+      await expect(processEvent(mockClient, "nba", createMockEvent())).rejects.toThrow("Team insert failed");
 
       const queries = mockClient.query.mock.calls.map((c) => c[0]);
       expect(queries).toContain("ROLLBACK");
