@@ -17,7 +17,7 @@ export default function TeamPage() {
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { team, games, teamRecord, loading, error, retry } = useTeam(league, teamId, selectedSeason);
+  const { team, games, teamRecord, homeRecord, awayRecord, loading, error, retry } = useTeam(league, teamId, selectedSeason);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
   useEffect(() => {
@@ -107,22 +107,27 @@ export default function TeamPage() {
 
         {/* Stats card */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            <div className="grid grid-cols-2 gap-x-10 content-between h-full">
-              <span className="text-sm text-text-tertiary">Location</span>
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-4">
+            {/* Location */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wider text-text-tertiary">Location</span>
               <span className="text-sm font-medium text-text-primary">{team.location}</span>
-              <span className="text-sm text-text-tertiary">Record</span>
-              <span className="text-sm font-semibold text-text-primary tabular-nums">
-                {teamRecord ?? team.record}
-              </span>
-              {!selectedSeason && (
-                <>
-                  <span className="text-sm text-text-tertiary">Home Record</span>
-                  <span className="text-sm font-medium text-text-primary tabular-nums">{team.homerecord}</span>
-                  <span className="text-sm text-text-tertiary">Away Record</span>
-                  <span className="text-sm font-medium text-text-primary tabular-nums">{team.awayrecord}</span>
-                </>
-              )}
+            </div>
+
+            <div className="border-t border-white/[0.06]" />
+
+            {/* Record stats */}
+            <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+              {[
+                { label: "Record", value: teamRecord ?? team.record },
+                { label: "Home", value: homeRecord ?? "—" },
+                { label: "Away", value: awayRecord ?? "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex flex-col items-center gap-1 px-3 first:pl-0 last:pr-0">
+                  <span className="text-xs uppercase tracking-wider text-text-tertiary">{label}</span>
+                  <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

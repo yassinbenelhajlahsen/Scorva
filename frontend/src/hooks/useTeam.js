@@ -7,6 +7,8 @@ export function useTeam(league, teamId, selectedSeason) {
   const [team, setTeam] = useState(null);
   const [games, setGames] = useState([]);
   const [teamRecord, setTeamRecord] = useState(null);
+  const [homeRecord, setHomeRecord] = useState(null);
+  const [awayRecord, setAwayRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -17,6 +19,8 @@ export function useTeam(league, teamId, selectedSeason) {
     setLoading(true);
     setError(null);
     setTeam(null);
+    setHomeRecord(null);
+    setAwayRecord(null);
 
     async function fetchTeam() {
       try {
@@ -56,6 +60,14 @@ export function useTeam(league, teamId, selectedSeason) {
         const sorted = gamesData.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
         setGames(sorted);
 
+        const finalGames = gamesData.filter((g) => /final/i.test(g.status ?? ""));
+        const homeGames = finalGames.filter((g) => g.hometeamid === team.id);
+        const homeWins = homeGames.filter((g) => g.winnerid === g.hometeamid).length;
+        const awayGames = finalGames.filter((g) => g.awayteamid === team.id);
+        const awayWins = awayGames.filter((g) => g.winnerid === g.awayteamid).length;
+        setHomeRecord(`${homeWins}-${homeGames.length - homeWins}`);
+        setAwayRecord(`${awayWins}-${awayGames.length - awayWins}`);
+
         const standing = standingsData.find((t) => t.id === team.id);
         setTeamRecord(standing ? `${standing.wins}-${standing.losses}` : null);
         setLoading(false);
@@ -73,5 +85,5 @@ export function useTeam(league, teamId, selectedSeason) {
 
   const retry = useCallback(() => setRetryCount((c) => c + 1), []);
 
-  return { team, games, teamRecord, loading, error, retry };
+  return { team, games, teamRecord, homeRecord, awayRecord, loading, error, retry };
 }
