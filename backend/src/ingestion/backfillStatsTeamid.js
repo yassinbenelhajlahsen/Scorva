@@ -63,7 +63,7 @@ async function processGame(client, game) {
       baseDelayMs: 2000,
       label: `backfill:${league}:${eventid}`,
     });
-  } catch (err) {
+  } catch (_err) {
     log.warn({ gameId, eventid, league }, "ESPN fetch failed, skipping game");
     return 0;
   }

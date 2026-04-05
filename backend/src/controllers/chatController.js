@@ -66,6 +66,7 @@ export async function streamChat(req, res) {
   }
 
   // Strip null bytes and non-printable control characters (injection hygiene)
+  // eslint-disable-next-line no-control-regex
   const cleanMessage = message.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
   if (!cleanMessage) {
     return res.status(400).json({ error: "Message is required" });

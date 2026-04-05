@@ -8,6 +8,8 @@
     "test": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:coverage": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "lint": "eslint src/",
+    "verify": "npm run lint && npm test",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js | pino-pretty"
   },
@@ -32,7 +34,10 @@
     "prisma": "^7.4.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@jest/globals": "^29.7.0",
+    "eslint": "^9.39.4",
+    "globals": "^17.4.0",
     "jest": "^29.7.0",
     "nodemon": "^3.1.14",
     "pino-pretty": "^13.1.3",

@@ -615,15 +615,6 @@ export async function processEvent(client, leagueSlug, event) {
     }
 
     const playerGroups = statsResp.data.boxscore?.players || [];
-    const totalPlayers = playerGroups.reduce((sum, g) => {
-      return (
-        sum +
-        (g.statistics || []).reduce(
-          (s, cat) => s + (cat.athletes?.length || 0),
-          0,
-        )
-      );
-    }, 0);
 
     try {
       for (const group of playerGroups) {
@@ -721,11 +712,13 @@ export async function processEvent(client, leagueSlug, event) {
       await client.query("COMMIT");
       return gameId;
     } catch (err) {
+      // eslint-disable-next-line no-empty
       try { await client.query("ROLLBACK"); } catch (_) {}
       throw err; // propagate so runDateRangeProcessing retry wrapper can handle deadlocks
     }
   } catch (err) {
     if (err.code !== "40P01") log.error({ err }, "processEvent error");
+    // eslint-disable-next-line no-empty
     try { await client.query("ROLLBACK"); } catch (_) {}
     throw err;
   }
@@ -785,8 +778,6 @@ export async function runDateRangeProcessing(
       }
     }
   }
-  const now = new Date();
-
   log.info({ league: leagueSlug }, "finished import");
 }
 

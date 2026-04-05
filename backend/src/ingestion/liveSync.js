@@ -230,7 +230,6 @@ async function main() {
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 
-  // eslint-disable-next-line no-constant-condition
   while (!shuttingDown) {
     // Discover leagues with live (in-progress) games
     let liveLeagues = [];
