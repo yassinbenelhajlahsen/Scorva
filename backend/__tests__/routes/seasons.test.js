@@ -67,7 +67,7 @@ describe("Seasons Route - GET /:league/seasons", () => {
     expect(response.body).toEqual([]);
   });
 
-  it("should limit to 3 seasons", async () => {
+  it("should return all seasons with no row limit", async () => {
     mockPool.query.mockResolvedValue({
       rows: [
         { season: "2025-26" },
@@ -79,7 +79,7 @@ describe("Seasons Route - GET /:league/seasons", () => {
     await request(app).get("/api/nba/seasons");
 
     expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("LIMIT 10"),
+      expect.not.stringContaining("LIMIT"),
       ["nba"]
     );
   });

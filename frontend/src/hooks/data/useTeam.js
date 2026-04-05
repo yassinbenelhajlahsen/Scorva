@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { getTeams, getStandings } from "../../api/teams.js";
+import { getTeams, getStandings, getTeamSeasons } from "../../api/teams.js";
 import { getTeamGames } from "../../api/games.js";
 import slugify from "../../utils/slugify.js";
 
 export function useTeam(league, teamId, selectedSeason) {
   const [team, setTeam] = useState(null);
+  const [availableSeasons, setAvailableSeasons] = useState([]);
   const [games, setGames] = useState([]);
   const [teamRecord, setTeamRecord] = useState(null);
   const [homeRecord, setHomeRecord] = useState(null);
@@ -31,6 +32,9 @@ export function useTeam(league, teamId, selectedSeason) {
         );
         if (!found) throw new Error("Team not found.");
         setTeam(found);
+        getTeamSeasons(league, found.id, { signal: controller.signal })
+          .then(setAvailableSeasons)
+          .catch((err) => { if (err.name !== "AbortError") console.error("Error fetching team seasons:", err); });
         setLoading(false);
       } catch (err) {
         if (err.name !== "AbortError") {
@@ -87,5 +91,5 @@ export function useTeam(league, teamId, selectedSeason) {
 
   const retry = useCallback(() => setRetryCount((c) => c + 1), []);
 
-  return { team, games, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry };
+  return { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry };
 }

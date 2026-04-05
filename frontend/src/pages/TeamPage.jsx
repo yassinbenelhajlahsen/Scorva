@@ -17,7 +17,7 @@ export default function TeamPage() {
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { team, games, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry } = useTeam(league, teamId, selectedSeason);
+  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry } = useTeam(league, teamId, selectedSeason);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
   useEffect(() => {
@@ -75,6 +75,7 @@ export default function TeamPage() {
           league={league}
           selectedSeason={selectedSeason}
           onSeasonChange={setSelectedSeason}
+          seasons={availableSeasons.length > 0 ? availableSeasons : undefined}
         />
       </div>
 

@@ -88,13 +88,13 @@ describe("getSeasons", () => {
     expect(sql).toContain("DESC");
   });
 
-  it("SQL has LIMIT 10", async () => {
+  it("SQL has no row limit", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     await getSeasons("nba");
 
     const [sql] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("LIMIT 10");
+    expect(sql).not.toContain("LIMIT");
   });
 
   it("SQL excludes NULL seasons", async () => {
