@@ -99,7 +99,8 @@ export default function TeamPage() {
             )}
           </div>
           <img
-            src={team.logo_url || "/images/placeholder.png"}
+            src={team.logo_url || "/backupTeamLogo.webp"}
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/backupTeamLogo.webp"; }}
             alt={team.name}
             className="w-44 h-44 object-contain"
           />
