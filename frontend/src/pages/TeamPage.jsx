@@ -10,8 +10,6 @@ import { containerVariants, itemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
 import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
-import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
-import Skeleton from "../components/ui/Skeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
 export default function TeamPage() {
@@ -119,7 +117,10 @@ export default function TeamPage() {
             <div className="border-t border-white/[0.06]" />
 
             {/* Record stats */}
-            <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+            <div
+              className="grid grid-cols-3 divide-x divide-white/[0.06]"
+              style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
+            >
               {[
                 { label: "Record", value: teamRecord ?? team.record },
                 { label: "Home", value: homeRecord ?? "—" },
@@ -127,11 +128,7 @@ export default function TeamPage() {
               ].map(({ label, value }) => (
                 <div key={label} className="flex flex-col items-center gap-1 px-3 first:pl-0 last:pr-0">
                   <span className="text-xs uppercase tracking-wider text-text-tertiary">{label}</span>
-                  {seasonLoading ? (
-                    <Skeleton className="h-7 w-12 rounded-lg mt-0.5" />
-                  ) : (
-                    <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
-                  )}
+                  <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
                 </div>
               ))}
             </div>
@@ -144,41 +141,32 @@ export default function TeamPage() {
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
           {selectedSeason ? `${selectedSeason} Schedule` : "Season Schedule"}
         </h2>
-        {seasonLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="w-full">
-                <GameCardSkeleton />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <MonthNavigation
-              games={games}
-              selectedMonth={selectedMonth}
-              onMonthChange={setSelectedMonth}
-            />
-            {filteredGames.length > 0 ? (
-              <m.div
-                className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                {filteredGames.map((game) => (
-                  <m.div key={game.id} variants={itemVariants} className="w-full">
-                    <GameCard game={game} />
-                  </m.div>
-                ))}
-              </m.div>
-            ) : (
-              <p className="text-center text-text-tertiary text-sm mt-8">
-                {games.length > 0 ? "No games this month." : "No recent games to show."}
-              </p>
-            )}
-          </>
-        )}
+        <MonthNavigation
+          games={games}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
+        <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
+          {filteredGames.length > 0 ? (
+            <m.div
+              key={selectedSeason}
+              className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {filteredGames.map((game) => (
+                <m.div key={game.id} variants={itemVariants} className="w-full">
+                  <GameCard game={game} />
+                </m.div>
+              ))}
+            </m.div>
+          ) : (
+            <p className="text-center text-text-tertiary text-sm mt-8">
+              {games.length > 0 ? "No games this month." : "No recent games to show."}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

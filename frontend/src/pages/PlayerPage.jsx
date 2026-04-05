@@ -4,8 +4,6 @@ import { m } from "framer-motion";
 import { usePlayer } from "../hooks/data/usePlayer.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
-import StatCardSkeleton from "../components/skeletons/StatCardSkeleton.jsx";
-import Skeleton from "../components/ui/Skeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
@@ -180,7 +178,10 @@ export default function PlayerPage() {
               seasons={playerData.availableSeasons}
             />
           </div>
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          <div
+            className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+            style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
+          >
             <div className="grid grid-cols-[max-content_auto] gap-x-10 gap-y-3">
               <span className="text-sm text-text-tertiary">Height / Weight</span>
               <span className="text-sm font-medium text-text-primary">{height} / {weight}</span>
@@ -193,34 +194,18 @@ export default function PlayerPage() {
               <span className="text-sm text-text-tertiary">Draft</span>
               <span className="text-sm font-medium text-text-primary">{draftInfo}</span>
               <span className="text-sm text-text-tertiary">Team</span>
-              {seasonLoading ? (
-                <Skeleton className="h-4 w-28 rounded" />
-              ) : (
-                <Link
-                  to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
-                  className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
-                >
-                  {team.name}
-                </Link>
-              )}
+              <Link
+                to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+                className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
+              >
+                {team.name}
+              </Link>
             </div>
           </div>
 
-          {seasonLoading ? (
-            <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
-              <Skeleton className="h-9 w-full rounded-none" />
-              <div className="p-6 flex flex-wrap justify-center gap-x-10 gap-y-6">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center min-w-[72px] gap-1.5">
-                    <Skeleton className="h-2.5 w-8" />
-                    <Skeleton className="h-9 w-14 rounded-lg" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
+          <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
             <PlayerAvgCard league={league} averages={seasonAverages} season={selectedSeason || apiSeason} />
-          )}
+          </div>
         </div>
       </div>
 
@@ -229,21 +214,15 @@ export default function PlayerPage() {
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
           Recent Performances
         </h2>
-        {!seasonLoading && (
-          <MonthNavigation
-            games={playerData?.games}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-          />
-        )}
-        {seasonLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <StatCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : filteredGames.length > 0 ? (
+        <MonthNavigation
+          games={playerData?.games}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
+        <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
+        {filteredGames.length > 0 ? (
           <m.div
+            key={selectedSeason || apiSeason}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
             variants={containerVariants}
             initial="hidden"
@@ -288,6 +267,7 @@ export default function PlayerPage() {
               : "No recent performances to show."}
           </p>
         )}
+        </div>
       </div>
     </div>
   );

@@ -185,12 +185,8 @@ export default function LeaguePage() {
                     loading={datesLoading}
                     isCurrentSeason={!selectedSeason}
                   />
-                  <div>
-                    {gamesLoading || loading ? (
-                      <div className="flex items-center justify-center py-20">
-                        <div className="w-6 h-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-                      </div>
-                    ) : games.length === 0 ? (
+                  <div style={{ opacity: (loading || gamesLoading) ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
+                    {games.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
                         <svg
                           className="w-10 h-10 mb-4 opacity-40"
@@ -229,7 +225,10 @@ export default function LeaguePage() {
                   </div>
                 </>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div
+                  className="grid grid-cols-1 md:grid-cols-2 gap-8"
+                  style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
+                >
                   {/* East / AFC */}
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">

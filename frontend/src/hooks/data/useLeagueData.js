@@ -41,11 +41,10 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
       setResolvedSeason(null);
 
       if (isDateOnlyChange) {
-        // Keep standings/displayData visible; only show games as loading
+        // Keep stale games visible; opacity dim handled by the page
         setGamesLoading(true);
-        setGames([]);
       } else {
-        setDisplayData(false);
+        // Season change — keep stale data visible; don't clear displayData
         setGamesLoading(false);
       }
 
