@@ -318,36 +318,7 @@ export default function AuthModal({ onClose, context }) {
 
                   {/* Form */}
                   <form onSubmit={handleSubmit} className="space-y-2.5">
-                    {/* First / Last name — signup only */}
                     <AnimatePresence initial={false}>
-                      {mode === "signup" && (
-                        <m.div
-                          key="name-fields"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                          style={{ overflow: "hidden" }}
-                          className="flex gap-2"
-                        >
-                          <FloatingInput
-                            id="auth-firstname"
-                            type="text"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            label="First name"
-                            autoComplete="given-name"
-                          />
-                          <FloatingInput
-                            id="auth-lastname"
-                            type="text"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            label="Last name"
-                            autoComplete="family-name"
-                          />
-                        </m.div>
-                      )}
                     </AnimatePresence>
                     <FloatingInput
                       id="auth-email"

@@ -93,8 +93,8 @@ export default function AccountTab() {
     (meta.full_name ? meta.full_name.trim().split(/\s+/).slice(1).join(" ") : "") ??
     "";
 
-  const [firstName, setFirstName] = useState(initFirst);
-  const [lastName, setLastName] = useState(initLast);
+  const firstName = initFirst;
+  const lastName = initLast;
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState(null);
 
@@ -215,22 +215,6 @@ export default function AccountTab() {
       {/* Profile */}
       <Section title="Profile">
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <InputField
-              label="First Name"
-              id="firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="First name"
-            />
-            <InputField
-              label="Last Name"
-              id="lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Last name"
-            />
-          </div>
           <InputField label="Email" id="email" value={user?.email ?? ""} readOnly />
           <div className="flex items-center justify-between gap-4 pt-1">
             <Feedback message={profileMsg?.text} type={profileMsg?.type} />

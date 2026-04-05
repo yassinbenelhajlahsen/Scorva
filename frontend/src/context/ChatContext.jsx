@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "./AuthContext.jsx";
+import { useSettings } from "./SettingsContext.jsx";
 import ChatFAB from "../components/chat/ChatFAB.jsx";
 import ChatPanel from "../components/chat/ChatPanel.jsx";
 
@@ -8,6 +9,7 @@ const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
   const { session, openAuthModal } = useAuth();
+  const { isDrawerOpen } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
@@ -20,6 +22,10 @@ export function ChatProvider({ children }) {
     }
     setIsOpen((prev) => !prev);
   }, [session, openAuthModal]);
+
+  useEffect(() => {
+    if (isDrawerOpen) setIsOpen(false);
+  }, [isDrawerOpen]);
 
   const resetConversation = useCallback(() => {
     setMessages([]);
@@ -41,7 +47,7 @@ export function ChatProvider({ children }) {
       }}
     >
       {children}
-      {session !== undefined && (
+      {session !== undefined && !isDrawerOpen && (
         <ChatFAB onClick={togglePanel} isOpen={isOpen} />
       )}
       <AnimatePresence>

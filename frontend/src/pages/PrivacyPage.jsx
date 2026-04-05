@@ -1,4 +1,7 @@
+import { useSettings } from "../context/SettingsContext.jsx";
+
 export default function PrivacyPage() {
+  const settings = useSettings();
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-16">
       {/* Header */}
@@ -24,8 +27,7 @@ export default function PrivacyPage() {
             <ul className="text-text-secondary text-sm leading-relaxed space-y-2 list-disc list-inside">
               <li>
                 <span className="text-text-primary font-medium">Account information</span> — email
-                address, first name, last name. Provided when you sign up with email/password or via
-                Google OAuth.
+                address. Provided when you sign up with email/password or via Google OAuth.
               </li>
               <li>
                 <span className="text-text-primary font-medium">Preferences</span> — your default
@@ -102,12 +104,16 @@ export default function PrivacyPage() {
             <p className="text-text-secondary text-sm leading-relaxed">
               Your account data is kept for as long as your account exists. You can permanently delete
               your account — including all stored preferences and favorites — at any time from{" "}
-              <a
-                href="/settings"
-                className="text-accent hover:text-accent-hover underline underline-offset-2"
-              >
-                Settings → Account
-              </a>
+              {settings ? (
+                <button
+                  onClick={() => settings.openDrawer("account")}
+                  className="text-accent hover:text-accent-hover underline underline-offset-2"
+                >
+                  Settings → Account
+                </button>
+              ) : (
+                "Settings → Account"
+              )}
               . Deletion is immediate and irreversible.
             </p>
           </section>

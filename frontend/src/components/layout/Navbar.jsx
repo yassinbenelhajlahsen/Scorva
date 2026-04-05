@@ -4,6 +4,7 @@ import logo from "/favicon.webp";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/data/useSearch.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import AvatarDropdown from "./AvatarDropdown.jsx";
 
 export default function Navbar() {
   const [query, setQuery] = useState("");
@@ -73,16 +74,7 @@ export default function Navbar() {
             <>
               <div className="w-px h-4 bg-white/[0.12]" />
               {session ? (
-                <Link
-                  to="/settings"
-                  className={`text-sm font-medium transition-colors duration-200 ${
-                    location.pathname.startsWith("/settings")
-                      ? "text-accent"
-                      : "text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  Account
-                </Link>
+                <AvatarDropdown />
               ) : (
                 <button
                   onClick={openAuthModal}

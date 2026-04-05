@@ -10,6 +10,7 @@ import LoadingPage from "./pages/LoadingPage.jsx";
 import Homepage from "./pages/Homepage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ChatProvider } from "./context/ChatContext.jsx";
+import { SettingsProvider } from "./context/SettingsContext.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 
 const About        = lazy(() => import("./pages/About.jsx"));
@@ -17,7 +18,6 @@ const LeaguePage   = lazy(() => import("./pages/LeaguePage.jsx"));
 const PlayerPage   = lazy(() => import("./pages/PlayerPage.jsx"));
 const TeamPage     = lazy(() => import("./pages/TeamPage.jsx"));
 const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
-const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
 const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 
@@ -41,14 +41,6 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <About />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <PageWrapper>
-              <SettingsPage />
             </PageWrapper>
           }
         />
@@ -116,16 +108,18 @@ export default function App() {
             path="*"
             element={
               <AuthProvider>
-                <ChatProvider>
-                  <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
-                    <Navbar />
-                    <ScrollToTop />
-                    <ErrorBoundary>
-                      <AnimatedRoutes />
-                    </ErrorBoundary>
-                    <Footer />
-                  </div>
-                </ChatProvider>
+                <SettingsProvider>
+                  <ChatProvider>
+                    <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
+                      <Navbar />
+                      <ScrollToTop />
+                      <ErrorBoundary>
+                        <AnimatedRoutes />
+                      </ErrorBoundary>
+                      <Footer />
+                    </div>
+                  </ChatProvider>
+                </SettingsProvider>
               </AuthProvider>
             }
           />
