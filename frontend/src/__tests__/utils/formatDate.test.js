@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import formatDate, { formatDateShort, getPeriodLabel } from "../../utils/formatDate.js";
+import formatDate, {
+  formatDateShort,
+  getPeriodLabel,
+  formatDateShortWithTime,
+  formatDateWithTime,
+  parseUTC,
+  toUTCDateString,
+  addDays,
+} from "../../utils/formatDate.js";
 
 describe("formatDate", () => {
   it("formats ISO YYYY-MM-DD", () => {
@@ -82,6 +90,67 @@ describe("formatDateShort", () => {
 
   it("ordinal: 11th (exception)", () => {
     expect(formatDateShort("2025-06-11")).toBe("Jun 11th");
+  });
+});
+
+describe("formatDateShort — fallback path", () => {
+  it("parses ISO timestamp via fallback branch", () => {
+    // "2025-01-15T00:00:00Z" does not match the dash or slash patterns
+    expect(formatDateShort("2025-01-15T00:00:00Z")).toBe("Jan 15th");
+  });
+
+  it("returns 'Invalid date' for garbage input", () => {
+    expect(formatDateShort("not-a-date")).toBe("Invalid date");
+  });
+});
+
+describe("formatDateShortWithTime", () => {
+  it("appends start time when provided", () => {
+    expect(formatDateShortWithTime("2025-01-15", "7:30PM ET")).toBe("Jan 15th @ 7:30PM ET");
+  });
+
+  it("returns just the date when startTime is absent", () => {
+    expect(formatDateShortWithTime("2025-01-15", null)).toBe("Jan 15th");
+  });
+
+  it("returns just the date when startTime is undefined", () => {
+    expect(formatDateShortWithTime("2025-03-01")).toBe("Mar 1st");
+  });
+});
+
+describe("formatDateWithTime", () => {
+  it("appends start time when provided", () => {
+    expect(formatDateWithTime("2025-01-15", "7:30PM ET")).toBe("January 15th, 2025 @ 7:30PM ET");
+  });
+
+  it("returns just the date when startTime is absent", () => {
+    expect(formatDateWithTime("2025-01-15", null)).toBe("January 15th, 2025");
+  });
+
+  it("returns just the date when startTime is undefined", () => {
+    expect(formatDateWithTime("2025-03-01")).toBe("March 1st, 2025");
+  });
+});
+
+describe("parseUTC / toUTCDateString / addDays", () => {
+  it("parseUTC returns a UTC midnight date", () => {
+    const d = parseUTC("2025-01-15");
+    expect(d.getUTCFullYear()).toBe(2025);
+    expect(d.getUTCMonth()).toBe(0);
+    expect(d.getUTCDate()).toBe(15);
+  });
+
+  it("toUTCDateString formats as YYYY-MM-DD", () => {
+    const d = new Date(Date.UTC(2025, 0, 5));
+    expect(toUTCDateString(d)).toBe("2025-01-05");
+  });
+
+  it("addDays adds days correctly", () => {
+    expect(addDays("2025-01-15", 5)).toBe("2025-01-20");
+  });
+
+  it("addDays handles month crossover", () => {
+    expect(addDays("2025-01-30", 3)).toBe("2025-02-02");
   });
 });
 

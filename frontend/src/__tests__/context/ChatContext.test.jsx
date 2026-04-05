@@ -5,6 +5,10 @@ vi.mock("../../context/AuthContext.jsx", () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock("../../context/SettingsContext.jsx", () => ({
+  useSettings: vi.fn(),
+}));
+
 vi.mock("../../components/chat/ChatFAB.jsx", () => ({
   default: ({ onClick, isOpen }) => (
     <button data-testid="chat-fab" onClick={onClick}>
@@ -27,6 +31,7 @@ vi.mock("framer-motion", () => ({
 }));
 
 const { useAuth } = await import("../../context/AuthContext.jsx");
+const { useSettings } = await import("../../context/SettingsContext.jsx");
 const { ChatProvider, useChat } = await import("../../context/ChatContext.jsx");
 
 function TestConsumer() {
@@ -57,6 +62,7 @@ function TestConsumer() {
 
 function renderProvider(session = { access_token: "tok" }) {
   useAuth.mockReturnValue({ session, openAuthModal: vi.fn() });
+  useSettings.mockReturnValue({ isDrawerOpen: false });
   return render(
     <ChatProvider>
       <TestConsumer />
@@ -100,6 +106,17 @@ describe("ChatProvider + useChat", () => {
 
     expect(openAuthModal).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("is-open").textContent).toBe("false");
+  });
+
+  it("hides ChatFAB when settings drawer is open", () => {
+    useAuth.mockReturnValue({ session: { access_token: "tok" }, openAuthModal: vi.fn() });
+    useSettings.mockReturnValue({ isDrawerOpen: true });
+    render(
+      <ChatProvider>
+        <TestConsumer />
+      </ChatProvider>
+    );
+    expect(screen.queryByTestId("chat-fab")).not.toBeInTheDocument();
   });
 
   it("resetConversation clears messages and conversationId", () => {

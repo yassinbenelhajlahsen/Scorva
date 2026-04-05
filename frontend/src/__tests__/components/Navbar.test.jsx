@@ -7,6 +7,16 @@ vi.mock("../../context/AuthContext.jsx", () => ({
   useAuth: vi.fn(),
 }));
 
+// Mock useSettings so AvatarDropdown doesn't crash without a provider
+vi.mock("../../context/SettingsContext.jsx", () => ({
+  useSettings: vi.fn(() => ({
+    isDropdownOpen: false,
+    toggleDropdown: vi.fn(),
+    closeDropdown: vi.fn(),
+    openDrawer: vi.fn(),
+  })),
+}));
+
 // Mock useSearch to avoid real API calls
 vi.mock("../../hooks/data/useSearch.js", () => ({
   useSearch: vi.fn(() => ({ results: [], loading: false })),
@@ -54,13 +64,13 @@ describe("Navbar", () => {
     expect(screen.getByText("Sign In")).toBeInTheDocument();
   });
 
-  it("shows Account link when session is active", () => {
+  it("shows avatar button when session is active", () => {
     useAuth.mockReturnValue({
       session: { access_token: "tok", user: { id: "u1" } },
       openAuthModal: vi.fn(),
     });
     renderNavbar();
-    expect(screen.getByText("Account")).toBeInTheDocument();
+    expect(screen.getByLabelText("Account menu")).toBeInTheDocument();
     expect(screen.queryByText("Sign In")).not.toBeInTheDocument();
   });
 
@@ -68,6 +78,6 @@ describe("Navbar", () => {
     useAuth.mockReturnValue({ session: undefined, openAuthModal: vi.fn() });
     renderNavbar();
     expect(screen.queryByText("Sign In")).not.toBeInTheDocument();
-    expect(screen.queryByText("Account")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Account menu")).not.toBeInTheDocument();
   });
 });
