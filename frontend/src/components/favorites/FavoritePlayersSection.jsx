@@ -81,7 +81,7 @@ export default function FavoritePlayersSection({ players }) {
                           opponentLogo={opponentLogo}
                           result={result}
                           status={stat.status}
-                          id={player.id}
+                          playerName={player.name}
                         />
                       </div>
                     );

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { m } from "framer-motion";
+import slugify from "../../utils/slugify.js";
 
 export default function StatCard({
   stats = [],
@@ -11,7 +12,7 @@ export default function StatCard({
   opponentLogo,
   result,
   status,
-  id,
+  playerName,
 }) {
   const isFinal = status?.includes("Final");
   const inProgress =
@@ -26,7 +27,7 @@ export default function StatCard({
     );
   }
 
-  const to = `/${league}/games/${gameId}#player-${id}`;
+  const to = `/${league}/games/${gameId}#${slugify(playerName)}`;
 
   return (
     <Link to={to} className="group block">

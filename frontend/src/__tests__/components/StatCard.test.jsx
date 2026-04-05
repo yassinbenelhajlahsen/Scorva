@@ -27,7 +27,7 @@ const mockStats = [
 
 describe("StatCard — empty state", () => {
   it("shows 'No stats available' when stats is empty", () => {
-    render(<StatCard stats={[]} league="nba" gameId={1} id={42} status="Final" />);
+    render(<StatCard stats={[]} league="nba" gameId={1} playerName="LeBron James" status="Final" />);
     expect(screen.getByText("No stats available.")).toBeInTheDocument();
   });
 });
@@ -39,7 +39,7 @@ describe("StatCard — with stats", () => {
         stats={mockStats}
         league="nba"
         gameId={1}
-        id={42}
+        playerName="LeBron James"
         opponent="Lakers"
         date="Jan 15th"
         status="Final"
@@ -56,28 +56,28 @@ describe("StatCard — with stats", () => {
 
   it("renders game link pointing to correct path with anchor", () => {
     render(
-      <StatCard stats={mockStats} league="nba" gameId={1} id={42} status="Final" />
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" />
     );
-    expect(screen.getByRole("link").getAttribute("href")).toBe("/nba/games/1#player-42");
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/nba/games/1#lebron-james");
   });
 
   it("shows Win badge for W result when Final", () => {
     render(
-      <StatCard stats={mockStats} league="nba" gameId={1} id={42} status="Final" result="W" opponent="Lakers" />
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" result="W" opponent="Lakers" />
     );
     expect(screen.getByText("W")).toBeInTheDocument();
   });
 
   it("shows Loss badge for L result when Final", () => {
     render(
-      <StatCard stats={mockStats} league="nba" gameId={1} id={42} status="Final" result="L" opponent="Lakers" />
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" result="L" opponent="Lakers" />
     );
     expect(screen.getByText("L")).toBeInTheDocument();
   });
 
   it("shows 'vs.' when isHome is true", () => {
     render(
-      <StatCard stats={mockStats} league="nba" gameId={1} id={42} status="Final" opponent="Lakers" isHome={true} />
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" opponent="Lakers" isHome={true} />
     );
     // "vs." is inline text node in a span alongside opponent name
     expect(screen.getByText(/vs\./)).toBeInTheDocument();
@@ -85,21 +85,21 @@ describe("StatCard — with stats", () => {
 
   it("shows '@' when isHome is false", () => {
     render(
-      <StatCard stats={mockStats} league="nba" gameId={1} id={42} status="Final" opponent="Lakers" isHome={false} />
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" opponent="Lakers" isHome={false} />
     );
     expect(screen.getByText(/@/)).toBeInTheDocument();
   });
 
   it("shows Live badge when In Progress", () => {
     render(
-      <StatCard stats={mockStats} league="nba" gameId={1} id={42} status="In Progress" opponent="Lakers" />
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="In Progress" opponent="Lakers" />
     );
     expect(screen.getByText("Live")).toBeInTheDocument();
   });
 
   it("appends % for stats with % in label", () => {
     const pctStats = [{ label: "FG%", value: 52 }];
-    render(<StatCard stats={pctStats} league="nba" gameId={1} id={42} status="Final" />);
+    render(<StatCard stats={pctStats} league="nba" gameId={1} playerName="LeBron James" status="Final" />);
     // "%" is a sibling text node; the label "FG%" is shown in the <span> above
     expect(screen.getByText("FG%")).toBeInTheDocument();
   });

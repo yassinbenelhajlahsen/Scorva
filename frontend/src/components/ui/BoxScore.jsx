@@ -254,7 +254,7 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
           <tbody className="divide-y divide-white/[0.04]">
             {players.map((p) => (
               <tr
-                id={`player-${p.id}`}
+                id={slugify(p.name)}
                 key={p.id}
                 className="hover:bg-surface-overlay/60 transition-colors duration-150"
               >

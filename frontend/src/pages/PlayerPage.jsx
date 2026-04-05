@@ -126,7 +126,7 @@ export default function PlayerPage() {
     );
   }
 
-  const { id, name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo } = playerData;
+  const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo } = playerData;
 
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
@@ -254,7 +254,7 @@ export default function PlayerPage() {
                     opponentLogo={game.opponentlogo}
                     result={game.result}
                     status={game.status}
-                    id={id}
+                    playerName={name}
                   />
                 </m.div>
               );
