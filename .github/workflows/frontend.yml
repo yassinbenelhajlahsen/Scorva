@@ -1,4 +1,4 @@
-name: CI & Deploy
+name: Frontend CI & Deploy
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
       - name: Verify
         run: cd frontend && npm run verify
 
-  deploy-frontend:
+  deploy:
     needs: ci
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
