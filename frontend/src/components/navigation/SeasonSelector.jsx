@@ -1,7 +1,8 @@
 import { useSeasons } from "../../hooks/data/useSeasons.js";
 
-export default function SeasonSelector({ league, selectedSeason, onSeasonChange }) {
-  const { seasons } = useSeasons(league);
+export default function SeasonSelector({ league, selectedSeason, onSeasonChange, seasons: overrideSeasons }) {
+  const { seasons: leagueSeasons } = useSeasons(league);
+  const seasons = overrideSeasons || leagueSeasons;
 
   if (seasons.length === 0) {
     return (

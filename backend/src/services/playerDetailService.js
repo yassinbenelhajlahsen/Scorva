@@ -84,7 +84,13 @@ export async function getNbaPlayer(playerId, season) {
             WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
           ) AS game_data
-        ), '[]'::json)
+        ), '[]'::json),
+      'availableSeasons', COALESCE((
+        SELECT json_agg(DISTINCT g_s.season ORDER BY g_s.season DESC)
+        FROM stats s_s
+        JOIN games g_s ON s_s.gameid = g_s.id
+        WHERE s_s.playerid = p.id
+      ), '[]'::json)
     ) AS player
     FROM players p
     LEFT JOIN LATERAL (
@@ -164,7 +170,13 @@ export async function getNflPlayer(playerId, season) {
             WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
           ) AS game_data
-        ), '[]'::json)
+        ), '[]'::json),
+      'availableSeasons', COALESCE((
+        SELECT json_agg(DISTINCT g_s.season ORDER BY g_s.season DESC)
+        FROM stats s_s
+        JOIN games g_s ON s_s.gameid = g_s.id
+        WHERE s_s.playerid = p.id
+      ), '[]'::json)
     ) AS player
     FROM players p
     LEFT JOIN LATERAL (
@@ -255,7 +267,13 @@ export async function getNhlPlayer(playerId, season) {
             WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
             ORDER BY g.date DESC
           ) AS game_data
-        ), '[]'::json)
+        ), '[]'::json),
+      'availableSeasons', COALESCE((
+        SELECT json_agg(DISTINCT g_s.season ORDER BY g_s.season DESC)
+        FROM stats s_s
+        JOIN games g_s ON s_s.gameid = g_s.id
+        WHERE s_s.playerid = p.id
+      ), '[]'::json)
     ) AS player
     FROM players p
     LEFT JOIN LATERAL (

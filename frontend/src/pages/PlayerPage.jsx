@@ -83,6 +83,16 @@ export default function PlayerPage() {
   }, [selectedSeason]);
 
   useEffect(() => {
+    if (!playerData) return;
+    // If no season was explicitly selected and the resolved season has no stats
+    // (e.g. a retired player), jump to the most recent season with stats.
+    if (!selectedSeason && playerData.availableSeasons?.length > 0 &&
+        !playerData.availableSeasons.includes(playerData.season)) {
+      setSelectedSeason(playerData.availableSeasons[0]);
+    }
+  }, [playerData]);
+
+  useEffect(() => {
     if (!playerData?.games?.length) return;
     const months = [...new Set(playerData.games.map((g) => String(g.date).slice(0, 7)))].sort();
     setSelectedMonth(months[months.length - 1]);
@@ -165,6 +175,7 @@ export default function PlayerPage() {
               league={league}
               selectedSeason={selectedSeason}
               onSeasonChange={setSelectedSeason}
+              seasons={playerData.availableSeasons}
             />
           </div>
           <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
