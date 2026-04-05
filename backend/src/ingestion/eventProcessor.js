@@ -52,7 +52,7 @@ let runStats = {
  * On 429 responses, backs off harder (15s × attempt) to respect rate limits.
  * On other errors, uses exponential backoff (baseDelayMs × 2^(attempt-1)).
  */
-async function withRetry(fn, { retries = 3, baseDelayMs = 1500, label = "" } = {}) {
+async function withRetry(fn, { retries = 3, baseDelayMs = process.env.NODE_ENV === "test" ? 0 : 1500, label = "" } = {}) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       return await fn();
@@ -605,7 +605,7 @@ export async function processEvent(client, leagueSlug, event) {
     try {
       statsResp = await withRetry(() => axios.get(boxscoreUrl), {
         retries: 3,
-        baseDelayMs: 2000,
+        baseDelayMs: process.env.NODE_ENV === "test" ? 0 : 2000,
         label: `boxscore:${leagueSlug}:${espnEventId}`,
       });
     } catch (err) {
