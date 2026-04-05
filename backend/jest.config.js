@@ -14,5 +14,5 @@ export default {
       statements: 80,
     },
   },
-  verbose: true,
+  verbose: false,
 };

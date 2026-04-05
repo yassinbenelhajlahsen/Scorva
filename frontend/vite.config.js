@@ -26,6 +26,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    reporter: "dot",
     setupFiles: ["./src/__tests__/setup.js"],
     include: ["src/**/*.test.{js,jsx}"],
     coverage: {
