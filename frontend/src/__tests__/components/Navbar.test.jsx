@@ -17,6 +17,11 @@ vi.mock("../../context/SettingsContext.jsx", () => ({
   })),
 }));
 
+// Mock supabase client to avoid createClient crash (no env vars in test)
+vi.mock("../../lib/supabase.js", () => ({
+  supabase: {},
+}));
+
 // Mock useSearch to avoid real API calls
 vi.mock("../../hooks/data/useSearch.js", () => ({
   useSearch: vi.fn(() => ({ results: [], loading: false })),
