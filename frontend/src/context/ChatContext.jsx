@@ -15,7 +15,7 @@ export function ChatProvider({ children }) {
 
   const togglePanel = useCallback(() => {
     if (!session) {
-      openAuthModal();
+      openAuthModal("chat");
       return;
     }
     setIsOpen((prev) => !prev);

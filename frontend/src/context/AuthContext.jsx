@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalContext, setModalContext] = useState(null);
 
   useEffect(() => {
     const {
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     const channel = new BroadcastChannel("supabase_auth");
     channel.onmessage = (event) => {
       if (event.data?.type === "SUPABASE_AUTH_SUCCESS") {
-        setModalOpen(false);
+        setModalContext(null);
       }
     };
 
@@ -31,11 +31,11 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, openAuthModal: () => setModalOpen(true) }}
+      value={{ session, openAuthModal: (context) => setModalContext(context || "default") }}
     >
       {children}
       <AnimatePresence>
-        {modalOpen && <AuthModal onClose={() => setModalOpen(false)} />}
+        {modalContext && <AuthModal context={modalContext} onClose={() => setModalContext(null)} />}
       </AnimatePresence>
     </AuthContext.Provider>
   );

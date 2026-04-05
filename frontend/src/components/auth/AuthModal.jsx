@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase.js";
 import { FloatingInput } from "../ui/FloatingInput.jsx";
@@ -11,7 +11,12 @@ const slideVariants = {
 };
 const slideTrans = { duration: 0.3, ease: [0.22, 1, 0.36, 1] };
 
-export default function AuthModal({ onClose }) {
+const CONTEXT_SUBTITLES = {
+  chat: "to use AI Chat",
+  summary: "to use AI Game Summary",
+};
+
+export default function AuthModal({ onClose, context }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +30,14 @@ export default function AuthModal({ onClose }) {
   const [confirm, setConfirm] = useState("");
   const [view, setView] = useState("form"); // "form" | "reset" | "reset-sent"
   const [direction, setDirection] = useState(1);
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   function goToReset() {
     setDirection(1);
@@ -277,7 +290,7 @@ export default function AuthModal({ onClose }) {
                         </m.h2>
                       </AnimatePresence>
                     </div>
-                    <p className="text-[13px] text-text-tertiary mt-1">to continue to Scorva</p>
+                    <p className="text-[13px] text-text-tertiary mt-1">{CONTEXT_SUBTITLES[context] ?? "to continue to Scorva"}</p>
                   </div>
 
                   {/* Google OAuth */}
