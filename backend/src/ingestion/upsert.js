@@ -15,31 +15,22 @@ import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
 import { invalidatePattern, closeCache } from "../cache/cache.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 dotenv.config({ path: resolve(__dirname, "../../.env") });
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
-});
-
-const nowEST = DateTime.now().setZone("America/New_York");
-
-function addOrdinal(day) {
+export function addOrdinal(day) {
   const s = ["th", "st", "nd", "rd"];
   const v = day % 100;
   return day + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Build formatted timestamp string
-const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
-  nowEST.day,
-)}, ${nowEST.toFormat("yyyy")} @ ${nowEST.toFormat("h:mma").toLowerCase()}`;
+export async function runUpsert(pool) {
+  const nowEST = DateTime.now().setZone("America/New_York");
+  const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
+    nowEST.day,
+  )}, ${nowEST.toFormat("yyyy")} @ ${nowEST.toFormat("h:mma").toLowerCase()}`;
 
-(async () => {
   log.info({ time: formattedTime }, "starting upsert");
 
   try {
@@ -60,22 +51,30 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
 
     await refreshPopularity(pool);
 
-    // Log optimization stats before clearing (useful for monitoring impact)
     const stats = getPlayerCacheStats();
-
     log.info({ stats }, "run summary");
 
-    // Clear the player cache to free memory after run completes
     clearPlayerCache();
 
     log.info({ time: formattedTime }, "upsert completed");
   } catch (err) {
     log.error({ err }, "fatal error");
   } finally {
-    // Always clear cache on exit to prevent memory leaks
     clearPlayerCache();
     await closeCache();
     await pool.end();
-    process.exit(0);
   }
-})();
+}
+
+// CLI entry point — only runs when executed directly, not when imported by tests
+if (resolve(process.argv[1]) === __filename) {
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl:
+      process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: false }
+        : false,
+  });
+  await runUpsert(pool);
+  process.exit(0);
+}
