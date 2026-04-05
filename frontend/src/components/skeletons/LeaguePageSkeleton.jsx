@@ -1,12 +1,12 @@
 import Skeleton from "../ui/Skeleton.jsx";
 import GameCardSkeleton from "./GameCardSkeleton.jsx";
 
-function StandingsColumnSkeleton() {
+function StandingsColumnSkeleton({ heading }) {
   return (
     <div>
-      <div className="flex justify-center mb-4">
-        <Skeleton className="h-3.5 w-36 rounded" />
-      </div>
+      <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
+        {heading}
+      </h3>
       <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
         {Array.from({ length: 8 }).map((_, i) => (
           <div
@@ -26,12 +26,13 @@ function StandingsColumnSkeleton() {
   );
 }
 
-export default function LeaguePageSkeleton({ activeTab = "games" }) {
+export default function LeaguePageSkeleton({ activeTab = "games", league }) {
   if (activeTab === "standings") {
+    const isNFL = league === "nfl";
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <StandingsColumnSkeleton />
-        <StandingsColumnSkeleton />
+        <StandingsColumnSkeleton heading={isNFL ? "AFC" : "Eastern Conference"} />
+        <StandingsColumnSkeleton heading={isNFL ? "NFC" : "Western Conference"} />
       </div>
     );
   }

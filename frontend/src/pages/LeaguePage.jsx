@@ -157,7 +157,7 @@ export default function LeaguePage() {
       </div>
 
       {!displayData && !error ? (
-        <LeaguePageSkeleton activeTab={activeTab} />
+        <LeaguePageSkeleton activeTab={activeTab} league={league} />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : (
