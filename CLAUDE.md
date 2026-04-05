@@ -13,7 +13,8 @@ cd frontend && npm run test:coverage
 cd frontend && npm run verify     # lint + test + build (also what CI runs)
 
 # Backend
-cd backend && npm run start       # start server
+cd backend && npm run dev         # dev server (nodemon + pino-pretty)
+cd backend && npm run start       # start server (production)
 cd backend && npm run live-sync   # run live sync worker locally
 cd backend && npm test            # run all tests
 cd backend && npm test -- <pat>   # run matching tests
