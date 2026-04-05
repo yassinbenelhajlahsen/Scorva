@@ -19,6 +19,9 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Live sync worker | `backend/src/ingestion/liveSync.js` |
 | Historical upsert | `backend/src/ingestion/historicalUpsert.js` |
 | Stats teamid backfill | `backend/src/ingestion/backfillStatsTeamid.js` |
+| Popularity refresh | `backend/src/ingestion/refreshPopularity.js` |
+| Alias seed data | `backend/prisma/seeds/player_aliases.json` |
+| Alias seed script | `backend/prisma/seeds/seedAliases.js` |
 | Data ingestion helpers | `backend/src/ingestion/` (flat — no `src/` subfolder) |
 | Frontend entry | `frontend/src/main.jsx` |
 | Frontend router | `frontend/src/App.jsx` |

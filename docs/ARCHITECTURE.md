@@ -22,6 +22,7 @@ Two-tier update strategy:
 - Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
 - Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch
 - `runUpcomingProcessing` fetches 14 days ahead (days 1–14) in batches of 3, deduplicating by ESPN event ID
+- After the league loop, calls `refreshPopularity(pool)` — single UPDATE that counts `stats` rows per player and writes to `players.popularity`
 
 ## SSE endpoints
 - `GET /api/live/:league/games` — pushes game list on each `pg_notify('game_updated')`; sends `event: done` when no live games remain
@@ -149,6 +150,31 @@ Schema/migrations only — runtime uses `pg` directly.
 - Local workflow: edit schema → `prisma migrate dev --name <desc>` → `prisma generate`
 - Production: `prisma migrate deploy`
 - Shadow DB requires `pg_trgm` extension; apply SQL manually + `prisma migrate resolve --applied` if `migrate dev` fails locally
+
+## Search (`services/searchService.js`)
+
+Two-phase search across players, teams, and games:
+
+**Phase 1 — ILIKE substring match** (fires first):
+- Four `UNION ALL` branches in `raw_results` CTE: players by name, players by alias, teams, games
+- `player_aliases` branch: `pa.alias ILIKE $1` joined to `players` — enables nickname search ("King James", "Chef Curry", "Greek Freak")
+- `DISTINCT ON (type, id)` deduplication CTE prevents a player appearing twice when both their name and an alias match the query
+- `ORDER BY`: match quality (exact=0 / prefix=1 / substring=2) → entity type (team > player > game) → `COALESCE(popularity, 0) DESC` → trigram `similarity()` → date → alpha
+- Capped at 15 results
+
+**Phase 2 — Fuzzy fallback** (fires only when phase 1 returns 0 rows):
+- Same four branches using `similarity(...) > 0.3`
+- Ordered by `similarity()` DESC then `popularity` DESC
+
+**Popularity (`players.popularity`)**:
+- INT column, default 0; updated by `refreshPopularity(pool)` after every upsert run
+- Derived as `COUNT(*) FROM stats GROUP BY playerid` — games played is a reliable proxy for prominence
+- `upsertPlayer.js` ON CONFLICT preserves the column (`popularity = players.popularity`) so ingestion never resets scores
+
+**Aliases (`player_aliases` table)**:
+- `(player_id, alias)` unique; GIN trigram index on `alias`
+- Seeded from `backend/prisma/seeds/player_aliases.json` (keyed by `espn_playerid + league`) via `backend/prisma/seeds/seedAliases.js`
+- Run `node backend/prisma/seeds/seedAliases.js` after applying migration; idempotent via `ON CONFLICT DO NOTHING`
 
 ## inProgress detection
 Both `GameCard.jsx` and `GamePage.jsx` treat `"Halftime"` as in-progress alongside `"In Progress"` and `"End of Period"`.

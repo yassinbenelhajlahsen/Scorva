@@ -58,6 +58,11 @@ const engineeringDecisions = [
     detail:
       "PostgreSQL LISTEN/NOTIFY triggers SSE pushes instantly on each DB write — no polling lag. SSE fits unidirectional score delivery, avoids WebSocket infrastructure overhead, and works cleanly behind Railway's reverse proxy.",
   },
+  {
+    title: "Popularity-ranked search with alias resolution",
+    detail:
+      "Player search ranks by games played so Steph Curry surfaces before Seth Curry and LeBron James before any lesser-known James — no manual tuning. A separate player_aliases table (GIN trigram indexed) resolves nicknames like \"King James\" or \"Greek Freak\" to the correct player. DISTINCT ON deduplicates results when both name and alias match.",
+  },
 ];
 
 const demonstrates = [
@@ -65,8 +70,8 @@ const demonstrates = [
   "Real-time SSE streaming with pg_notify triggers and 3-failure REST fallback",
   "Tiered Redis caching strategy with conditional caching and pattern-based invalidation",
   "Auth system — JWT verification, Google OAuth popup flow, Supabase webhook + ensureUser fallback",
-  "PostgreSQL schema design — GIN indexes, composite PKs, cascade deletes, window functions",
-  "ESPN data ingestion pipeline — normalization, multi-league upserts, two-tier sync workers",
+  "PostgreSQL schema design — GIN indexes, composite PKs, cascade deletes, window functions, DISTINCT ON deduplication",
+  "ESPN data ingestion pipeline — normalization, multi-league upserts, two-tier sync workers, popularity refresh",
   "AI integration — DB-cached summaries, vector embeddings for semantic retrieval, streaming tool-calling agent",
   "RAG chat agent — pgvector semantic search, 13-tool calling loop, rolling conversation summarization, real-time tool status streaming",
   "Optimistic UI with rollback, skeleton loading states, and hook retry pattern",
@@ -104,7 +109,7 @@ export default function About() {
             <p>
               The backend is structured in four strict layers (Route →
               Controller → Service → DB) with service-layer Redis caching, a
-              PostgreSQL data model spanning seven tables and nine schema
+              PostgreSQL data model spanning eleven tables and fifteen schema
               migrations, and a data ingestion pipeline that normalizes ESPN's
               undocumented API responses into a consistent multi-league schema.
               Every public API route has a corresponding test file; the suite

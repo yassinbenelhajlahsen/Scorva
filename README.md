@@ -186,7 +186,10 @@ Graceful fallback: if `REDIS_URL` is unset, all cache ops are no-ops — no beha
 Single-query, relevance-ranked search across players, teams, and games:
 
 - `pg_trgm` GIN indexes on `players.name`, `teams.name`, and `teams.shortname` for fuzzy matching
-- Custom `ORDER BY` ranks: exact match (0) → prefix (1) → substring (2) → trigram `similarity()` score
+- Custom `ORDER BY` ranks: exact match (0) → prefix (1) → substring (2) → popularity score → trigram `similarity()` score
+- **Popularity ranking** — `players.popularity` is a game-count derived from `stats` rows (updated after every ingest run). LeBron James ranks above other Jameses; Steph Curry ranks above Seth Curry — no manual tuning required.
+- **Nickname/alias search** — `player_aliases` table (GIN trigram indexed) maps alternate names to players. Searching "King James", "Chef Curry", or "Greek Freak" resolves to the correct player. Aliases are seeded via `backend/prisma/seeds/seedAliases.js` using ESPN player IDs for stable mapping.
+- Deduplication via `DISTINCT ON (type, id)` prevents duplicate rows when a player matches on both their real name and an alias.
 - Date-aware: `tryParseDate()` resolves `2025-01-15`, `12/25`, and `Jan 15` against the current app season
 - Game results display a formatted date to disambiguate same-team matchups
 
@@ -235,9 +238,9 @@ Impact      = (+/− × 1.5) + G + A
 
 ## Database Schema
 
-Ten tables: `games`, `teams`, `players`, `stats`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`, `game_embeddings`.
+Eleven tables: `games`, `teams`, `players`, `stats`, `player_aliases`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`, `game_embeddings`.
 
-- `pg_trgm` GIN indexes on `players.name`, `teams.name`, and `teams.shortname` for sub-millisecond fuzzy search
+- `pg_trgm` GIN indexes on `players.name`, `teams.name`, `teams.shortname`, and `player_aliases.alias` for sub-millisecond fuzzy search
 - `pgvector` extension — `game_embeddings.embedding vector(1536)` with cosine similarity search (`<=>` operator) for RAG-style semantic retrieval
 - Compound unique constraints on `(espn_playerid, league)` and `(eventid, league)` to support safe multi-league upserts
 - `stats` uses a composite primary key `(gameid, playerid)` — no surrogate key

@@ -18,6 +18,8 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 - **League validation** — all 8 league-param controllers (teams, standings, games, gameDetail, players, playerDetail, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid)
 - **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isInteger(n) && n > 0` and caps at 50 IDs per array; service uses `ROW_NUMBER()` for 3 most recent per favorite
 - **Search input** — term capped at 200 chars; LIKE metacharacters (`%`, `_`, `\`) escaped before building the ILIKE pattern to prevent full-table scans
+- **Search deduplication** — `DISTINCT ON (type, id)` in the `deduped` CTE ensures a player matched by both real name and alias appears only once
+- **Popularity** — never manually set `players.popularity`; it is derived from `stats` row counts by `refreshPopularity()` after every upsert run; `upsertPlayer.js` ON CONFLICT preserves the value so ingestion doesn't reset it
 
 ## Frontend conventions
 - **`apiFetch`** (`frontend/src/api/client.js`) — supports `method` + `body` + `timeout` (default 15 000 ms); sets `Content-Type: application/json` when body present; handles 204 responses; uses `AbortSignal.any([callerSignal, AbortSignal.timeout(ms)])` so callers can still cancel
