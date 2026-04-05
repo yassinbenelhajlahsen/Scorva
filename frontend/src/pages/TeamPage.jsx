@@ -10,6 +10,8 @@ import { containerVariants, itemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
 import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
+import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
+import Skeleton from "../components/ui/Skeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
 export default function TeamPage() {
@@ -17,7 +19,7 @@ export default function TeamPage() {
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { team, games, teamRecord, homeRecord, awayRecord, loading, error, retry } = useTeam(league, teamId, selectedSeason);
+  const { team, games, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry } = useTeam(league, teamId, selectedSeason);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
   useEffect(() => {
@@ -125,7 +127,11 @@ export default function TeamPage() {
               ].map(({ label, value }) => (
                 <div key={label} className="flex flex-col items-center gap-1 px-3 first:pl-0 last:pr-0">
                   <span className="text-xs uppercase tracking-wider text-text-tertiary">{label}</span>
-                  <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
+                  {seasonLoading ? (
+                    <Skeleton className="h-7 w-12 rounded-lg mt-0.5" />
+                  ) : (
+                    <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -138,28 +144,40 @@ export default function TeamPage() {
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
           {selectedSeason ? `${selectedSeason} Schedule` : "Season Schedule"}
         </h2>
-        <MonthNavigation
-          games={games}
-          selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
-        />
-        {filteredGames.length > 0 ? (
-          <m.div
-            className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {filteredGames.map((game) => (
-              <m.div key={game.id} variants={itemVariants} className="w-full">
-                <GameCard game={game} />
-              </m.div>
+        {seasonLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="w-full">
+                <GameCardSkeleton />
+              </div>
             ))}
-          </m.div>
+          </div>
         ) : (
-          <p className="text-center text-text-tertiary text-sm mt-8">
-            {games.length > 0 ? "No games this month." : "No recent games to show."}
-          </p>
+          <>
+            <MonthNavigation
+              games={games}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+            />
+            {filteredGames.length > 0 ? (
+              <m.div
+                className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {filteredGames.map((game) => (
+                  <m.div key={game.id} variants={itemVariants} className="w-full">
+                    <GameCard game={game} />
+                  </m.div>
+                ))}
+              </m.div>
+            ) : (
+              <p className="text-center text-text-tertiary text-sm mt-8">
+                {games.length > 0 ? "No games this month." : "No recent games to show."}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

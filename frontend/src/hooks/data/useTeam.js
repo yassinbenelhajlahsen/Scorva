@@ -10,10 +10,11 @@ export function useTeam(league, teamId, selectedSeason) {
   const [homeRecord, setHomeRecord] = useState(null);
   const [awayRecord, setAwayRecord] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [seasonLoading, setSeasonLoading] = useState(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Phase 1: resolve slug → team
+  // Phase 1: resolve slug → team (full skeleton until resolved)
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -30,6 +31,7 @@ export function useTeam(league, teamId, selectedSeason) {
         );
         if (!found) throw new Error("Team not found.");
         setTeam(found);
+        setLoading(false);
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(err.message || "Failed to load data.");
@@ -42,7 +44,7 @@ export function useTeam(league, teamId, selectedSeason) {
     return () => controller.abort();
   }, [league, teamId, retryCount]);
 
-  // Phase 2: fetch games + standings once team is resolved
+  // Phase 2: fetch games + standings once team is resolved (partial skeleton)
   useEffect(() => {
     if (!team) return;
 
@@ -50,7 +52,7 @@ export function useTeam(league, teamId, selectedSeason) {
     const signal = controller.signal;
 
     async function fetchGames() {
-      setLoading(true);
+      setSeasonLoading(true);
       try {
         const [gamesData, standingsData] = await Promise.all([
           getTeamGames(league, team.id, { season: selectedSeason, signal }),
@@ -70,11 +72,11 @@ export function useTeam(league, teamId, selectedSeason) {
 
         const standing = standingsData.find((t) => t.id === team.id);
         setTeamRecord(standing ? `${standing.wins}-${standing.losses}` : null);
-        setLoading(false);
+        setSeasonLoading(false);
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(err.message || "Failed to load games.");
-          setLoading(false);
+          setSeasonLoading(false);
         }
       }
     }
@@ -85,5 +87,5 @@ export function useTeam(league, teamId, selectedSeason) {
 
   const retry = useCallback(() => setRetryCount((c) => c + 1), []);
 
-  return { team, games, teamRecord, homeRecord, awayRecord, loading, error, retry };
+  return { team, games, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry };
 }
