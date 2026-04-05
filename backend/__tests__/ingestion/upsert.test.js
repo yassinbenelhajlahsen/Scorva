@@ -59,11 +59,11 @@ describe("CLI guard", () => {
   });
 
   it("WOULD fire when run directly (guard is true)", () => {
-    // Simulate: node src/ingestion/upsert.js from the backend directory
-    const relativeInvocation = "src/ingestion/upsert.js";
+    // Simulate: node src/ingestion/upsert.js from the backend directory.
+    // Derive the backend root from upsertPath so this works on any machine.
+    const backendDir = resolve(upsertPath, "../../..");
     const guardWouldFire =
-      resolve("/Users/yassin/work/Scorva/backend", relativeInvocation) ===
-      upsertPath;
+      resolve(backendDir, "src/ingestion/upsert.js") === upsertPath;
     expect(guardWouldFire).toBe(true);
   });
 
