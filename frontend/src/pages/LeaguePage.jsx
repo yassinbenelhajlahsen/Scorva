@@ -37,7 +37,7 @@ export default function LeaguePage() {
       const navRect = nav.getBoundingClientRect();
       setPillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
     }
-  }, [activeTab]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function pickTab(tab) {
     setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);

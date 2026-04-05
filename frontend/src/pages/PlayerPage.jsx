@@ -92,7 +92,7 @@ export default function PlayerPage() {
         !playerData.availableSeasons.includes(playerData.season)) {
       setSelectedSeason(playerData.availableSeasons[0]);
     }
-  }, [playerData]);
+  }, [playerData, selectedSeason]);
 
   useEffect(() => {
     if (!playerData?.games?.length) return;

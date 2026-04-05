@@ -41,7 +41,7 @@ export default function Homepage() {
       const navRect = nav.getBoundingClientRect();
       setLeaguePillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
     }
-  }, [activeLeague, loading]);
+  }, [activeLeague, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
