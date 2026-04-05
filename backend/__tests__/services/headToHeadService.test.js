@@ -60,4 +60,38 @@ describe("headToHeadService", () => {
 
     expect(result).toEqual([]);
   });
+
+  it("propagates DB errors", async () => {
+    mockPool.query.mockRejectedValueOnce(new Error("DB error"));
+
+    await expect(getHeadToHead("nba", 1, 2)).rejects.toThrow("DB error");
+  });
+
+  it("SQL filters Final status only", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getHeadToHead("nba", 1, 2);
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("Final");
+  });
+
+  it("SQL matches both home/away combinations", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getHeadToHead("nba", 1, 2);
+
+    const [sql] = mockPool.query.mock.calls[0];
+    // Query should handle team1@home vs team2@away AND team2@home vs team1@away
+    expect(sql).toContain("hometeamid = $2");
+    expect(sql).toContain("hometeamid = $3");
+  });
+
+  it("works for all supported leagues", async () => {
+    for (const league of ["nba", "nfl", "nhl"]) {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      await getHeadToHead(league, 1, 2);
+      expect(mockPool.query).toHaveBeenLastCalledWith(expect.any(String), [league, 1, 2, 10]);
+    }
+  });
 });
