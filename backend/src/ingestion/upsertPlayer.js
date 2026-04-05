@@ -29,7 +29,8 @@ export default async function upsertPlayer(
       jerseynum   = EXCLUDED.jerseynum,
       weight      = EXCLUDED.weight,
       dob         = EXCLUDED.dob,
-      draftinfo   = EXCLUDED.draftinfo
+      draftinfo   = EXCLUDED.draftinfo,
+      popularity  = players.popularity
     RETURNING id;
   `;
 

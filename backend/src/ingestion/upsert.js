@@ -9,6 +9,7 @@ import {
   clearPlayerCache,
   getPlayerCacheStats,
 } from "./eventProcessor.js";
+import { refreshPopularity } from "./refreshPopularity.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
@@ -56,6 +57,8 @@ const formattedTime = `${nowEST.toFormat("MMMM")} ${addOrdinal(
         log.error({ err, league }, "failed processing league");
       }
     }
+
+    await refreshPopularity(pool);
 
     // Log optimization stats before clearing (useful for monitoring impact)
     const stats = getPlayerCacheStats();
