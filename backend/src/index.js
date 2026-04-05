@@ -1,5 +1,4 @@
 import express from "express";
-const testLintFail = 1;
 import cors from "cors";
 import helmet from "helmet";
 import "./config/env.js";
