@@ -80,18 +80,20 @@ export default function ChatPanel({ onClose }) {
       ref={panelRef}
       className="fixed top-0 right-0 bottom-0 z-[90] w-full sm:w-[380px] bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
+      {/* Atmospheric gradient overlay */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent z-0" />
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 border-b border-white/[0.06] flex-shrink-0 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+      <div className="relative flex items-center justify-between px-4 border-b border-white/[0.06] flex-shrink-0 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
-            <span
-              className="absolute inset-0 rounded-full bg-accent/30 animate-ping"
-              style={{ animationDuration: "2.4s" }}
-            />
-            <span className="w-2 h-2 rounded-full bg-accent relative z-10" />
+          <div className="w-7 h-7 rounded-lg bg-accent/[0.12] flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
           </div>
-          <span className="text-sm font-semibold text-text-primary tracking-tight">Scorva AI</span>
+          <span className="text-sm font-semibold text-text-primary tracking-tight">Sid</span>
         </div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/[0.15] to-transparent" />
 
         <div className="flex items-center gap-0.5">
           <button
@@ -137,7 +139,7 @@ export default function ChatPanel({ onClose }) {
       <ChatInput />
 
       {/* Footer */}
-      <p className="text-center text-[11px] text-text-tertiary/60 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-1 flex-shrink-0">
+      <p className="text-center text-[11px] text-text-tertiary/50 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-1 flex-shrink-0">
         AI-generated — verify important stats before relying on them
       </p>
     </m.div>

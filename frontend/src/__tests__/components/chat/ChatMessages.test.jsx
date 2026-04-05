@@ -51,10 +51,10 @@ describe("ChatMessages", () => {
       useChat.mockReturnValue({ messages: [], isStreaming: false });
     });
 
-    it("shows 'Ask me anything' heading", () => {
+    it("shows Sid welcome heading", () => {
       render(<ChatMessages onSuggest={vi.fn()} />);
 
-      expect(screen.getByText("Ask me anything")).toBeInTheDocument();
+      expect(screen.getByText("Hey, I'm Sid")).toBeInTheDocument();
     });
 
     it("renders all three suggestion buttons", () => {
@@ -154,7 +154,7 @@ describe("ChatMessages", () => {
 
       render(<ChatMessages onSuggest={vi.fn()} />);
 
-      expect(screen.queryByText("Ask me anything")).not.toBeInTheDocument();
+      expect(screen.queryByText("Hey, I'm Sid")).not.toBeInTheDocument();
     });
   });
 });

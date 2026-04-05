@@ -9,24 +9,6 @@ export default function ChatFAB({ onClick, isOpen }) {
       whileHover={{ scale: 1.06 }}
       whileTap={{ scale: 0.93 }}
     >
-      {/* Beacon pulse — only when closed */}
-      <AnimatePresence>
-        {!isOpen && (
-          <m.span
-            className="absolute inset-0 rounded-full bg-accent pointer-events-none"
-            initial={{ scale: 1, opacity: 0.35 }}
-            animate={{ scale: 1.65, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: 1.8,
-              repeat: Infinity,
-              ease: "easeOut",
-              repeatDelay: 0.8,
-            }}
-          />
-        )}
-      </AnimatePresence>
-
       <AnimatePresence mode="wait" initial={false}>
         <m.span
           key={isOpen ? "close" : "chat"}

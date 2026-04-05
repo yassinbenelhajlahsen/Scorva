@@ -83,7 +83,7 @@ export default function MessageBubble({ role, content, isError, isStreaming, sta
             ? "bg-accent/[0.16] border border-accent/[0.28] text-text-primary rounded-2xl rounded-br-sm"
             : isError
             ? "bg-surface-overlay border border-loss/[0.2] text-loss rounded-2xl rounded-bl-sm"
-            : "bg-white/[0.04] border border-white/[0.07] text-text-secondary rounded-2xl rounded-bl-sm",
+            : "bg-white/[0.035] border border-white/[0.06] text-text-secondary rounded-2xl rounded-bl-sm",
         ].join(" ")}
       >
         {isStreaming && isEmpty ? (

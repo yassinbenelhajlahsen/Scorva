@@ -32,13 +32,13 @@ export default function ChatInput() {
 
   return (
     <div className="px-3 pb-3 pt-2 border-t border-white/[0.06] flex-shrink-0">
-      <div className="flex items-end gap-2 bg-white/[0.05] ring-1 ring-white/[0.08] rounded-xl px-3 py-2 transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.07] focus-within:ring-white/[0.2]">
+      <div className="flex items-end gap-2 bg-white/[0.04] ring-1 ring-white/[0.07] rounded-2xl px-3.5 py-2.5 transition-[box-shadow,background-color] duration-200 focus-within:bg-white/[0.06] focus-within:ring-accent/[0.3]">
         <textarea
           ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything about NBA, NFL, or NHL…"
+          placeholder="Ask Sid anything…"
           rows={1}
           disabled={isStreaming}
           className="flex-1 bg-transparent text-text-primary placeholder:text-text-tertiary/70 text-base resize-none outline-none leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-200"

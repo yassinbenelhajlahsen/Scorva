@@ -62,10 +62,10 @@ describe("ChatPanel", () => {
     useChatActions.mockReturnValue({ sendMessage });
   });
 
-  it("renders header with 'Scorva AI' title", () => {
+  it("renders header with 'Sid' title", () => {
     render(<ChatPanel onClose={vi.fn()} />);
 
-    expect(screen.getByText("Scorva AI")).toBeInTheDocument();
+    expect(screen.getByText("Sid")).toBeInTheDocument();
   });
 
   it("renders new conversation button", () => {
