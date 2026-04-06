@@ -1,6 +1,9 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { queryClient } from "./lib/queryClient.js";
 import PageWrapper from "./components/layout/PageWrapper.jsx";
 import Navbar from "./components/layout/Navbar.jsx";
 import Footer from "./components/layout/Footer.jsx";
@@ -101,6 +104,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
       <LazyMotion features={domAnimation} strict>
         <Routes>
           <Route path="/auth/callback" element={<AuthCallback />} />
@@ -125,6 +129,8 @@ export default function App() {
           />
         </Routes>
       </LazyMotion>
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
     </BrowserRouter>
   );
 }

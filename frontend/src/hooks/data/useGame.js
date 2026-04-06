@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getGameById } from "../../api/games.js";
 import { useLiveGame } from "../live/useLiveGame.js";
+import { queryKeys } from "../../lib/query.js";
 
 function isLiveStatus(status) {
   return (
@@ -12,43 +14,34 @@ function isLiveStatus(status) {
 }
 
 export function useGame(league, gameId) {
-  const [gameData, setGameData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchGame() {
-      setLoading(true);
-      setError(false);
-      try {
-        const data = await getGameById(league, gameId, { signal: controller.signal });
-        setGameData(data);
-        setLoading(false);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Error fetching game:", err);
-          setError(true);
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchGame();
-    return () => controller.abort();
-  }, [league, gameId, retryCount]);
+  const {
+    data: gameData = null,
+    isLoading: loading,
+    isError: error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.game(league, gameId),
+    queryFn: ({ signal }) => getGameById(league, gameId, { signal }),
+    staleTime: 0,
+  });
 
   const gameStatus = gameData?.json_build_object?.game?.status;
   const isLive = isLiveStatus(gameStatus);
   const { liveData } = useLiveGame(league, gameId, isLive);
 
+  // Push SSE data into the query cache and trigger plays refresh
   useEffect(() => {
-    if (liveData) setGameData(liveData);
-  }, [liveData]);
+    if (liveData) {
+      queryClient.setQueryData(queryKeys.game(league, gameId), liveData);
+      queryClient.invalidateQueries({ queryKey: queryKeys.plays(league, gameId) });
+    }
+  }, [liveData, queryClient, league, gameId]);
 
-  const retry = useCallback(() => setRetryCount((c) => c + 1), []);
+  const retry = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   return { gameData, loading, error, retry };
 }

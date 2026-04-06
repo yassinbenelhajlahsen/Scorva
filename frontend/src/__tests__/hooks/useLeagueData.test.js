@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { createWrapper } from "../helpers/queryWrapper.jsx";
 
 vi.mock("../../api/games.js", () => ({ getLeagueGames: vi.fn() }));
 vi.mock("../../api/teams.js", () => ({ getStandings: vi.fn() }));
@@ -25,7 +26,10 @@ describe("useLeagueData — response shape handling", () => {
       resolvedSeason: "2024-25",
     });
 
-    const { result } = renderHook(() => useLeagueData("nba", null, "2025-01-15"));
+    const { result } = renderHook(
+      () => useLeagueData("nba", null, "2025-01-15"),
+      { wrapper: createWrapper() }
+    );
 
     await waitFor(() => expect(result.current.displayData).toBe(true));
     expect(result.current.games).toEqual([{ id: 1, status: "Final" }]);
@@ -39,7 +43,10 @@ describe("useLeagueData — response shape handling", () => {
       { id: 2, status: "Scheduled" },
     ]);
 
-    const { result } = renderHook(() => useLeagueData("nba", null, null));
+    const { result } = renderHook(
+      () => useLeagueData("nba", null, null),
+      { wrapper: createWrapper() }
+    );
 
     await waitFor(() => expect(result.current.displayData).toBe(true));
     expect(result.current.games).toEqual([
@@ -57,7 +64,10 @@ describe("useLeagueData — response shape handling", () => {
       resolvedSeason: "2024-25",
     });
 
-    const { result } = renderHook(() => useLeagueData("nba", null, "2025-01-15"));
+    const { result } = renderHook(
+      () => useLeagueData("nba", null, "2025-01-15"),
+      { wrapper: createWrapper() }
+    );
 
     await waitFor(() => expect(result.current.displayData).toBe(true));
     expect(result.current.resolvedDate).toBe("2025-01-14");
@@ -66,7 +76,9 @@ describe("useLeagueData — response shape handling", () => {
 
 describe("useLeagueData — API params", () => {
   it("passes selectedDate to getLeagueGames", async () => {
-    renderHook(() => useLeagueData("nba", null, "2025-01-15"));
+    renderHook(() => useLeagueData("nba", null, "2025-01-15"), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
     expect(getLeagueGames).toHaveBeenCalledWith(
       "nba",
@@ -75,7 +87,9 @@ describe("useLeagueData — API params", () => {
   });
 
   it("passes null date when selectedDate is null", async () => {
-    renderHook(() => useLeagueData("nba", null, null));
+    renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
     expect(getLeagueGames).toHaveBeenCalledWith(
       "nba",
@@ -84,7 +98,9 @@ describe("useLeagueData — API params", () => {
   });
 
   it("passes season to getLeagueGames when selectedSeason is set", async () => {
-    renderHook(() => useLeagueData("nba", "2024-25", null));
+    renderHook(() => useLeagueData("nba", "2024-25", null), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
     expect(getLeagueGames).toHaveBeenCalledWith(
       "nba",
@@ -95,12 +111,13 @@ describe("useLeagueData — API params", () => {
 
 describe("useLeagueData — standings skip on date-only change", () => {
   it("fetches standings on initial load", async () => {
-    renderHook(() => useLeagueData("nba", null, null));
+    renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(getStandings).toHaveBeenCalledTimes(1));
   });
 
-  it("skips standings re-fetch when only date changes (and standings already loaded)", async () => {
-    // Initial load has no date — return a flat array so hasLiveGame doesn't crash
+  it("skips standings re-fetch when only date changes", async () => {
     getLeagueGames
       .mockResolvedValueOnce([{ id: 0, status: "Final" }])
       .mockResolvedValue({
@@ -108,26 +125,24 @@ describe("useLeagueData — standings skip on date-only change", () => {
         resolvedDate: "2025-01-15",
         resolvedSeason: "2025-26",
       });
-    // Return non-empty standings so the "standings empty" fallback doesn't fire
     getStandings.mockResolvedValue([{ id: 1, conf: "east" }]);
 
     const { rerender } = renderHook(
       ({ date }) => useLeagueData("nba", null, date),
-      { initialProps: { date: null } }
+      { initialProps: { date: null }, wrapper: createWrapper() }
     );
     await waitFor(() => expect(getStandings).toHaveBeenCalledTimes(1));
 
     rerender({ date: "2025-01-15" });
-    // Wait for the second games fetch to complete
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(2));
-    // Standings should NOT have been re-fetched on a date-only change
+    // Standings key doesn't include date — TQ uses cached result, no new call
     expect(getStandings).toHaveBeenCalledTimes(1);
   });
 
   it("re-fetches standings when league changes", async () => {
     const { rerender } = renderHook(
       ({ league }) => useLeagueData(league, null, null),
-      { initialProps: { league: "nba" } }
+      { initialProps: { league: "nba" }, wrapper: createWrapper() }
     );
     await waitFor(() => expect(getStandings).toHaveBeenCalledTimes(1));
 
@@ -138,14 +153,18 @@ describe("useLeagueData — standings skip on date-only change", () => {
 
 describe("useLeagueData — SSE activation", () => {
   it("passes league to useLiveGames when viewing today with live games", async () => {
-    const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const todayET = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
     getLeagueGames.mockResolvedValue({
       games: [{ id: 1, status: "In Progress" }],
       resolvedDate: todayET,
       resolvedSeason: "2025-26",
     });
 
-    renderHook(() => useLeagueData("nba", null, todayET));
+    renderHook(() => useLeagueData("nba", null, todayET), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       const calls = useLiveGames.mock.calls;
@@ -160,10 +179,11 @@ describe("useLeagueData — SSE activation", () => {
       resolvedSeason: "2024-25",
     });
 
-    renderHook(() => useLeagueData("nba", null, "2025-01-10"));
+    renderHook(() => useLeagueData("nba", null, "2025-01-10"), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
-    // All useLiveGames calls should pass null (no live subscription for past dates)
     const calls = useLiveGames.mock.calls;
     expect(calls.every((c) => c[0] === null)).toBe(true);
   });
@@ -172,14 +192,20 @@ describe("useLeagueData — SSE activation", () => {
 describe("useLeagueData — error and retry", () => {
   it("sets error state when getLeagueGames rejects", async () => {
     getLeagueGames.mockRejectedValue(new Error("Network error"));
-    const { result } = renderHook(() => useLeagueData("nba", null, null));
-    await waitFor(() => expect(result.current.error).toBe("Failed to load data."));
+    const { result } = renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() =>
+      expect(result.current.error).toBe("Failed to load data.")
+    );
     expect(result.current.loading).toBe(false);
   });
 
   it("retry triggers a re-fetch", async () => {
     getLeagueGames.mockResolvedValue([]);
-    const { result } = renderHook(() => useLeagueData("nba", null, null));
+    const { result } = renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.displayData).toBe(true));
 
     act(() => { result.current.retry(); });

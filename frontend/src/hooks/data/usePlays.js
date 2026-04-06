@@ -1,51 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getGamePlays } from "../../api/plays.js";
+import { queryKeys } from "../../lib/query.js";
 
-export function usePlays(league, gameId, isLive) {
-  const [plays, setPlays] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const intervalRef = useRef(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchPlays() {
-      setLoading(true);
-      setError(false);
+export function usePlays(league, gameId) {
+  const {
+    data: plays = null,
+    isLoading: loading,
+    isError: error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.plays(league, gameId),
+    queryFn: async ({ signal }) => {
       try {
-        const data = await getGamePlays(league, gameId, { signal: controller.signal });
-        setPlays(data);
-        setLoading(false);
+        return await getGamePlays(league, gameId, { signal });
       } catch (err) {
-        if (err.name === "AbortError") return;
-        if (err.message === "HTTP 404") {
-          setPlays({ plays: [] });
-          setLoading(false);
-        } else {
-          setError(true);
-          setLoading(false);
-        }
+        if (err.message === "HTTP 404") return { plays: [] };
+        throw err;
       }
-    }
+    },
+    staleTime: 0,
+  });
 
-    fetchPlays();
-
-    if (isLive) {
-      intervalRef.current = setInterval(fetchPlays, 30000);
-    }
-
-    return () => {
-      controller.abort();
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [league, gameId, isLive, retryCount]);
-
-  const retry = useCallback(() => setRetryCount((c) => c + 1), []);
+  const retry = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   return { plays, loading, error, retry };
 }

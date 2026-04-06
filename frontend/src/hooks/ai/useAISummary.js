@@ -1,46 +1,34 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getAISummary } from "../../api/ai.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { queryKeys } from "../../lib/query.js";
 
 export function useAISummary(gameId) {
   const { session } = useAuth();
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (!gameId) return;
-    if (session === undefined) return; // auth state still initializing
-    if (!session) {
-      setLoading(false);
-      return;
-    }
+  const {
+    data: summary = null,
+    isLoading: queryLoading,
+    isError: error,
+  } = useQuery({
+    queryKey: queryKeys.aiSummary(gameId),
+    queryFn: ({ signal }) =>
+      getAISummary(gameId, { signal, token: session.access_token }).then(
+        (d) => d.summary
+      ),
+    enabled: !!gameId && session !== undefined && !!session,
+    staleTime: Infinity,
+    gcTime: 30 * 60 * 1000,
+    retry: false,
+  });
 
-    const controller = new AbortController();
+  // Match original: on error, surface fallback text in summary
+  const resolvedSummary = error
+    ? "AI summary unavailable for this game."
+    : summary;
 
-    async function fetchSummary() {
-      try {
-        setLoading(true);
-        setError(false);
-        const data = await getAISummary(gameId, {
-          signal: controller.signal,
-          token: session.access_token,
-        });
-        setSummary(data.summary);
-        setLoading(false);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Error fetching AI summary:", err);
-          setError(true);
-          setSummary("AI summary unavailable for this game.");
-          setLoading(false);
-        }
-      }
-    }
+  // loading=true while auth is still initializing, or while fetching
+  const loading = session === undefined || (!!session && queryLoading);
 
-    fetchSummary();
-    return () => controller.abort();
-  }, [gameId, session]);
-
-  return { summary, loading, error };
+  return { summary: resolvedSummary, loading, error };
 }

@@ -4,6 +4,7 @@ const techStack = [
     items: [
       "React 19 + Vite 6",
       "React Router 7",
+      "TanStack Query v5",
       "Tailwind CSS v4",
       "Framer Motion 12",
     ],

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { createWrapper } from "../helpers/queryWrapper.jsx";
 
 vi.mock("../../context/AuthContext.jsx", () => ({ useAuth: vi.fn() }));
 vi.mock("../../api/favorites.js", () => ({
@@ -29,14 +30,18 @@ beforeEach(() => {
 describe("useFavoriteToggle — no session", () => {
   it("returns isFavorited=false and does not call checkFavorites", () => {
     useAuth.mockReturnValue({ session: null });
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     expect(result.current.isFavorited).toBe(false);
     expect(checkFavorites).not.toHaveBeenCalled();
   });
 
   it("toggle does nothing when no session", async () => {
     useAuth.mockReturnValue({ session: null });
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     await act(() => result.current.toggle());
     expect(addFavoritePlayer).not.toHaveBeenCalled();
   });
@@ -47,7 +52,9 @@ describe("useFavoriteToggle — initial check (player)", () => {
     useAuth.mockReturnValue({ session: mockSession });
     checkFavorites.mockResolvedValue({ playerIds: [1], teamIds: [] });
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isFavorited).toBe(true));
   });
@@ -56,7 +63,9 @@ describe("useFavoriteToggle — initial check (player)", () => {
     useAuth.mockReturnValue({ session: mockSession });
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [] });
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
     expect(result.current.isFavorited).toBe(false);
@@ -68,7 +77,9 @@ describe("useFavoriteToggle — initial check (team)", () => {
     useAuth.mockReturnValue({ session: mockSession });
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [7] });
 
-    const { result } = renderHook(() => useFavoriteToggle("team", 7));
+    const { result } = renderHook(() => useFavoriteToggle("team", 7), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isFavorited).toBe(true));
   });
@@ -77,7 +88,9 @@ describe("useFavoriteToggle — initial check (team)", () => {
     useAuth.mockReturnValue({ session: mockSession });
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [] });
 
-    const { result } = renderHook(() => useFavoriteToggle("team", 7));
+    const { result } = renderHook(() => useFavoriteToggle("team", 7), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
     expect(result.current.isFavorited).toBe(false);
@@ -90,7 +103,9 @@ describe("useFavoriteToggle — toggle (player, not favorited → add)", () => {
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [] });
     addFavoritePlayer.mockResolvedValue(null);
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
 
     await act(() => result.current.toggle());
@@ -106,12 +121,14 @@ describe("useFavoriteToggle — toggle (player, favorited → remove)", () => {
     checkFavorites.mockResolvedValue({ playerIds: [1], teamIds: [] });
     removeFavoritePlayer.mockResolvedValue(null);
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.isFavorited).toBe(true));
 
-    await act(() => result.current.toggle());
+    act(() => { result.current.toggle(); });
 
-    expect(result.current.isFavorited).toBe(false);
+    await waitFor(() => expect(result.current.isFavorited).toBe(false));
     expect(removeFavoritePlayer).toHaveBeenCalledWith(1, { token: "tok" });
   });
 });
@@ -122,7 +139,9 @@ describe("useFavoriteToggle — toggle (team)", () => {
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [] });
     addFavoriteTeam.mockResolvedValue(null);
 
-    const { result } = renderHook(() => useFavoriteToggle("team", 7));
+    const { result } = renderHook(() => useFavoriteToggle("team", 7), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
 
     await act(() => result.current.toggle());
@@ -136,13 +155,15 @@ describe("useFavoriteToggle — toggle (team)", () => {
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [7] });
     removeFavoriteTeam.mockResolvedValue(null);
 
-    const { result } = renderHook(() => useFavoriteToggle("team", 7));
+    const { result } = renderHook(() => useFavoriteToggle("team", 7), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.isFavorited).toBe(true));
 
-    await act(() => result.current.toggle());
+    act(() => { result.current.toggle(); });
 
+    await waitFor(() => expect(result.current.isFavorited).toBe(false));
     expect(removeFavoriteTeam).toHaveBeenCalledWith(7, { token: "tok" });
-    expect(result.current.isFavorited).toBe(false);
   });
 });
 
@@ -152,12 +173,13 @@ describe("useFavoriteToggle — error rollback", () => {
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [] });
     addFavoritePlayer.mockRejectedValue(new Error("Server error"));
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
 
     await act(() => result.current.toggle());
 
-    // Should roll back to false after the optimistic true
     expect(result.current.isFavorited).toBe(false);
     expect(result.current.loading).toBe(false);
   });
@@ -167,12 +189,13 @@ describe("useFavoriteToggle — error rollback", () => {
     checkFavorites.mockResolvedValue({ playerIds: [1], teamIds: [] });
     removeFavoritePlayer.mockRejectedValue(new Error("Server error"));
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.isFavorited).toBe(true));
 
     await act(() => result.current.toggle());
 
-    // Should roll back to true after the optimistic false
     expect(result.current.isFavorited).toBe(true);
     expect(result.current.loading).toBe(false);
   });
@@ -182,17 +205,16 @@ describe("useFavoriteToggle — loading guard", () => {
   it("does not double-toggle while loading", async () => {
     useAuth.mockReturnValue({ session: mockSession });
     checkFavorites.mockResolvedValue({ playerIds: [], teamIds: [] });
-    // Never resolves — keeps loading=true
     addFavoritePlayer.mockReturnValue(new Promise(() => {}));
 
-    const { result } = renderHook(() => useFavoriteToggle("player", 1));
+    const { result } = renderHook(() => useFavoriteToggle("player", 1), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
 
-    // Fire toggle twice rapidly
-    act(() => { result.current.toggle(); });
+    await act(async () => { result.current.toggle(); });
     await act(() => result.current.toggle());
 
-    // Should only have been called once
     expect(addFavoritePlayer).toHaveBeenCalledTimes(1);
   });
 });

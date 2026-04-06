@@ -1,31 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getFavorites } from "../../api/favorites.js";
+import { queryKeys } from "../../lib/query.js";
 
 export function useFavorites() {
   const { session } = useAuth();
-  const [favorites, setFavorites] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const fetch = useCallback(() => {
-    if (!session) return;
-    const controller = new AbortController();
-    setLoading(true);
-    getFavorites({ signal: controller.signal, token: session.access_token })
-      .then((data) => {
-        setFavorites(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") setLoading(false);
-      });
-    return controller;
-  }, [session]);
+  const { data: favorites = null, isLoading: loading, refetch } = useQuery({
+    queryKey: queryKeys.favorites(),
+    queryFn: ({ signal }) =>
+      getFavorites({ signal, token: session.access_token }),
+    enabled: !!session,
+  });
 
-  useEffect(() => {
-    const controller = fetch();
-    return () => controller?.abort();
-  }, [fetch]);
+  const refresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
-  return { favorites, loading, refresh: fetch };
+  return { favorites, loading, refresh };
 }

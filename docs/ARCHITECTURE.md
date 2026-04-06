@@ -41,6 +41,32 @@ Holds a **single** shared PG `LISTEN` connection for all SSE clients, fanning ou
 - Auto-reconnects on PG client error after 1s if subscribers remain (`setTimeout(...).unref()`)
 - `shuttingDown` flag reset on `subscribe()` so the bus can restart after shutdown in tests
 
+## TanStack Query (client-side data fetching)
+
+All data, user, and AI hooks use `@tanstack/react-query` v5.
+
+**Setup**
+- `QueryClient` configured in `frontend/src/lib/queryClient.js` — defaults: `staleTime: 2min`, `gcTime: 5min`, `retry: 1`, `refetchOnWindowFocus: false`
+- `QueryClientProvider` wraps the entire app in `App.jsx`; `ReactQueryDevtools` mounted in DEV mode only
+- Centralized key factory in `frontend/src/lib/query.js` — `queryKeys.game(league, gameId)`, `queryKeys.plays(...)`, etc.
+- `useDebouncedValue(value, delay)` also lives in `lib/query.js` — initializes to `""` so TQ never fires on mount
+
+**SSE-driven plays refresh**
+`useGame` receives SSE updates via `useLiveGame`. When `liveData` arrives it:
+1. Writes the new game data into the cache: `queryClient.setQueryData(queryKeys.game(...), liveData)`
+2. Invalidates the plays query: `queryClient.invalidateQueries({ queryKey: queryKeys.plays(...) })`
+
+`usePlays` sets `staleTime: 0` and never self-polls — all live refreshes are triggered by `useGame` via invalidation.
+
+**Optimistic favorites toggle**
+`useFavoriteToggle` uses `useMutation` with:
+- `onMutate` — cancels in-flight check query, optimistically flips `isFavorited` in cache, returns `{ previous }` as context
+- `onError` — rolls back cache to `context.previous`
+- `onSettled` — invalidates the full favorites list
+
+**Build**
+`@tanstack/*` packages are split into their own `react-query` chunk via `manualChunks` in `vite.config.js`.
+
 ## Frontend SSE hooks
 - `useLiveGames(league|null)` and `useLiveGame(league, gameId, isLive)` — pass `null` to deactivate without breaking hooks rules
 - 3-failure REST fallback
@@ -183,7 +209,7 @@ Both `GameCard.jsx` and `GamePage.jsx` treat `"Halftime"` as in-progress alongsi
 - **Loading** → page-specific shimmer skeleton (`frontend/src/components/skeletons/`)
 - **Network error** → `<ErrorState onRetry={retry} />` (`frontend/src/components/ui/ErrorState.jsx`)
 - **Not found** → dedicated "Not Found" layout with back CTA
-- **Hook retry pattern**: all data hooks expose `retry()` — `const [retryCount, setRetryCount] = useState(0)` in deps, `const retry = useCallback(() => setRetryCount(c => c + 1), [])`
+- **Hook retry pattern**: all data hooks expose `retry()` — `const retry = useCallback(() => refetch(), [refetch])` wrapping TanStack Query's `refetch`
 
 ## ErrorBoundary
 `frontend/src/components/ErrorBoundary.jsx` wraps `<AnimatedRoutes />` in `App.jsx`. Catches

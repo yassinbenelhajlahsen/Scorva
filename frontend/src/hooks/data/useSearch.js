@@ -1,40 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { search } from "../../api/search.js";
+import { queryKeys, useDebouncedValue } from "../../lib/query.js";
 
 export function useSearch(query, debounceMs = 200) {
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const abortControllerRef = useRef(null);
+  const debouncedQuery = useDebouncedValue(query.trim(), debounceMs);
 
-  useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
+  const { data: results = [], isFetching } = useQuery({
+    queryKey: queryKeys.search(debouncedQuery),
+    queryFn: ({ signal }) => search(debouncedQuery, { signal }),
+    enabled: debouncedQuery.length > 0,
+    staleTime: 30_000,
+    gcTime: 2 * 60 * 1000,
+  });
 
-    const timer = setTimeout(async () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
-      setLoading(true);
-      try {
-        const data = await search(trimmed, { signal: abortControllerRef.current.signal });
-        setResults(data);
-      } catch (err) {
-        if (err.name !== "AbortError") {
-          console.error("Search error:", err);
-          setResults([]);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }, debounceMs);
+  // Clear results immediately when query is empty (don't wait for debounce)
+  const trimmed = query.trim();
 
-    return () => clearTimeout(timer);
-  }, [query, debounceMs]);
+  // Show loading when query is non-empty and debounce hasn't settled or fetch is in-flight
+  const loading =
+    trimmed.length > 0 && (trimmed !== debouncedQuery || isFetching);
 
-  return { results, loading };
+  return { results: trimmed.length > 0 ? results : [], loading };
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { createWrapper } from "../helpers/queryWrapper.jsx";
 
 vi.mock("../../api/plays.js", () => ({ getGamePlays: vi.fn() }));
 
@@ -13,10 +14,11 @@ describe("usePlays", () => {
     vi.clearAllMocks();
   });
 
-  // ─── Real-timer tests (waitFor-compatible) ──────────────────────────────────
   it("starts in loading state", () => {
     getGamePlays.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => usePlays("nba", 1, false));
+    const { result } = renderHook(() => usePlays("nba", 1, false), {
+      wrapper: createWrapper(),
+    });
     expect(result.current.loading).toBe(true);
     expect(result.current.error).toBe(false);
     expect(result.current.plays).toBeNull();
@@ -24,7 +26,9 @@ describe("usePlays", () => {
 
   it("fetches and sets plays on success", async () => {
     getGamePlays.mockResolvedValue(mockPlaysData);
-    const { result } = renderHook(() => usePlays("nba", 1, false));
+    const { result } = renderHook(() => usePlays("nba", 1, false), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.plays).toEqual(mockPlaysData));
     expect(result.current.loading).toBe(false);
@@ -33,26 +37,30 @@ describe("usePlays", () => {
 
   it("sets error on fetch failure", async () => {
     getGamePlays.mockRejectedValue(new Error("Network error"));
-    const { result } = renderHook(() => usePlays("nba", 1, false));
+    const { result } = renderHook(() => usePlays("nba", 1, false), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.error).toBe(true));
     expect(result.current.loading).toBe(false);
   });
 
-  it("ignores AbortError", async () => {
-    const abortErr = new Error("aborted");
-    abortErr.name = "AbortError";
-    getGamePlays.mockRejectedValue(abortErr);
-    const { result } = renderHook(() => usePlays("nba", 1, false));
+  it("treats 404 as empty plays (not an error)", async () => {
+    getGamePlays.mockRejectedValue(new Error("HTTP 404"));
+    const { result } = renderHook(() => usePlays("nba", 1, false), {
+      wrapper: createWrapper(),
+    });
 
-    await waitFor(() => expect(getGamePlays).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.plays).toEqual({ plays: [] });
     expect(result.current.error).toBe(false);
-    expect(result.current.loading).toBe(true);
   });
 
-  it("retry increments counter and re-fetches", async () => {
+  it("retry re-fetches", async () => {
     getGamePlays.mockResolvedValue(mockPlaysData);
-    const { result } = renderHook(() => usePlays("nba", 1, false));
+    const { result } = renderHook(() => usePlays("nba", 1, false), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.plays).toEqual(mockPlaysData));
 
@@ -61,7 +69,6 @@ describe("usePlays", () => {
     await waitFor(() => expect(getGamePlays).toHaveBeenCalledTimes(2));
   });
 
-  // ─── Fake-timer tests (polling) ─────────────────────────────────────────────
   describe("polling (fake timers)", () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -71,23 +78,20 @@ describe("usePlays", () => {
       vi.useRealTimers();
     });
 
-    it("sets up polling interval when isLive is true", async () => {
+    it("does not self-poll when isLive is true (updates driven by SSE invalidation)", async () => {
       getGamePlays.mockResolvedValue(mockPlaysData);
-      renderHook(() => usePlays("nba", 1, true));
+      renderHook(() => usePlays("nba", 1, true), { wrapper: createWrapper() });
 
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
       expect(getGamePlays).toHaveBeenCalledTimes(1);
 
       await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
-      expect(getGamePlays).toHaveBeenCalledTimes(2);
-
-      await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
-      expect(getGamePlays).toHaveBeenCalledTimes(3);
+      expect(getGamePlays).toHaveBeenCalledTimes(1);
     });
 
     it("does not poll when isLive is false", async () => {
       getGamePlays.mockResolvedValue(mockPlaysData);
-      renderHook(() => usePlays("nba", 1, false));
+      renderHook(() => usePlays("nba", 1, false), { wrapper: createWrapper() });
 
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
       expect(getGamePlays).toHaveBeenCalledTimes(1);
@@ -98,7 +102,9 @@ describe("usePlays", () => {
 
     it("cleans up polling interval on unmount", async () => {
       getGamePlays.mockResolvedValue(mockPlaysData);
-      const { unmount } = renderHook(() => usePlays("nba", 1, true));
+      const { unmount } = renderHook(() => usePlays("nba", 1, true), {
+        wrapper: createWrapper(),
+      });
 
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
 

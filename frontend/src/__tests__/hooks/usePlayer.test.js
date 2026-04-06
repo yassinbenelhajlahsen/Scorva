@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { createWrapper } from "../helpers/queryWrapper.jsx";
 
 vi.mock("../../api/players.js", () => ({ getPlayer: vi.fn() }));
 
@@ -24,7 +25,10 @@ beforeEach(() => {
 describe("usePlayer", () => {
   it("starts in loading state", () => {
     getPlayer.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => usePlayer("nba", "lebron-james", "2024-25"));
+    const { result } = renderHook(
+      () => usePlayer("nba", "lebron-james", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     expect(result.current.loading).toBe(true);
     expect(result.current.playerData).toBeNull();
     expect(result.current.error).toBeNull();
@@ -32,7 +36,9 @@ describe("usePlayer", () => {
 
   it("calls getPlayer with correct args", async () => {
     getPlayer.mockResolvedValue(mockPlayerResponse);
-    renderHook(() => usePlayer("nba", "lebron-james", "2024-25"));
+    renderHook(() => usePlayer("nba", "lebron-james", "2024-25"), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() =>
       expect(getPlayer).toHaveBeenCalledWith(
         "nba",
@@ -44,19 +50,26 @@ describe("usePlayer", () => {
 
   it("sets playerData from response.player on first load", async () => {
     getPlayer.mockResolvedValue(mockPlayerResponse);
-    const { result } = renderHook(() => usePlayer("nba", "lebron-james", "2024-25"));
-    await waitFor(() => expect(result.current.playerData).toEqual(mockPlayerResponse.player));
+    const { result } = renderHook(
+      () => usePlayer("nba", "lebron-james", "2024-25"),
+      { wrapper: createWrapper() }
+    );
+    await waitFor(() =>
+      expect(result.current.playerData).toEqual(mockPlayerResponse.player)
+    );
     expect(result.current.loading).toBe(false);
     expect(result.current.seasonLoading).toBe(false);
   });
 
-  it("merges only season data when playerData already exists (season switch)", async () => {
+  it("shows previous player data while season is loading (season switch)", async () => {
     getPlayer.mockResolvedValue(mockPlayerResponse);
-    const { result } = renderHook(
+    const { result, rerender } = renderHook(
       ({ season }) => usePlayer("nba", "lebron-james", season),
-      { initialProps: { season: "2024-25" } }
+      { initialProps: { season: "2024-25" }, wrapper: createWrapper() }
     );
-    await waitFor(() => expect(result.current.playerData).toEqual(mockPlayerResponse.player));
+    await waitFor(() =>
+      expect(result.current.playerData).toEqual(mockPlayerResponse.player)
+    );
 
     const newSeasonResponse = {
       player: {
@@ -67,57 +80,60 @@ describe("usePlayer", () => {
       },
     };
     getPlayer.mockResolvedValue(newSeasonResponse);
+    rerender({ season: "2023-24" });
 
-    // Still same slug, so prev is set — should do merge
-    act(() => {});
-
+    // Previous player data still visible (id and name preserved from placeholder)
     await waitFor(() =>
       expect(result.current.playerData).toMatchObject({
-        id: 1, // preserved from prev
-        name: "LeBron James", // preserved from prev
+        id: 1,
+        name: "LeBron James",
       })
     );
   });
 
   it("sets error on fetch failure", async () => {
     getPlayer.mockRejectedValue(new Error("Server error"));
-    const { result } = renderHook(() => usePlayer("nba", "lebron-james", "2024-25"));
-    await waitFor(() => expect(result.current.error).toBe("Could not load player data. Please try again."));
+    const { result } = renderHook(
+      () => usePlayer("nba", "lebron-james", "2024-25"),
+      { wrapper: createWrapper() }
+    );
+    await waitFor(() =>
+      expect(result.current.error).toBe(
+        "Could not load player data. Please try again."
+      )
+    );
     expect(result.current.loading).toBe(false);
     expect(result.current.playerData).toBeNull();
   });
 
-  it("does not set error on AbortError", async () => {
-    const abortErr = new Error("aborted");
-    abortErr.name = "AbortError";
-    getPlayer.mockRejectedValue(abortErr);
-    const { result } = renderHook(() => usePlayer("nba", "lebron-james", "2024-25"));
-    await waitFor(() => expect(getPlayer).toHaveBeenCalled());
-    expect(result.current.error).toBeNull();
-  });
-
-  it("resets playerData and shows loading when slug changes", async () => {
+  it("clears playerData when slug changes (new player navigation)", async () => {
     getPlayer.mockResolvedValue(mockPlayerResponse);
     const { result, rerender } = renderHook(
       ({ slug }) => usePlayer("nba", slug, "2024-25"),
-      { initialProps: { slug: "lebron-james" } }
+      { initialProps: { slug: "lebron-james" }, wrapper: createWrapper() }
     );
     await waitFor(() => expect(result.current.playerData).not.toBeNull());
 
+    getPlayer.mockReturnValue(new Promise(() => {})); // pending for new player
     rerender({ slug: "stephen-curry" });
-    expect(result.current.playerData).toBeNull();
+
+    await waitFor(() => expect(result.current.playerData).toBeNull());
     expect(result.current.loading).toBe(true);
   });
 
-  it("retry re-fetches and resets loading", async () => {
+  it("retry re-fetches", async () => {
     getPlayer.mockResolvedValue(mockPlayerResponse);
-    const { result } = renderHook(() => usePlayer("nba", "lebron-james", "2024-25"));
+    const { result } = renderHook(
+      () => usePlayer("nba", "lebron-james", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    getPlayer.mockResolvedValue({ player: { ...mockPlayerResponse.player, seasonAverages: { pts: 26 } } });
+    getPlayer.mockResolvedValue({
+      player: { ...mockPlayerResponse.player, seasonAverages: { pts: 26 } },
+    });
     act(() => result.current.retry());
 
-    expect(result.current.loading).toBe(true);
     await waitFor(() => expect(getPlayer).toHaveBeenCalledTimes(2));
   });
 });

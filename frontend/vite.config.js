@@ -45,6 +45,7 @@ export default defineConfig({
             if (id.includes("react-router")) return "router";
             if (id.includes("framer-motion")) return "framer-motion";
             if (id.includes("@supabase")) return "supabase";
+            if (id.includes("@tanstack")) return "react-query";
           }
         },
       },

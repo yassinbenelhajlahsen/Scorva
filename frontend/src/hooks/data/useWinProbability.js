@@ -1,69 +1,27 @@
-import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getWinProbability } from "../../api/games.js";
-
-const POLL_INTERVAL_MS = 30_000;
+import { queryKeys } from "../../lib/query.js";
 
 export function useWinProbability(league, eventId, { isFinal = false, isLive = false } = {}) {
-  const [data, setData] = useState(null);
-  const [scoreMargin, setScoreMargin] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const mountedRef = useRef(true);
+  const { data: rawData, isLoading: loading, isError: error } = useQuery({
+    queryKey: queryKeys.winProbability(league, eventId, isFinal),
+    queryFn: ({ signal }) =>
+      getWinProbability(league, eventId, { signal, isFinal }),
+    enabled: !!league && !!eventId,
+    staleTime: 0,
+    refetchInterval: isLive ? 30_000 : false,
+  });
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!league || !eventId) {
-      setLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    let intervalId = null;
-
-    async function fetchData() {
-      try {
-        const resp = await getWinProbability(league, eventId, {
-          signal: controller.signal,
-          isFinal,
-        });
-        if (mountedRef.current) {
-          const respData = resp?.data;
-          if (respData?.winProbability) {
-            setData(respData.winProbability);
-            setScoreMargin(respData.scoreMargin ?? null);
-          } else {
-            // backward-compat: legacy flat-array cached responses
-            setData(respData ?? null);
-            setScoreMargin(null);
-          }
-          setLoading(false);
-          setError(false);
-        }
-      } catch (err) {
-        if (err.name !== "AbortError" && mountedRef.current) {
-          setError(true);
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
-    if (isLive) {
-      intervalId = setInterval(fetchData, POLL_INTERVAL_MS);
-    }
-
-    return () => {
-      clearInterval(intervalId);
-      controller.abort();
-    };
-  }, [league, eventId, isFinal, isLive]);
+  // Normalize response shape (new nested vs. legacy flat-array)
+  const respData = rawData?.data;
+  let data = null;
+  let scoreMargin = null;
+  if (respData?.winProbability) {
+    data = respData.winProbability;
+    scoreMargin = respData.scoreMargin ?? null;
+  } else {
+    data = respData ?? null;
+  }
 
   return { data, scoreMargin, loading, error };
 }

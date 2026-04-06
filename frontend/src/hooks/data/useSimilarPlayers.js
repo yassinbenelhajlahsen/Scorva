@@ -1,33 +1,16 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getSimilarPlayers } from "../../api/players.js";
+import { queryKeys } from "../../lib/query.js";
 
 export function useSimilarPlayers(league, slug, season) {
-  const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!league || !slug || !season) {
-      setLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    setLoading(true);
-
-    getSimilarPlayers(league, slug, { season, signal: controller.signal })
-      .then((data) => {
-        setPlayers(data.players ?? []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          setPlayers([]);
-          setLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [league, slug, season]);
-
+  const { data: players = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.similarPlayers(league, slug, season),
+    queryFn: ({ signal }) =>
+      getSimilarPlayers(league, slug, { season, signal }).then(
+        (d) => d.players ?? []
+      ),
+    enabled: !!league && !!slug && !!season,
+    staleTime: 5 * 60 * 1000,
+  });
   return { players, loading };
 }

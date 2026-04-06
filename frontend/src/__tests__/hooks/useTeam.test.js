@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { createWrapper } from "../helpers/queryWrapper.jsx";
 
-vi.mock("../../api/teams.js", () => ({ getTeams: vi.fn(), getStandings: vi.fn() }));
+vi.mock("../../api/teams.js", () => ({
+  getTeams: vi.fn(),
+  getStandings: vi.fn(),
+  getTeamSeasons: vi.fn(),
+}));
 vi.mock("../../api/games.js", () => ({ getTeamGames: vi.fn() }));
-vi.mock("../../utils/slugify.js", () => ({ default: (s) => s.toLowerCase().replace(/\s+/g, "-") }));
+vi.mock("../../utils/slugify.js", () => ({
+  default: (s) => s.toLowerCase().replace(/\s+/g, "-"),
+}));
 
-const { getTeams, getStandings } = await import("../../api/teams.js");
+const { getTeams, getStandings, getTeamSeasons } = await import("../../api/teams.js");
 const { getTeamGames } = await import("../../api/games.js");
 const { useTeam } = await import("../../hooks/data/useTeam.js");
 
@@ -28,12 +35,16 @@ const mockStandings = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getTeamSeasons.mockResolvedValue([]);
 });
 
 describe("useTeam", () => {
   it("starts in loading state", () => {
     getTeams.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     expect(result.current.loading).toBe(true);
     expect(result.current.team).toBeNull();
     expect(result.current.error).toBeNull();
@@ -44,7 +55,10 @@ describe("useTeam", () => {
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
 
     await waitFor(() => expect(result.current.team).toEqual(mockLakers));
     expect(result.current.loading).toBe(false);
@@ -52,7 +66,10 @@ describe("useTeam", () => {
 
   it("sets error when team is not found", async () => {
     getTeams.mockResolvedValue(mockTeamList);
-    const { result } = renderHook(() => useTeam("nba", "nonexistent-team", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "nonexistent-team", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     await waitFor(() => expect(result.current.error).toBe("Team not found."));
     expect(result.current.loading).toBe(false);
   });
@@ -62,14 +79,21 @@ describe("useTeam", () => {
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
-    renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"), {
+      wrapper: createWrapper(),
+    });
 
-    await waitFor(() => expect(getTeamGames).toHaveBeenCalledWith(
+    await waitFor(() =>
+      expect(getTeamGames).toHaveBeenCalledWith(
+        "nba",
+        17,
+        expect.objectContaining({ season: "2024-25" })
+      )
+    );
+    expect(getStandings).toHaveBeenCalledWith(
       "nba",
-      17,
       expect.objectContaining({ season: "2024-25" })
-    ));
-    expect(getStandings).toHaveBeenCalledWith("nba", expect.objectContaining({ season: "2024-25" }));
+    );
   });
 
   it("computes home/away records from final games", async () => {
@@ -77,12 +101,13 @@ describe("useTeam", () => {
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
 
     await waitFor(() => expect(result.current.homeRecord).not.toBeNull());
-    // Home: game 1 is home win for Lakers
     expect(result.current.homeRecord).toBe("1-0");
-    // Away: game 2 is away win for Lakers
     expect(result.current.awayRecord).toBe("1-0");
   });
 
@@ -91,7 +116,10 @@ describe("useTeam", () => {
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     await waitFor(() => expect(result.current.teamRecord).toBe("30-15"));
   });
 
@@ -100,7 +128,10 @@ describe("useTeam", () => {
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     await waitFor(() => expect(result.current.games.length).toBeGreaterThan(0));
     const dates = result.current.games.map((g) => g.date);
     expect(dates).toEqual([...dates].sort((a, b) => new Date(b) - new Date(a)));
@@ -108,17 +139,23 @@ describe("useTeam", () => {
 
   it("sets error on teams fetch failure", async () => {
     getTeams.mockRejectedValue(new Error("API down"));
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     await waitFor(() => expect(result.current.error).toBe("API down"));
     expect(result.current.loading).toBe(false);
   });
 
-  it("retry re-fetches by incrementing retryCount", async () => {
+  it("retry re-fetches teams", async () => {
     getTeams.mockResolvedValue(mockTeamList);
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
-    const { result } = renderHook(() => useTeam("nba", "los-angeles-lakers", "2024-25"));
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => result.current.retry());
