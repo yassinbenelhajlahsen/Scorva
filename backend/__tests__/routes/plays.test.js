@@ -101,9 +101,9 @@ describe("Plays Route - GET /api/:league/games/:gameId/plays", () => {
     });
 
     it("returns source: espn for live games", async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [{ eventid: 401584583, status: "In Progress" }],
-      });
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ eventid: 401584583, status: "In Progress" }] })
+        .mockResolvedValueOnce({ rows: [] }); // getStoredPlaysLive — no plays yet
       mockAxiosGet.mockResolvedValueOnce({ data: { plays: [] } });
 
       const res = await request(app).get("/api/nba/games/1/plays");

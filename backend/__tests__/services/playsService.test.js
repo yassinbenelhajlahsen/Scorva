@@ -150,9 +150,9 @@ describe("playsService", () => {
 
   describe("getPlays — live game (ESPN path)", () => {
     it("calls ESPN playbyplay endpoint for In Progress games", async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [makeGameRow({ status: "In Progress" })],
-      });
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makeGameRow({ status: "In Progress" })] })
+        .mockResolvedValueOnce({ rows: [] }); // getStoredPlaysLive — no plays yet
 
       mockAxiosGet.mockResolvedValueOnce({
         data: { plays: [] },
@@ -167,9 +167,9 @@ describe("playsService", () => {
     });
 
     it("normalizes NBA live plays from ESPN response", async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [makeGameRow({ status: "In Progress" })],
-      });
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makeGameRow({ status: "In Progress" })] })
+        .mockResolvedValueOnce({ rows: [] }); // getStoredPlaysLive — no plays yet
 
       mockAxiosGet.mockResolvedValueOnce({
         data: {
@@ -208,9 +208,9 @@ describe("playsService", () => {
     });
 
     it("normalizes NFL drives from ESPN response", async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [makeGameRow({ status: "In Progress" })],
-      });
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makeGameRow({ status: "In Progress" })] })
+        .mockResolvedValueOnce({ rows: [] }); // getStoredPlaysLive — no plays yet
 
       mockAxiosGet.mockResolvedValueOnce({
         data: {
@@ -252,9 +252,9 @@ describe("playsService", () => {
     });
 
     it("returns empty plays and source espn_error when ESPN call fails", async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [makeGameRow({ status: "In Progress" })],
-      });
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makeGameRow({ status: "In Progress" })] })
+        .mockResolvedValueOnce({ rows: [] }); // getStoredPlaysLive — no plays yet
       mockAxiosGet.mockRejectedValueOnce(new Error("ESPN timeout"));
 
       const result = await getPlays(1, "nba");
@@ -263,9 +263,9 @@ describe("playsService", () => {
     });
 
     it("does not use cache for live games", async () => {
-      mockPool.query.mockResolvedValueOnce({
-        rows: [makeGameRow({ status: "In Progress" })],
-      });
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makeGameRow({ status: "In Progress" })] })
+        .mockResolvedValueOnce({ rows: [] }); // getStoredPlaysLive — no plays yet
       mockAxiosGet.mockResolvedValueOnce({ data: { plays: [] } });
 
       await getPlays(1, "nba");

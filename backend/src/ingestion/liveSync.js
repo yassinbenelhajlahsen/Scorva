@@ -1,4 +1,5 @@
 import { processEvent, clearPlayerCache } from "./eventProcessor.js";
+import upsertPlays from "./upsertPlays.js";
 import { DateTime } from "luxon";
 import { invalidate, invalidatePattern, closeCache } from "../cache/cache.js";
 import logger from "../logger.js";
@@ -17,10 +18,18 @@ const SCOREBOARD_URL = (sport, league) =>
 
 const TICK_MS = 15_000;
 const FULL_UPDATE_INTERVAL_MS = 120_000;
+const PLAYS_UPDATE_INTERVAL_MS = 30_000;
 const NO_GAMES_SLEEP_MS = 5 * 60 * 1000;
 
+// ESPN sport path for the /playbyplay endpoint (differs from scoreboard path)
+const PLAYS_SPORT_PATH = {
+  nba: "basketball/nba",
+  nfl: "american-football/nfl",
+  nhl: "hockey/nhl",
+};
+
 // Per-event tracking for two-tier strategy
-// eventId → { lastFullUpdate: timestamp, lastPeriod: number|null }
+// eventId → { lastFullUpdate: timestamp, lastPeriod: number|null, lastPlaysUpdate: timestamp }
 export const eventState = new Map();
 
 function isLiveEvent(e) {
@@ -162,7 +171,8 @@ export async function tick(liveLeagues) {
             if (needsFullUpdate) {
               try {
                 await processEvent(client, slug, event);
-                eventState.set(eventId, { lastFullUpdate: now, lastPeriod: currentPeriod });
+                // processEvent already calls upsertPlays, so sync lastPlaysUpdate
+                eventState.set(eventId, { lastFullUpdate: now, lastPeriod: currentPeriod, lastPlaysUpdate: now });
                 await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
               } catch (err) {
                 log.error({ err, eventId }, "Full update failed for event");
@@ -172,7 +182,39 @@ export async function tick(liveLeagues) {
               }
             } else {
               await upsertGameScoreboard(client, slug, event);
-              eventState.set(eventId, { ...state, lastPeriod: currentPeriod });
+              const newState = { ...state, lastPeriod: currentPeriod };
+
+              // Fetch and store plays every PLAYS_UPDATE_INTERVAL_MS
+              if (now - (state.lastPlaysUpdate ?? 0) > PLAYS_UPDATE_INTERVAL_MS) {
+                try {
+                  const sportPath = PLAYS_SPORT_PATH[slug];
+                  const pbpRes = await fetch(
+                    `https://site.api.espn.com/apis/site/v2/sports/${sportPath}/playbyplay?event=${eventId}`
+                  );
+                  if (pbpRes.ok) {
+                    const pbpData = await pbpRes.json();
+                    const { rows: gameRows } = await client.query(
+                      "SELECT id, hometeamid, awayteamid FROM games WHERE eventid = $1 AND league = $2",
+                      [eventId, slug]
+                    );
+                    if (gameRows.length > 0) {
+                      const { id: gameId, hometeamid, awayteamid } = gameRows[0];
+                      const comps = event.competitions?.[0]?.competitors || [];
+                      const homeComp = comps.find((c) => c.homeAway === "home");
+                      const awayComp = comps.find((c) => c.homeAway === "away");
+                      const homeEspnId = parseInt(homeComp?.team?.id, 10);
+                      const awayEspnId = parseInt(awayComp?.team?.id, 10);
+                      await upsertPlays(client, gameId, pbpData, slug, hometeamid, awayteamid, homeEspnId, awayEspnId);
+                      newState.lastPlaysUpdate = now;
+                    }
+                  }
+                } catch (err) {
+                  log.error({ err, eventId }, "Plays update failed");
+                  // Do not update lastPlaysUpdate — retry next interval
+                }
+              }
+
+              eventState.set(eventId, newState);
             }
           } finally {
             client.release();

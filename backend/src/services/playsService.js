@@ -30,6 +30,12 @@ export async function getPlays(gameId, league) {
     return { plays: [], source: "none" };
   }
 
+  // Live game: read from DB (written by liveSync every ~30s); fall back to ESPN
+  // proxy on cold start before liveSync has written any plays yet.
+  const dbResult = await getStoredPlaysLive(gameId);
+  if (dbResult && dbResult.plays.length > 0) {
+    return dbResult;
+  }
   return getLivePlays(league, eventid);
 }
 
@@ -69,6 +75,36 @@ async function getStoredPlays(gameId, league) {
     },
     { cacheIf: (result) => result !== null },
   );
+}
+
+async function getStoredPlaysLive(gameId) {
+  const { rows } = await pool.query(
+    `SELECT
+       p.id,
+       p.espn_play_id,
+       p.sequence,
+       p.period,
+       p.clock,
+       p.description,
+       p.short_text,
+       p.home_score,
+       p.away_score,
+       p.scoring_play,
+       p.team_id,
+       p.play_type,
+       p.drive_number,
+       p.drive_description,
+       p.drive_result,
+       t.logo_url AS team_logo,
+       t.shortname AS team_short
+     FROM plays p
+     LEFT JOIN teams t ON t.id = p.team_id
+     WHERE p.gameid = $1
+     ORDER BY p.sequence ASC`,
+    [gameId],
+  );
+  if (rows.length === 0) return null;
+  return { plays: rows, source: "db" };
 }
 
 async function getLivePlays(league, eventId) {
