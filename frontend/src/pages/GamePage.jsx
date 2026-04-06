@@ -266,7 +266,6 @@ export default function GamePage() {
               )}
             </div>
           )}
-          <span className="text-sm font-medium text-text-tertiary">vs</span>
           {inProgress && (
             <m.span
               animate={{ opacity: [1, 0.5, 1] }}
