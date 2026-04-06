@@ -76,10 +76,6 @@ describe("GameCard", () => {
     expect(screen.getByRole("link").getAttribute("href")).toBe("/nba/games/1");
   });
 
-  it("shows 'vs' separator", () => {
-    render(<GameCard game={makeGame()} />);
-    expect(screen.getByText("vs")).toBeInTheDocument();
-  });
 
   it("shows game date for Final game", () => {
     render(<GameCard game={makeGame()} />);

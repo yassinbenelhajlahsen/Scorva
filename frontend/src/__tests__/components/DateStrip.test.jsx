@@ -131,11 +131,13 @@ describe("DateStrip — game counts", () => {
     expect(btn).toHaveTextContent("2");
   });
 
-  it("does not render a count for a date without games", () => {
-    // 2025-06-16 is not in GAME_DATES — button should only have 2 spans (dayLabel + date)
+  it("does not render a visible count for a date without games", () => {
+    // 2025-06-16 is not in GAME_DATES — count span is always present but invisible
     renderStrip();
     const btn = screen.getByLabelText(/6\/16/);
-    expect(btn.querySelectorAll("span")).toHaveLength(2);
+    const spans = btn.querySelectorAll("span");
+    expect(spans).toHaveLength(3);
+    expect(spans[2]).toHaveClass("invisible");
   });
 
   it("renders counts when gameCounts is not provided", () => {
