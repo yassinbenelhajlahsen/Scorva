@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { getLeagueGames } from "../../api/games.js";
 import { getStandings } from "../../api/teams.js";
 import { useLiveGames } from "../live/useLiveGames.js";
@@ -41,6 +41,7 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
       return { eastOrAFC: east, westOrNFC: west };
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   // Normalize games response shape
@@ -88,13 +89,14 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
     }
   }, [gamesQuery.isLoading, standingsQuery.isLoading, gamesQuery.data]);
 
-  // Reset displayData when league/season changes (but not date — gamesLoading handles that)
+  // Reset displayData only on league change — season change uses fade via standingsFetching
   useEffect(() => {
     setDisplayData(false);
-  }, [league, selectedSeason]);
+  }, [league]);
 
   const loading = !displayData && !gamesQuery.isError && !standingsQuery.isError;
   const gamesLoading = gamesQuery.isFetching && !gamesQuery.isLoading;
+  const standingsFetching = standingsQuery.isFetching;
   const error =
     gamesQuery.isError || standingsQuery.isError ? "Failed to load data." : null;
 
@@ -108,6 +110,7 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
     standings: standingsQuery.data ?? { eastOrAFC: [], westOrNFC: [] },
     loading,
     gamesLoading,
+    standingsFetching,
     error,
     displayData,
     retry,

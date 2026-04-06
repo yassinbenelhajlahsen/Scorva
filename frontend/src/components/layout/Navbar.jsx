@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys, queryFns } from "../../lib/query.js";
 import logo from "/favicon.webp";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/data/useSearch.js";
@@ -12,6 +14,15 @@ export default function Navbar() {
   const navRef = useRef(null);
   const location = useLocation();
   const { session, openAuthModal } = useAuth();
+  const queryClient = useQueryClient();
+  const leagueSlugs = new Set(["nba", "nfl", "nhl"]);
+
+  function prefetchLeague(to) {
+    const league = to.slice(1);
+    if (!leagueSlugs.has(league)) return;
+    queryClient.prefetchQuery({ queryKey: queryKeys.leagueGames(league, null, null), queryFn: queryFns.leagueGames(league, null, null), staleTime: 10_000 });
+    queryClient.prefetchQuery({ queryKey: queryKeys.gameDates(league, null), queryFn: queryFns.gameDates(league, null), staleTime: 10_000 });
+  }
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -60,6 +71,7 @@ export default function Navbar() {
               <Link
                 key={to}
                 to={to}
+                onMouseEnter={() => prefetchLeague(to)}
                 className={`text-sm font-medium transition-colors duration-200 ${
                   isActive
                     ? "text-accent"

@@ -1,5 +1,7 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys, queryFns } from "../lib/query.js";
 import { m, AnimatePresence } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
@@ -14,6 +16,7 @@ import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
 export default function LeaguePage() {
+  const queryClient = useQueryClient();
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
   const [searchParams] = useSearchParams();
@@ -44,7 +47,7 @@ export default function LeaguePage() {
     setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);
     setActiveTab(tab);
   }
-  const { games, standings, loading, error, displayData, retry, resolvedDate, resolvedSeason } =
+  const { games, standings, standingsFetching, error, displayData, retry, resolvedDate, resolvedSeason } =
     useLeagueData(league, selectedSeason, selectedDate);
   const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
 
@@ -239,9 +242,10 @@ export default function LeaguePage() {
                   </AnimatePresence>
                 </>
               ) : (
-                <div
+                <m.div
                   className="grid grid-cols-1 md:grid-cols-2 gap-8"
-                  style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
+                  animate={{ opacity: standingsFetching ? 0.5 : 1 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                 >
                   {/* East / AFC */}
                   <div>
@@ -253,6 +257,7 @@ export default function LeaguePage() {
                         <Link
                           to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                           key={team.id}
+                          onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
                         >
                           <div
                             className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
@@ -294,6 +299,7 @@ export default function LeaguePage() {
                         <Link
                           to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                           key={team.id}
+                          onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
                         >
                           <div
                             className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
@@ -324,7 +330,7 @@ export default function LeaguePage() {
                       ))}
                     </div>
                   </div>
-                </div>
+                </m.div>
               )}
             </m.div>
           </AnimatePresence>

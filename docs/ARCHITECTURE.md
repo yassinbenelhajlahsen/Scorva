@@ -64,6 +64,23 @@ All data, user, and AI hooks use `@tanstack/react-query` v5.
 - `onError` — rolls back cache to `context.previous`
 - `onSettled` — invalidates the full favorites list
 
+**Hover prefetch**
+`frontend/src/lib/query.js` exports a `queryFns` object alongside `queryKeys`. Each entry is a factory that returns the same fetch function (including any response transforms) used by the corresponding hook — ensuring the cached data shape is identical to what the hook expects.
+
+Components call `queryClient.prefetchQuery()` on `mouseenter` with `staleTime: 10_000` (skips re-fetch if data is already < 10s old):
+
+| Component | Prefetches |
+|---|---|
+| `GameCard` | `game` — on existing hover handler |
+| `Navbar` league links | `leagueGames` + `gameDates` |
+| Homepage "View All" button | `leagueGames` + `gameDates` |
+| `LeaguePage` standings rows | `team` |
+| `TopPerformerCard` | `player` |
+| `SimilarPlayersCard` items | `player` |
+| `SearchBar` result items | `game` / `player` / `team` by result type |
+
+`useGame` has `staleTime: 0` — prefetched data serves immediately on navigation while a background refetch runs in parallel. All other hooks use the global 2 min staleTime, so prefetched data stays hot for any click within that window.
+
 **Build**
 `@tanstack/*` packages are split into their own `react-query` chunk via `manualChunks` in `vite.config.js`.
 

@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 const mockNavigate = vi.fn();
 
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ prefetchQuery: vi.fn() }),
+}));
+
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));

@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import { getGameById, getLeagueGames, getGameDates } from "../api/games.js";
+import { getPlayer } from "../api/players.js";
+import { getTeams } from "../api/teams.js";
+import slugify from "../utils/slugify.js";
 
 export const queryKeys = {
   seasons:        (league) => ["seasons", league],
@@ -20,6 +24,25 @@ export const queryKeys = {
   game:           (league, gameId) => ["game", league, gameId],
   homeGames:      () => ["homeGames"],
   favoriteCheck:  (type, id) => ["favoriteCheck", type, id],
+};
+
+export const queryFns = {
+  game: (league, gameId) => () => getGameById(league, gameId),
+  player: (league, slug, season) => () =>
+    getPlayer(league, slug, { season }).then((d) => d.player),
+  team: (league, teamSlug) => () =>
+    getTeams(league).then((teamList) => {
+      const found = teamList.find(
+        (t) =>
+          slugify(t.name) === teamSlug ||
+          slugify(t.shortname || "") === teamSlug
+      );
+      if (!found) throw new Error("Team not found.");
+      return found;
+    }),
+  leagueGames: (league, season, date) => () =>
+    getLeagueGames(league, { season, date }),
+  gameDates: (league, season) => () => getGameDates(league, { season }),
 };
 
 export function useDebouncedValue(value, delay = 200) {

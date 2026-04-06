@@ -1,8 +1,23 @@
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import slugify from "../../utils/slugify.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 export default function SearchBar({ allItems, query, setQuery, loading }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  function prefetchItem(item) {
+    if (item.type === "game") {
+      queryClient.prefetchQuery({ queryKey: queryKeys.game(item.league, item.id), queryFn: queryFns.game(item.league, item.id), staleTime: 10_000 });
+    } else if (item.type === "player") {
+      const slug = slugify(item.name);
+      queryClient.prefetchQuery({ queryKey: queryKeys.player(item.league, slug, null), queryFn: queryFns.player(item.league, slug, null), staleTime: 10_000 });
+    } else if (item.type === "team") {
+      const slug = slugify(item.name);
+      queryClient.prefetchQuery({ queryKey: queryKeys.team(item.league, slug), queryFn: queryFns.team(item.league, slug), staleTime: 10_000 });
+    }
+  }
 
   function handleSelect(item) {
     const base =
@@ -48,6 +63,7 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
               <li
                 key={`${item.type}-${item.id}`}
                 onClick={() => handleSelect(item)}
+                onMouseEnter={() => prefetchItem(item)}
                 className="flex items-center px-4 py-3 hover:bg-surface-overlay cursor-pointer transition-colors duration-150"
               >
                 {item.imageUrl && (

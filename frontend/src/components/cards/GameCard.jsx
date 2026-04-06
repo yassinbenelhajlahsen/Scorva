@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utils/formatDate";
 import { scoreUpdateVariants } from "../../utils/motion.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 function useScoreAnimKey(score) {
   const prev = useRef(undefined);
@@ -16,6 +18,7 @@ function useScoreAnimKey(score) {
 
 function GameCard({ game }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleOtherExpand = (e) => {
@@ -58,7 +61,16 @@ function GameCard({ game }) {
     <Link
       to={`/${league}/games/${game.id}`}
       className="block no-underline"
-      onMouseEnter={() => { if (window.matchMedia("(hover: hover)").matches) setIsExpanded(true); }}
+      onMouseEnter={() => {
+        if (window.matchMedia("(hover: hover)").matches) {
+          setIsExpanded(true);
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.game(league, game.id),
+            queryFn: queryFns.game(league, game.id),
+            staleTime: 10_000,
+          });
+        }
+      }}
       onMouseLeave={() => { if (window.matchMedia("(hover: hover)").matches) setIsExpanded(false); }}
     >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">

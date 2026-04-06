@@ -1,6 +1,8 @@
 import { memo } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import slugify from "../../utils/slugify.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 const colorMap = {
   "Top Performer": "#e8863a",
@@ -35,16 +37,19 @@ const statFormatMap = {
 };
 
 function TopPerformerCard({ player, title = "Top Performer", league }) {
+  const queryClient = useQueryClient();
   if (!player) return null;
 
   const { name, position, imageUrl, stats } = player;
-  const path = `/${league}/players/${slugify(name)}`;
+  const slug = slugify(name);
+  const path = `/${league}/players/${slug}`;
   const formattedStats = statFormatMap[league]?.(stats) || [];
   const color = colorMap[title] ?? "#e8863a";
 
   return (
     <Link
       to={path}
+      onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slug, null), queryFn: queryFns.player(league, slug, null), staleTime: 10_000 })}
       className="group flex items-stretch bg-surface-elevated border border-white/[0.08] rounded-2xl h-[108px] overflow-hidden transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 w-full"
     >
       {/* Left zone — gradient slab */}

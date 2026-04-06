@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys, queryFns } from "../lib/query.js";
 import { m, AnimatePresence } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
@@ -15,6 +17,7 @@ import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 
 export default function Homepage() {
+  const queryClient = useQueryClient();
   const { games, loading, error, retry } = useHomeGames();
   const { session } = useAuth();
   const { favorites, loading: favLoading } = useFavorites();
@@ -188,6 +191,10 @@ export default function Homepage() {
           <div className="flex justify-center mt-10">
             <Link
               to={`/${activeLeague}`}
+              onMouseEnter={() => {
+                queryClient.prefetchQuery({ queryKey: queryKeys.leagueGames(activeLeague, null, null), queryFn: queryFns.leagueGames(activeLeague, null, null), staleTime: 10_000 });
+                queryClient.prefetchQuery({ queryKey: queryKeys.gameDates(activeLeague, null), queryFn: queryFns.gameDates(activeLeague, null), staleTime: 10_000 });
+              }}
               className="inline-flex items-center gap-2 bg-accent text-white font-semibold px-6 py-3 rounded-full transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent-hover hover:shadow-[0_0_24px_rgba(232,134,58,0.3)] text-sm"
             >
               <span>View All {activeLeague.toUpperCase()} Games</span>
