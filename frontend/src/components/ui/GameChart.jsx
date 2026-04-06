@@ -36,15 +36,30 @@ function colorDistance(a, b) {
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
 
+function relativeLuminance(hex) {
+  return hexToRgb(hex)
+    .map((c) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    })
+    .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+}
+
 // If the two team colors are too similar, fall back to defaults so the
 // chart line stays readable (e.g. Cowboys vs Patriots are both #002a5c).
+// If a color is too dark to see on the dark background, use white instead.
 function resolveColors(rawHome, rawAway) {
+  const DARK_THRESHOLD = 0.04;
   const home = rawHome ?? DEFAULT_HOME_COLOR;
   const away = rawAway ?? DEFAULT_AWAY_COLOR;
-  if (colorDistance(home, away) < 60) {
+  const resolvedHome =
+    relativeLuminance(home) < DARK_THRESHOLD ? "#ffffff" : home;
+  const resolvedAway =
+    relativeLuminance(away) < DARK_THRESHOLD ? "#ffffff" : away;
+  if (colorDistance(resolvedHome, resolvedAway) < 60) {
     return [DEFAULT_HOME_COLOR, DEFAULT_AWAY_COLOR];
   }
-  return [home, away];
+  return [resolvedHome, resolvedAway];
 }
 
 function downsample(raw, target = 60) {
@@ -76,14 +91,24 @@ function buildPeriodTicks(league, total) {
   }));
 }
 
-function CustomTooltip({ active, payload, homeShortName, awayShortName, homeColor, awayColor }) {
+function CustomTooltip({
+  active,
+  payload,
+  homeShortName,
+  awayShortName,
+  homeColor,
+  awayColor,
+}) {
   if (!active || !payload?.length) return null;
   const { home, away } = payload[0].payload;
   const homeWinning = home >= 50;
   return (
     <div className="bg-surface-overlay border border-white/[0.1] rounded-lg px-3 py-2 text-xs shadow-lg">
       <div className="flex items-center gap-2 mb-1">
-        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: homeColor }} />
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ background: homeColor }}
+        />
         <span className="text-text-secondary">{homeShortName}</span>
         <span
           className="font-semibold ml-auto"
@@ -93,7 +118,10 @@ function CustomTooltip({ active, payload, homeShortName, awayShortName, homeColo
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: awayColor }} />
+        <span
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ background: awayColor }}
+        />
         <span className="text-text-secondary">{awayShortName}</span>
         <span
           className="font-semibold ml-auto"
@@ -106,11 +134,19 @@ function CustomTooltip({ active, payload, homeShortName, awayShortName, homeColo
   );
 }
 
-function MarginTooltip({ active, payload, homeShortName, awayShortName, homeColor, awayColor }) {
+function MarginTooltip({
+  active,
+  payload,
+  homeShortName,
+  awayShortName,
+  homeColor,
+  awayColor,
+}) {
   if (!active || !payload?.length) return null;
   const { margin } = payload[0].payload;
   const leader = margin > 0 ? homeShortName : margin < 0 ? awayShortName : null;
-  const color = margin > 0 ? homeColor : margin < 0 ? awayColor : "rgba(255,255,255,0.5)";
+  const color =
+    margin > 0 ? homeColor : margin < 0 ? awayColor : "rgba(255,255,255,0.5)";
   return (
     <div className="bg-surface-overlay border border-white/[0.1] rounded-lg px-3 py-2 text-xs shadow-lg">
       <span style={{ color }} className="font-semibold">
@@ -124,20 +160,34 @@ function PeriodTick({ x, y, payload, periodTicks }) {
   const match = periodTicks.find((t) => t.value === payload.value);
   if (!match) return null;
   return (
-    <text x={x} y={y + 14} textAnchor="middle" fontSize={10} fill="rgba(255,255,255,0.3)">
+    <text
+      x={x}
+      y={y + 14}
+      textAnchor="middle"
+      fontSize={10}
+      fill="rgba(255,255,255,0.3)"
+    >
       {match.label}
     </text>
   );
 }
 
-export default function WinProbabilityChart({ data, scoreMargin, homeTeam, awayTeam, league }) {
+export default function GameChart({
+  data,
+  scoreMargin,
+  homeTeam,
+  awayTeam,
+  league,
+}) {
   const [viewMode, setViewMode] = useState("winProb");
 
   if (!data || data.length === 0) return null;
 
   const chartData = buildChartData(data);
-  const marginData = scoreMargin?.length > 0 ? buildMarginData(scoreMargin) : null;
-  const activeData = viewMode === "margin" && marginData ? marginData : chartData;
+  const marginData =
+    scoreMargin?.length > 0 ? buildMarginData(scoreMargin) : null;
+  const activeData =
+    viewMode === "margin" && marginData ? marginData : chartData;
   const periodTicks = buildPeriodTicks(league, activeData.length);
   const tickValues = periodTicks.map((t) => t.value);
 
@@ -145,7 +195,7 @@ export default function WinProbabilityChart({ data, scoreMargin, homeTeam, awayT
   const awayShortName = awayTeam?.info?.shortName ?? "Away";
   const [homeColor, awayColor] = resolveColors(
     homeTeam?.info?.color,
-    awayTeam?.info?.color
+    awayTeam?.info?.color,
   );
 
   // Y-axis config per view
@@ -176,15 +226,31 @@ export default function WinProbabilityChart({ data, scoreMargin, homeTeam, awayT
               onChange={(e) => setViewMode(e.target.value)}
               className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-xs font-semibold uppercase tracking-wider px-3 py-1.5 pr-7 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:ring-1 focus:ring-accent/50"
             >
-              <option value="winProb" className="bg-surface-primary normal-case tracking-normal font-normal">Win Probability</option>
-              <option value="margin" className="bg-surface-primary normal-case tracking-normal font-normal">Score Margin</option>
+              <option
+                value="winProb"
+                className="bg-surface-primary normal-case tracking-normal font-normal"
+              >
+                Win Probability
+              </option>
+              <option
+                value="margin"
+                className="bg-surface-primary normal-case tracking-normal font-normal"
+              >
+                Point Differential
+              </option>
             </select>
             <svg
               className="pointer-events-none absolute right-2 w-3 h-3 text-text-tertiary"
               viewBox="0 0 12 12"
               fill="none"
             >
-              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M2 4l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
         ) : (
@@ -219,7 +285,10 @@ export default function WinProbabilityChart({ data, scoreMargin, homeTeam, awayT
 
       <div className="relative">
         <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={activeData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <AreaChart
+            data={activeData}
+            margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+          >
             <defs>
               <linearGradient id="homeAreaGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={homeColor} stopOpacity={0.18} />
@@ -233,13 +302,33 @@ export default function WinProbabilityChart({ data, scoreMargin, homeTeam, awayT
             */}
             {isMarginMode ? (
               <>
-                <ReferenceArea y1={0} y2={yDomain[1]} fill={homeColor} fillOpacity={0.05} />
-                <ReferenceArea y1={yDomain[0]} y2={0} fill={awayColor} fillOpacity={0.05} />
+                <ReferenceArea
+                  y1={0}
+                  y2={yDomain[1]}
+                  fill={homeColor}
+                  fillOpacity={0.05}
+                />
+                <ReferenceArea
+                  y1={yDomain[0]}
+                  y2={0}
+                  fill={awayColor}
+                  fillOpacity={0.05}
+                />
               </>
             ) : (
               <>
-                <ReferenceArea y1={50} y2={100} fill={homeColor} fillOpacity={0.05} />
-                <ReferenceArea y1={0} y2={50} fill={awayColor} fillOpacity={0.05} />
+                <ReferenceArea
+                  y1={50}
+                  y2={100}
+                  fill={homeColor}
+                  fillOpacity={0.05}
+                />
+                <ReferenceArea
+                  y1={0}
+                  y2={50}
+                  fill={awayColor}
+                  fillOpacity={0.05}
+                />
               </>
             )}
 
@@ -248,7 +337,9 @@ export default function WinProbabilityChart({ data, scoreMargin, homeTeam, awayT
               type="number"
               domain={[0, activeData.length - 1]}
               ticks={tickValues}
-              tick={(props) => <PeriodTick {...props} periodTicks={periodTicks} />}
+              tick={(props) => (
+                <PeriodTick {...props} periodTicks={periodTicks} />
+              )}
               axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
               tickLine={false}
             />
