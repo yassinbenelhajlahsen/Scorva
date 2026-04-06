@@ -2,6 +2,7 @@
 
 ## API endpoints (all under `/api`)
 - `GET /:league/teams`
+- `GET /:league/teams/:teamId/seasons` — distinct seasons the team has played in, ordered DESC
 - `GET /:league/standings`
 - `GET /:league/games` — optional `?date=YYYY-MM-DD` returns `{ games[], resolvedDate, resolvedSeason }` instead of a flat array; nearest-date fallback when no games exist on the requested date; validates format, 400 on mismatch
 - `GET /:league/games/dates` — optional `?season=`; returns `[{ date: "YYYY-MM-DD", count: N }]` for all dates with games in the season (cached 5 min)
