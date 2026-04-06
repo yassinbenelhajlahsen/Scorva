@@ -33,10 +33,10 @@ https://scorva.dev
 
 | Layer      | Technologies                                                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Frontend   | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Vite 6                                                               |
+| Frontend   | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Recharts, Vite 6                                                     |
 | Backend    | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis)                                      |
 | Auth       | Supabase Auth — email/password + Google OAuth; JWT verified server-side                                                        |
-| AI         | OpenAI GPT-4o-mini (game summaries + summarization) · GPT-4.1-mini (chat agent, tool-calling) · `text-embedding-3-small` (RAG) |
+| AI         | OpenAI GPT-4o-mini (game summaries + summarization) · GPT-4.1-mini (chat agent, tool-calling) · `text-embedding-3-small` (RAG) · Tavily (web search) |
 | Database   | PostgreSQL — `pg_trgm` GIN indexes, `pgvector` cosine similarity, window functions, `ON CONFLICT DO UPDATE`                    |
 | Deployment | Vercel (frontend) · Railway (API server + live sync worker)                                                                    |
 
@@ -56,7 +56,8 @@ Scorva
 │   │   ├── services/             # SQL queries and business logic
 │   │   ├── utils/                # slugResolver, dateParser
 │   │   ├── config/env.js         # dotenv initialization
-│   │   └── populate/             # ESPN ingestion scripts: upsert.js (scheduled), liveSync.js (live worker)
+│   │   └── ingestion/            # ESPN data pipeline: upsert.js (scheduled), liveSync.js (live worker)
+│   │       └── scripts/          # One-off backfill scripts (backfillStatsTeamid, backfillPlays, backfillTeamColors)
 │   └── __tests__/                # Jest + Supertest test suite
 │
 ├── frontend
@@ -65,12 +66,12 @@ Scorva
 │   │   ├── main.jsx              # Vite entry point
 │   │   ├── index.css             # Tailwind v4 theme tokens and global styles
 │   │   ├── lib/supabase.js       # Supabase client singleton
-│   │   ├── context/              # AuthContext — session state and auth modal; ChatContext — chat panel state
+│   │   ├── context/              # AuthContext — session state and auth modal; ChatContext — chat panel state; SettingsContext — settings drawer state
 │   │   ├── api/                  # Backend API client and per-resource wrappers
 │   │   ├── hooks/                # Data-fetching and state hooks
 │   │   ├── components/           # Reusable UI (cards, layout, ui primitives)
 │   │   ├── pages/                # Page-level route components
-│   │   └── utilities/            # Formatters, slugify, normalize, topPlayers scoring
+│   │   └── utils/                # Formatters, slugify, normalize, topPlayers scoring
 │   └── public/                   # League and playoff logos (NBA/, NFL/, NHL/)
 │
 ├── LICENSE
@@ -93,7 +94,6 @@ Backend follows a strict 4-layer separation: Routes → Controllers → Services
 | `/:league/teams/:teamId`     | TeamPage                           |
 | `/:league/players/:playerId` | PlayerPage                         |
 | `/:league/games/:gameId`     | GamePage                           |
-| `/settings`                  | SettingsPage (requires auth)       |
 | `/auth/callback`             | AuthCallback (OAuth popup handler) |
 | `*`                          | ErrorPage (404 catch-all)          |
 
@@ -109,9 +109,9 @@ Backend follows a strict 4-layer separation: Routes → Controllers → Services
 - Supabase auth webhook (`POST /webhooks/supabase-auth`) auto-creates user rows on signup: splits `full_name` for OAuth users, reads `first_name`/`last_name` metadata for email signups
 - Account deletion: `DELETE /api/user/account` cascades favorites in DB then calls Supabase Admin API to remove the auth user
 
-### Settings Page
+### Settings
 
-Gear icon in the navbar opens `/settings` (requires auth):
+Avatar dropdown in the navbar opens a slide-in settings drawer (requires auth):
 
 - **Favorites tab:** search and add/remove favorite players and teams; choose a default homepage league (spring-animated sliding pill selector, optimistic local state)
 - **Account tab:** edit display name (synced to both DB and Supabase user metadata), change password with current-password validation, delete account with confirmation. Password section is hidden for Google OAuth users; replaced with a "Signed in with Google" badge.
@@ -169,6 +169,35 @@ A floating chat panel (FAB → slide-in panel) available on every page, powered 
 - Produces 3–4 structured bullet points: why the winner won, top performances, key statistical advantages
 - Protected by `requireAuth` middleware + a dedicated stricter rate limiter (`aiLimiter`, 50 req/15 min in production)
 - 30-second timeout with graceful fallback; locked UI shown to unauthenticated users with sign-in prompt
+
+### Win Probability
+
+- `GET /api/:league/games/:eventId/win-probability` — proxied from ESPN summary endpoint
+- Recharts line chart (`GameChart.jsx`) showing win probability over time with score margin overlay; two toggle modes (Win Probability / Point Differential)
+- Cached 30s for live games, 30d for final games (via `cacheIf`)
+- `useWinProbability` hook manages data fetching and live/final distinction
+
+### Game Prediction
+
+- `GET /api/:league/games/:gameId/prediction` — pre-game only (404 for live/final)
+- Returns win probabilities, key factors, and confidence level (`normal` | `low`)
+- `PredictionCard` displays percentage bars and factor breakdown; uses `teams.primary_color` for team branding
+- Cached 1 hour; requires sufficient historical data to generate
+
+### Player Similarity
+
+- `GET /api/:league/players/:playerId/similar` — returns up to 5 similar players
+- Uses `player_stat_embeddings` (pgvector `vector(14)`) with cosine similarity (`<=>` operator)
+- Vectors built from z-score normalized season averages — no LLM calls, pure numeric stats
+- Position-filtered for NFL/NHL; minimum games threshold (NBA/NHL 5, NFL 2)
+- `SimilarPlayersCard` on PlayerPage; `computePlayerEmbeddings.js` runs as part of the daily upsert cycle
+
+### Play-by-Play
+
+- `GET /api/:league/games/:gameId/plays` — returns `{ plays[], source }` where `source` is `db` (Final, cached 30d), `espn` (live, proxied), or `none`
+- `PlayByPlay` component with period grouping and scoring play highlighting; NFL games render with collapsible drive groups
+- Plays stored in `plays` table with sequence, period, clock, scores, and optional drive metadata (NFL)
+- GamePage "Plays" tab is the third tab alongside Overview and Analysis
 
 ### Redis Caching
 
@@ -238,7 +267,7 @@ Impact      = (+/− × 1.5) + G + A
 
 ## Database Schema
 
-Eleven tables: `games`, `teams`, `players`, `stats`, `player_aliases`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`, `game_embeddings`.
+Thirteen tables: `games`, `teams`, `players`, `stats`, `plays`, `player_aliases`, `player_stat_embeddings`, `users`, `user_favorite_players`, `user_favorite_teams`, `chat_conversations`, `chat_messages`, `game_embeddings`.
 
 - `pg_trgm` GIN indexes on `players.name`, `teams.name`, `teams.shortname`, and `player_aliases.alias` for sub-millisecond fuzzy search
 - `pgvector` extension — `game_embeddings.embedding vector(1536)` with cosine similarity search (`<=>` operator) for RAG-style semantic retrieval
@@ -268,14 +297,14 @@ cd frontend && npm run verify
 
 ### Backend (Jest 29 + Supertest)
 
-- **All API routes** — teams, players, games, game detail (`gameDetail`), player detail (`playerInfo`), standings, seasons, search
+- **All API routes** — teams, players, games, game detail (`gameDetail`), player detail (`playerInfo`), standings, seasons, search, plays, game dates, win probability, prediction, similar players
 - **Auth-protected routes** — favorites, user profile, AI summary, account deletion
 - **Webhook handler** — Supabase auth event parsing, user creation, name extraction for email and OAuth signup flows
 - **Live SSE routes** — stream lifecycle, 15s heartbeat, `done` event on game completion
 - **Database layer** — connection pooling, `pg` Pool error handling
-- **Data ingestion** — `mapStatsToSchema`, `upsertPlayer`, `upsertTeam`, `upsertGame`, `upsertStat`, `eventProcessor`, `upsertGameScoreboard` (live sync fast path)
+- **Data ingestion** — `mapStatsToSchema`, `upsertPlayer`, `upsertTeam`, `upsertGame`, `upsertStat`, `upsertPlays`, `eventProcessor`, `upsertGameScoreboard` (live sync fast path), `commonMappings`, `espnImage`, `refreshPopularity`
 - **Cache module** — Redis `cached()`, `invalidate()`, `invalidatePattern()`, graceful fallback when `REDIS_URL` unset
-- **Service unit tests** — `aiSummaryService` cache-first logic, summary generation, error handling; `embeddingService` (generate, store, search); `semanticSearchService` (result mapping, error handling); `chatHistoryService` (summarization queries); `chatAgentService` (summarizeOlderMessages, conversationSummary injection, onStatus labels); `chatToolsService` (tool definitions, executeTool dispatch)
+- **Service unit tests** — `aiSummaryService` cache-first logic, summary generation, error handling; `embeddingService` (generate, store, search); `semanticSearchService` (result mapping, error handling); `chatHistoryService` (summarization queries); `chatAgentService` (summarizeOlderMessages, conversationSummary injection, onStatus labels); `chatToolsService` (tool definitions, executeTool dispatch); `playsService`; `winProbabilityService`; `gamesService` (incl. `getGameDates`); `chat/tools` (headToHead, playerComparison, statLeaders, teamStats, webSearch)
 - **Integration** — full Express app behavior across all mounted routes
 - Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`; season-aware routes also mock `cache/seasons.js`
 

@@ -81,9 +81,9 @@ Centered via `min-h-[60vh] flex items-center justify-center px-4 sm:px-6`. Props
 ### Auth modal
 Fully centered on all screen sizes, dismissible via outside click, scrollable content, `max-h-[90dvh]`. Close button always visible.
 
-## Settings page (`/settings`)
-Sidebar navigation (desktop) / drill-down (mobile). Tabs: Favorites and Account.
-Navbar shows gear icon → `/settings` when logged in; "Sign In" pill when logged out.
+## Settings drawer
+Slide-in drawer opened from the navbar avatar dropdown. Tabs: Favorites and Account.
+Navbar shows avatar with dropdown menu when logged in; "Sign In" pill when logged out.
 
 ## Game clock colors
 - GamePage clock/period text (`Q3 · 5:32`): `text-loss` (red `#ff453a`)

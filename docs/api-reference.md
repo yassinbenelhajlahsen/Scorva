@@ -28,7 +28,7 @@
 - `PATCH /user/profile` — requires auth; body `{ firstName, lastName, defaultLeague }`; validates `defaultLeague` against `["nba", "nfl", "nhl"]`
 - `DELETE /user/account` — requires auth; deletes Supabase auth user then DB row (cascades favorites)
 - `POST /webhooks/supabase-auth` — verified by `Authorization: <SUPABASE_WEBHOOK_SECRET>`; inserts user on signup
-- `POST /chat` — **requires auth**; SSE stream; body `{ message, conversationId?, pageContext? }`; emits `delta`, `done`, `error` events; rate-limited by `chatLimiter` (30 req/15 min prod)
+- `POST /chat` — **requires auth**; SSE stream; body `{ message, conversationId?, pageContext? }`; emits `delta`, `status`, `done`, `error` events; rate-limited by `chatLimiter` (30 req/15 min prod)
 
 ## Frontend routes
 - `/` → Homepage
@@ -37,7 +37,6 @@
 - `/:league/teams/:teamId` → TeamPage
 - `/:league/players/:playerId` → PlayerPage
 - `/:league/games/:gameId` → GamePage
-- `/settings` → SettingsPage (requires auth, redirects to `/` if logged out)
 - `/privacy` → PrivacyPage (lazy-loaded)
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 - `*` → ErrorPage (404 catch-all, lazy-loaded)

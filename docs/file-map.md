@@ -18,12 +18,12 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Scheduled upsert                   | `backend/src/ingestion/upsert.js`                                                                      |
 | Live sync worker                   | `backend/src/ingestion/liveSync.js`                                                                    |
 | Historical upsert                  | `backend/src/ingestion/historicalUpsert.js`                                                            |
-| Stats teamid backfill              | `backend/src/ingestion/backfillStatsTeamid.js`                                                         |
-| Plays backfill                     | `backend/src/ingestion/backfillPlays.js`                                                               |
+| Stats teamid backfill              | `backend/src/ingestion/scripts/backfillStatsTeamid.js`                                                 |
+| Plays backfill                     | `backend/src/ingestion/scripts/backfillPlays.js`                                                       |
 | Plays upsert                       | `backend/src/ingestion/upsertPlays.js`                                                                 |
 | Popularity refresh                 | `backend/src/ingestion/refreshPopularity.js`                                                           |
 | Player similarity embeddings       | `backend/src/ingestion/computePlayerEmbeddings.js`                                                     |
-| Team colors backfill               | `backend/src/ingestion/backfillTeamColors.js`                                                          |
+| Team colors backfill               | `backend/src/ingestion/scripts/backfillTeamColors.js`                                                  |
 | Alias seed data                    | `backend/prisma/seeds/player_aliases.json`                                                             |
 | Alias seed script                  | `backend/prisma/seeds/seedAliases.js`                                                                  |
 | Data ingestion helpers             | `backend/src/ingestion/` (flat — no `src/` subfolder)                                                  |
@@ -32,6 +32,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Design tokens                      | `frontend/src/index.css` (`@theme`)                                                                    |
 | Supabase client                    | `frontend/src/lib/supabase.js`                                                                         |
 | Auth context                       | `frontend/src/context/AuthContext.jsx`                                                                 |
+| Settings context                   | `frontend/src/context/SettingsContext.jsx`                                                             |
 | Auth modal                         | `frontend/src/components/auth/AuthModal.jsx`                                                           |
 | Auth components                    | `frontend/src/components/auth/` (AuthModal, PasswordChecklist)                                         |
 | OAuth callback page                | `frontend/src/pages/AuthCallback.jsx`                                                                  |
@@ -42,7 +43,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Favorites hooks                    | `frontend/src/hooks/user/useFavorites.js`, `frontend/src/hooks/user/useFavoriteToggle.js`              |
 | User API                           | `frontend/src/api/user.js`                                                                             |
 | User prefs hook                    | `frontend/src/hooks/user/useUserPrefs.js`                                                              |
-| Settings page                      | `frontend/src/pages/SettingsPage.jsx`                                                                  |
+| Settings drawer                    | `frontend/src/components/settings/SettingsDrawer.jsx`                                                  |
 | Settings tabs                      | `frontend/src/components/settings/FavoritesTab.jsx`, `frontend/src/components/settings/AccountTab.jsx` |
 | User controller                    | `backend/src/controllers/userController.js`                                                            |
 | User service                       | `backend/src/services/userService.js`                                                                  |
@@ -66,7 +67,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Win probability hook               | `frontend/src/hooks/data/useWinProbability.js`                                                         |
 | Win probability chart              | `frontend/src/components/ui/gamechart.jsx`                                                             |
 | Game dates controller              | `backend/src/controllers/gameDatesController.js`                                                       |
-| Game dates service                 | `backend/src/services/gameDatesService.js`                                                             |
+| Game dates service                 | `backend/src/services/gamesService.js` (`getGameDates` export)                                         |
 | PG date → string util              | `backend/src/utils/pgDateToString.js`                                                                  |
 | Page skeleton layouts              | `frontend/src/components/skeletons/`                                                                   |
 | Chat route                         | `backend/src/routes/chat.js`                                                                           |

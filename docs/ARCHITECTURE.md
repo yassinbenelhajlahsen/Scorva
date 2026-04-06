@@ -89,7 +89,7 @@ Users can filter the league page to a specific date via a scrollable date strip 
 - **Date pick**: `selectedDate` (YYYY-MM-DD) → `useLeagueData` passes `?date=` to `GET /api/:league/games`. Backend returns `{ games, resolvedDate, resolvedSeason }` instead of a flat array.
 - **Nearest-date fallback**: if no games on the requested date, `gamesService` runs a `UNION ALL` of the closest past/future dates and re-queries with the winner. `resolvedDate` is returned so the frontend can sync the strip.
 - **Season resolution**: `getSeasonForDate()` (internal to `gamesService.js`) looks up the season from the `games` table for the requested date; falls back to nearest row by `ABS(EXTRACT(EPOCH FROM (date - $2::date)))`, then `getCurrentSeason`.
-- **Available dates / counts**: `GET /api/:league/games/dates` (`gameDatesService.js`) returns all `{ date, count }` rows for a season (cached 5 min, `gameDates:{league}:{season}`). `useGameDates` builds a `Map<date, count>` for the strip dot indicators.
+- **Available dates / counts**: `GET /api/:league/games/dates` (`gamesService.js::getGameDates`) returns all `{ date, count }` rows for a season (cached 5 min, `gameDates:{league}:{season}`). `useGameDates` builds a `Map<date, count>` for the strip dot indicators.
 - **SSE**: live updates are only active when `selectedDate` is null or equals today's ET date.
 - **Season switch**: resets `selectedDate` to null.
 
