@@ -18,13 +18,27 @@ function colorDistance(a, b) {
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
 
+function relativeLuminance(hex) {
+  return hexToRgb(hex)
+    .map((c) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    })
+    .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+}
+
 function resolveColors(rawHome, rawAway) {
+  const DARK_THRESHOLD = 0.04;
   const home = rawHome ?? DEFAULT_HOME_COLOR;
   const away = rawAway ?? DEFAULT_AWAY_COLOR;
-  if (colorDistance(home, away) < 60) {
+  const resolvedHome =
+    relativeLuminance(home) < DARK_THRESHOLD ? "#ffffff" : home;
+  const resolvedAway =
+    relativeLuminance(away) < DARK_THRESHOLD ? "#ffffff" : away;
+  if (colorDistance(resolvedHome, resolvedAway) < 60) {
     return [DEFAULT_HOME_COLOR, DEFAULT_AWAY_COLOR];
   }
-  return [home, away];
+  return [resolvedHome, resolvedAway];
 }
 
 function ProbabilityBar({ team, isFavored, isHome, color }) {
