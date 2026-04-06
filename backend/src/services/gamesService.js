@@ -15,7 +15,7 @@ async function getSeasonForDate(league, date) {
   const { rows: fallback } = await pool.query(
     `SELECT season FROM games
      WHERE league = $1 AND season IS NOT NULL
-     ORDER BY ABS(EXTRACT(EPOCH FROM (date - $2::date))) ASC
+     ORDER BY ABS(date - $2::date) ASC
      LIMIT 1`,
     [league, date]
   );

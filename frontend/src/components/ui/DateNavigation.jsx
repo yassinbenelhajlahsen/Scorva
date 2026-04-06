@@ -21,6 +21,7 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
   const [calendarOpen, setCalendarOpen] = useState(false);
   const todayForButton = getTodayET();
   const isViewingDefault = selectedDate === todayForButton;
+  const todayHasGames = gameDates != null && gameDates.includes(todayForButton);
 
   const displayMonth = getDisplayMonth(selectedDate, gameDates, isCurrentSeason);
   const today = getTodayET();
@@ -41,13 +42,15 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
           {/* Today — only shown for current season */}
           {isCurrentSeason && (
             <button
-              onClick={() => onDateChange(todayForButton)}
-              disabled={isViewingDefault}
+              onClick={() => { if (todayHasGames) onDateChange(todayForButton); }}
+              disabled={isViewingDefault || !todayHasGames}
               className={[
                 "text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full transition-all duration-[220ms]",
                 isViewingDefault
                   ? "text-accent bg-accent/10 cursor-default border border-transparent"
-                  : "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] border border-white/[0.08]",
+                  : todayHasGames
+                  ? "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] border border-white/[0.08]"
+                  : "text-text-tertiary/30 cursor-not-allowed border border-white/[0.04]",
               ].join(" ")}
             >
               Today
