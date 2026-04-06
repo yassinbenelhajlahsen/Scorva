@@ -7,8 +7,10 @@
 - `GET /:league/games` — optional `?date=YYYY-MM-DD` returns `{ games[], resolvedDate, resolvedSeason }` instead of a flat array; nearest-date fallback when no games exist on the requested date; validates format, 400 on mismatch
 - `GET /:league/games/dates` — optional `?season=`; returns `[{ date: "YYYY-MM-DD", count: N }]` for all dates with games in the season (cached 5 min)
 - `GET /:league/games/:gameId`
+- `GET /:league/games/:gameId/prediction` — pre-game only; 404 for live/final; returns win probabilities, key factors, confidence (`normal` | `low`); cached 1h
 - `GET /:league/players`
 - `GET /:league/players/:playerId`
+- `GET /:league/players/:playerId/similar` — returns `{ players: [...] }` (up to 5); position-filtered for NFL/NHL; requires embeddings to be computed; returns `{ players: [] }` if player has < 5 games (< 2 for NFL)
 - `GET /:league/seasons`
 - `GET /search`
 - `GET /live/:league/games` — SSE stream; heartbeat `: ping` every 15s; `event: done` when no live games

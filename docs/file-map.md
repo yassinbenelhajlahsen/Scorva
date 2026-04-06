@@ -20,6 +20,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Historical upsert | `backend/src/ingestion/historicalUpsert.js` |
 | Stats teamid backfill | `backend/src/ingestion/backfillStatsTeamid.js` |
 | Popularity refresh | `backend/src/ingestion/refreshPopularity.js` |
+| Player similarity embeddings | `backend/src/ingestion/computePlayerEmbeddings.js` |
 | Alias seed data | `backend/prisma/seeds/player_aliases.json` |
 | Alias seed script | `backend/prisma/seeds/seedAliases.js` |
 | Data ingestion helpers | `backend/src/ingestion/` (flat — no `src/` subfolder) |
@@ -46,11 +47,18 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Webhook handler | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js` |
 | SSE live route | `backend/src/routes/live.js`, `backend/src/controllers/liveController.js` |
 | SSE live hooks | `frontend/src/hooks/live/useLiveGame.js`, `frontend/src/hooks/live/useLiveGames.js` |
+| Similar players hook | `frontend/src/hooks/data/useSimilarPlayers.js` |
+| Similar players card | `frontend/src/components/cards/SimilarPlayersCard.jsx` |
 | Skeleton primitive | `frontend/src/components/ui/Skeleton.jsx` |
 | Error state component | `frontend/src/components/ui/ErrorState.jsx` |
 | Date navigation (strip + calendar) | `frontend/src/components/ui/DateNavigation.jsx`, `DateStrip.jsx`, `CalendarPopup.jsx` |
 | Navigation components | `frontend/src/components/navigation/` (MonthNavigation, SeasonSelector) |
 | Game dates hook | `frontend/src/hooks/data/useGameDates.js` |
+| Prediction service | `backend/src/services/predictionService.js` |
+| Prediction controller | `backend/src/controllers/predictionController.js` |
+| Prediction route | `backend/src/routes/prediction.js` |
+| Prediction hook | `frontend/src/hooks/data/usePrediction.js` |
+| Prediction card | `frontend/src/components/cards/PredictionCard.jsx` |
 | Game dates controller | `backend/src/controllers/gameDatesController.js` |
 | Game dates service | `backend/src/services/gameDatesService.js` |
 | PG date → string util | `backend/src/utils/pgDateToString.js` |
@@ -61,6 +69,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat tools | `backend/src/services/chat/toolsService.js` |
 | Chat tool services | `backend/src/services/chat/tools/` |
 | Embedding service (RAG) | `backend/src/services/embeddingService.js` |
+| Player similarity service | `backend/src/services/similarPlayersService.js` |
 | Semantic search tool | `backend/src/services/chat/tools/semanticSearch.js` |
 | Chat history | `backend/src/services/chat/historyService.js` |
 | Chat API (frontend) | `frontend/src/api/chat.js` |

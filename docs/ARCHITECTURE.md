@@ -245,6 +245,23 @@ system message each turn.
 performs cosine similarity search (`<=>` operator). Embeddings are generated fire-and-forget
 inside `saveSummary()`.
 
+### Player Similarity Engine
+`player_stat_embeddings` table stores per-player per-season stat vectors using pgvector (`vector(14)`).
+Vectors are built from z-score normalized season averages — no OpenAI calls, pure numeric stats.
+
+**Stat dimensions per league:**
+- NBA (10): points, assists, rebounds, blocks, steals, fg%, 3pt%, ft%, turnovers, plusminus
+- NFL (5): comp%, yards, td, interceptions, sacks — zero-padded to 14
+- NHL (14): g, a, saves, savepct, ga, shots, sm, bs, pn, pim, ht, tk, gv, plusminus
+
+All vectors are stored as `vector(14)` (NHL max); NBA and NFL are zero-padded. Queries always filter by league so cross-league comparison never occurs.
+
+**Computation:** `computePlayerEmbeddings.js` runs after `refreshPopularity()` in `upsert.js` each daily cycle. Can also be run standalone: `node backend/src/ingestion/computePlayerEmbeddings.js`. Min games threshold: NBA/NHL 5, NFL 2.
+
+**Similarity query:** `ORDER BY embedding <=> target_embedding` with HNSW index. NFL and NHL results are position-filtered (QB vs QB, goalie vs goalie, etc.) — position groups defined in `computePlayerEmbeddings.js` and reused by `similarPlayersService.js`.
+
+**Cache:** `similarPlayers:{league}:{playerId}:{season}` — 120s current season, 30 days past. Invalidated on each upsert cycle.
+
 ### 13 chat tools
 `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`,
 `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,

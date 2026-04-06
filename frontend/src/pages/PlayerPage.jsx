@@ -7,6 +7,7 @@ import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
+import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import slugify from "../utils/slugify.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
@@ -129,7 +130,7 @@ export default function PlayerPage() {
   const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo } = playerData;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
+    <div className="max-w-[1500px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
       <Link
         to={`/${league}`}
@@ -141,8 +142,10 @@ export default function PlayerPage() {
         <span>{league?.toUpperCase()}</span>
       </Link>
 
-      {/* Player header + info */}
-      <div className="flex flex-col md:flex-row gap-8 mb-12">
+      {/* Player header + info + sidebar */}
+      <div className="flex flex-col lg:flex-row gap-8 mb-12">
+        {/* Left: headshot + info card */}
+        <div className="flex flex-col md:flex-row flex-1 gap-8 min-w-0">
         {/* Headshot + name */}
         <div className="flex flex-col items-center md:items-start gap-4">
           <div className="flex items-center gap-3">
@@ -206,6 +209,12 @@ export default function PlayerPage() {
           <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
             <PlayerAvgCard league={league} averages={seasonAverages} season={selectedSeason || apiSeason} />
           </div>
+        </div>
+        </div>{/* end left: headshot + info card */}
+
+        {/* Similar Players sidebar */}
+        <div className="lg:w-72 xl:w-80 shrink-0 flex flex-col">
+          <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
         </div>
       </div>
 

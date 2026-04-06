@@ -45,6 +45,18 @@ jest.unstable_mockModule(
   }),
 );
 
+const mockComputeAllEmbeddings = jest.fn();
+jest.unstable_mockModule(
+  resolve(__dirname, "../../src/ingestion/computePlayerEmbeddings.js"),
+  () => ({
+    computeAllEmbeddings: mockComputeAllEmbeddings,
+    NFL_POSITION_GROUPS: {},
+    NHL_POSITION_GROUPS: {},
+    getNflGroup: jest.fn(),
+    getNhlGroup: jest.fn(),
+  }),
+);
+
 const { runUpsert, addOrdinal } = await import(
   resolve(__dirname, "../../src/ingestion/upsert.js")
 );
@@ -141,7 +153,7 @@ describe("runUpsert", () => {
   it("invalidates correct cache patterns for each league", async () => {
     await runUpsert(mockPool);
 
-    expect(mockInvalidatePattern).toHaveBeenCalledTimes(9);
+    expect(mockInvalidatePattern).toHaveBeenCalledTimes(10);
     for (const league of ["nba", "nfl", "nhl"]) {
       expect(mockInvalidatePattern).toHaveBeenCalledWith(`games:${league}:*`);
       expect(mockInvalidatePattern).toHaveBeenCalledWith(
@@ -151,6 +163,7 @@ describe("runUpsert", () => {
         `gameDates:${league}:*`,
       );
     }
+    expect(mockInvalidatePattern).toHaveBeenCalledWith("similarPlayers:*");
   });
 
   it("calls refreshPopularity once after all leagues", async () => {

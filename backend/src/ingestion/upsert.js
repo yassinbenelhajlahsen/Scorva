@@ -10,6 +10,7 @@ import {
   getPlayerCacheStats,
 } from "./eventProcessor.js";
 import { refreshPopularity } from "./refreshPopularity.js";
+import { computeAllEmbeddings } from "./computePlayerEmbeddings.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
@@ -50,6 +51,8 @@ export async function runUpsert(pool) {
     }
 
     await refreshPopularity(pool);
+    await computeAllEmbeddings(pool);
+    await invalidatePattern("similarPlayers:*");
 
     const stats = getPlayerCacheStats();
     log.info({ stats }, "run summary");

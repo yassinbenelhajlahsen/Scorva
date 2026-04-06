@@ -60,10 +60,11 @@ model players {
   league               String
   espn_playerid        Int?
   popularity           Int                    @default(0)
-  teams                teams?                 @relation(fields: [teamid], references: [id], onUpdate: NoAction)
-  stats                stats[]
-  user_favorite_players user_favorite_players[]
-  aliases              player_aliases[]
+  teams                    teams?                    @relation(fields: [teamid], references: [id], onUpdate: NoAction)
+  stats                    stats[]
+  user_favorite_players    user_favorite_players[]
+  aliases                  player_aliases[]
+  player_stat_embeddings   player_stat_embeddings[]
 
   @@unique([espn_playerid, league], map: "players_espnid_league_unique")
   @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_players_name_trgm", type: Gin)
@@ -181,6 +182,20 @@ model game_embeddings {
   embedding  Unsupported("vector(1536)")
   created_at DateTime @default(now()) @db.Timestamptz(6)
   games      games    @relation(fields: [game_id], references: [id], onDelete: Cascade)
+}
+
+model player_stat_embeddings {
+  id         Int      @id @default(autoincrement())
+  player_id  Int
+  league     String
+  season     String
+  embedding  Unsupported("vector(14)")
+  games_used Int      @default(0)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  players    players  @relation(fields: [player_id], references: [id], onDelete: Cascade)
+
+  @@unique([player_id, league, season])
+  @@index([league, season])
 }
 
 model player_aliases {
