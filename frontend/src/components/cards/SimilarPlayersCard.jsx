@@ -28,8 +28,7 @@ export default function SimilarPlayersCard({ league, slug, season }) {
       {show && (
         <m.div
           key="similar-players"
-          className="shrink-0 overflow-hidden flex flex-col"
-          style={{ width: "20rem" }}
+          className="w-full lg:w-80 lg:shrink-0 overflow-hidden flex flex-col"
           exit={{ opacity: 0, width: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
@@ -37,7 +36,7 @@ export default function SimilarPlayersCard({ league, slug, season }) {
             <h3 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary mb-3">
               Similar Players
             </h3>
-            <div className="flex flex-col flex-1 justify-between">
+            <div className="flex flex-col flex-1 justify-between gap-4 lg:gap-0">
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <SimilarPlayerSkeleton key={i} />
