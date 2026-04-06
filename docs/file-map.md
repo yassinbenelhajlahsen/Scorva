@@ -11,6 +11,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Routes                             | `backend/src/routes/`                                                                                  |
 | Controllers                        | `backend/src/controllers/`                                                                             |
 | Services                           | `backend/src/services/`                                                                                |
+| Game detail SQL query builder      | `backend/src/services/gameDetailQueryBuilder.js`                                                       |
 | Prisma schema                      | `backend/prisma/schema.prisma`                                                                         |
 | Generated client                   | `backend/src/generated/prisma/` (do not edit)                                                          |
 | Cache module                       | `backend/src/cache/cache.js`                                                                           |
@@ -26,6 +27,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Team colors backfill               | `backend/src/ingestion/scripts/backfillTeamColors.js`                                                  |
 | Alias seed data                    | `backend/prisma/seeds/player_aliases.json`                                                             |
 | Alias seed script                  | `backend/prisma/seeds/seedAliases.js`                                                                  |
+| ESPN API client (fetch + retry)    | `backend/src/ingestion/espnAPIClient.js`                                                               |
+| Player cache manager               | `backend/src/ingestion/playerCacheManager.js`                                                          |
 | Data ingestion helpers             | `backend/src/ingestion/` (flat — no `src/` subfolder)                                                  |
 | Frontend entry                     | `frontend/src/main.jsx`                                                                                |
 | Frontend router                    | `frontend/src/App.jsx`                                                                                 |
@@ -35,9 +38,11 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Settings context                   | `frontend/src/context/SettingsContext.jsx`                                                             |
 | Auth modal                         | `frontend/src/components/auth/AuthModal.jsx`                                                           |
 | Auth components                    | `frontend/src/components/auth/` (AuthModal, PasswordChecklist)                                         |
+| Game page sub-components           | `frontend/src/components/game/` (GameMatchupHeader, GameInfoCard, GameTabBar, OverviewTab, AnalysisTab, PlaysTab) |
 | OAuth callback page                | `frontend/src/pages/AuthCallback.jsx`                                                                  |
 | API wrappers                       | `frontend/src/api/`                                                                                    |
 | Data hooks                         | `frontend/src/hooks/{ai,data,live,user}/`                                                              |
+| Game page data hook                | `frontend/src/hooks/data/useGamePageData.js`                                                           |
 | Frontend utilities                 | `frontend/src/utils/`                                                                                  |
 | Favorites API                      | `frontend/src/api/favorites.js`                                                                        |
 | Favorites hooks                    | `frontend/src/hooks/user/useFavorites.js`, `frontend/src/hooks/user/useFavoriteToggle.js`              |
@@ -73,7 +78,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat route                         | `backend/src/routes/chat.js`                                                                           |
 | Chat controller                    | `backend/src/controllers/chatController.js`                                                            |
 | Chat agent (LLM loop)              | `backend/src/services/chat/agentService.js`                                                            |
-| Chat tools                         | `backend/src/services/chat/toolsService.js`                                                            |
+| Chat tool schemas (TOOL_DEFINITIONS) | `backend/src/services/chat/toolDefinitions.js`                                                       |
+| Chat tools (execution + dispatch)  | `backend/src/services/chat/toolsService.js`                                                            |
 | Chat tool services                 | `backend/src/services/chat/tools/`                                                                     |
 | Embedding service (RAG)            | `backend/src/services/embeddingService.js`                                                             |
 | Player similarity service          | `backend/src/services/similarPlayersService.js`                                                        |

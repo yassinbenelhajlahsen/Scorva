@@ -3,6 +3,18 @@
 ## Data flow
 ESPN API → PostgreSQL → Express backend → React frontend
 
+## Ingestion pipeline modules
+
+`eventProcessor.js` orchestrates a single ESPN event into Postgres and is the entry point for all other ingestion code. Its helpers are split across:
+
+| Module | Responsibility |
+|---|---|
+| `espnAPIClient.js` | `getSportPath`, `withRetry`, `getEventsByDate`, `getTodayEvents` — pure ESPN fetch utilities, no state |
+| `playerCacheManager.js` | Three-tier player cache (memory → DB → ESPN API), run statistics (`runStats`), `clearPlayerCache`, `getPlayerCacheStats` |
+| `eventProcessor.js` | `processEvent` (transaction + upserts), `runDateRangeProcessing`, `runTodayProcessing`, `runUpcomingProcessing` |
+
+`gameDetailService.js` delegates all SQL construction to `gameDetailQueryBuilder.js`, which holds `buildGameDetailSQL(league)` and the per-league stat column definitions. The three named exports (`getNbaGame`, `getNflGame`, `getNhlGame`) are preserved for backwards compatibility.
+
 ## Live sync worker (`ingestion/liveSync.js`)
 Two-tier update strategy:
 - **Fast path** every 15s: `upsertGameScoreboard` — scoreboard data only
@@ -310,4 +322,4 @@ All vectors are stored as `vector(14)` (NHL max); NBA and NFL are zero-padded. Q
 `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,
 `web_search`, `get_seasons`, `get_teams`, `semantic_search`
 
-Defined in `chat/toolsService.js`; individual tool logic in `services/chat/tools/`.
+OpenAI function schemas defined in `chat/toolDefinitions.js`; execution dispatch in `chat/toolsService.js`; individual tool logic in `services/chat/tools/`.
