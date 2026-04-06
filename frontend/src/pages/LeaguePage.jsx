@@ -21,6 +21,7 @@ export default function LeaguePage() {
     searchParams.get("season") || null,
   );
   const [selectedDate, setSelectedDate] = useState(null);
+  const [animateCards, setAnimateCards] = useState(false);
   const tabs = ["games", "standings"];
   const [activeTab, setActiveTab] = useState("games");
   const [tabDirection, setTabDirection] = useState(1);
@@ -63,8 +64,14 @@ export default function LeaguePage() {
     }
   }, [resolvedSeason]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function handleDateChange(date) {
+    setAnimateCards(true);
+    setSelectedDate(date);
+  }
+
   // Reset date selection when user switches seasons
   function handleSeasonChange(season) {
+    setAnimateCards(false);
     setSelectedSeason(season);
     setSelectedDate(null);
   }
@@ -179,7 +186,7 @@ export default function LeaguePage() {
                 <>
                   <DateNavigation
                     selectedDate={selectedDate}
-                    onDateChange={setSelectedDate}
+                    onDateChange={handleDateChange}
                     gameDates={gameDates}
                     gameCounts={gameCounts}
                     loading={datesLoading}
@@ -214,7 +221,7 @@ export default function LeaguePage() {
                         key={selectedDate}
                         className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
                         variants={containerVariants}
-                        initial="hidden"
+                        initial={animateCards ? "hidden" : false}
                         animate="visible"
                         exit={{ opacity: 0, transition: { duration: 0.12 } }}
                       >
