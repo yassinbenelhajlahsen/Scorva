@@ -96,7 +96,7 @@ function GameCard({ game }) {
           </div>
 
           {/* Center */}
-          <div className="flex flex-col items-center justify-center flex-shrink-0 gap-0.5 h-full overflow-hidden">
+          <div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full overflow-hidden">
             <span className="text-xs text-text-tertiary">
               {!isFinal && !inProgress && game.start_time
                 ? formatDateShortWithTime(game.date, game.start_time)

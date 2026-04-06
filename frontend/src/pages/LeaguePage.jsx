@@ -44,7 +44,7 @@ export default function LeaguePage() {
     setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);
     setActiveTab(tab);
   }
-  const { games, standings, loading, gamesLoading, error, displayData, retry, resolvedDate, resolvedSeason } =
+  const { games, standings, loading, error, displayData, retry, resolvedDate, resolvedSeason } =
     useLeagueData(league, selectedSeason, selectedDate);
   const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
 
