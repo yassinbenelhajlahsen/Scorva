@@ -204,7 +204,7 @@ function computeZScore(rows, dims) {
   });
 }
 
-async function computeLeagueEmbeddings(pool, league, season) {
+export async function computeLeagueEmbeddings(pool, league, season) {
   const config = LEAGUE_CONFIGS[league];
   const { rows } = await pool.query(config.statQuery, [season, config.minGames]);
 
