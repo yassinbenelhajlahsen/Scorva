@@ -216,15 +216,14 @@ export default function GamePage() {
       <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 mb-10">
         {/* Home Team */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
-          <img
-            src={homeTeam.info.logoUrl || "/backupTeamLogo.webp"}
-            alt={`${homeTeam.info.name} logo`}
-            className="w-20 h-20 sm:w-28 sm:h-28 object-contain"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "/backupTeamLogo.webp";
-            }}
-          />
+          {homeTeam.info.logoUrl && (
+            <img
+              src={homeTeam.info.logoUrl}
+              alt={`${homeTeam.info.name} logo`}
+              className="w-20 h-20 sm:w-28 sm:h-28 object-contain"
+              onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+            />
+          )}
           <div className="text-center sm:text-left">
             <Link
               to={`/${league}/teams/${slugify(homeTeam.info.name)}`}
@@ -322,15 +321,14 @@ export default function GamePage() {
               </AnimatePresence>
             )}
           </div>
-          <img
-            src={awayTeam.info.logoUrl || "/backupTeamLogo.webp"}
-            alt={`${awayTeam.info.name} logo`}
-            className="w-20 h-20 sm:w-28 sm:h-28 object-contain order-1 sm:order-2"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "/backupTeamLogo.webp";
-            }}
-          />
+          {awayTeam.info.logoUrl && (
+            <img
+              src={awayTeam.info.logoUrl}
+              alt={`${awayTeam.info.name} logo`}
+              className="w-20 h-20 sm:w-28 sm:h-28 object-contain order-1 sm:order-2"
+              onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+            />
+          )}
         </div>
       </div>
 

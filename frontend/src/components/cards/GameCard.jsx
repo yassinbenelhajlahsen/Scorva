@@ -1,8 +1,18 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { formatDateShort, formatDateShortWithTime, getPeriodLabel } from "../../utils/formatDate";
 import { scoreUpdateVariants } from "../../utils/motion.js";
+
+function useScoreAnimKey(score) {
+  const prev = useRef(undefined);
+  const key = useRef(0);
+  if (prev.current !== undefined && prev.current !== score) {
+    key.current++;
+  }
+  prev.current = score;
+  return key.current;
+}
 
 function GameCard({ game }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -21,6 +31,10 @@ function GameCard({ game }) {
     game.status.includes("End of Period");
   const homeWon = isFinal && game.hometeamid === game.winnerid;
   const awayWon = isFinal && game.awayteamid === game.winnerid;
+  const homeAnimKey = useScoreAnimKey(game.homescore);
+  const awayAnimKey = useScoreAnimKey(game.awayscore);
+  const clockAnimKey = useScoreAnimKey(`${game.current_period}-${game.clock}`);
+
   const league = game.league;
   if (!league) return null;
 
@@ -53,31 +67,32 @@ function GameCard({ game }) {
         <div className="flex items-center justify-between gap-4 h-[120px]">
           {/* Home */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
-            <img
-              loading="lazy"
-              src={game.home_logo || "/backupTeamLogo.webp"}
-              alt={`${game.home_team_name} logo`}
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/backupTeamLogo.webp";
-              }}
-            />
+            {game.home_logo && (
+              <img
+                loading="lazy"
+                src={game.home_logo}
+                alt={`${game.home_team_name} logo`}
+                className="w-12 h-12 object-contain"
+                onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+              />
+            )}
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
               {game.home_shortname}
             </div>
-            <AnimatePresence mode="wait">
-              <m.div
-                key={game.homescore}
-                variants={scoreUpdateVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className={`text-lg font-bold min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}
-              >
-                {game.homescore}
-              </m.div>
-            </AnimatePresence>
+            {(isFinal || inProgress) && (
+              <AnimatePresence mode="wait">
+                <m.div
+                  key={homeAnimKey}
+                  variants={scoreUpdateVariants}
+                  initial={homeAnimKey === 0 ? false : "initial"}
+                  animate="animate"
+                  exit="exit"
+                  className={`text-lg font-bold min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}
+                >
+                  {game.homescore}
+                </m.div>
+              </AnimatePresence>
+            )}
           </div>
 
           {/* Center */}
@@ -100,9 +115,9 @@ function GameCard({ game }) {
                 {game.clock && (
                   <AnimatePresence mode="wait">
                     <m.span
-                      key={`${game.current_period}-${game.clock}`}
+                      key={clockAnimKey}
                       variants={scoreUpdateVariants}
-                      initial="initial"
+                      initial={clockAnimKey === 0 ? false : "initial"}
                       animate="animate"
                       exit="exit"
                       className="text-[10px] text-live/70 font-medium mt-0.5"
@@ -129,31 +144,32 @@ function GameCard({ game }) {
 
           {/* Away */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
-            <img
-              loading="lazy"
-              src={game.away_logo || "/backupTeamLogo.webp"}
-              alt={`${game.away_team_name} logo`}
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/backupTeamLogo.webp";
-              }}
-            />
+            {game.away_logo && (
+              <img
+                loading="lazy"
+                src={game.away_logo}
+                alt={`${game.away_team_name} logo`}
+                className="w-12 h-12 object-contain"
+                onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+              />
+            )}
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
               {game.away_shortname}
             </div>
-            <AnimatePresence mode="wait">
-              <m.div
-                key={game.awayscore}
-                variants={scoreUpdateVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className={`text-lg font-bold min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}
-              >
-                {game.awayscore}
-              </m.div>
-            </AnimatePresence>
+            {(isFinal || inProgress) && (
+              <AnimatePresence mode="wait">
+                <m.div
+                  key={awayAnimKey}
+                  variants={scoreUpdateVariants}
+                  initial={awayAnimKey === 0 ? false : "initial"}
+                  animate="animate"
+                  exit="exit"
+                  className={`text-lg font-bold min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}
+                >
+                  {game.awayscore}
+                </m.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
 

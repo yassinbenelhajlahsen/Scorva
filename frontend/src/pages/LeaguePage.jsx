@@ -185,9 +185,15 @@ export default function LeaguePage() {
                     loading={datesLoading}
                     isCurrentSeason={!selectedSeason}
                   />
-                  <div style={{ opacity: (loading || gamesLoading) ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
+                  <AnimatePresence mode="wait">
                     {games.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
+                      <m.div
+                        key={`empty-${selectedDate}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1, transition: { duration: 0.2 } }}
+                        exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                        className="flex flex-col items-center justify-center py-20 text-text-tertiary"
+                      >
                         <svg
                           className="w-10 h-10 mb-4 opacity-40"
                           fill="none"
@@ -202,7 +208,7 @@ export default function LeaguePage() {
                           />
                         </svg>
                         <p className="text-sm">No games scheduled for this date.</p>
-                      </div>
+                      </m.div>
                     ) : (
                       <m.div
                         key={selectedDate}
@@ -210,6 +216,7 @@ export default function LeaguePage() {
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
+                        exit={{ opacity: 0, transition: { duration: 0.12 } }}
                       >
                         {games.map((game) => (
                           <m.div
@@ -222,7 +229,7 @@ export default function LeaguePage() {
                         ))}
                       </m.div>
                     )}
-                  </div>
+                  </AnimatePresence>
                 </>
               ) : (
                 <div

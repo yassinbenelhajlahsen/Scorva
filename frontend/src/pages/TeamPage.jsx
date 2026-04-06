@@ -99,12 +99,14 @@ export default function TeamPage() {
               </button>
             )}
           </div>
-          <img
-            src={team.logo_url || "/backupTeamLogo.webp"}
-            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/backupTeamLogo.webp"; }}
-            alt={team.name}
-            className="w-44 h-44 object-contain"
-          />
+          {team.logo_url && (
+            <img
+              src={team.logo_url}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = "none"; }}
+              alt={team.name}
+              className="w-44 h-44 object-contain"
+            />
+          )}
         </div>
 
         {/* Stats card */}
