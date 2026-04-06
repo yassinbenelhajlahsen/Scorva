@@ -369,7 +369,7 @@ export default function GamePage() {
       {/* Tab bar */}
       <LayoutGroup>
         <div className="relative flex border-b border-white/[0.06] mb-6">
-          {GAME_TABS.map((tab) => {
+          {GAME_TABS.filter((tab) => !isPreGame || tab.id === "overview").map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
