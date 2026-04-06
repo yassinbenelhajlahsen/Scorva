@@ -158,7 +158,7 @@ function GameCard({ game }) {
         </div>
 
         {/* Quarter breakdown — NHL */}
-        {nhl && (
+        {(isFinal || inProgress) && nhl && (
           <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
           <ul
             className="mt-3 text-sm text-text-secondary font-mono space-y-1 border-t border-white/[0.06] pt-3"
