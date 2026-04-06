@@ -1,6 +1,5 @@
 import axios from "axios";
 import mapStatsToSchema from "./mapStatsToSchema.js";
-
 import upsertTeam from "./upsertTeam.js";
 import upsertPlayer from "./upsertPlayer.js";
 import upsertStat from "./upsertStat.js";
@@ -9,109 +8,32 @@ import upsertPlays from "./upsertPlays.js";
 import { espnImage } from "./espnImage.js";
 import { DateTime } from "luxon";
 import logger from "../logger.js";
+import {
+  getSportPath,
+  withRetry,
+  getEventsByDate,
+  getTodayEvents,
+} from "./espnAPIClient.js";
+import {
+  runStats,
+  clearPlayerCache,
+  getPlayerCacheStats,
+  fetchPlayerDetails,
+  getCachedPlayerDetails,
+  incrementSkippedFinal,
+} from "./playerCacheManager.js";
 
 const log = logger.child({ worker: "eventProcessor" });
 
-// ============================================================================
-// OPTIMIZATION 1: In-memory cache for player details
-// ============================================================================
-// Keyed by `${leagueSlug}:${espnId}` to avoid cross-league collisions.
-// Cleared at the end of each run via clearPlayerCache().
-// This prevents duplicate ESPN API calls for the same player within a single run.
-const playerDetailsCache = new Map();
+// Re-export for backwards compatibility with existing consumers
+export { getSportPath, getEventsByDate, getTodayEvents, fetchPlayerDetails, clearPlayerCache, getPlayerCacheStats };
 
-// ============================================================================
-// OPTIMIZATION 2: Track skipped FINAL games for logging
-// ============================================================================
-let skippedFinalGamesCount = 0;
 
-// ============================================================================
-// OPTIMIZATION 3: Minimum stat rows per league to consider a game complete
-// ============================================================================
-// One DB row per player. These are safe floors that catch partial-ingest cases
-// (e.g. only 2 players written due to a mid-fetch API error).
 const MIN_STAT_ROWS = {
   nba: 12, // 8–13 active per team → 16–26 rows expected
   nhl: 20, // 18–20 skaters + goalies per team → 36–40 rows expected
   nfl: 10, // only skill positions + DBs → 15–40 rows expected
 };
-
-// ============================================================================
-// LOGGING: Track statistics for the current run
-// ============================================================================
-let runStats = {
-  espnApiCalls: 0,
-  cacheHits: 0,
-  dbHits: 0,
-  playersUpserted: 0,
-  statsUpserted: 0,
-  gamesProcessed: 0,
-};
-
-/**
- * Retry wrapper for ESPN API calls.
- * On 429 responses, backs off harder (15s × attempt) to respect rate limits.
- * On other errors, uses exponential backoff (baseDelayMs × 2^(attempt-1)).
- */
-async function withRetry(fn, { retries = 3, baseDelayMs = process.env.NODE_ENV === "test" ? 0 : 1500, label = "" } = {}) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (attempt === retries) throw err;
-      const is429 = err?.response?.status === 429;
-      const delay = is429
-        ? 15000 * attempt
-        : baseDelayMs * 2 ** (attempt - 1);
-      log.warn(
-        { label, attempt, delayMs: delay, status: err?.response?.status },
-        "retrying ESPN fetch",
-      );
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-}
-
-/**
- * Clear the in-memory player cache.
- * Call this at the end of each hourly/historical run to free memory.
- */
-export function clearPlayerCache() {
-  playerDetailsCache.clear();
-  skippedFinalGamesCount = 0;
-  runStats = {
-    espnApiCalls: 0,
-    cacheHits: 0,
-    dbHits: 0,
-    playersUpserted: 0,
-    statsUpserted: 0,
-    gamesProcessed: 0,
-  };
-}
-
-/**
- * Get cache statistics for logging/debugging.
- */
-export function getPlayerCacheStats() {
-  return {
-    size: playerDetailsCache.size,
-    skippedFinalGames: skippedFinalGamesCount,
-    ...runStats,
-  };
-}
-
-export function getSportPath(leagueSlug) {
-  switch (leagueSlug.toLowerCase()) {
-    case "nba":
-      return "basketball";
-    case "nfl":
-      return "football";
-    case "nhl":
-      return "hockey";
-    default:
-      throw new Error(`Unsupported league: ${leagueSlug}`);
-  }
-}
 
 function isSpecialEventGame(event, homeComp, awayComp) {
   const metadataText = [
@@ -138,195 +60,37 @@ function isSpecialEventGame(event, homeComp, awayComp) {
   );
 }
 
-// ============================================================================
-// OPTIMIZATION 1 (cont.): Check DB for existing player with complete details
-// ============================================================================
-/**
- * Check if a player already exists in the database with non-null core fields.
- * Returns the player details formatted like ESPN response, or null if not found/incomplete.
- */
-async function getExistingPlayerFromDB(client, espnId, leagueSlug) {
-  const query = `
-    SELECT 
-      espn_playerid as id,
-      name,
-      position,
-      height,
-      weight,
-      image_url,
-      jerseynum,
-      dob,
-      draftinfo
-    FROM players
-    WHERE espn_playerid = $1 AND league = $2
-      AND name IS NOT NULL
-      AND position IS NOT NULL
-      AND height IS NOT NULL
-      AND weight IS NOT NULL
-      AND image_url IS NOT NULL
-  `;
-  const result = await client.query(query, [espnId, leagueSlug]);
-  if (result.rows.length === 0) {
-    return null;
-  }
-  const row = result.rows[0];
-  // Return in a format compatible with ESPN athlete response
-  return {
-    id: row.id,
-    displayName: row.name,
-    position: { abbreviation: row.position },
-    displayHeight: row.height,
-    displayWeight: row.weight,
-    headshot: { href: row.image_url },
-    jersey: row.jerseynum,
-    displayDOB: row.dob,
-    displayDraft: row.draftinfo,
-    _fromDB: true, // marker to indicate this came from DB
-  };
-}
-
-// ============================================================================
-// OPTIMIZATION 2: Check if game is already FINAL in database
-// ============================================================================
 /**
  * Check if a game already exists with FINAL status.
  * Returns { exists: boolean, isFinal: boolean, gameId: number | null }
  */
-async function getExistingGameStatus(
-  client,
-  homeTeamId,
-  awayTeamId,
-  date,
-  league,
-) {
+async function getExistingGameStatus(client, homeTeamId, awayTeamId, date, league) {
   const query = `
     SELECT id, status
     FROM games
-    WHERE hometeamid = $1 
-      AND awayteamid = $2 
-      AND date = $3 
+    WHERE hometeamid = $1
+      AND awayteamid = $2
+      AND date = $3
       AND league = $4
   `;
-  const result = await client.query(query, [
-    homeTeamId,
-    awayTeamId,
-    date,
-    league,
-  ]);
+  const result = await client.query(query, [homeTeamId, awayTeamId, date, league]);
   if (result.rows.length === 0) {
     return { exists: false, isFinal: false, gameId: null };
   }
   const row = result.rows[0];
-  return {
-    exists: true,
-    isFinal: row.status === "Final",
-    gameId: row.id,
-  };
+  return { exists: true, isFinal: row.status === "Final", gameId: row.id };
 }
 
 /**
- * 3) Utility: fetch detailed player info from ESPN API
- */
-export async function fetchPlayerDetails(espnId, leagueSlug) {
-  const path = getSportPath(leagueSlug);
-  const url = `https://site.web.api.espn.com/apis/common/v3/sports/${path}/${leagueSlug}/athletes/${espnId}`;
-  runStats.espnApiCalls++;
-  try {
-    const resp = await axios.get(url);
-    return resp.data.athlete || null;
-  } catch (err) {
-    // If ESPN returns 404 or similar, skip details
-    log.warn({ err, espnId }, "Could not fetch athlete from ESPN");
-    return null;
-  }
-}
-
-// ============================================================================
-// OPTIMIZATION 1 (cont.): Cached player fetch with DB fallback
-// ============================================================================
-/**
- * Get player details with caching strategy:
- * 1. Check in-memory cache first (fastest)
- * 2. Check database for existing player with complete details
- * 3. Only call ESPN API if both cache and DB miss
+ * processEvent: upsert one ESPN event into Postgres.
  *
- * This eliminates redundant ESPN calls within a run and across hourly runs.
- */
-async function getCachedPlayerDetails(client, espnId, leagueSlug) {
-  const cacheKey = `${leagueSlug}:${espnId}`;
-
-  // Step 1: Check in-memory cache (same-run deduplication)
-  if (playerDetailsCache.has(cacheKey)) {
-    runStats.cacheHits++;
-    return playerDetailsCache.get(cacheKey);
-  }
-
-  // Step 2: Check database for existing player with complete details
-  // This prevents re-fetching players that were imported in previous runs
-  const dbPlayer = await getExistingPlayerFromDB(client, espnId, leagueSlug);
-  if (dbPlayer) {
-    runStats.dbHits++;
-    // Store in cache for potential re-use within this run
-    playerDetailsCache.set(cacheKey, dbPlayer);
-    return dbPlayer;
-  }
-
-  // Step 3: Cache miss - fetch from ESPN API
-  const espnPlayer = await fetchPlayerDetails(espnId, leagueSlug).catch(
-    () => null,
-  );
-
-  // Store result in cache (even if null, to avoid repeated failed requests)
-  playerDetailsCache.set(cacheKey, espnPlayer);
-
-  return espnPlayer;
-}
-
-/**
- * 4a) Fetch all events for a specific date (YYYYMMDD) and league
- *     → Returns an array of ESPN "event" objects
- */
-export async function getEventsByDate(dateString, leagueSlug) {
-  const path = getSportPath(leagueSlug);
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/${leagueSlug}/scoreboard?dates=${dateString}`;
-  try {
-    const resp = await withRetry(() => axios.get(url), {
-      label: `scoreboard:${leagueSlug}:${dateString}`,
-    });
-    return resp.data.events || [];
-  } catch (err) {
-    log.error({ err, date: dateString, league: leagueSlug }, "error fetching events by date");
-    return [];
-  }
-}
-
-/**
- * 4b) Fetch "today’s" events (live + scheduled) for a league
- *     → No ?dates parameter means "today"
- */
-export async function getTodayEvents(leagueSlug) {
-  const path = getSportPath(leagueSlug);
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/${leagueSlug}/scoreboard`;
-  try {
-    const resp = await axios.get(url);
-    return resp.data.events || [];
-  } catch (err) {
-    log.error({ err, league: leagueSlug }, "error fetching today’s events");
-    return [];
-  }
-}
-
-/**
- * 5) processEvent: do everything necessary to upsert one event into Postgres.
+ * - Upserts home + away teams
+ * - Constructs a game payload, upserts that
+ * - Fetches the boxscore summary, then upserts each player + stats
  *
- *    5a) Upsert home + away teams
- *    5b) Construct a game payload, upsert that
- *    5c) Fetch the boxscore summary, then upsert each player + stats
- *
- *    Returns the game’s internal PK (from upsertGameCore).
+ * Returns the game's internal PK.
  */
 export async function processEvent(client, leagueSlug, event) {
-  // 5a) Ensure event.id is a number
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
     log.warn({ eventId: event.id }, "invalid event.id, skipping");
@@ -343,6 +107,7 @@ export async function processEvent(client, leagueSlug, event) {
   const startTime = minute === 0
     ? `${hour}${ampm} ET`
     : `${hour}:${String(minute).padStart(2, "0")}${ampm} ET`;
+
   const comps = event.competitions?.[0]?.competitors || [];
   const homeComp = comps.find((c) => c.homeAway === "home");
   const awayComp = comps.find((c) => c.homeAway === "away");
@@ -353,8 +118,6 @@ export async function processEvent(client, leagueSlug, event) {
 
   const preserveExistingTeam = isSpecialEventGame(event, homeComp, awayComp);
 
-
-  // BEGIN a transaction
   await client.query("BEGIN");
   await client.query("SET LOCAL statement_timeout = 0");
 
@@ -364,10 +127,8 @@ export async function processEvent(client, leagueSlug, event) {
     location: homeComp.team.location,
     logo_url: espnImage(homeComp.team.logo, 200, 200),
     record: homeComp.records?.[0]?.summary || "0-0",
-    homerecord:
-      homeComp.records?.find((r) => r.type === "home")?.summary || "0-0",
-    awayrecord:
-      homeComp.records?.find((r) => r.type === "road")?.summary || "0-0",
+    homerecord: homeComp.records?.find((r) => r.type === "home")?.summary || "0-0",
+    awayrecord: homeComp.records?.find((r) => r.type === "road")?.summary || "0-0",
     primary_color: homeComp.team.color ? `#${homeComp.team.color}` : null,
   };
 
@@ -377,41 +138,19 @@ export async function processEvent(client, leagueSlug, event) {
     location: awayComp.team.location,
     logo_url: espnImage(awayComp.team.logo, 200, 200),
     record: awayComp.records?.[0]?.summary || "0-0",
-    homerecord:
-      awayComp.records?.find((r) => r.type === "home")?.summary || "0-0",
-    awayrecord:
-      awayComp.records?.find((r) => r.type === "road")?.summary || "0-0",
+    homerecord: awayComp.records?.find((r) => r.type === "home")?.summary || "0-0",
+    awayrecord: awayComp.records?.find((r) => r.type === "road")?.summary || "0-0",
     primary_color: awayComp.team.color ? `#${awayComp.team.color}` : null,
   };
 
   try {
-    // ── Upsert HOME team ──
-    const homeTeamId = await upsertTeam(
-      client,
-      parseInt(homeComp.team.id, 10),
-      leagueSlug,
-      homeTeamData,
-    );
+    const homeTeamId = await upsertTeam(client, parseInt(homeComp.team.id, 10), leagueSlug, homeTeamData);
+    const awayTeamId = await upsertTeam(client, parseInt(awayComp.team.id, 10), leagueSlug, awayTeamData);
 
-    // ── Upsert AWAY team ──
-    const awayTeamId = await upsertTeam(
-      client,
-      parseInt(awayComp.team.id, 10),
-      leagueSlug,
-      awayTeamData,
-    );
+    const homeScore = homeComp.score !== undefined ? parseInt(homeComp.score, 10) : null;
+    const awayScore = awayComp.score !== undefined ? parseInt(awayComp.score, 10) : null;
 
-    // 5.4.5) Extract scores (if present)
-    const homeScore =
-      homeComp.score !== undefined ? parseInt(homeComp.score, 10) : null;
-    const awayScore =
-      awayComp.score !== undefined ? parseInt(awayComp.score, 10) : null;
-
-    // 5.4.6) Venue & broadcast
-    const venue = event.competitions[0].venue
-      ? event.competitions[0].venue.fullName
-      : null;
-
+    const venue = event.competitions[0].venue ? event.competitions[0].venue.fullName : null;
     let broadcast = null;
     if (event.competitions[0].broadcast) {
       broadcast = event.competitions[0].broadcast;
@@ -419,124 +158,78 @@ export async function processEvent(client, leagueSlug, event) {
       broadcast = event.broadcasts.map((b) => b.names.join("/")).join(", ");
     }
 
-    // 5.4.7) Status (SCHEDULED, IN, FINAL, etc.)
-    const status =
-      event.status && event.status.type ? event.status.type.description : null;
+    const status = event.status && event.status.type ? event.status.type.description : null;
     const currentPeriod = event.status?.period ?? null;
     const clock = event.status?.displayClock ?? null;
 
-    // 5.4.8) Build quarter/period scores (if available)
+    // Build quarter/period scores
     const periodsMap = {};
     for (const teamComp of comps) {
       if (!teamComp.linescores) continue;
       const sideKey = teamComp.homeAway === "home" ? "home" : "away";
       for (const ls of teamComp.linescores) {
         const p = ls.period.toString();
-        if (!periodsMap[p]) {
-          periodsMap[p] = { home: null, away: null };
-        }
+        if (!periodsMap[p]) periodsMap[p] = { home: null, away: null };
         periodsMap[p][sideKey] = ls.value;
       }
     }
 
-    const quarterStrings = {
-      first: null,
-      second: null,
-      third: null,
-      fourth: null,
-      ot1: null,
-      ot2: null,
-      ot3: null,
-      ot4: null,
-    };
+    const quarterStrings = { first: null, second: null, third: null, fourth: null, ot1: null, ot2: null, ot3: null, ot4: null };
     Object.entries(periodsMap).forEach(([p, scores]) => {
       const h = scores.home !== null ? scores.home : "-";
       const a = scores.away !== null ? scores.away : "-";
       const str = `${h}-${a}`;
       switch (p) {
-        case "1":
-          quarterStrings.first = str;
-          break;
-        case "2":
-          quarterStrings.second = str;
-          break;
-        case "3":
-          quarterStrings.third = str;
-          break;
-        case "4":
-          quarterStrings.fourth = str;
-          break;
-        case "5":
-          quarterStrings.ot1 = str;
-          break;
-        case "6":
-          quarterStrings.ot2 = str;
-          break;
-        case "7":
-          quarterStrings.ot3 = str;
-          break;
-        case "8":
-          quarterStrings.ot4 = str;
-          break;
-        default:
-          break;
+        case "1": quarterStrings.first = str; break;
+        case "2": quarterStrings.second = str; break;
+        case "3": quarterStrings.third = str; break;
+        case "4": quarterStrings.fourth = str; break;
+        case "5": quarterStrings.ot1 = str; break;
+        case "6": quarterStrings.ot2 = str; break;
+        case "7": quarterStrings.ot3 = str; break;
+        case "8": quarterStrings.ot4 = str; break;
+        default: break;
       }
     });
 
-    let endYear;
-    let startYear;
-    let endTwoDigits;
-    let seasonText;
-
+    // Season text: NBA/NHL span calendar years (2023-24), NFL uses start year
+    let startYear, endYear, seasonText;
     if (leagueSlug !== "nfl") {
-      // For most sports (NBA, NHL, etc.) - season spans calendar years (2023-24)
-      endYear = event.season.year; // e.g., 2024
-      startYear = endYear - 1; // e.g., 2023
-      endTwoDigits = String(endYear).slice(-2); // "24"
-      seasonText = `${startYear}-${endTwoDigits}`; // "2023-24"
+      endYear = event.season.year;
+      startYear = endYear - 1;
+      seasonText = `${startYear}-${String(endYear).slice(-2)}`;
     } else {
-      // For NFL - season spans single calendar year (2023)
-      // Or if you want to show as 2023-24 season (starts 2023, ends 2024)
-      startYear = event.season.year; // e.g., 2023
-      endYear = startYear + 1; // e.g., 2024
-      endTwoDigits = String(endYear).slice(-2); // "24"
-      seasonText = `${startYear}-${endTwoDigits}`; // "2023-24"
+      startYear = event.season.year;
+      endYear = startYear + 1;
+      seasonText = `${startYear}-${String(endYear).slice(-2)}`;
     }
 
-    // 5.4.9) Game label from ESPN notes
-    // type 1 = preseason, type 2 = regular season (null unless tournament e.g. 'NBA Cup Championship'), type 3 = playoffs
+    // Game label from ESPN notes (type 1 = preseason, type 3 = playoffs)
     const gameLabel =
       event.season?.type === 1
-        ? 'Preseason'
+        ? "Preseason"
         : (event.competitions?.[0]?.notes?.[0]?.headline || null);
 
-    // 5.4.9b) Derive structured game type
+    // Derive structured game type
     let gameType;
     if (preserveExistingTeam) {
-      // isSpecialEventGame() detected All-Star, Pro Bowl, skills events, etc.
-      gameType = 'other';
+      gameType = "other";
     } else if (event.season?.type === 1) {
-      gameType = 'preseason';
+      gameType = "preseason";
     } else if (event.season?.type === 3) {
-      const headline = (gameLabel || '').toLowerCase();
-      if (headline.includes('nba finals') || headline.includes('stanley cup') || headline.includes('super bowl')) {
-        gameType = 'final';
-      } else if (headline.includes('makeup')) {
-        gameType = 'makeup';
+      const headline = (gameLabel || "").toLowerCase();
+      if (headline.includes("nba finals") || headline.includes("stanley cup") || headline.includes("super bowl")) {
+        gameType = "final";
+      } else if (headline.includes("makeup")) {
+        gameType = "makeup";
       } else {
-        gameType = 'playoff';
+        gameType = "playoff";
       }
     } else {
-      // season.type === 2 (regular) or unknown
-      const headline = (gameLabel || '').toLowerCase();
-      if (headline.includes('makeup')) {
-        gameType = 'makeup';
-      } else {
-        gameType = 'regular';
-      }
+      const headline = (gameLabel || "").toLowerCase();
+      gameType = headline.includes("makeup") ? "makeup" : "regular";
     }
 
-    // 5.4.10) Upsert into games
     const gamePayload = {
       eventid: espnEventId,
       date: localDate,
@@ -556,30 +249,11 @@ export async function processEvent(client, leagueSlug, event) {
       gameType,
     };
 
-    // ========================================================================
-    // OPTIMIZATION 2: Skip finished games
-    // ========================================================================
-    // Check if this game already exists in the DB with FINAL status.
-    // If so, skip boxscore fetch and player/stat upserts since data is immutable.
-    // This allows: initial insert of final games, and status transitions (IN → FINAL).
-    const existingGame = await getExistingGameStatus(
-      client,
-      homeTeamId,
-      awayTeamId,
-      localDate,
-      leagueSlug,
-    );
 
-    // Always upsert the game first to capture metadata updates (broadcast, status, etc.)
+    const existingGame = await getExistingGameStatus(client, homeTeamId, awayTeamId, localDate, leagueSlug);
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
     runStats.gamesProcessed++;
 
-    // ========================================================================
-    // OPTIMIZATION 2: Skip finished games (boxscore/player/stat processing only)
-    // ========================================================================
-    // If the game was already FINAL in DB, skip expensive boxscore fetch and
-    // player/stat upserts since that data is immutable once the game ends.
-    // We still ran upsertGame above to capture any metadata changes.
     if (existingGame.exists && existingGame.isFinal) {
       const { rows } = await client.query(
         "SELECT COUNT(*) AS cnt FROM stats WHERE gameid = $1",
@@ -588,7 +262,7 @@ export async function processEvent(client, leagueSlug, event) {
       const statCount = parseInt(rows[0].cnt, 10);
       const minRows = MIN_STAT_ROWS[leagueSlug] ?? 10;
       if (statCount >= minRows) {
-        skippedFinalGamesCount++;
+        incrementSkippedFinal();
         await client.query("COMMIT");
         return gameId;
       }
@@ -599,11 +273,8 @@ export async function processEvent(client, leagueSlug, event) {
       // fall through to boxscore fetch
     }
 
-    // Game is new OR not final yet - proceed with boxscore/player/stat processing
-    const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(
-      leagueSlug,
-    )}/${leagueSlug}/summary?event=${espnEventId}`;
-
+    // Fetch boxscore
+    const boxscoreUrl = `https://site.api.espn.com/apis/site/v2/sports/${getSportPath(leagueSlug)}/${leagueSlug}/summary?event=${espnEventId}`;
     let statsResp;
     try {
       statsResp = await withRetry(() => axios.get(boxscoreUrl), {
@@ -632,18 +303,12 @@ export async function processEvent(client, leagueSlug, event) {
 
     try {
       for (const group of playerGroups) {
-        // figure out if this group is HOME or AWAY
         const espnGroupTeamId = String(group.team.id);
-        const teamIdForPlayer =
-          espnGroupTeamId === String(homeComp.team.id)
-            ? homeTeamId
-            : awayTeamId;
-
+        const teamIdForPlayer = espnGroupTeamId === String(homeComp.team.id) ? homeTeamId : awayTeamId;
         const statCategories = group.statistics || [];
 
         for (const cat of statCategories) {
           let statNames;
-
           if (leagueSlug === "nfl") {
             statNames = Array.isArray(cat.keys)
               ? cat.labels
@@ -651,73 +316,44 @@ export async function processEvent(client, leagueSlug, event) {
                 ? cat.descriptions
                 : cat.names || [];
           } else {
-            if (Array.isArray(cat.keys)) {
-              statNames = cat.keys;
-            } else if (Array.isArray(cat.descriptions)) {
-              statNames = cat.descriptions;
-            } else {
-              statNames = cat.names || [];
-            }
+            statNames = Array.isArray(cat.keys)
+              ? cat.keys
+              : Array.isArray(cat.descriptions)
+                ? cat.descriptions
+                : cat.names || [];
           }
 
-          const athletes = cat.athletes || [];
-          for (const athleteEntry of athletes) {
-            if (athleteEntry.didNotPlay) continue; // skip DNP
+          for (const athleteEntry of cat.athletes || []) {
+            if (athleteEntry.didNotPlay) continue;
             const espnId = athleteEntry.athlete?.id;
             if (!espnId) continue;
 
-            // ================================================================
-            // OPTIMIZATION 1: Use cached player fetch
-            // ================================================================
-            // getCachedPlayerDetails checks:
-            // 1. In-memory cache (same-run deduplication)
-            // 2. Database (cross-run persistence)
-            // 3. ESPN API only if both miss
-            const detailedAthlete = await getCachedPlayerDetails(
-              client,
-              espnId,
-              leagueSlug,
-            );
+            const detailedAthlete = await getCachedPlayerDetails(client, espnId, leagueSlug);
             const fallbackName = athleteEntry.athlete.displayName || "Unknown";
             const playerObj = {
               id: detailedAthlete?.id || espnId,
               name: detailedAthlete?.displayName || fallbackName,
-              position:
-                detailedAthlete?.position?.abbreviation ||
-                athleteEntry.athlete.position?.abbreviation ||
-                null,
+              position: detailedAthlete?.position?.abbreviation || athleteEntry.athlete.position?.abbreviation || null,
               height: detailedAthlete?.displayHeight || "N/A",
               weight: detailedAthlete?.displayWeight || "N/A",
               birthdate: detailedAthlete?.displayDOB || "N/A",
-              image_url:
-                detailedAthlete?.headshot?.href ||
-                "https://www.press-seal.com/wp-content/uploads/2016/10/img-team-GENERIC.jpg",
+              image_url: detailedAthlete?.headshot?.href || "https://www.press-seal.com/wp-content/uploads/2016/10/img-team-GENERIC.jpg",
               draftinfo: detailedAthlete?.displayDraft || "Undrafted",
-              jerseynum:
-                detailedAthlete?.jersey || athleteEntry.athlete.jersey || null,
+              jerseynum: detailedAthlete?.jersey || athleteEntry.athlete.jersey || null,
               birthplace: detailedAthlete?.displayBirthPlace || null,
               age: detailedAthlete?.age || null,
             };
-            // 5b) Upsert the player
-            const playerId = await upsertPlayer(
-              client,
-              playerObj,
-              teamIdForPlayer,
-              leagueSlug,
-              { preserveExistingTeam },
-            );
+
+            const playerId = await upsertPlayer(client, playerObj, teamIdForPlayer, leagueSlug, { preserveExistingTeam });
             runStats.playersUpserted++;
 
-            // 5c) Build raw stats object and map it
             const rawStatsObj = { gameid: gameId };
             const statValues = athleteEntry.stats || [];
             statNames.forEach((label, idx) => {
               if (!label) return;
-              rawStatsObj[label.trim()] =
-                statValues[idx] === "" ? null : statValues[idx];
+              rawStatsObj[label.trim()] = statValues[idx] === "" ? null : statValues[idx];
             });
             const mappedStats = mapStatsToSchema(rawStatsObj, leagueSlug);
-            // 5d) Upsert the stat row
             await upsertStat(client, gameId, playerId, teamIdForPlayer, mappedStats);
             runStats.statsUpserted++;
           }
@@ -739,8 +375,8 @@ export async function processEvent(client, leagueSlug, event) {
 }
 
 /**
- * 6) Convenience: process one full day’s worth of events for one league
- *    (historical script will call this repeatedly for each date)
+ * Process one full day's worth of events for one league.
+ * Historical scripts call this repeatedly for each date.
  */
 export async function runDateRangeProcessing(
   leagueSlug,
@@ -770,7 +406,7 @@ export async function runDateRangeProcessing(
             const client = await pool.connect();
             try {
               await processEvent(client, leagueSlug, event);
-              return; // success
+              return;
             } catch (err) {
               if (err.code === "40P01" && attempt < MAX_DEADLOCK_RETRIES) {
                 const delay = 250 * attempt;
@@ -796,8 +432,8 @@ export async function runDateRangeProcessing(
 }
 
 /**
- * 7) Convenience: process "today’s" events for one league
- *    (hourly script will call this once per league)
+ * Process "today's" events for one league.
+ * Hourly sync calls this once per league.
  */
 export async function runTodayProcessing(leagueSlug, pool) {
   const events = await getTodayEvents(leagueSlug);
@@ -813,32 +449,25 @@ export async function runTodayProcessing(leagueSlug, pool) {
 }
 
 /**
- * 8) Fetch and upsert upcoming games for tomorrow and the day after tomorrow.
- *    Prevents the "morning gap" where ESPN’s parameterless scoreboard stops
- *    returning today’s (now-final) games before it starts returning tomorrow’s.
- *
- *    Uses getEventsByDate() with explicit YYYYMMDD dates — ESPN reliably returns
- *    scheduled games days in advance via that endpoint.
+ * Fetch and upsert upcoming games for the next 14 days.
+ * Prevents the "morning gap" where ESPN's parameterless scoreboard stops
+ * returning today's (now-final) games before it starts returning tomorrow's.
  */
 export async function runUpcomingProcessing(leagueSlug, pool) {
   const nowEST = DateTime.now().setZone("America/New_York");
 
-  // Generate date strings for days 1-14 ahead
   const dateStrings = [];
   for (let i = 1; i <= 14; i++) {
     dateStrings.push(nowEST.plus({ days: i }).toFormat("yyyyMMdd"));
   }
 
-  // Fetch in batches of 3 to avoid overwhelming ESPN
   const BATCH_SIZE = 3;
   const seenIds = new Set();
   const upcomingEvents = [];
 
   for (let i = 0; i < dateStrings.length; i += BATCH_SIZE) {
     const batch = dateStrings.slice(i, i + BATCH_SIZE);
-    const results = await Promise.all(
-      batch.map((d) => getEventsByDate(d, leagueSlug))
-    );
+    const results = await Promise.all(batch.map((d) => getEventsByDate(d, leagueSlug)));
     for (const events of results) {
       for (const event of events) {
         if (!seenIds.has(event.id)) {
@@ -851,7 +480,7 @@ export async function runUpcomingProcessing(leagueSlug, pool) {
 
   log.info(
     { league: leagueSlug, count: upcomingEvents.length, from: dateStrings[0], to: dateStrings[dateStrings.length - 1] },
-    "found upcoming games"
+    "found upcoming games",
   );
 
   for (const event of upcomingEvents) {
