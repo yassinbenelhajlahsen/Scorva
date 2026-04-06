@@ -19,7 +19,11 @@ export function usePlays(league, gameId, isLive) {
         setPlays(data);
         setLoading(false);
       } catch (err) {
-        if (err.name !== "AbortError") {
+        if (err.name === "AbortError") return;
+        if (err.message === "HTTP 404") {
+          setPlays({ plays: [] });
+          setLoading(false);
+        } else {
           setError(true);
           setLoading(false);
         }

@@ -252,14 +252,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
   }
 
   if (plays.length === 0) {
-    return (
-      <div className="mb-8">
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 flex flex-col items-center gap-2 text-center">
-          <p className="text-sm text-text-secondary">No play-by-play data available for this game.</p>
-          <p className="text-xs text-text-tertiary">Play data may not be available for all games.</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

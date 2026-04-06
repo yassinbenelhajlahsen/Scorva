@@ -78,15 +78,15 @@ describe("PlayByPlay", () => {
   });
 
   describe("Empty / error states", () => {
-    it("renders empty state when plays is empty", () => {
+    it("renders nothing when plays is empty", () => {
       usePlays.mockReturnValue({
         plays: { plays: [], source: "db" },
         loading: false,
         error: false,
         retry: vi.fn(),
       });
-      render(<PlayByPlay {...defaultProps} />);
-      expect(screen.getByText("No play-by-play data available for this game.")).toBeInTheDocument();
+      const { container } = render(<PlayByPlay {...defaultProps} />);
+      expect(container.firstChild).toBeNull();
     });
 
     it("renders error state on error", () => {
@@ -199,7 +199,7 @@ describe("PlayByPlay", () => {
       render(<PlayByPlay {...defaultProps} isLive={true} />);
 
       const playRow = screen.getByText("Scoring!").closest("[class*='border-l-2']");
-      expect(playRow?.className).toContain("border-accent");
+      expect(playRow?.className).toContain("border-win");
     });
   });
 

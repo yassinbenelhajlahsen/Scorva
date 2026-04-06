@@ -35,7 +35,8 @@ export async function getNbaGame(gameId) {
     'currentPeriod', g.current_period,
     'clock', g.clock,
     'startTime', g.start_time,
-    'eventId', g.eventid
+    'eventId', g.eventid,
+    'hasPlays', EXISTS(SELECT 1 FROM plays WHERE gameid = g.id)
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -172,7 +173,8 @@ export async function getNflGame(gameId) {
     'currentPeriod', g.current_period,
     'clock', g.clock,
     'startTime', g.start_time,
-    'eventId', g.eventid
+    'eventId', g.eventid,
+    'hasPlays', EXISTS(SELECT 1 FROM plays WHERE gameid = g.id)
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -296,7 +298,8 @@ export async function getNhlGame(gameId) {
     'currentPeriod', g.current_period,
     'clock', g.clock,
     'startTime', g.start_time,
-    'eventId', g.eventid
+    'eventId', g.eventid,
+    'hasPlays', EXISTS(SELECT 1 FROM plays WHERE gameid = g.id)
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
