@@ -12,7 +12,7 @@ export async function getGamePrediction(req, res) {
   }
 
   try {
-    const prediction = await getPrediction(league.toLowerCase(), gameId);
+    const prediction = await getPrediction(league.toLowerCase(), parseInt(gameId, 10));
     if (!prediction) {
       return res.status(404).send("No prediction available");
     }

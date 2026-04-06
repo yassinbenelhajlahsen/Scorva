@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { usePlays } from "../../hooks/data/usePlays.js";
 
@@ -61,6 +61,7 @@ function FilterPill({ label, active, onClick }) {
 
 // ─── Single play row ──────────────────────────────────────────────────────────
 function PlayRow({ play, isNew, highlightScoring }) {
+  const isScoring = highlightScoring && play.scoring_play;
   return (
     <m.div
       layout
@@ -68,8 +69,8 @@ function PlayRow({ play, isNew, highlightScoring }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className={`flex items-start gap-3 px-4 py-2.5 ${
-        highlightScoring && play.scoring_play
-          ? "bg-accent/[0.06] border-l-2 border-accent"
+        isScoring
+          ? "bg-win/[0.05] border-l-2 border-win"
           : "border-l-2 border-transparent"
       }`}
     >
@@ -89,14 +90,14 @@ function PlayRow({ play, isNew, highlightScoring }) {
         ) : (
           <div className="w-4 shrink-0" />
         )}
-        <span className="text-sm text-text-secondary leading-snug break-words">
+        <span className={`text-sm leading-snug break-words ${isScoring ? "text-text-primary font-medium" : "text-text-secondary"}`}>
           {play.description}
         </span>
       </div>
 
       {/* Running score */}
       {play.home_score != null && play.away_score != null && (
-        <span className="font-mono text-xs text-text-primary shrink-0 tabular-nums pt-0.5">
+        <span className={`font-mono text-xs shrink-0 tabular-nums pt-0.5 ${isScoring ? "text-win font-bold" : "text-text-primary"}`}>
           {play.home_score}–{play.away_score}
         </span>
       )}
@@ -178,11 +179,15 @@ export default function PlayByPlay({ league, gameId, isLive }) {
       const id = p.espn_play_id ?? String(p.sequence);
       if (!prevPlayIds.has(id)) newIds.add(id);
     });
-    plays.forEach((p) => {
-      const id = p.espn_play_id ?? String(p.sequence);
-      prevPlayIds.add(id);
-    });
     return newIds;
+  }, [plays, isLive, prevPlayIds]);
+
+  // Sync prevPlayIds after each render — must not run inside useMemo
+  useEffect(() => {
+    if (!isLive) return;
+    plays.forEach((p) => {
+      prevPlayIds.add(p.espn_play_id ?? String(p.sequence));
+    });
   }, [plays, isLive, prevPlayIds]);
 
   // Filter logic
@@ -278,7 +283,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
         <FilterPill label="All" active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
         <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
-        {[...periods].reverse().map((p) => (
+        {periods.map((p) => (
           <FilterPill
             key={p}
             label={periodLabel(p, league)}

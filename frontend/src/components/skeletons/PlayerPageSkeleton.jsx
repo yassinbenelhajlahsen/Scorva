@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Skeleton from "../ui/Skeleton.jsx";
 import StatCardSkeleton from "./StatCardSkeleton.jsx";
 
@@ -59,16 +60,16 @@ export default function PlayerPageSkeleton({ slug, league }) {
             <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
               <div className="grid grid-cols-[max-content_auto] gap-x-10 gap-y-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <>
-                    <span key={`l${i}`} className="relative text-sm text-transparent select-none">
+                  <Fragment key={i}>
+                    <span className="relative text-sm text-transparent select-none">
                       Height / Weight
                       <Skeleton className="absolute inset-0 rounded" />
                     </span>
-                    <span key={`v${i}`} className="relative text-sm font-medium text-transparent select-none">
+                    <span className="relative text-sm font-medium text-transparent select-none">
                       6&apos; 9&quot; / 250 lbs
                       <Skeleton className="absolute inset-0 rounded" />
                     </span>
-                  </>
+                  </Fragment>
                 ))}
               </div>
             </div>

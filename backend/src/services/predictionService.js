@@ -19,10 +19,8 @@ function computeWinProbabilities(homeStats, awayStats, league) {
   const awayStrength = awayStats.off_rating - awayStats.def_rating;
   const diff = homeStrength - awayStrength + homeBonus;
   const homeWinProb = sigmoid(diff * scale);
-  return {
-    home: Math.round(homeWinProb * 100),
-    away: Math.round((1 - homeWinProb) * 100),
-  };
+  const home = Math.round(homeWinProb * 100);
+  return { home, away: 100 - home };
 }
 
 function generateKeyFactors(homeStats, awayStats, league) {
@@ -78,17 +76,17 @@ export async function getPrediction(league, gameId) {
 
       // Only predict for pre-game
       const isLiveOrFinal =
-        status.includes("Final") ||
-        status.includes("In Progress") ||
-        status.includes("Halftime") ||
-        status.includes("End of Period");
+        status?.includes("Final") ||
+        status?.includes("In Progress") ||
+        status?.includes("Halftime") ||
+        status?.includes("End of Period");
       if (isLiveOrFinal) return null;
 
       // Compute team ratings from finished regular-season games this season
       const ratingsResult = await pool.query(
         `SELECT
           t.id,
-
+          t.name,
           t.shortname,
           t.logo_url,
           COUNT(*) AS games_played,

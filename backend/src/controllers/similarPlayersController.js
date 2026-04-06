@@ -18,7 +18,8 @@ export async function getSimilar(req, res) {
   try {
     const players = await getSimilarPlayers(playerId, league, season);
     return res.json({ players });
-  } catch {
+  } catch (err) {
+    req.log.error({ err, league, slug }, "similar players fetch error");
     return res.status(500).json({ error: "Failed to fetch similar players" });
   }
 }

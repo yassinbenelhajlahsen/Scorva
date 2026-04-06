@@ -23,10 +23,10 @@ export function useWinProbability(league, eventId, { isFinal = false, isLive = f
       return;
     }
 
+    const controller = new AbortController();
     let intervalId = null;
 
     async function fetchData() {
-      const controller = new AbortController();
       try {
         const resp = await getWinProbability(league, eventId, {
           signal: controller.signal,
@@ -61,6 +61,7 @@ export function useWinProbability(league, eventId, { isFinal = false, isLive = f
 
     return () => {
       clearInterval(intervalId);
+      controller.abort();
     };
   }, [league, eventId, isFinal, isLive]);
 

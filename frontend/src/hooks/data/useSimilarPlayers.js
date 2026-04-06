@@ -6,7 +6,10 @@ export function useSimilarPlayers(league, slug, season) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!league || !slug || !season) return;
+    if (!league || !slug || !season) {
+      setLoading(false);
+      return;
+    }
 
     const controller = new AbortController();
     setLoading(true);

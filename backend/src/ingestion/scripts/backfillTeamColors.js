@@ -15,7 +15,7 @@ import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(__dirname, "../../.env") });
+dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 const log = logger.child({ worker: "backfillTeamColors" });
 
@@ -82,8 +82,9 @@ async function backfill() {
 }
 
 backfill()
-  .catch((err) => {
+  .then(() => pool.end())
+  .catch(async (err) => {
     log.error({ err }, "backfill failed");
+    await pool.end();
     process.exit(1);
-  })
-  .finally(() => pool.end());
+  });

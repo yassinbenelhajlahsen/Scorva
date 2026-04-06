@@ -215,18 +215,28 @@ async function computeLeagueEmbeddings(pool, league, season) {
 
   const normalized = computeZScore(rows, config.dims);
 
-  // Batch upsert
-  for (const { playerId, gamesUsed, vec } of normalized) {
-    const vecStr = `[${vec.join(",")}]`;
-    await pool.query(
-      `
-      INSERT INTO player_stat_embeddings (player_id, league, season, embedding, games_used, updated_at)
-      VALUES ($1, $2, $3, $4::vector, $5, NOW())
-      ON CONFLICT (player_id, league, season)
-      DO UPDATE SET embedding = EXCLUDED.embedding, games_used = EXCLUDED.games_used, updated_at = NOW()
-      `,
-      [playerId, league, season, vecStr, gamesUsed]
-    );
+  // Batch upsert in a single transaction so a crash leaves no partial state
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const { playerId, gamesUsed, vec } of normalized) {
+      const vecStr = `[${vec.join(",")}]`;
+      await client.query(
+        `
+        INSERT INTO player_stat_embeddings (player_id, league, season, embedding, games_used, updated_at)
+        VALUES ($1, $2, $3, $4::vector, $5, NOW())
+        ON CONFLICT (player_id, league, season)
+        DO UPDATE SET embedding = EXCLUDED.embedding, games_used = EXCLUDED.games_used, updated_at = NOW()
+        `,
+        [playerId, league, season, vecStr, gamesUsed]
+      );
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
   }
 
   return normalized.length;

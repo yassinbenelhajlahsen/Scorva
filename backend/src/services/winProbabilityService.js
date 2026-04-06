@@ -43,7 +43,7 @@ export async function getWinProbability(league, espnEventId, isFinal) {
           const matched = raw
             .map((dp) => {
               const play = playMap.get(String(dp.playId));
-              if (!play) return null;
+              if (!play || play.homeScore == null || play.awayScore == null) return null;
               return { playId: dp.playId, margin: play.homeScore - play.awayScore };
             })
             .filter(Boolean);
