@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { parseUTC, getTodayET, addDays } from "../../utils/formatDate.js";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -13,7 +13,7 @@ function getSemanticCenter(selectedDate, gameDates) {
   return today > last ? last : first;
 }
 
-export default function DateStrip({ selectedDate, onDateChange, gameDates, gameCounts }) {
+export default function DateStrip({ selectedDate, onDateChange, gameDates, gameCounts, resetKey }) {
   const todayET = getTodayET();
   const maxDate = useMemo(() => addDays(todayET, 14), [todayET]);
   const gameDateSet = useMemo(() => new Set(gameDates), [gameDates]);
@@ -23,16 +23,28 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
     addDays(getSemanticCenter(selectedDate, gameDates), -3)
   );
 
-  // When gameDates loads (was empty initially), re-center
+  // Track when league/season changes so we can defer re-centering until
+  // the new gameDates actually arrive — avoids flashing to today's week.
+  const prevResetKeyRef = useRef(resetKey);
+  const pendingResetRef = useRef(false);
+
+  if (resetKey !== prevResetKeyRef.current) {
+    prevResetKeyRef.current = resetKey;
+    pendingResetRef.current = true;
+  }
+
+  // Re-center when gameDates loads, either after a context change or initial mount
   useEffect(() => {
-    if (gameDates && gameDates.length > 0 && !selectedDate) {
-      const center = getSemanticCenter(null, gameDates);
+    if (gameDates && gameDates.length > 0 && (pendingResetRef.current || !selectedDate)) {
+      pendingResetRef.current = false;
+      const center = getSemanticCenter(selectedDate, gameDates);
       setWindowStart(addDays(center, -3));
     }
-  }, [gameDates]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameDates, resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When selectedDate changes externally, re-center if needed
   useEffect(() => {
+    if (pendingResetRef.current) return;
     const center = selectedDate ?? getSemanticCenter(null, gameDates);
     const windowEnd = addDays(windowStart, 6);
     if (center < windowStart || center > windowEnd) {
@@ -113,20 +125,20 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
               >
                 {month}/{day}
               </span>
-              {hasGames && count > 0 && (
-                <span
-                  className={[
-                    "text-[9px] font-medium tabular-nums leading-none",
-                    isSelected
+              <span
+                className={[
+                  "text-[9px] font-medium tabular-nums leading-none",
+                  hasGames && count > 0
+                    ? isSelected
                       ? "text-white/50"
                       : isToday
                       ? "text-text-tertiary"
-                      : "text-text-tertiary/60",
-                  ].join(" ")}
-                >
-                  {count}
-                </span>
-              )}
+                      : "text-text-tertiary/60"
+                    : "invisible",
+                ].join(" ")}
+              >
+                {count ?? 0}
+              </span>
             </button>
           );
         })}

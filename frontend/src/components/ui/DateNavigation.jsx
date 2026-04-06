@@ -17,7 +17,7 @@ function getDisplayMonth(selectedDate, gameDates, isCurrentSeason) {
   return `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-export default function DateNavigation({ selectedDate, onDateChange, gameDates, gameCounts, isCurrentSeason }) {
+export default function DateNavigation({ selectedDate, onDateChange, gameDates, gameCounts, isCurrentSeason, resetKey }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const todayForButton = getTodayET();
   const isViewingDefault = selectedDate === todayForButton;
@@ -100,6 +100,7 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
           onDateChange={onDateChange}
           gameDates={gameDates}
           gameCounts={gameCounts}
+          resetKey={resetKey}
         />
       </div>
     </div>

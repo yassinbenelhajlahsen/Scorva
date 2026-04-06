@@ -166,6 +166,18 @@ export default function LeaguePage() {
         </div>
       </div>
 
+      {activeTab === "games" && (
+        <DateNavigation
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          gameDates={gameDates}
+          gameCounts={gameCounts}
+          loading={datesLoading}
+          isCurrentSeason={!selectedSeason}
+          resetKey={`${league}-${selectedSeason ?? "current"}`}
+        />
+      )}
+
       {!displayData && !error ? (
         <LeaguePageSkeleton activeTab={activeTab} league={league} />
       ) : error ? (
@@ -187,14 +199,6 @@ export default function LeaguePage() {
             >
               {activeTab === "games" ? (
                 <>
-                  <DateNavigation
-                    selectedDate={selectedDate}
-                    onDateChange={handleDateChange}
-                    gameDates={gameDates}
-                    gameCounts={gameCounts}
-                    loading={datesLoading}
-                    isCurrentSeason={!selectedSeason}
-                  />
                   <AnimatePresence mode="wait">
                     {games.length === 0 ? (
                       <m.div
