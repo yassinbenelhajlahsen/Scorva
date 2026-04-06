@@ -58,7 +58,7 @@ describe("StatCard — with stats", () => {
     render(
       <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" />
     );
-    expect(screen.getByRole("link").getAttribute("href")).toBe("/nba/games/1#lebron-james");
+    expect(screen.getByRole("link").getAttribute("href")).toBe("/nba/games/1?tab=analysis#lebron-james");
   });
 
   it("shows Win badge for W result when Final", () => {

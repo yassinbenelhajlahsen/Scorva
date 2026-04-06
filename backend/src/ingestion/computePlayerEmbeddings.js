@@ -113,13 +113,13 @@ const LEAGUE_CONFIGS = {
         p.position,
         COUNT(*)::int AS game_count,
         (
-          SUM(NULLIF(split_part(s.cmpatt, '-', 1), '')::numeric)
-          / NULLIF(SUM(NULLIF(split_part(s.cmpatt, '-', 2), '')::numeric), 0)
+          SUM(NULLIF(split_part(s.cmpatt, '/', 1), '')::numeric)
+          / NULLIF(SUM(NULLIF(split_part(s.cmpatt, '/', 2), '')::numeric), 0)
         )::float AS d0,
         AVG(s.yds)::float AS d1,
         AVG(s.td)::float AS d2,
         AVG(s.interceptions)::float AS d3,
-        AVG(NULLIF(split_part(s.sacks, '/', 1), '')::numeric)::float AS d4
+        AVG(NULLIF(split_part(s.sacks, '-', 1), '')::numeric)::float AS d4
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id

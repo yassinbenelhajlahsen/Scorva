@@ -29,6 +29,7 @@ import userRoute from "./routes/user.js";
 import webhooksRoute from "./routes/webhooks.js";
 import liveRoute from "./routes/live.js";
 import predictionRoute from "./routes/prediction.js";
+import playsRoute from "./routes/plays.js";
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.use("/api", standingsRouter);
 app.use("/api", gamesRoute);
 app.use("/api", gamesInfoRoute);
 app.use("/api", predictionRoute);
+app.use("/api", playsRoute);
 app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", similarPlayersRoute);

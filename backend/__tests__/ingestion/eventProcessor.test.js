@@ -20,6 +20,7 @@ const mockUpsertTeam = jest.fn();
 const mockUpsertPlayer = jest.fn();
 const mockUpsertStat = jest.fn();
 const mockUpsertGame = jest.fn();
+const mockUpsertPlays = jest.fn();
 const mockMapStats = jest.fn();
 
 jest.unstable_mockModule(
@@ -37,6 +38,10 @@ jest.unstable_mockModule(
 jest.unstable_mockModule(
   resolve(__dirname, "../../src/ingestion/upsertGame.js"),
   () => ({ default: mockUpsertGame })
+);
+jest.unstable_mockModule(
+  resolve(__dirname, "../../src/ingestion/upsertPlays.js"),
+  () => ({ default: mockUpsertPlays })
 );
 jest.unstable_mockModule(
   resolve(__dirname, "../../src/ingestion/mapStatsToSchema.js"),
@@ -278,6 +283,7 @@ describe("eventProcessor", () => {
       mockUpsertGame.mockResolvedValue(100);
       mockUpsertPlayer.mockResolvedValue(200);
       mockUpsertStat.mockResolvedValue(300);
+      mockUpsertPlays.mockResolvedValue(undefined);
       mockMapStats.mockReturnValue({ points: 20 });
     });
 

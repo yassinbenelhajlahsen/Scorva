@@ -5,6 +5,7 @@ import upsertTeam from "./upsertTeam.js";
 import upsertPlayer from "./upsertPlayer.js";
 import upsertStat from "./upsertStat.js";
 import upsertGame from "./upsertGame.js";
+import upsertPlays from "./upsertPlays.js";
 import { espnImage } from "./espnImage.js";
 import { DateTime } from "luxon";
 import logger from "../logger.js";
@@ -617,6 +618,17 @@ export async function processEvent(client, leagueSlug, event) {
     }
 
     const playerGroups = statsResp.data.boxscore?.players || [];
+
+    await upsertPlays(
+      client,
+      gameId,
+      statsResp.data,
+      leagueSlug,
+      homeTeamId,
+      awayTeamId,
+      parseInt(homeComp.team.id, 10),
+      parseInt(awayComp.team.id, 10),
+    );
 
     try {
       for (const group of playerGroups) {

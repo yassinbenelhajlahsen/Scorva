@@ -44,6 +44,8 @@ const INFO_FIELDS = [
   { label: "Broadcast", width: "w-16" },
 ];
 
+const TAB_LABELS = ["Overview", "Analysis", "Plays"];
+
 export default function GamePageSkeleton({ scheduled = false }) {
   return (
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
@@ -59,9 +61,8 @@ export default function GamePageSkeleton({ scheduled = false }) {
         <TeamSideSkeleton />
       </div>
 
-      {/* Game info + Quarter scores */}
-      <div className={`mb-6 ${!scheduled ? "grid grid-cols-1 lg:grid-cols-[32.5%_1fr] gap-4" : ""}`}>
-        {/* Game info */}
+      {/* Game info — standalone card */}
+      <div className="mb-6">
         <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-3">
           {INFO_FIELDS.map(({ label, width }, i) => (
             <Fragment key={label}>
@@ -73,56 +74,56 @@ export default function GamePageSkeleton({ scheduled = false }) {
             </Fragment>
           ))}
         </div>
+      </div>
 
-        {/* Quarter scores */}
-        {!scheduled && (
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            {/* Header row */}
-            <div className="flex items-center gap-x-2 pb-2 border-b border-white/[0.06]">
+      {/* Tab bar */}
+      <div className="relative flex border-b border-white/[0.06] mb-6">
+        {TAB_LABELS.map((label, i) => (
+          <div key={label} className="relative px-3 pb-2.5 pt-2">
+            <Skeleton className={`h-3.5 ${i === 0 ? "w-16" : i === 1 ? "w-14" : "w-10"}`} />
+            {i === 0 && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/[0.08] rounded-full" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Overview tab content */}
+      {!scheduled && (
+        <>
+          {/* Quarter scores */}
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-6">
+            <div className="flex items-center gap-x-4 pb-3 border-b border-white/[0.06]">
               <Skeleton className="h-3 flex-1" />
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-3 w-9 shrink-0" />
+                <Skeleton key={i} className="h-3 w-10 shrink-0" />
               ))}
             </div>
-            {/* Home row */}
-            <div className="flex items-center gap-x-2 pt-2.5 pb-1.5">
+            <div className="flex items-center gap-x-4 py-3">
               <Skeleton className="h-3.5 flex-1" />
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
+                <Skeleton key={i} className="h-3.5 w-10 shrink-0" />
               ))}
             </div>
             <div className="border-t border-white/[0.04]" />
-            {/* Away row */}
-            <div className="flex items-center gap-x-2 pt-1.5">
+            <div className="flex items-center gap-x-4 py-3">
               <Skeleton className="h-3.5 flex-1" />
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-3.5 w-9 shrink-0" />
+                <Skeleton key={i} className="h-3.5 w-10 shrink-0" />
               ))}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Top performer cards — only for live/final */}
-      {!scheduled && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <TopPerformerSkeleton key={i} />
-          ))}
-        </div>
-      )}
-
-      {/* Box score — only for live/final */}
-      {!scheduled && (
-        <div className="max-w-2xl mx-auto mb-2">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-4 w-full rounded" />
-              ))}
-            </div>
+          {/* Top performer cards */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <TopPerformerSkeleton key={i} />
+            ))}
           </div>
-        </div>
+
+          {/* Chart placeholder */}
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl h-48 animate-pulse" />
+        </>
       )}
     </div>
   );

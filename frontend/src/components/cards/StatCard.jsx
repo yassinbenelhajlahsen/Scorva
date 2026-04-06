@@ -27,7 +27,7 @@ export default function StatCard({
     );
   }
 
-  const to = `/${league}/games/${gameId}#${slugify(playerName)}`;
+  const to = `/${league}/games/${gameId}?tab=analysis#${slugify(playerName)}`;
 
   return (
     <Link to={to} className="group block">
