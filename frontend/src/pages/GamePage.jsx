@@ -10,6 +10,8 @@ import computeTopPlayers from "../utils/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
 import formatDate, { formatDateWithTime, getPeriodLabel } from "../utils/formatDate.js";
 import { useGame } from "../hooks/data/useGame.js";
+import { usePrediction } from "../hooks/data/usePrediction.js";
+import PredictionCard from "../components/cards/PredictionCard.jsx";
 import GamePageSkeleton from "../components/skeletons/GamePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
@@ -17,6 +19,20 @@ export default function GamePage() {
   const location = useLocation();
   const { league, gameId } = useParams();
   const { gameData, loading, error, retry } = useGame(league, gameId);
+
+  const staleStatus = gameData?.json_build_object?.game?.status ?? "";
+  const staleIsPreGame = staleStatus
+    ? !staleStatus.includes("Final") &&
+      !staleStatus.includes("In Progress") &&
+      !staleStatus.includes("End of Period") &&
+      !staleStatus.includes("Halftime")
+    : false;
+
+  const { prediction, loading: predictionLoading } = usePrediction(
+    league,
+    gameId,
+    staleIsPreGame
+  );
 
   useEffect(() => {
     if (!gameData || !location.hash) return;
@@ -61,14 +77,7 @@ export default function GamePage() {
   );
 
   if (loading) {
-    const staleStatus = gameData?.json_build_object?.game?.status ?? "";
-    const staleScheduled = staleStatus
-      ? !staleStatus.includes("Final") &&
-        !staleStatus.includes("In Progress") &&
-        !staleStatus.includes("End of Period") &&
-        !staleStatus.includes("Halftime")
-      : false;
-    return <GamePageSkeleton scheduled={staleScheduled} />;
+    return <GamePageSkeleton scheduled={staleIsPreGame} />;
   }
   if (error && !gameData) return <ErrorState message="Could not load game data." onRetry={retry} />;
   if (!gameData?.json_build_object) {
@@ -95,6 +104,7 @@ export default function GamePage() {
     game.status.includes("In Progress") ||
     game.status.includes("Halftime") ||
     game.status.includes("End of Period");
+  const isPreGame = !isFinal && !inProgress;
   const homeWon = isFinal && game.winnerId === homeTeam.info.id;
   const awayWon = isFinal && game.winnerId === awayTeam.info.id;
   const nhl = league === "nhl";
@@ -335,12 +345,19 @@ export default function GamePage() {
         )}
       </div>
 
-      {/* Top performers */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        <TopPerformerCard title="Top Performer" player={topPerformer} league={league} />
-        <TopPerformerCard title="Top Scorer"    player={topScorer}    league={league} />
-        <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
-      </div>
+      {/* Prediction — pre-game only */}
+      {isPreGame && (prediction || predictionLoading) && (
+        <PredictionCard prediction={prediction} loading={predictionLoading} />
+      )}
+
+      {/* Top performers — post-game only */}
+      {!isPreGame && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          <TopPerformerCard title="Top Performer" player={topPerformer} league={league} />
+          <TopPerformerCard title="Top Scorer"    player={topScorer}    league={league} />
+          <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
+        </div>
+      )}
 
       {/* AI Summary */}
       {isFinal && <AISummary gameId={gameId} />}

@@ -288,7 +288,7 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
   );
 
   return (
-    <div className="mt-12 w-full px-2 sm:px-6">
+    <div className="mt-6 w-full">
       <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-6 text-center">
         Box Score
       </h3>

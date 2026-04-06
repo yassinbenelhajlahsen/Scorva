@@ -19,7 +19,7 @@ export default function AISummary({ gameId }) {
 
   if (session === null) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 my-12">
+      <div className="mb-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/15 flex-shrink-0">
@@ -82,7 +82,7 @@ export default function AISummary({ gameId }) {
   const bulletPoints = parseBulletPoints(summary);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 my-12">
+    <div className="mb-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/15 flex-shrink-0">

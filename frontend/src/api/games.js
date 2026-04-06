@@ -24,6 +24,10 @@ export function getGameById(league, gameId, { signal } = {}) {
   return apiFetch(`/api/${league}/games/${gameId}`, { signal });
 }
 
+export function getGamePrediction(league, gameId, { signal } = {}) {
+  return apiFetch(`/api/${league}/games/${gameId}/prediction`, { signal });
+}
+
 export function getLiveGamesUrl(league) {
   return `${import.meta.env.VITE_API_URL}/api/live/${league}/games`;
 }

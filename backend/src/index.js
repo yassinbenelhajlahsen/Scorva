@@ -27,6 +27,7 @@ import favoritesRoute from "./routes/favorites.js";
 import userRoute from "./routes/user.js";
 import webhooksRoute from "./routes/webhooks.js";
 import liveRoute from "./routes/live.js";
+import predictionRoute from "./routes/prediction.js";
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use("/api", teamsRouter);
 app.use("/api", standingsRouter);
 app.use("/api", gamesRoute);
 app.use("/api", gamesInfoRoute);
+app.use("/api", predictionRoute);
 app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", searchRoute);
