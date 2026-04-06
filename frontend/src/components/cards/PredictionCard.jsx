@@ -1,6 +1,33 @@
 import { m } from "framer-motion";
 
-function ProbabilityBar({ team, isFavored, isHome }) {
+const DEFAULT_HOME_COLOR = "#e8863a";
+const DEFAULT_AWAY_COLOR = "#60A5FA";
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+function colorDistance(a, b) {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+}
+
+function resolveColors(rawHome, rawAway) {
+  const home = rawHome ?? DEFAULT_HOME_COLOR;
+  const away = rawAway ?? DEFAULT_AWAY_COLOR;
+  if (colorDistance(home, away) < 60) {
+    return [DEFAULT_HOME_COLOR, DEFAULT_AWAY_COLOR];
+  }
+  return [home, away];
+}
+
+function ProbabilityBar({ team, isFavored, isHome, color }) {
   return (
     <div className="flex items-center gap-3">
       {/* Team logo */}
@@ -22,7 +49,10 @@ function ProbabilityBar({ team, isFavored, isHome }) {
               <span className="ml-1.5 text-[10px] font-normal text-text-tertiary uppercase tracking-wider">Home</span>
             )}
           </span>
-          <span className={`text-sm font-bold tabular-nums ${isFavored ? "text-accent" : "text-text-tertiary"}`}>
+          <span
+            className="text-sm font-bold tabular-nums"
+            style={{ color: isFavored ? color : "rgba(255,255,255,0.35)" }}
+          >
             {team.winProbability}%
           </span>
         </div>
@@ -30,7 +60,8 @@ function ProbabilityBar({ team, isFavored, isHome }) {
         {/* Bar track */}
         <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
           <m.div
-            className={`h-full rounded-full ${isFavored ? "bg-accent" : "bg-white/[0.18]"}`}
+            className="h-full rounded-full"
+            style={{ background: isFavored ? color : "rgba(255,255,255,0.18)" }}
             initial={{ width: 0 }}
             animate={{ width: `${team.winProbability}%` }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -41,7 +72,8 @@ function ProbabilityBar({ team, isFavored, isHome }) {
   );
 }
 
-export default function PredictionCard({ prediction, loading }) {
+export default function PredictionCard({ prediction, loading, homeColor: rawHomeColor, awayColor: rawAwayColor }) {
+  const [homeColor, awayColor] = resolveColors(rawHomeColor, rawAwayColor);
   return (
     <div className="mb-6">
       {/* Header */}
@@ -91,11 +123,13 @@ export default function PredictionCard({ prediction, loading }) {
                   team={prediction.homeTeam}
                   isFavored={prediction.homeTeam.winProbability >= prediction.awayTeam.winProbability}
                   isHome
+                  color={homeColor}
                 />
                 <ProbabilityBar
                   team={prediction.awayTeam}
                   isFavored={prediction.awayTeam.winProbability > prediction.homeTeam.winProbability}
                   isHome={false}
+                  color={awayColor}
                 />
               </div>
 
@@ -106,7 +140,7 @@ export default function PredictionCard({ prediction, loading }) {
                   <ul className="space-y-2.5">
                     {prediction.keyFactors.map((factor, i) => (
                       <li key={i} className="flex items-center gap-2.5">
-                        <div className="w-1.5 h-1.5 bg-accent rounded-full flex-shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: homeColor }} />
                         <span className="text-sm text-text-secondary">{factor}</span>
                       </li>
                     ))}

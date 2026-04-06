@@ -42,6 +42,7 @@ describe("upsertTeam", () => {
         "25-15",
         "15-5",
         "10-10",
+        null,
       ]
     );
   });
@@ -76,7 +77,7 @@ describe("upsertTeam", () => {
     expect(result).toBe(2);
     expect(mockClient.query).toHaveBeenCalledWith(
       expect.any(String),
-      [99, "nfl", "Test Team", null, null, null, "0-0", null, null]
+      [99, "nfl", "Test Team", null, null, null, "0-0", null, null, null]
     );
   });
 

@@ -35,3 +35,10 @@ export function getLiveGamesUrl(league) {
 export function getLiveGameUrl(league, gameId) {
   return `${import.meta.env.VITE_API_URL}/api/live/${league}/games/${gameId}`;
 }
+
+export function getWinProbability(league, eventId, { signal, isFinal } = {}) {
+  return apiFetch(`/api/${league}/games/${eventId}/win-probability`, {
+    signal,
+    params: isFinal ? { final: "true" } : undefined,
+  });
+}

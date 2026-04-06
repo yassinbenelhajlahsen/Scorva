@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../api/client.js", () => ({ apiFetch: vi.fn() }));
 
 const { apiFetch } = await import("../../api/client.js");
-const { getLeagueGames, getGameDates } = await import("../../api/games.js");
+const { getLeagueGames, getGameDates, getWinProbability } = await import("../../api/games.js");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -97,5 +97,47 @@ describe("getLeagueGames", () => {
     apiFetch.mockResolvedValue(shaped);
     const result = await getLeagueGames("nba", { date: "2025-01-15" });
     expect(result).toEqual(shaped);
+  });
+});
+
+describe("getWinProbability", () => {
+  it("calls apiFetch with the correct path", async () => {
+    await getWinProbability("nba", "401585757");
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/api/nba/games/401585757/win-probability",
+      expect.any(Object)
+    );
+  });
+
+  it("passes ?final=true when isFinal is true", async () => {
+    await getWinProbability("nba", "401585757", { isFinal: true });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/api/nba/games/401585757/win-probability",
+      expect.objectContaining({ params: { final: "true" } })
+    );
+  });
+
+  it("does not pass ?final param when isFinal is false", async () => {
+    await getWinProbability("nba", "401585757", { isFinal: false });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/api/nba/games/401585757/win-probability",
+      expect.objectContaining({ params: undefined })
+    );
+  });
+
+  it("passes signal when provided", async () => {
+    const controller = new AbortController();
+    await getWinProbability("nba", "401585757", { signal: controller.signal });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/api/nba/games/401585757/win-probability",
+      expect.objectContaining({ signal: controller.signal })
+    );
+  });
+
+  it("returns the response from apiFetch", async () => {
+    const mockData = { data: [{ homeWinPercentage: 0.65, secondsLeft: 1440 }] };
+    apiFetch.mockResolvedValue(mockData);
+    const result = await getWinProbability("nfl", "401671773", { isFinal: true });
+    expect(result).toEqual(mockData);
   });
 });

@@ -34,7 +34,8 @@ export async function getNbaGame(gameId) {
     'gameType', g.type,
     'currentPeriod', g.current_period,
     'clock', g.clock,
-    'startTime', g.start_time
+    'startTime', g.start_time,
+    'eventId', g.eventid
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -46,7 +47,8 @@ export async function getNbaGame(gameId) {
       'record', ht.record,
       'homeRecord', ht.homerecord,
       'awayRecord', ht.awayrecord,
-      'conference', ht.conf
+      'conference', ht.conf,
+      'color', ht.primary_color
     ),
     'players', (
       SELECT COALESCE(json_agg(json_build_object(
@@ -90,7 +92,8 @@ export async function getNbaGame(gameId) {
       'record', at.record,
       'homeRecord', at.homerecord,
       'awayRecord', at.awayrecord,
-      'conference', at.conf
+      'conference', at.conf,
+      'color', at.primary_color
     ),
     'players', (
       SELECT COALESCE(json_agg(json_build_object(
@@ -168,7 +171,8 @@ export async function getNflGame(gameId) {
     'gameType', g.type,
     'currentPeriod', g.current_period,
     'clock', g.clock,
-    'startTime', g.start_time
+    'startTime', g.start_time,
+    'eventId', g.eventid
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -180,7 +184,8 @@ export async function getNflGame(gameId) {
       'record', ht.record,
       'homeRecord', ht.homerecord,
       'awayRecord', ht.awayrecord,
-      'conference', ht.conf
+      'conference', ht.conf,
+      'color', ht.primary_color
     ),
     'players', (
       SELECT COALESCE(json_agg(json_build_object(
@@ -217,7 +222,8 @@ export async function getNflGame(gameId) {
       'record', at.record,
       'homeRecord', at.homerecord,
       'awayRecord', at.awayrecord,
-      'conference', at.conf
+      'conference', at.conf,
+      'color', at.primary_color
     ),
     'players', (
       SELECT COALESCE(json_agg(json_build_object(
@@ -289,7 +295,8 @@ export async function getNhlGame(gameId) {
     'gameType', g.type,
     'currentPeriod', g.current_period,
     'clock', g.clock,
-    'startTime', g.start_time
+    'startTime', g.start_time,
+    'eventId', g.eventid
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -301,7 +308,8 @@ export async function getNhlGame(gameId) {
       'record', ht.record,
       'homeRecord', ht.homerecord,
       'awayRecord', ht.awayrecord,
-      'conference', ht.conf
+      'conference', ht.conf,
+      'color', ht.primary_color
     ),
     'players', (
       SELECT COALESCE(json_agg(json_build_object(
@@ -347,7 +355,8 @@ export async function getNhlGame(gameId) {
       'record', at.record,
       'homeRecord', at.homerecord,
       'awayRecord', at.awayrecord,
-      'conference', at.conf
+      'conference', at.conf,
+      'color', at.primary_color
     ),
     'players', (
       SELECT COALESCE(json_agg(json_build_object(

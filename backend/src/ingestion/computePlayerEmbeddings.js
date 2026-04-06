@@ -14,6 +14,23 @@ const log = logger.child({ worker: "computePlayerEmbeddings" });
 // Position groups for filtering similarity queries at compute time (stored in the vector)
 // and at query time (see similarPlayersService.js).
 // NBA positions are not grouped — modern NBA is positionless and clusters naturally.
+// BIG covers traditional bigs; WING covers guards and wings.
+// Intentionally soft — keeps positionless play intact within each group
+// while preventing centers from being compared to point guards.
+export const NBA_POSITION_GROUPS = {
+  BIG:  ["C", "PF", "F-C", "C-F"],
+  WING: ["PG", "SG", "SF", "G", "F", "G-F", "F-G", "SF-SG"],
+};
+
+export function getNbaGroup(position) {
+  if (!position) return null;
+  const pos = position.toUpperCase();
+  for (const [group, positions] of Object.entries(NBA_POSITION_GROUPS)) {
+    if (positions.includes(pos)) return group;
+  }
+  return null;
+}
+
 export const NFL_POSITION_GROUPS = {
   QB: ["QB"],
   RB: ["RB", "FB"],
@@ -56,11 +73,14 @@ const LEAGUE_CONFIGS = {
         s.playerid,
         p.position,
         COUNT(*)::int AS game_count,
-        AVG(s.points)::float AS d0,
-        AVG(s.assists)::float AS d1,
-        AVG(s.rebounds)::float AS d2,
-        AVG(s.blocks)::float AS d3,
-        AVG(s.steals)::float AS d4,
+        -- Counting stats normalized to per-36 minutes so playing time
+        -- doesn't conflate volume with production rate.
+        (AVG(s.points)   / NULLIF(AVG(s.minutes), 0) * 36)::float AS d0,
+        (AVG(s.assists)  / NULLIF(AVG(s.minutes), 0) * 36)::float AS d1,
+        (AVG(s.rebounds) / NULLIF(AVG(s.minutes), 0) * 36)::float AS d2,
+        (AVG(s.blocks)   / NULLIF(AVG(s.minutes), 0) * 36)::float AS d3,
+        (AVG(s.steals)   / NULLIF(AVG(s.minutes), 0) * 36)::float AS d4,
+        -- Shooting percentages are already rate stats — no per-36 needed.
         (
           SUM(NULLIF(split_part(s.fg, '-', 1), '')::numeric)
           / NULLIF(SUM(NULLIF(split_part(s.fg, '-', 2), '')::numeric), 0)
@@ -73,14 +93,15 @@ const LEAGUE_CONFIGS = {
           SUM(NULLIF(split_part(s.ft, '-', 1), '')::numeric)
           / NULLIF(SUM(NULLIF(split_part(s.ft, '-', 2), '')::numeric), 0)
         )::float AS d7,
-        AVG(s.turnovers)::float AS d8,
+        (AVG(s.turnovers) / NULLIF(AVG(s.minutes), 0) * 36)::float AS d8,
         AVG(s.plusminus)::float AS d9
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
       WHERE p.league = 'nba' AND g.season = $1 AND g.type = 'regular'
+        AND s.minutes > 0
       GROUP BY s.playerid, p.position
-      HAVING COUNT(*) >= $2
+      HAVING COUNT(*) >= $2 AND AVG(s.minutes) >= 10
     `,
   },
   nfl: {

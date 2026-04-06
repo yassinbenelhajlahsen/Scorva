@@ -5,13 +5,15 @@ import { scoreUpdateVariants } from "../utils/motion.js";
 
 import BoxScore from "../components/ui/BoxScore.jsx";
 import AISummary from "../components/ui/AISummary.jsx";
+import WinProbabilityChart from "../components/ui/WinProbabilityChart.jsx";
 import slugify from "../utils/slugify.js";
 import computeTopPlayers from "../utils/topPlayers.js";
 import TopPerformerCard from "../components/cards/TopPerformerCard.jsx";
+import PredictionCard from "../components/cards/PredictionCard.jsx";
 import formatDate, { formatDateWithTime, getPeriodLabel } from "../utils/formatDate.js";
 import { useGame } from "../hooks/data/useGame.js";
 import { usePrediction } from "../hooks/data/usePrediction.js";
-import PredictionCard from "../components/cards/PredictionCard.jsx";
+import { useWinProbability } from "../hooks/data/useWinProbability.js";
 import GamePageSkeleton from "../components/skeletons/GamePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
@@ -20,18 +22,27 @@ export default function GamePage() {
   const { league, gameId } = useParams();
   const { gameData, loading, error, retry } = useGame(league, gameId);
 
+  // Stale status — available before full game data loads, used for skeleton + hooks
   const staleStatus = gameData?.json_build_object?.game?.status ?? "";
-  const staleIsPreGame = staleStatus
-    ? !staleStatus.includes("Final") &&
-      !staleStatus.includes("In Progress") &&
-      !staleStatus.includes("End of Period") &&
-      !staleStatus.includes("Halftime")
-    : false;
+  const isFinalEarly = staleStatus.includes("Final");
+  const inProgressEarly =
+    staleStatus.includes("In Progress") ||
+    staleStatus.includes("Halftime") ||
+    staleStatus.includes("End of Period");
+  const staleIsPreGame = !!staleStatus && !isFinalEarly && !inProgressEarly;
 
   const { prediction, loading: predictionLoading } = usePrediction(
     league,
     gameId,
     staleIsPreGame
+  );
+
+  const eventId = gameData?.json_build_object?.game?.eventId;
+  const showWinProb = (isFinalEarly || inProgressEarly) && !!eventId;
+  const { data: winProbData, scoreMargin } = useWinProbability(
+    showWinProb ? league : null,
+    showWinProb ? eventId : null,
+    { isFinal: isFinalEarly, isLive: inProgressEarly }
   );
 
   useEffect(() => {
@@ -347,7 +358,12 @@ export default function GamePage() {
 
       {/* Prediction — pre-game only */}
       {isPreGame && (prediction || predictionLoading) && (
-        <PredictionCard prediction={prediction} loading={predictionLoading} />
+        <PredictionCard
+          prediction={prediction}
+          loading={predictionLoading}
+          homeColor={homeTeam?.info?.color}
+          awayColor={awayTeam?.info?.color}
+        />
       )}
 
       {/* Top performers — post-game only */}
@@ -357,6 +373,17 @@ export default function GamePage() {
           <TopPerformerCard title="Top Scorer"    player={topScorer}    league={league} />
           <TopPerformerCard title="Impact Player" player={impactPlayer} league={league} />
         </div>
+      )}
+
+      {/* Win Probability — live and final games */}
+      {winProbData && (
+        <WinProbabilityChart
+          data={winProbData}
+          scoreMargin={scoreMargin}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          league={league}
+        />
       )}
 
       {/* AI Summary */}

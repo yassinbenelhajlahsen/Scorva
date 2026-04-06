@@ -2,8 +2,10 @@ import pool from "../db/db.js";
 import { cached } from "../cache/cache.js";
 import { getCurrentSeason } from "../cache/seasons.js";
 import {
+  getNbaGroup,
   getNflGroup,
   getNhlGroup,
+  NBA_POSITION_GROUPS,
   NFL_POSITION_GROUPS,
   NHL_POSITION_GROUPS,
 } from "../ingestion/computePlayerEmbeddings.js";
@@ -42,7 +44,13 @@ export async function getSimilarPlayers(playerId, league, season, limit = 5) {
 
       // 2. Build position filter clause
       let positionFilter = "";
-      if (league === "nfl" && position) {
+      if (league === "nba" && position) {
+        const group = getNbaGroup(position);
+        if (group) {
+          const positions = NBA_POSITION_GROUPS[group];
+          positionFilter = `AND p.position = ANY(${positionArrayLiteral(positions)})`;
+        }
+      } else if (league === "nfl" && position) {
         const group = getNflGroup(position);
         if (group) {
           const positions = NFL_POSITION_GROUPS[group];
@@ -56,8 +64,7 @@ export async function getSimilarPlayers(playerId, league, season, limit = 5) {
         }
       }
 
-      // 3. Find nearest neighbors
-      const { rows } = await pool.query(
+      const neighborQuery = (extraFilter, params) => pool.query(
         `SELECT
            p.id,
            p.name,
@@ -72,11 +79,27 @@ export async function getSimilarPlayers(playerId, league, season, limit = 5) {
          WHERE pse.league = $2
            AND pse.season = $3
            AND pse.player_id != $4
-           ${positionFilter}
+           ${extraFilter}
          ORDER BY pse.embedding <=> $1::vector
          LIMIT $5`,
-        [embeddingStr, league, season, playerId, limit]
+        params
       );
+
+      // 3. Find nearest neighbors within position group
+      const { rows } = await neighborQuery(positionFilter, [embeddingStr, league, season, playerId, limit]);
+
+      // 4. If the position filter didn't fill the limit, top up from the full pool
+      if (rows.length < limit && positionFilter) {
+        const returnedIds = rows.map((r) => r.id);
+        const excludeFilter = returnedIds.length > 0
+          ? `AND pse.player_id != ALL(ARRAY[${returnedIds.join(",")}])`
+          : "";
+        const { rows: extras } = await neighborQuery(
+          excludeFilter,
+          [embeddingStr, league, season, playerId, limit - rows.length]
+        );
+        rows.push(...extras);
+      }
 
       return rows;
     },

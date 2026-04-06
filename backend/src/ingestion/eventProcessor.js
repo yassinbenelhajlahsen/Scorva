@@ -367,6 +367,7 @@ export async function processEvent(client, leagueSlug, event) {
       homeComp.records?.find((r) => r.type === "home")?.summary || "0-0",
     awayrecord:
       homeComp.records?.find((r) => r.type === "road")?.summary || "0-0",
+    primary_color: homeComp.team.color ? `#${homeComp.team.color}` : null,
   };
 
   const awayTeamData = {
@@ -379,6 +380,7 @@ export async function processEvent(client, leagueSlug, event) {
       awayComp.records?.find((r) => r.type === "home")?.summary || "0-0",
     awayrecord:
       awayComp.records?.find((r) => r.type === "road")?.summary || "0-0",
+    primary_color: awayComp.team.color ? `#${awayComp.team.color}` : null,
   };
 
   try {

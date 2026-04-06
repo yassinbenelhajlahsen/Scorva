@@ -212,10 +212,8 @@ export default function PlayerPage() {
         </div>
         </div>{/* end left: headshot + info card */}
 
-        {/* Similar Players sidebar */}
-        <div className="lg:w-72 xl:w-80 shrink-0 flex flex-col">
-          <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
-        </div>
+        {/* Similar Players sidebar — self-sizing, collapses when empty */}
+        <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
       </div>
 
       {/* Recent Performances */}

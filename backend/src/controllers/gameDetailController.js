@@ -1,4 +1,5 @@
 import { getNbaGame, getNflGame, getNhlGame } from "../services/gameDetailService.js";
+import { getWinProbability as fetchWinProbability } from "../services/winProbabilityService.js";
 import logger from "../logger.js";
 
 const leagueHandlers = {
@@ -27,6 +28,30 @@ export async function getGameInfo(req, res) {
     return res.json(game);
   } catch (err) {
     logger.error({ err, league }, "game fetch error");
+    return res.status(500).send("Server error");
+  }
+}
+
+const VALID_LEAGUES = new Set(["nba", "nfl", "nhl"]);
+
+export async function getWinProbability(req, res) {
+  const { league, eventId } = req.params;
+
+  if (!VALID_LEAGUES.has(league.toLowerCase())) {
+    return res.status(400).send("Invalid league");
+  }
+
+  if (Number.isNaN(parseInt(eventId, 10))) {
+    return res.status(400).send("Invalid event ID");
+  }
+
+  const isFinal = req.query.final === "true";
+
+  try {
+    const data = await fetchWinProbability(league.toLowerCase(), eventId, isFinal);
+    return res.json({ data });
+  } catch (err) {
+    logger.error({ err, league, eventId }, "win probability fetch error");
     return res.status(500).send("Server error");
   }
 }
