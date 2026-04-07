@@ -5,6 +5,15 @@ vi.mock("react-router-dom", () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
 }));
 
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ prefetchQuery: vi.fn() }),
+}));
+
+vi.mock("../../lib/query.js", () => ({
+  queryKeys: { game: () => ["game"] },
+  queryFns: { game: () => () => {} },
+}));
+
 vi.mock("framer-motion", () => ({
   m: new Proxy(
     {},
