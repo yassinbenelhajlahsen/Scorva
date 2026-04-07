@@ -18,7 +18,7 @@ const SCOREBOARD_URL = (sport, league) =>
 
 const TICK_MS = 15_000;
 const FULL_UPDATE_INTERVAL_MS = 120_000;
-const PLAYS_UPDATE_INTERVAL_MS = 30_000;
+const PLAYS_UPDATE_INTERVAL_MS = 15_000;
 const NO_GAMES_SLEEP_MS = 5 * 60 * 1000;
 
 // ESPN sport path for the /playbyplay endpoint (differs from scoreboard path)
