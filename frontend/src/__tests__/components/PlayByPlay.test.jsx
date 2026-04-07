@@ -174,14 +174,10 @@ describe("PlayByPlay", () => {
       expect(screen.getByText("12:00")).toBeInTheDocument();
     });
 
-    it("shows live subtitle when isLive is true", () => {
+    it("does not show subtitle text", () => {
       render(<PlayByPlay {...defaultProps} isLive={true} />);
-      expect(screen.getByText(/Live — updating every 30s/i)).toBeInTheDocument();
-    });
-
-    it("shows scoring play count subtitle when not live", () => {
-      render(<PlayByPlay {...defaultProps} />);
-      expect(screen.getByText(/scoring plays/)).toBeInTheDocument();
+      expect(screen.queryByText(/Live — updating every/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/scoring plays/)).not.toBeInTheDocument();
     });
   });
 
