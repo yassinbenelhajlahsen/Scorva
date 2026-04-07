@@ -74,21 +74,46 @@ function nhlClockToRemaining(clock, period) {
   return `${Math.floor(rem / 60)}:${String(rem % 60).padStart(2, "0")}`;
 }
 
+// ─── Period section header ────────────────────────────────────────────────────
+function PeriodHeader({ period, league }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2 bg-surface-primary/80 backdrop-blur-sm sticky top-0 z-10">
+      <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-widest">
+        {periodLabel(period, league)}
+      </span>
+      <div className="flex-1 h-px bg-white/[0.06]" />
+    </div>
+  );
+}
+
 // ─── Single play row ──────────────────────────────────────────────────────────
 function PlayRow({ play, isNew, highlightScoring, league }) {
   const isScoring = highlightScoring && play.scoring_play;
   return (
     <m.div
-      layout
-      initial={isNew ? { opacity: 0, y: -8 } : false}
+      layout="position"
+      initial={isNew ? { opacity: 0, y: -14 } : false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className={`flex items-start gap-3 px-4 py-2.5 ${
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 28,
+        mass: 0.8,
+      }}
+      className={`relative flex items-start gap-3 px-4 py-2.5 ${
         isScoring
           ? "bg-win/[0.05] border-l-2 border-win"
           : "border-l-2 border-transparent"
       }`}
     >
+      {isNew && (
+        <m.div
+          className="absolute inset-0 bg-accent/[0.06] pointer-events-none"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 1.8, delay: 0.2, ease: "easeOut" }}
+        />
+      )}
       {/* Clock */}
       <span className="font-mono text-xs text-text-tertiary w-12 shrink-0 pt-0.5 tabular-nums">
         {league === "nhl" ? nhlClockToRemaining(play.clock, play.period) ?? "–" : play.clock ?? "–"}
@@ -121,7 +146,7 @@ function PlayRow({ play, isNew, highlightScoring, league }) {
 }
 
 // ─── NFL drive group ──────────────────────────────────────────────────────────
-function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring }) {
+function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, league }) {
   const [open, setOpen] = useState(false);
   const scoringPlay = plays.some((p) => p.scoring_play);
 
@@ -167,6 +192,62 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
           </m.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Play list with optional period grouping ─────────────────────────────────
+function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, league }) {
+  const reversed = useMemo(() => [...filteredPlays].reverse(), [filteredPlays]);
+
+  // Group reversed plays by period (periods appear newest-first)
+  const groups = useMemo(() => {
+    const result = [];
+    let cur = null;
+    for (const play of reversed) {
+      if (play.period !== cur) {
+        cur = play.period;
+        result.push({ period: cur, plays: [] });
+      }
+      result[result.length - 1].plays.push(play);
+    }
+    return result;
+  }, [reversed]);
+
+  if (!showPeriodHeaders) {
+    return (
+      <div className="divide-y divide-white/[0.05]">
+        {reversed.map((play) => (
+          <PlayRow
+            key={play.id ?? play.espn_play_id ?? play.sequence}
+            play={play}
+            isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
+            highlightScoring={highlightScoring}
+            league={league}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {groups.map((group) => (
+        <div key={group.period}>
+          <PeriodHeader period={group.period} league={league} />
+          <div className="divide-y divide-white/[0.05]">
+            {group.plays.map((play) => (
+              <PlayRow
+                key={play.id ?? play.espn_play_id ?? play.sequence}
+                play={play}
+                isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
+                highlightScoring={highlightScoring}
+                league={league}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -320,18 +401,14 @@ export default function PlayByPlay({ league, gameId, isLive }) {
             <p className="text-center text-text-tertiary text-sm py-8">No plays for this filter.</p>
           )
         ) : (
-          // NBA / NHL: newest play at top
-          <div className="divide-y divide-white/[0.05]">
-            {[...filteredPlays].reverse().map((play) => (
-              <PlayRow
-                key={play.id ?? play.espn_play_id ?? play.sequence}
-                play={play}
-                isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
-                highlightScoring={activeFilter !== "scoring"}
-                league={league}
-              />
-            ))}
-          </div>
+          // NBA / NHL: newest play at top, grouped by period when not filtered
+          <PlayList
+            filteredPlays={filteredPlays}
+            showPeriodHeaders={activeFilter === "all" || activeFilter === "scoring"}
+            newPlayIds={newPlayIds}
+            highlightScoring={activeFilter !== "scoring"}
+            league={league}
+          />
         )}
       </div>
     </div>
