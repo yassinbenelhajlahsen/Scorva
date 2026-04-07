@@ -33,6 +33,8 @@ function periodLabel(period, league) {
     if (period === 1) return "P1";
     if (period === 2) return "P2";
     if (period === 3) return "P3";
+    if (period === 4) return "OT";
+    if (period === 5) return "SO";
     return `OT${period - 3}`;
   }
   // NBA
@@ -116,7 +118,7 @@ function PlayRow({ play, isNew, highlightScoring, league }) {
       )}
       {/* Clock */}
       <span className="font-mono text-xs text-text-tertiary w-12 shrink-0 pt-0.5 tabular-nums">
-        {league === "nhl" ? nhlClockToRemaining(play.clock, play.period) ?? "–" : play.clock ?? "–"}
+        {league === "nhl" && play.period <= 4 ? nhlClockToRemaining(play.clock, play.period) ?? "–" : play.clock ?? "–"}
       </span>
 
       {/* Team logo + description */}
@@ -200,18 +202,16 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
 function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, league }) {
   const reversed = useMemo(() => [...filteredPlays].reverse(), [filteredPlays]);
 
-  // Group reversed plays by period (periods appear newest-first)
+  // Group all plays by period (Map merges non-contiguous runs), newest period first
   const groups = useMemo(() => {
-    const result = [];
-    let cur = null;
+    const map = new Map();
     for (const play of reversed) {
-      if (play.period !== cur) {
-        cur = play.period;
-        result.push({ period: cur, plays: [] });
-      }
-      result[result.length - 1].plays.push(play);
+      if (!map.has(play.period)) map.set(play.period, []);
+      map.get(play.period).push(play);
     }
-    return result;
+    return Array.from(map.entries())
+      .sort(([a], [b]) => b - a)
+      .map(([period, plays]) => ({ period, plays }));
   }, [reversed]);
 
   if (!showPeriodHeaders) {
