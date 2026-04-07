@@ -183,7 +183,7 @@ export default function LeaguePage() {
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : (
-        <div className="overflow-hidden">
+        <div className="overflow-x-clip">
           <AnimatePresence mode="wait" custom={tabDirection} initial={false}>
             <m.div
               key={activeTab}

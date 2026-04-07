@@ -157,7 +157,7 @@ export default function Homepage() {
           </div>
 
           {/* Games grid */}
-          <div className="overflow-hidden">
+          <div className="overflow-x-clip">
             <AnimatePresence mode="wait" custom={tabDirection} initial={false}>
               <m.div
                 key={activeLeague}
