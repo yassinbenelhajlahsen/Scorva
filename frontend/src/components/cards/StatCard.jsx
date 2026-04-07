@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import slugify from "../../utils/slugify.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 export default function StatCard({
   stats = [],
@@ -19,6 +21,8 @@ export default function StatCard({
     status?.includes("In Progress") ||
     status?.includes("Halftime") ||
     status?.includes("End of Period");
+  const queryClient = useQueryClient();
+
   if (!stats.length) {
     return (
       <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full max-w-3xl p-6 text-center">
@@ -30,7 +34,19 @@ export default function StatCard({
   const to = `/${league}/games/${gameId}?tab=analysis#${slugify(playerName)}`;
 
   return (
-    <Link to={to} className="group block">
+    <Link
+      to={to}
+      className="group block"
+      onMouseEnter={() => {
+        if (window.matchMedia("(hover: hover)").matches) {
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.game(league, gameId),
+            queryFn: queryFns.game(league, gameId),
+            staleTime: 10_000,
+          });
+        }
+      }}
+    >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:z-10 cursor-pointer max-w-sm mx-auto overflow-hidden">
 
         {/* Game info */}
