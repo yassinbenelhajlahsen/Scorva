@@ -178,7 +178,7 @@ export async function tick(liveLeagues) {
                 log.error({ err, eventId }, "Full update failed for event");
                 // Fall back to fast path — processEvent already committed/rolled back
                 await upsertGameScoreboard(client, slug, event);
-                eventState.set(eventId, { ...state, lastPeriod: currentPeriod });
+                eventState.set(eventId, { ...state, lastFullUpdate: now, lastPeriod: currentPeriod });
               }
             } else {
               await upsertGameScoreboard(client, slug, event);
@@ -189,7 +189,7 @@ export async function tick(liveLeagues) {
                 try {
                   const sportPath = PLAYS_SPORT_PATH[slug];
                   const pbpRes = await fetch(
-                    `https://site.api.espn.com/apis/site/v2/sports/${sportPath}/playbyplay?event=${eventId}`
+                    `https://site.api.espn.com/apis/site/v2/sports/${sportPath}/summary?event=${eventId}`
                   );
                   if (pbpRes.ok) {
                     const pbpData = await pbpRes.json();
@@ -205,6 +205,7 @@ export async function tick(liveLeagues) {
                       const homeEspnId = parseInt(homeComp?.team?.id, 10);
                       const awayEspnId = parseInt(awayComp?.team?.id, 10);
                       await upsertPlays(client, gameId, pbpData, slug, hometeamid, awayteamid, homeEspnId, awayEspnId);
+                      await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
                       newState.lastPlaysUpdate = now;
                     }
                   }

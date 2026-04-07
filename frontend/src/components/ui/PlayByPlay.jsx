@@ -59,8 +59,23 @@ function FilterPill({ label, active, onClick }) {
   );
 }
 
+// ESPN returns elapsed time for NHL plays (0:00 → 20:00); convert to remaining
+function nhlClockToRemaining(clock, period) {
+  if (!clock) return clock;
+  const parts = clock.split(":");
+  if (parts.length !== 2) return clock;
+  const mins = parseInt(parts[0], 10);
+  const secs = parseInt(parts[1], 10);
+  if (Number.isNaN(mins) || Number.isNaN(secs)) return clock;
+  const elapsed = mins * 60 + secs;
+  const isOT = period > 3;
+  const periodLen = isOT && elapsed <= 300 ? 300 : 1200;
+  const rem = Math.max(0, periodLen - elapsed);
+  return `${Math.floor(rem / 60)}:${String(rem % 60).padStart(2, "0")}`;
+}
+
 // ─── Single play row ──────────────────────────────────────────────────────────
-function PlayRow({ play, isNew, highlightScoring }) {
+function PlayRow({ play, isNew, highlightScoring, league }) {
   const isScoring = highlightScoring && play.scoring_play;
   return (
     <m.div
@@ -76,7 +91,7 @@ function PlayRow({ play, isNew, highlightScoring }) {
     >
       {/* Clock */}
       <span className="font-mono text-xs text-text-tertiary w-12 shrink-0 pt-0.5 tabular-nums">
-        {play.clock ?? "–"}
+        {league === "nhl" ? nhlClockToRemaining(play.clock, play.period) ?? "–" : play.clock ?? "–"}
       </span>
 
       {/* Team logo + description */}
@@ -146,6 +161,7 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
                 play={play}
                 isNew={newPlayIds.has(play.espn_play_id)}
                 highlightScoring={highlightScoring}
+                league={league}
               />
             ))}
           </m.div>
@@ -312,6 +328,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 play={play}
                 isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
                 highlightScoring={activeFilter !== "scoring"}
+                league={league}
               />
             ))}
           </div>
