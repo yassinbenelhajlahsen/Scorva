@@ -266,9 +266,6 @@ export default function PlayByPlay({ league, gameId, isLive }) {
         </div>
         <div>
           <h2 className="text-xl font-bold tracking-tight text-text-primary">Play by Play</h2>
-          <p className="text-xs text-text-tertiary mt-0.5">
-            {isLive ? "Live — updating every 30s" : `${plays.filter(p => p.scoring_play).length} scoring plays · filter by quarter below`}
-          </p>
         </div>
       </div>
 
