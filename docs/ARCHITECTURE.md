@@ -86,12 +86,19 @@ Components call `queryClient.prefetchQuery()` on `mouseenter` with `staleTime: 1
 | Component | Prefetches |
 |---|---|
 | `GameCard` | `game` — on existing hover handler |
+| `StatCard` | `game` |
+| `Navbar` home link | `homeGames` |
 | `Navbar` league links | `leagueGames` + `gameDates` |
 | Homepage "View All" button | `leagueGames` + `gameDates` |
 | `LeaguePage` standings rows | `team` |
 | `TopPerformerCard` | `player` |
 | `SimilarPlayersCard` items | `player` |
 | `SearchBar` result items | `game` / `player` / `team` by result type |
+| `FavoriteTeamsSection` team link | `team` |
+| `FavoritePlayersSection` player link | `player` |
+| `GameMatchupHeader` team names | `team` (home + away) |
+| `BoxScore` player names | `player` |
+| `PlayerPage` team link | `team` |
 
 `useGame` has `staleTime: 0` — prefetched data serves immediately on navigation while a background refetch runs in parallel. All other hooks use the global 2 min staleTime, so prefetched data stays hot for any click within that window.
 

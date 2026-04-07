@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getGameById, getLeagueGames, getGameDates } from "../api/games.js";
+import { getGameById, getLeagueGames, getGameDates, getAllLeagueGames } from "../api/games.js";
 import { getPlayer } from "../api/players.js";
 import { getTeams } from "../api/teams.js";
 import slugify from "../utils/slugify.js";
@@ -43,6 +43,7 @@ export const queryFns = {
   leagueGames: (league, season, date) => () =>
     getLeagueGames(league, { season, date }),
   gameDates: (league, season) => () => getGameDates(league, { season }),
+  homeGames: () => () => getAllLeagueGames(),
 };
 
 export function useDebouncedValue(value, delay = 200) {

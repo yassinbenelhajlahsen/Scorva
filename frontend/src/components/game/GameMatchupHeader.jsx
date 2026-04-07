@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { m, AnimatePresence } from "framer-motion";
 import { scoreUpdateVariants } from "../../utils/motion.js";
 import slugify from "../../utils/slugify.js";
 import { getPeriodLabel } from "../../utils/formatDate.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 export default function GameMatchupHeader({
   homeTeam,
@@ -16,6 +18,7 @@ export default function GameMatchupHeader({
   playoffLogo,
   scoreColor,
 }) {
+  const queryClient = useQueryClient();
   return (
     <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 mb-10">
       {/* Home Team */}
@@ -32,6 +35,11 @@ export default function GameMatchupHeader({
           <Link
             to={`/${league}/teams/${slugify(homeTeam.info.name)}`}
             className="text-2xl sm:text-4xl font-bold tracking-tight text-text-primary hover:text-accent transition-colors duration-200"
+            onMouseEnter={() => {
+              if (window.matchMedia("(hover: hover)").matches) {
+                queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(homeTeam.info.name)), queryFn: queryFns.team(league, slugify(homeTeam.info.name)), staleTime: 10_000 });
+              }
+            }}
           >
             {homeTeam.info.shortName}
           </Link>
@@ -106,6 +114,11 @@ export default function GameMatchupHeader({
           <Link
             to={`/${league}/teams/${slugify(awayTeam.info.name)}`}
             className="text-2xl sm:text-4xl font-bold tracking-tight text-text-primary hover:text-accent transition-colors duration-200"
+            onMouseEnter={() => {
+              if (window.matchMedia("(hover: hover)").matches) {
+                queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(awayTeam.info.name)), queryFn: queryFns.team(league, slugify(awayTeam.info.name)), staleTime: 10_000 });
+              }
+            }}
           >
             {awayTeam.info.shortName}
           </Link>

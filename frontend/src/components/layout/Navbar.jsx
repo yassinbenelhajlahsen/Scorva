@@ -46,7 +46,15 @@ export default function Navbar() {
       {/* Main row */}
       <div className="relative flex items-center px-5 py-3">
         {/* Left: Brand */}
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 shrink-0"
+          onMouseEnter={() => {
+            if (window.matchMedia("(hover: hover)").matches) {
+              queryClient.prefetchQuery({ queryKey: queryKeys.homeGames(), queryFn: queryFns.homeGames(), staleTime: 10_000 });
+            }
+          }}
+        >
           <img src={logo} alt="Scorva" className="w-7 h-7" />
           <span className="text-base font-semibold tracking-tight text-text-primary hover:text-accent transition-colors duration-200">
             Scorva

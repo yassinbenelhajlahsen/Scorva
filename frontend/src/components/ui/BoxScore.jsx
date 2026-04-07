@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import slugify from "../../utils/slugify.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -135,6 +137,7 @@ function SortArrow({ active, dir }) {
 // ---------------------------------------------------------------------------
 
 export default function BoxScore({ league, homeTeam, awayTeam, season }) {
+  const queryClient = useQueryClient();
   // null sortKey = use league default sort
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("desc");
@@ -262,6 +265,11 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
                   <Link
                     to={`/${league}/players/${slugify(p.name)}${season ? `?season=${season}` : ""}`}
                     className="text-accent hover:text-accent-hover transition-colors duration-200 text-sm"
+                    onMouseEnter={() => {
+                      if (window.matchMedia("(hover: hover)").matches) {
+                        queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slugify(p.name), season || null), queryFn: queryFns.player(league, slugify(p.name), season || null), staleTime: 10_000 });
+                      }
+                    }}
                   >
                     {p.name}
                   </Link>

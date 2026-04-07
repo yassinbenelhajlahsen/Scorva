@@ -1,9 +1,11 @@
 import { m } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import StatCard from "../cards/StatCard.jsx";
 import slugify from "../../utils/slugify.js";
 import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 
 const statKeysForLeague = {
   nba: [
@@ -24,6 +26,7 @@ const statKeysForLeague = {
 };
 
 export default function FavoritePlayersSection({ players }) {
+  const queryClient = useQueryClient();
   return (
     <div>
       <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold mb-4">Favorite Players</h2>
@@ -39,6 +42,11 @@ export default function FavoritePlayersSection({ players }) {
               <Link
                 to={`/${player.league}/players/${slugify(player.name)}`}
                 className="flex items-center gap-4 shrink-0 hover:opacity-80 transition-opacity w-full sm:w-52"
+                onMouseEnter={() => {
+                  if (window.matchMedia("(hover: hover)").matches) {
+                    queryClient.prefetchQuery({ queryKey: queryKeys.player(player.league, slugify(player.name), null), queryFn: queryFns.player(player.league, slugify(player.name), null), staleTime: 10_000 });
+                  }
+                }}
               >
                 <img
                   loading="lazy"

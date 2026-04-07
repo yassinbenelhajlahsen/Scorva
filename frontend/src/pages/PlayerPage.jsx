@@ -1,7 +1,9 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import { usePlayer } from "../hooks/data/usePlayer.js";
+import { queryKeys, queryFns } from "../lib/query.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -75,6 +77,7 @@ const nflStatsByPosition = {
 export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const { playerData, loading, seasonLoading, error, retry } = usePlayer(league, slug, selectedSeason);
@@ -200,6 +203,11 @@ export default function PlayerPage() {
               <Link
                 to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
                 className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
+                onMouseEnter={() => {
+                  if (window.matchMedia("(hover: hover)").matches) {
+                    queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 });
+                  }
+                }}
               >
                 {team.name}
               </Link>
