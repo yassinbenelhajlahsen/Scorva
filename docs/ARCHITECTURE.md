@@ -17,9 +17,11 @@ ESPN API → PostgreSQL → Express backend → React frontend
 
 ## Live sync worker (`ingestion/liveSync.js`)
 Two-tier update strategy:
-- **Fast path** every 15s: `upsertGameScoreboard` — scoreboard data only
-- **Full path** every 2 min or on period change: `processEvent` — fetches boxscore + player stats
-- Each write fires `pg_notify('game_updated')` → SSE controllers push immediately to clients
+- **Fast path** every 15s: `upsertGameScoreboard` (scoreboard data) + plays-only fetch from ESPN `/summary` endpoint
+- **Full path** every 2 min or on period change: `processEvent` — fetches boxscore + player stats + plays in one transaction
+- Fast-path plays fetch uses the `/summary` endpoint (not `/playbyplay`) because ESPN's `/playbyplay` returns 0 plays for live NHL games
+- Each scoreboard write fires `pg_notify('game_updated')`; a second `pg_notify` fires after plays are written so the frontend fetches fresh play data (not stale pre-write data)
+- On `processEvent` failure: `lastFullUpdate` is set to `now` so the next tick falls into the fast path (plays still update via the plays-only fetch). Without this, failures cause an infinite full-update retry loop that starves the plays pipeline — scores update but plays never do
 - Sleeps 5 min when no live games
 - **Multi-league discovery**: every tick iteration re-checks all leagues and merges any newly-live ones into the active sync set — so a league that goes live after initial discovery is picked up within 15s, not after all other leagues finish
 - Deployed as a separate Railway service (`npm run live-sync`)

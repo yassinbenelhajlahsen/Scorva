@@ -22,6 +22,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Stats teamid backfill              | `backend/src/ingestion/scripts/backfillStatsTeamid.js`                                                 |
 | Plays backfill                     | `backend/src/ingestion/scripts/backfillPlays.js`                                                       |
 | Plays upsert                       | `backend/src/ingestion/upsertPlays.js`                                                                 |
+| Game replay script (dev)           | `backend/scripts/replayGame.js`                                                                        |
 | Popularity refresh                 | `backend/src/ingestion/refreshPopularity.js`                                                           |
 | Player similarity embeddings       | `backend/src/ingestion/computePlayerEmbeddings.js`                                                     |
 | Team colors backfill               | `backend/src/ingestion/scripts/backfillTeamColors.js`                                                  |
