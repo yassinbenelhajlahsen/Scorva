@@ -71,7 +71,7 @@ export default function NewsPreviewModal({ article, onClose }) {
                 <img
                   src={leagueData[article.league]?.logo}
                   alt={article.league}
-                  className="w-4 h-4 object-contain"
+                  className={`${article.league === "nhl" ? "w-6 h-6" : "w-4 h-4"} object-contain`}
                 />
                 <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
                   {leagueData[article.league]?.name}

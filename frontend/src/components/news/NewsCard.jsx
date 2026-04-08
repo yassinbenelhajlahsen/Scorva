@@ -25,7 +25,7 @@ export default function NewsCard({ article, onClick }) {
           <img
             src={leagueData[article.league]?.logo}
             alt={article.league}
-            className="w-3.5 h-3.5 object-contain"
+            className={`${article.league === "nhl" ? "w-[1.5rem] h-[1.5rem]" : "w-3.5 h-3.5"} object-contain`}
           />
           <span className="text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
             {leagueData[article.league]?.name}
