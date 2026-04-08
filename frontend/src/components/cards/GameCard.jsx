@@ -187,114 +187,56 @@ function GameCard({ game }) {
           </div>
         </div>
 
-        {/* Quarter breakdown — NHL */}
-        {(isFinal || inProgress) && nhl && (
-          <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
-          <ul
-            className="mt-3 text-sm text-text-secondary font-mono space-y-1 border-t border-white/[0.06] pt-3"
-          >
-            <li className="text-text-primary text-xs font-semibold text-center mb-1">
-              {game.status}
-            </li>
-            <li className="flex justify-between text-[11px] text-text-tertiary px-2">
-              <span className="w-12" />
-              <span className="w-8 text-center">1</span>
-              <span className="w-8 text-center">2</span>
-              <span className="w-8 text-center">3</span>
-              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
-                game[key] ? (
-                  <span key={key} className="w-10 text-center">{key.toUpperCase()}</span>
-                ) : null
-              )}
-              <span className="w-8 text-center font-semibold">T</span>
-            </li>
-            <li className="flex justify-between px-2 text-xs">
-              <span className="w-12 font-semibold text-left text-text-primary">{game.away_shortname}</span>
-              <span className="w-8 text-center">{game.firstqtr?.split("-")[1]}</span>
-              <span className="w-8 text-center">{game.secondqtr?.split("-")[1]}</span>
-              <span className="w-8 text-center">{game.thirdqtr?.split("-")[1]}</span>
-              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
-                game[key] ? (
-                  <span key={key} className="w-10 text-center">{game[key].split("-")[1]}</span>
-                ) : null
-              )}
-              <span className={`w-8 text-center font-semibold ${awayWon ? "text-win" : isFinal ? "text-loss" : ""}`}>
-                {isFinal && game.awayscore}
-              </span>
-            </li>
-            <li className="flex justify-between px-2 text-xs">
-              <span className="w-12 font-semibold text-left text-text-primary">{game.home_shortname}</span>
-              <span className="w-8 text-center">{game.firstqtr?.split("-")[0]}</span>
-              <span className="w-8 text-center">{game.secondqtr?.split("-")[0]}</span>
-              <span className="w-8 text-center">{game.thirdqtr?.split("-")[0]}</span>
-              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
-                game[key] ? (
-                  <span key={key} className="w-10 text-center">{game[key].split("-")[0]}</span>
-                ) : null
-              )}
-              <span className={`w-8 text-center font-semibold ${homeWon ? "text-win" : isFinal ? "text-loss" : ""}`}>
-                {isFinal && game.homescore}
-              </span>
-            </li>
-          </ul>
-          </div>
-        )}
-
-        {/* Quarter breakdown — NBA / NFL */}
-        {(isFinal || inProgress) && !nhl && (
-          <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
-          <ul
-            className="mt-3 text-sm text-text-secondary font-mono space-y-1 border-t border-white/[0.06] pt-3"
-          >
-            <li className="text-text-primary text-xs font-semibold text-center mb-1">
-              {game.status}
-            </li>
-            <li className="flex justify-between text-[11px] text-text-tertiary px-2">
-              <span className="w-12" />
-              <span className="w-8 text-center">1</span>
-              <span className="w-8 text-center">2</span>
-              <span className="w-8 text-center">3</span>
-              <span className="w-8 text-center">4</span>
-              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
-                game[key] ? (
-                  <span key={key} className="w-10 text-center">{key.toUpperCase()}</span>
-                ) : null
-              )}
-              <span className="w-8 text-center font-semibold">T</span>
-            </li>
-            <li className="flex justify-between px-2 text-xs">
-              <span className="w-12 font-semibold text-left text-text-primary">{game.away_shortname}</span>
-              <span className="w-8 text-center">{game.firstqtr?.split("-")[1]}</span>
-              <span className="w-8 text-center">{game.secondqtr?.split("-")[1]}</span>
-              <span className="w-8 text-center">{game.thirdqtr?.split("-")[1]}</span>
-              <span className="w-8 text-center">{game.fourthqtr?.split("-")[1]}</span>
-              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
-                game[key] ? (
-                  <span key={key} className="w-10 text-center">{game[key].split("-")[1]}</span>
-                ) : null
-              )}
-              <span className={`w-8 text-center font-semibold ${awayWon ? "text-win" : isFinal ? "text-loss" : ""}`}>
-                {isFinal && game.awayscore}
-              </span>
-            </li>
-            <li className="flex justify-between px-2 text-xs">
-              <span className="w-12 font-semibold text-left text-text-primary">{game.home_shortname}</span>
-              <span className="w-8 text-center">{game.firstqtr?.split("-")[0]}</span>
-              <span className="w-8 text-center">{game.secondqtr?.split("-")[0]}</span>
-              <span className="w-8 text-center">{game.thirdqtr?.split("-")[0]}</span>
-              <span className="w-8 text-center">{game.fourthqtr?.split("-")[0]}</span>
-              {["ot1", "ot2", "ot3", "ot4"].map((key) =>
-                game[key] ? (
-                  <span key={key} className="w-10 text-center">{game[key].split("-")[0]}</span>
-                ) : null
-              )}
-              <span className={`w-8 text-center font-semibold ${homeWon ? "text-win" : isFinal ? "text-loss" : ""}`}>
-                {isFinal && game.homescore}
-              </span>
-            </li>
-          </ul>
-          </div>
-        )}
+        {/* Quarter/period breakdown */}
+        {(isFinal || inProgress) && (() => {
+          const quarters = nhl
+            ? [game.firstqtr, game.secondqtr, game.thirdqtr]
+            : [game.firstqtr, game.secondqtr, game.thirdqtr, game.fourthqtr];
+          const otKeys = ["ot1", "ot2", "ot3", "ot4"].filter((k) => game[k]);
+          return (
+            <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
+              <div className="mt-3 font-mono text-sm border-t border-white/[0.06] pt-3">
+                <div className="flex items-center gap-x-3 text-[10px] uppercase tracking-widest text-text-tertiary pb-2 border-b border-white/[0.06]">
+                  <span className="flex-1 min-w-0 text-left">Team</span>
+                  {quarters.map((_, i) => (
+                    <span key={i} className="w-7 text-center shrink-0">{i + 1}</span>
+                  ))}
+                  {otKeys.map((key, i) => (
+                    <span key={key} className="w-8 text-center shrink-0">
+                      {i === 0 ? "OT" : `OT${i + 1}`}
+                    </span>
+                  ))}
+                  <span className="w-7 text-center shrink-0 font-semibold text-text-secondary">T</span>
+                </div>
+                <div className="flex items-center gap-x-3 py-2">
+                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{game.home_shortname}</span>
+                  {quarters.map((q, i) => (
+                    <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[0] ?? "–"}</span>
+                  ))}
+                  {otKeys.map((key) => (
+                    <span key={key} className="w-8 text-center shrink-0 text-text-secondary text-xs">{game[key].split("-")[0]}</span>
+                  ))}
+                  <span className={`w-7 text-center shrink-0 font-bold tabular-nums text-xs ${scoreColor(homeWon, awayWon && isFinal)}`}>
+                    {game.homescore}
+                  </span>
+                </div>
+                <div className="border-t border-white/[0.04]" />
+                <div className="flex items-center gap-x-3 py-2">
+                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{game.away_shortname}</span>
+                  {quarters.map((q, i) => (
+                    <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[1] ?? "–"}</span>
+                  ))}
+                  {otKeys.map((key) => (
+                    <span key={key} className="w-8 text-center shrink-0 text-text-secondary text-xs">{game[key].split("-")[1]}</span>
+                  ))}
+                  <span className={`w-7 text-center shrink-0 font-bold tabular-nums text-xs ${scoreColor(awayWon, homeWon && isFinal)}`}>
+                    {game.awayscore}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Playoff round label */}
         {isPlayoff && game.game_label && (
