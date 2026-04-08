@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
-import { m, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence, LayoutGroup } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
 import leagueData from "../utils/leagueData.js";
@@ -15,6 +15,7 @@ import FavoritePlayersSection from "../components/favorites/FavoritePlayersSecti
 import FavoriteTeamsSection from "../components/favorites/FavoriteTeamsSection.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
+import NewsSection from "../components/news/NewsSection.jsx";
 
 export default function Homepage() {
   const queryClient = useQueryClient();
@@ -31,20 +32,6 @@ export default function Homepage() {
   const [activeLeague, setActiveLeague] = useState(null);
   const [userPicked, setUserPicked] = useState(false);
   const [tabDirection, setTabDirection] = useState(1);
-  const leagueTabRefs = useRef([]);
-  const leagueNavRef = useRef(null);
-  const [leaguePillBounds, setLeaguePillBounds] = useState(null);
-
-  useLayoutEffect(() => {
-    const idx = leagues.findIndex((l) => l.id === activeLeague);
-    const btn = leagueTabRefs.current[idx];
-    const nav = leagueNavRef.current;
-    if (btn && nav) {
-      const btnRect = btn.getBoundingClientRect();
-      const navRect = nav.getBoundingClientRect();
-      setLeaguePillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
-    }
-  }, [activeLeague, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
@@ -110,16 +97,22 @@ export default function Homepage() {
         </div>
       )}
 
+      {/* News Headlines */}
+      <NewsSection />
+
       {/* League tabs + Games */}
       {error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : loading || !activeLeague ? (
         <>
-          {/* Skeleton tab pills */}
-          <div className="flex justify-center mb-8 gap-2">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-10 w-24 rounded-full" />
-            ))}
+          {/* Skeleton header row */}
+          <div className="flex items-center justify-between mb-6">
+            <Skeleton className="h-3.5 w-32" />
+            <div className="flex gap-1 border-b border-white/[0.06]">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-4 w-14 mx-3 mb-2.5 mt-2" />
+              ))}
+            </div>
           </div>
           {/* Skeleton game grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
@@ -130,30 +123,35 @@ export default function Homepage() {
         </>
       ) : (
         <div>
-          {/* Tab pills */}
-          <div className="flex justify-center mb-8">
-            <div ref={leagueNavRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-              {leaguePillBounds && (
-                <m.div
-                  className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
-                  initial={{ left: leaguePillBounds.left, width: leaguePillBounds.width }}
-                  animate={{ left: leaguePillBounds.left, width: leaguePillBounds.width }}
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              {leagues.map((league, i) => (
-                <button
-                  key={league.id}
-                  ref={(el) => (leagueTabRefs.current[i] = el)}
-                  onClick={() => pickLeague(league.id)}
-                  className="relative flex items-center gap-2.5 px-5 py-2.5 rounded-full text-sm font-medium z-10 transition-colors duration-200"
-                  style={{ color: activeLeague === league.id ? "var(--color-accent)" : "var(--color-text-secondary)" }}
-                >
-                  <img src={league.logo} alt={league.name} className="w-5 h-5 object-contain" />
-                  <span>{league.name}</span>
-                </button>
-              ))}
-            </div>
+          {/* Section header with inline league tabs */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold">
+              Today's Games
+            </h2>
+            <LayoutGroup>
+              <div className="relative flex border-b border-white/[0.06]">
+                {leagues.map((league) => {
+                  const isActive = activeLeague === league.id;
+                  return (
+                    <button
+                      key={league.id}
+                      onClick={() => pickLeague(league.id)}
+                      className={`relative flex items-center gap-2 px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${isActive ? "text-accent" : "text-text-secondary hover:text-text-primary"}`}
+                    >
+                      <img src={league.logo} alt={league.name} className="w-4 h-4 object-contain" />
+                      <span>{league.name}</span>
+                      {isActive && (
+                        <m.div
+                          layoutId="league-tab-indicator"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
+                          transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </LayoutGroup>
           </div>
 
           {/* Games grid */}
