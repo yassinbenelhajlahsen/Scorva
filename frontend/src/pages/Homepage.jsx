@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
-import { m, AnimatePresence, LayoutGroup } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import GameCard from "../components/cards/GameCard.jsx";
 import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
 import leagueData from "../utils/leagueData.js";
@@ -32,6 +32,22 @@ export default function Homepage() {
   const [activeLeague, setActiveLeague] = useState(null);
   const [userPicked, setUserPicked] = useState(false);
   const [tabDirection, setTabDirection] = useState(1);
+
+  const tabNavRef = useRef(null);
+  const tabRefs = useRef([]);
+  const [indicatorBounds, setIndicatorBounds] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!activeLeague) return;
+    const idx = leagues.findIndex((l) => l.id === activeLeague);
+    const btn = tabRefs.current[idx];
+    const nav = tabNavRef.current;
+    if (btn && nav) {
+      const btnRect = btn.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+      setIndicatorBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
+    }
+  }, [activeLeague]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
@@ -128,30 +144,29 @@ export default function Homepage() {
             <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold">
               Today's Games
             </h2>
-            <LayoutGroup>
-              <div className="relative flex border-b border-white/[0.06]">
-                {leagues.map((league) => {
-                  const isActive = activeLeague === league.id;
-                  return (
-                    <button
-                      key={league.id}
-                      onClick={() => pickLeague(league.id)}
-                      className={`relative flex items-center gap-2 px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${isActive ? "text-accent" : "text-text-secondary hover:text-text-primary"}`}
-                    >
-                      <img src={league.logo} alt={league.name} className="w-4 h-4 object-contain" />
-                      <span>{league.name}</span>
-                      {isActive && (
-                        <m.div
-                          layoutId="league-tab-indicator"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                          transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </LayoutGroup>
+            <div ref={tabNavRef} className="relative flex border-b border-white/[0.06]">
+              {indicatorBounds && (
+                <m.div
+                  className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
+                  animate={{ left: indicatorBounds.left, width: indicatorBounds.width }}
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              {leagues.map((league, i) => {
+                const isActive = activeLeague === league.id;
+                return (
+                  <button
+                    key={league.id}
+                    ref={(el) => (tabRefs.current[i] = el)}
+                    onClick={() => pickLeague(league.id)}
+                    className={`relative flex items-center gap-2 px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${isActive ? "text-accent" : "text-text-secondary hover:text-text-primary"}`}
+                  >
+                    <img src={league.logo} alt={league.name} className="w-4 h-4 object-contain" />
+                    <span>{league.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Games grid */}

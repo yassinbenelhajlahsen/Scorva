@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, LayoutGroup, m } from "framer-motion";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, m } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useSettings } from "../../context/SettingsContext.jsx";
 import FavoritesTab from "./FavoritesTab.jsx";
@@ -74,6 +74,21 @@ export default function SettingsDrawer({ onClose }) {
     };
   }, []);
 
+  const tabNavRef = useRef(null);
+  const tabRefs = useRef([]);
+  const [indicatorBounds, setIndicatorBounds] = useState(null);
+
+  useLayoutEffect(() => {
+    const idx = TABS.findIndex((t) => t.id === activeTab);
+    const btn = tabRefs.current[idx];
+    const nav = tabNavRef.current;
+    if (btn && nav) {
+      const btnRect = btn.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+      setIndicatorBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
+    }
+  }, [activeTab]);
+
   function handleTabChange(tabId) {
     const newIndex = TABS.findIndex((t) => t.id === tabId);
     const d = newIndex > prevTabIndex.current ? 1 : -1;
@@ -108,33 +123,32 @@ export default function SettingsDrawer({ onClose }) {
       </div>
 
       {/* Tab bar */}
-      <LayoutGroup>
-        <div className="relative flex border-b border-white/[0.06] px-5 flex-shrink-0 mt-1">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`relative px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${
-                  isActive
-                    ? "text-accent"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                {tab.label}
-                {isActive && (
-                  <m.div
-                    layoutId="settings-tab-indicator"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </LayoutGroup>
+      <div ref={tabNavRef} className="relative flex border-b border-white/[0.06] px-5 flex-shrink-0 mt-1">
+        {indicatorBounds && (
+          <m.div
+            className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
+            animate={{ left: indicatorBounds.left, width: indicatorBounds.width }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+        {TABS.map((tab, i) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => (tabRefs.current[i] = el)}
+              onClick={() => handleTabChange(tab.id)}
+              className={`relative px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${
+                isActive
+                  ? "text-accent"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
