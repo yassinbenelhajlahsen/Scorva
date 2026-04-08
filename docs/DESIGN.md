@@ -12,6 +12,7 @@ Tailwind v4 — config only in `frontend/src/index.css` (`@theme`). No `tailwind
 | `surface-primary` | #111114 |
 | `surface-elevated` | #1a1a1f |
 | `surface-overlay` | #222228 |
+| `surface-subtle` | #2a2a32 |
 
 ### Text
 | Token | Value |

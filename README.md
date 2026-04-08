@@ -90,6 +90,7 @@ Backend follows a strict 4-layer separation: Routes → Controllers → Services
 | ---------------------------- | ---------------------------------- |
 | `/`                          | Homepage                           |
 | `/about`                     | About                              |
+| `/privacy`                   | PrivacyPage                        |
 | `/:league`                   | LeaguePage                         |
 | `/:league/teams/:teamId`     | TeamPage                           |
 | `/:league/players/:playerId` | PlayerPage                         |
@@ -107,7 +108,7 @@ Backend follows a strict 4-layer separation: Routes → Controllers → Services
 - JWT validated server-side on all protected routes using `requireAuth` middleware
 - Google OAuth uses a popup flow (`skipBrowserRedirect: true`) — child window closes via `postMessage` after the callback page completes
 - Supabase auth webhook (`POST /webhooks/supabase-auth`) auto-creates user rows on signup: splits `full_name` for OAuth users, reads `first_name`/`last_name` metadata for email signups
-- Account deletion: `DELETE /api/user/account` cascades favorites in DB then calls Supabase Admin API to remove the auth user
+- Account deletion: `DELETE /api/user/account` deletes the Supabase auth user first via `supabaseAdmin.auth.admin.deleteUser()`, then deletes the DB row (cascading favorites)
 
 ### Settings
 
@@ -141,8 +142,8 @@ A dedicated Railway worker (`liveSync.js`) runs a two-tier update cycle across a
 
 ### Real-Time SSE
 
-- `GET /live/:league/games` — streams live game list every 30s; emits `event: done` when no live games remain
-- `GET /live/:league/games/:gameId` — streams full game detail every 30s; emits `event: done` when game status is Final
+- `GET /live/:league/games` — streams live game list on `pg_notify('game_updated')` events; emits `event: done` when no live games remain
+- `GET /live/:league/games/:gameId` — streams full game detail on `pg_notify('game_updated')` events; emits `event: done` when game status is Final
 - 15-second `: ping` heartbeat; `X-Accel-Buffering: no` header for Railway reverse-proxy compatibility
 - Mounted before `generalLimiter` to avoid SSE connections being counted against rate limits
 - Frontend `useLiveGames` and `useLiveGame` hooks integrate into `useHomeGames`, `useLeagueData`, and `useGame`; fall back to REST polling after 3 consecutive SSE failures. Pass `null` to deactivate without breaking hook rules.
@@ -322,7 +323,12 @@ cd frontend && npm run verify
 
 ## CI/CD
 
-GitHub Actions runs `cd frontend && npm run verify` (lint + Vitest + production build) on every push and pull request. Vercel deployment only proceeds after all checks pass on `main`. The backend deploys independently via Railway on push to `main`.
+Two GitHub Actions workflows run on push and pull request to `main`:
+
+- **`frontend.yml`** — runs `npm run verify` (lint + Vitest + production build) on frontend file changes; deploys to Vercel via CLI on main push
+- **`backend.yml`** — runs `npm run verify` (lint + Jest) on backend file changes
+
+The backend deploys independently via Railway on push to `main`.
 
 ---
 

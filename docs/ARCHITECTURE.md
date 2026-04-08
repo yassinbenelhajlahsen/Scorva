@@ -139,6 +139,10 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `gameDates:{league}:{season}` | 5m | All dates + game counts for the season; used by date strip |
 | `games:{league}:{season}:date:{date}` | 30s current / 30d past | Date-filtered games for league page |
 | `news:headlines` | 5m | Merged ESPN news across all leagues; `cacheIf` non-empty |
+| `plays:{league}:{gameId}` | 30d | Final games only (stored plays) |
+| `winprob:v2:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
+| `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
+| `prediction:v2:{league}:{gameId}` | 1h | Pre-game predictions |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.
 

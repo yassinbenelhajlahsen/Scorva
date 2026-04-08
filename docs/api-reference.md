@@ -11,8 +11,9 @@
 - `GET /:league/games/:gameId/prediction` — pre-game only; 404 for live/final; returns win probabilities, key factors, confidence (`normal` | `low`); cached 1h
 - `GET /:league/games/:eventId/win-probability?final=true|false` — returns `{ winProbability[], scoreMargin[] }`; proxied from ESPN summary; cached 30s (live) / 30d (final, `cacheIf` non-null); key `winprob:v2:{league}:{eventId}`
 - `GET /:league/players`
-- `GET /:league/players/:playerId`
-- `GET /:league/players/:playerId/similar` — returns `{ players: [...] }` (up to 5); position-filtered for NFL/NHL; requires embeddings to be computed; returns `{ players: [] }` if player has < 5 games (< 2 for NFL)
+- `GET /:league/players/:slug`
+- `GET /:league/players/:slug/similar` — returns `{ players: [...] }` (up to 5); position-filtered for NFL/NHL; requires embeddings to be computed; returns `{ players: [] }` if player has < 5 games (< 2 for NFL)
+- `GET /:league/head-to-head` — query params `team1` and `team2` (team IDs); returns recent head-to-head games
 - `GET /:league/seasons`
 - `GET /news` — optional `?limit=` (default 4, max 10); returns `{ articles: [{ headline, description, url, imageUrl, published, league }] }`; merged from all 3 leagues sorted by date with at least 1 per league; cached 5 min; filters out roundup/tracker articles
 - `GET /search`
@@ -34,10 +35,10 @@
 ## Frontend routes
 - `/` → Homepage
 - `/about` → About (lazy-loaded)
+- `/privacy` → PrivacyPage (lazy-loaded)
 - `/:league` → LeaguePage
 - `/:league/teams/:teamId` → TeamPage
-- `/:league/players/:playerId` → PlayerPage
+- `/:league/players/:slug` → PlayerPage
 - `/:league/games/:gameId` → GamePage
-- `/privacy` → PrivacyPage (lazy-loaded)
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 - `*` → ErrorPage (404 catch-all, lazy-loaded)

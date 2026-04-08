@@ -10,7 +10,7 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 ## Security & middleware
 - **Security headers** — `helmet` applied in `backend/src/index.js`
 - **CORS allowlist** in `backend/src/middleware/index.js` — production only: `scorva.vercel.app` and `scorva.dev`; localhost/LAN allowed when `NODE_ENV !== "production"`
-- **Middleware chain order**: `helmet` → `requestLogger` → `cors` → `express.json()` → `webhooksRoute` → `aiSummaryRoute` → `sseConnectionLimiter` (on `/api/live`) → `liveRoute` → `generalLimiter` → all other routes
+- **Middleware chain order**: `helmet` → `requestLogger` → `cors` → `express.json()` → `webhooksRoute` → `aiSummaryRoute` → `chatSseConnectionLimiter` (on `/api/chat`) → `chatRoute` → `sseConnectionLimiter` (on `/api/live`) → `liveRoute` → `generalLimiter` → all other routes
 - **AI route** — stricter `aiLimiter` (inside `routes/aiSummary.js`) + `requireAuth`; never return `error.message` to client on failure — 500 status only
 - **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `SUPABASE_URL`
 

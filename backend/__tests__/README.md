@@ -37,12 +37,14 @@ backend/__tests__/
 │   ├── news.test.js                     # GET /news (limit param, error handling)
 │   ├── playerInfo.test.js               # GET /:league/players/:slug
 │   ├── players.test.js                  # GET /:league/players
+│   ├── plays.test.js                    # GET /:league/games/:gameId/plays
 │   ├── search.test.js                   # GET /search
 │   ├── seasons.test.js                  # GET /:league/seasons
 │   ├── standings.test.js                # GET /:league/standings
 │   ├── teams.test.js                    # GET /:league/teams
 │   ├── user.test.js                     # GET|PATCH /user/profile, DELETE /user/account
-│   └── webhooks.test.js                 # POST /webhooks/supabase-auth
+│   ├── webhooks.test.js                 # POST /webhooks/supabase-auth
+│   └── winProbability.test.js           # GET /:league/games/:eventId/win-probability
 ├── services/
 │   ├── aiSummaryService.test.js         # AI summary generation + data building
 │   ├── chatAgentService.test.js         # Agent loop, tool calls, summarization
@@ -53,24 +55,32 @@ backend/__tests__/
 │   ├── gameDetailService.test.js        # getNbaGame/getNflGame/getNhlGame, cacheIf
 │   ├── gamesService.test.js             # getGames (all branches), getGameDates
 │   ├── headToHeadService.test.js        # Head-to-head game history
-│   ├── newsService.test.js             # ESPN news fetch, filtering, caching
+│   ├── newsService.test.js              # ESPN news fetch, filtering, caching
 │   ├── playerComparisonService.test.js  # Side-by-side player stats
 │   ├── playerDetailService.test.js      # getNbaPlayer/getNflPlayer/getNhlPlayer, TTL
+│   ├── playersService.test.js           # Player list queries
+│   ├── playsService.test.js             # Play-by-play retrieval + ESPN proxy
 │   ├── searchService.test.js            # ILIKE stage 1 + fuzzy stage 2 fallback
+│   ├── seasonsService.test.js           # Season list queries
 │   ├── semanticSearchService.test.js    # Embedding-based game search
 │   ├── standingsService.test.js         # getStandings, season-aware TTL
 │   ├── statLeadersService.test.js       # Stat leader queries + validation
 │   ├── teamStatsService.test.js         # Team aggregate stats
+│   ├── teamsService.test.js             # Team list queries
 │   ├── userService.test.js              # getUser, updateUser, deleteUser
-│   └── webSearchService.test.js         # Tavily API integration
+│   ├── webSearchService.test.js         # Tavily API integration
+│   └── winProbabilityService.test.js    # ESPN win probability proxy + caching
 ├── ingestion/
+│   ├── commonMappings.test.js           # Shared mapping utilities
 │   ├── espnImage.test.js                # ESPN CDN URL rewriting
 │   ├── eventProcessor.test.js           # ESPN ingest pipeline (30+ cases)
 │   ├── liveSync.test.js                 # Live game sync worker
 │   ├── mapStatsToSchema.test.js         # NBA/NFL/NHL stat field mapping
 │   ├── refreshPopularity.test.js        # Player popularity UPDATE
+│   ├── upsert.test.js                   # Scheduled upsert orchestration
 │   ├── upsertGame.test.js               # Game upsert with winner/OT logic
 │   ├── upsertPlayer.test.js             # Player upsert with preserveExistingTeam
+│   ├── upsertPlays.test.js              # Play-by-play upsert
 │   ├── upsertStat.test.js               # Stat upsert with TD/minutes parsing
 │   └── upsertTeam.test.js               # Team upsert
 ├── utils/
@@ -78,7 +88,8 @@ backend/__tests__/
 │   ├── pgDateToString.test.js           # UTC date formatting
 │   └── slugResolver.test.js             # Slug/numeric ID resolution
 ├── middleware/
-│   └── auth.test.js                     # requireAuth — JWT verification via Supabase
+│   ├── auth.test.js                     # requireAuth — JWT verification via Supabase
+│   └── rateLimiters.test.js             # Rate limiter configuration tests
 ├── cache/
 │   ├── cache.test.js                    # Redis cached(), invalidate(), no-op mode
 │   └── seasons.test.js                  # getCurrentSeason()
@@ -91,7 +102,7 @@ backend/__tests__/
     └── app.test.js                      # Full app middleware + routing
 ```
 
-**Total: 54 test files, ~742 tests.**
+**Total: 65 test files.**
 
 ## Running Tests
 

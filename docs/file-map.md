@@ -6,6 +6,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | What                               | Where                                                                                                  |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Backend entry                      | `backend/src/index.js`                                                                                 |
+| Backend logger                     | `backend/src/logger.js`                                                                                |
 | CORS, rate limits, SSE limiter     | `backend/src/middleware/index.js`                                                                      |
 | JWT auth middleware                | `backend/src/middleware/auth.js`                                                                       |
 | Routes                             | `backend/src/routes/`                                                                                  |
@@ -14,6 +15,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Game detail SQL query builder      | `backend/src/services/gameDetailQueryBuilder.js`                                                       |
 | Prisma schema                      | `backend/prisma/schema.prisma`                                                                         |
 | Generated client                   | `backend/src/generated/prisma/` (do not edit)                                                          |
+| Notification bus (PG LISTEN)       | `backend/src/db/notificationBus.js`                                                                    |
 | Cache module                       | `backend/src/cache/cache.js`                                                                           |
 | Season cache helper                | `backend/src/cache/seasons.js`                                                                         |
 | Scheduled upsert                   | `backend/src/ingestion/upsert.js`                                                                      |
@@ -26,6 +28,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Popularity refresh                 | `backend/src/ingestion/refreshPopularity.js`                                                           |
 | Player similarity embeddings       | `backend/src/ingestion/computePlayerEmbeddings.js`                                                     |
 | Team colors backfill               | `backend/src/ingestion/scripts/backfillTeamColors.js`                                                  |
+| Embeddings backfill                | `backend/src/ingestion/scripts/backfillEmbeddings.js`                                                  |
 | Alias seed data                    | `backend/prisma/seeds/player_aliases.json`                                                             |
 | Alias seed script                  | `backend/prisma/seeds/seedAliases.js`                                                                  |
 | ESPN API client (fetch + retry)    | `backend/src/ingestion/espnAPIClient.js`                                                               |
@@ -35,10 +38,13 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Frontend router                    | `frontend/src/App.jsx`                                                                                 |
 | Design tokens                      | `frontend/src/index.css` (`@theme`)                                                                    |
 | Supabase client                    | `frontend/src/lib/supabase.js`                                                                         |
+| TanStack Query client              | `frontend/src/lib/queryClient.js`                                                                      |
+| Query keys + prefetch fns          | `frontend/src/lib/query.js`                                                                            |
 | Auth context                       | `frontend/src/context/AuthContext.jsx`                                                                 |
 | Settings context                   | `frontend/src/context/SettingsContext.jsx`                                                             |
 | Auth modal                         | `frontend/src/components/auth/AuthModal.jsx`                                                           |
 | Auth components                    | `frontend/src/components/auth/` (AuthModal, PasswordChecklist)                                         |
+| Error boundary                     | `frontend/src/components/ErrorBoundary.jsx`                                                            |
 | Game page sub-components           | `frontend/src/components/game/` (GameMatchupHeader, GameInfoCard, GameTabBar, OverviewTab, AnalysisTab, PlaysTab) |
 | OAuth callback page                | `frontend/src/pages/AuthCallback.jsx`                                                                  |
 | API wrappers                       | `frontend/src/api/`                                                                                    |
@@ -66,6 +72,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Date navigation (strip + calendar) | `frontend/src/components/ui/DateNavigation.jsx`, `DateStrip.jsx`, `CalendarPopup.jsx`                  |
 | Navigation components              | `frontend/src/components/navigation/` (MonthNavigation, SeasonSelector)                                |
 | Game dates hook                    | `frontend/src/hooks/data/useGameDates.js`                                                              |
+| Head-to-head route                 | `backend/src/routes/headToHead.js`                                                                     |
+| Head-to-head controller            | `backend/src/controllers/headToHeadController.js`                                                      |
 | Prediction service                 | `backend/src/services/predictionService.js`                                                            |
 | Prediction controller              | `backend/src/controllers/predictionController.js`                                                      |
 | Prediction route                   | `backend/src/routes/prediction.js`                                                                     |
@@ -73,7 +81,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Prediction card                    | `frontend/src/components/cards/PredictionCard.jsx`                                                     |
 | Win probability service            | `backend/src/services/winProbabilityService.js`                                                        |
 | Win probability hook               | `frontend/src/hooks/data/useWinProbability.js`                                                         |
-| Win probability chart              | `frontend/src/components/ui/gamechart.jsx`                                                             |
+| Win probability chart              | `frontend/src/components/ui/GameChart.jsx`                                                             |
 | Game dates controller              | `backend/src/controllers/gameDatesController.js`                                                       |
 | Game dates service                 | `backend/src/services/gamesService.js` (`getGameDates` export)                                         |
 | PG date → string util              | `backend/src/utils/pgDateToString.js`                                                                  |

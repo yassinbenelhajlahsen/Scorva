@@ -19,6 +19,8 @@ cd backend && npm run live-sync   # run live sync worker locally
 cd backend && npm test            # run all tests
 cd backend && npm test -- <pat>   # run matching tests
 cd backend && npm run test:coverage
+cd backend && npm run lint           # eslint src/
+cd backend && npm run verify         # lint + test
 
 # Prisma
 cd backend && node_modules/.bin/prisma generate          # after schema changes
