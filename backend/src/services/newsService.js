@@ -28,12 +28,20 @@ function buildUrl(league) {
   return `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/news?limit=12`;
 }
 
+export function validUrl(str) {
+  try {
+    return str && new URL(str).protocol.startsWith("http") ? str : null;
+  } catch {
+    return null;
+  }
+}
+
 function mapArticle(raw, league) {
   return {
     headline: raw.headline,
     description: raw.description ?? "",
-    url: raw.links?.web?.href ?? null,
-    imageUrl: raw.images?.[0]?.url ?? null,
+    url: validUrl(raw.links?.web?.href),
+    imageUrl: validUrl(raw.images?.[0]?.url),
     published: raw.published ?? null,
     league,
   };
