@@ -213,7 +213,6 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
           </div>
           <div>
             <h2 className="text-xl font-bold tracking-tight text-text-primary">Pre-Game Forecast</h2>
-            <p className="text-xs text-text-tertiary mt-0.5">Season stats · home/away splits · head-to-head</p>
           </div>
         </div>
       </div>
