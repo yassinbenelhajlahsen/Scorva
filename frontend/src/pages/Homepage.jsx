@@ -9,10 +9,7 @@ import leagueData from "../utils/leagueData.js";
 import { useHomeGames } from "../hooks/data/useHomeGames.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useFavorites } from "../hooks/user/useFavorites.js";
 import { useUserPrefs } from "../hooks/user/useUserPrefs.js";
-import FavoritePlayersSection from "../components/favorites/FavoritePlayersSection.jsx";
-import FavoriteTeamsSection from "../components/favorites/FavoriteTeamsSection.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import NewsSection from "../components/news/NewsSection.jsx";
@@ -21,7 +18,6 @@ export default function Homepage() {
   const queryClient = useQueryClient();
   const { games, loading, error, retry } = useHomeGames();
   const { session } = useAuth();
-  const { favorites, loading: favLoading } = useFavorites();
   const { prefs, loading: prefsLoading } = useUserPrefs();
 
   // Resolve the active league: wait for prefs when logged in, default to "nba" when not
@@ -78,40 +74,6 @@ export default function Homepage() {
           Real-time scores, stats, and insights across NBA, NFL, and NHL.
         </p>
       </div>
-
-      {/* Favorites section — only visible when logged in */}
-      {session && (
-        <div className="mb-14">
-          {favLoading || !favorites ? (
-            <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 flex flex-col items-center gap-3">
-              <Skeleton className="w-8 h-8 rounded-full" />
-              <Skeleton className="h-3.5 w-52" />
-            </div>
-          ) : favorites.players.length === 0 && favorites.teams.length === 0 ? (
-            <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 text-center">
-              <svg className="w-8 h-8 mx-auto mb-3 text-yellow-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-              </svg>
-              <p className="text-text-secondary text-sm font-medium">Star teams or players to see them here</p>
-            </div>
-          ) : (
-            <m.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="flex flex-col gap-8"
-            >
-              {favorites.players.length > 0 && (
-                <FavoritePlayersSection players={favorites.players} />
-              )}
-
-              {favorites.teams.length > 0 && (
-                <FavoriteTeamsSection teams={favorites.teams} />
-              )}
-            </m.div>
-          )}
-        </div>
-      )}
 
       {/* News Headlines */}
       <NewsSection />

@@ -14,6 +14,7 @@ import Homepage from "./pages/Homepage.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ChatProvider } from "./context/ChatContext.jsx";
 import { SettingsProvider } from "./context/SettingsContext.jsx";
+import { FavoritesPanelProvider } from "./context/FavoritesPanelContext.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 
 const About        = lazy(() => import("./pages/About.jsx"));
@@ -114,6 +115,7 @@ export default function App() {
               <AuthProvider>
                 <SettingsProvider>
                   <ChatProvider>
+                  <FavoritesPanelProvider>
                     <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
                       <Navbar />
                       <ScrollToTop />
@@ -122,6 +124,7 @@ export default function App() {
                       </ErrorBoundary>
                       <Footer />
                     </div>
+                  </FavoritesPanelProvider>
                   </ChatProvider>
                 </SettingsProvider>
               </AuthProvider>

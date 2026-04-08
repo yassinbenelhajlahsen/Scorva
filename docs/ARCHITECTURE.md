@@ -72,6 +72,9 @@ All data, user, and AI hooks use `@tanstack/react-query` v5.
 
 `usePlays` sets `staleTime: 0` and never self-polls — all live refreshes are triggered by `useGame` via invalidation.
 
+**Favorites overlay panel**
+Favorites are displayed in a slide-in overlay panel (`FavoritesPanelContext` + `FavoritesPanel`) instead of inline on the Homepage. The panel is triggered by a star icon in the Navbar (visible when logged in) and is accessible from any page. It follows the same context + `AnimatePresence` pattern as the settings drawer and chat panel. `FavoritePlayersSection` and `FavoriteTeamsSection` accept a `compact` prop for the narrow panel layout — compact mode shows inline stat/game rows (limited to 2 per item) instead of full `StatCard`/`GameCard` components. Compact player stat rows link to `?tab=analysis#playerSlug` to scroll to the player in the box score. The panel auto-closes on route change, and mutually excludes with the settings drawer and chat panel (opening one closes the others). Z-index: backdrop `z-[69]`, panel `z-[70]`.
+
 **Optimistic favorites toggle**
 `useFavoriteToggle` uses `useMutation` with:
 - `onMutate` — cancels in-flight check query, optimistically flips `isFavorited` in cache, returns `{ previous }` as context

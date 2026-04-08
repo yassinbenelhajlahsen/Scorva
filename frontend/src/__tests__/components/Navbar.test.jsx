@@ -26,6 +26,20 @@ vi.mock("../../lib/supabase.js", () => ({
   supabase: {},
 }));
 
+// Mock useFavoritesPanel
+vi.mock("../../context/FavoritesPanelContext.jsx", () => ({
+  useFavoritesPanel: vi.fn(() => ({
+    isOpen: false,
+    togglePanel: vi.fn(),
+    closePanel: vi.fn(),
+  })),
+}));
+
+// Mock useFavorites
+vi.mock("../../hooks/user/useFavorites.js", () => ({
+  useFavorites: vi.fn(() => ({ favorites: null, loading: false, refresh: vi.fn() })),
+}));
+
 // Mock useSearch to avoid real API calls
 vi.mock("../../hooks/data/useSearch.js", () => ({
   useSearch: vi.fn(() => ({ results: [], loading: false })),

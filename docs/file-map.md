@@ -47,6 +47,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Frontend utilities                 | `frontend/src/utils/`                                                                                  |
 | Favorites API                      | `frontend/src/api/favorites.js`                                                                        |
 | Favorites hooks                    | `frontend/src/hooks/user/useFavorites.js`, `frontend/src/hooks/user/useFavoriteToggle.js`              |
+| Favorites overlay panel            | `frontend/src/context/FavoritesPanelContext.jsx`, `frontend/src/components/favorites/FavoritesPanel.jsx`|
+| Favorites display components       | `frontend/src/components/favorites/FavoritePlayersSection.jsx`, `frontend/src/components/favorites/FavoriteTeamsSection.jsx` |
 | User API                           | `frontend/src/api/user.js`                                                                             |
 | User prefs hook                    | `frontend/src/hooks/user/useUserPrefs.js`                                                              |
 | Settings drawer                    | `frontend/src/components/settings/SettingsDrawer.jsx`                                                  |
