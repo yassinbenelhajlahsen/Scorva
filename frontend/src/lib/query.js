@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getGameById, getLeagueGames, getGameDates, getAllLeagueGames } from "../api/games.js";
 import { getPlayer } from "../api/players.js";
 import { getTeams } from "../api/teams.js";
+import { getNews } from "../api/news.js";
 import slugify from "../utils/slugify.js";
 
 export const queryKeys = {
@@ -24,6 +25,7 @@ export const queryKeys = {
   game:           (league, gameId) => ["game", league, gameId],
   homeGames:      () => ["homeGames"],
   favoriteCheck:  (type, id) => ["favoriteCheck", type, id],
+  news:           () => ["news"],
 };
 
 export const queryFns = {
@@ -44,6 +46,7 @@ export const queryFns = {
     getLeagueGames(league, { season, date }),
   gameDates: (league, season) => () => getGameDates(league, { season }),
   homeGames: () => () => getAllLeagueGames(),
+  news: () => () => getNews(),
 };
 
 export function useDebouncedValue(value, delay = 200) {
