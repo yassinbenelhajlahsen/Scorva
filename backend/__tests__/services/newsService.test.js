@@ -132,16 +132,17 @@ describe("newsService", () => {
   });
 
   it("sorts articles by published date descending", async () => {
+    // All from the same league so league-guarantee doesn't reorder
     mockAxiosGet
       .mockResolvedValueOnce(
-        espnResponse([espnArticle("Old", { published: "2026-04-01T00:00:00Z" })])
+        espnResponse([
+          espnArticle("Old", { published: "2026-04-01T00:00:00Z" }),
+          espnArticle("New", { published: "2026-04-08T00:00:00Z" }),
+          espnArticle("Mid", { published: "2026-04-05T00:00:00Z" }),
+        ])
       )
-      .mockResolvedValueOnce(
-        espnResponse([espnArticle("New", { published: "2026-04-08T00:00:00Z" })])
-      )
-      .mockResolvedValueOnce(
-        espnResponse([espnArticle("Mid", { published: "2026-04-05T00:00:00Z" })])
-      );
+      .mockResolvedValueOnce(espnResponse([]))
+      .mockResolvedValueOnce(espnResponse([]));
 
     const articles = await getNews();
 

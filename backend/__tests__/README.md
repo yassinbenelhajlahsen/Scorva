@@ -34,6 +34,7 @@ backend/__tests__/
 │   ├── gameInfo.test.js                 # GET /:league/games/:gameId
 │   ├── games.test.js                    # GET /:league/games
 │   ├── live.test.js                     # GET /live/:league/games + /:gameId (SSE)
+│   ├── news.test.js                     # GET /news (limit param, error handling)
 │   ├── playerInfo.test.js               # GET /:league/players/:slug
 │   ├── players.test.js                  # GET /:league/players
 │   ├── search.test.js                   # GET /search
@@ -52,6 +53,7 @@ backend/__tests__/
 │   ├── gameDetailService.test.js        # getNbaGame/getNflGame/getNhlGame, cacheIf
 │   ├── gamesService.test.js             # getGames (all branches), getGameDates
 │   ├── headToHeadService.test.js        # Head-to-head game history
+│   ├── newsService.test.js             # ESPN news fetch, filtering, caching
 │   ├── playerComparisonService.test.js  # Side-by-side player stats
 │   ├── playerDetailService.test.js      # getNbaPlayer/getNflPlayer/getNhlPlayer, TTL
 │   ├── searchService.test.js            # ILIKE stage 1 + fuzzy stage 2 fallback
@@ -89,7 +91,7 @@ backend/__tests__/
     └── app.test.js                      # Full app middleware + routing
 ```
 
-**Total: 52 test files, ~724 tests.**
+**Total: 54 test files, ~742 tests.**
 
 ## Running Tests
 
