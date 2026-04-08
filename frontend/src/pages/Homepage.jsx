@@ -38,7 +38,7 @@ export default function Homepage() {
   const [indicatorBounds, setIndicatorBounds] = useState(null);
 
   useLayoutEffect(() => {
-    if (!activeLeague) return;
+    if (!activeLeague || loading) return;
     const idx = leagues.findIndex((l) => l.id === activeLeague);
     const btn = tabRefs.current[idx];
     const nav = tabNavRef.current;
@@ -47,7 +47,7 @@ export default function Homepage() {
       const navRect = nav.getBoundingClientRect();
       setIndicatorBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
     }
-  }, [activeLeague]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeLeague, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
@@ -149,7 +149,7 @@ export default function Homepage() {
                 <m.div
                   className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
                   animate={{ left: indicatorBounds.left, width: indicatorBounds.width }}
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
                 />
               )}
               {leagues.map((league, i) => {

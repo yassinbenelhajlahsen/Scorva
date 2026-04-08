@@ -128,7 +128,7 @@ export default function SettingsDrawer({ onClose }) {
           <m.div
             className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
             animate={{ left: indicatorBounds.left, width: indicatorBounds.width }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
           />
         )}
         {TABS.map((tab, i) => {
