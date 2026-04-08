@@ -143,6 +143,7 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `winprob:v2:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
 | `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
 | `prediction:v2:{league}:{gameId}` | 1h | Pre-game predictions |
+| `h2h:{league}:{type}:{id1}:{id2}` | 30d | Head-to-head games (IDs sorted for consistency) |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.
 

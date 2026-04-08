@@ -3,6 +3,7 @@ import { getGameById, getLeagueGames, getGameDates, getAllLeagueGames } from "..
 import { getPlayer } from "../api/players.js";
 import { getTeams } from "../api/teams.js";
 import { getNews } from "../api/news.js";
+import { getHeadToHead } from "../api/compare.js";
 import slugify from "../utils/slugify.js";
 
 export const queryKeys = {
@@ -26,6 +27,7 @@ export const queryKeys = {
   homeGames:      () => ["homeGames"],
   favoriteCheck:  (type, id) => ["favoriteCheck", type, id],
   news:           () => ["news"],
+  headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
 };
 
 export const queryFns = {
@@ -47,6 +49,8 @@ export const queryFns = {
   gameDates: (league, season) => () => getGameDates(league, { season }),
   homeGames: () => () => getAllLeagueGames(),
   news: () => () => getNews(),
+  headToHead: (league, type, ids) => () =>
+    getHeadToHead(league, type, ids).then((d) => d.games),
 };
 
 export function useDebouncedValue(value, delay = 200) {

@@ -31,6 +31,7 @@ import liveRoute from "./routes/live.js";
 import predictionRoute from "./routes/prediction.js";
 import playsRoute from "./routes/plays.js";
 import newsRoute from "./routes/news.js";
+import headToHeadRoute from "./routes/headToHead.js";
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use("/api", similarPlayersRoute);
 app.use("/api", searchRoute);
 app.use("/api", seasonsRoute);
 app.use("/api", newsRoute);
+app.use("/api", headToHeadRoute);
 app.use("/api", favoritesRoute);
 app.use("/api", userRoute);
 

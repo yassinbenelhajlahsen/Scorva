@@ -285,7 +285,9 @@ export default function LeaguePage() {
                               </span>
                             </div>
                             <span className="text-sm text-text-secondary tabular-nums">
-                              {team.wins}–{team.losses}
+                              {league === "nhl"
+                                ? `${team.wins}–${team.losses - (team.otl || 0)}–${team.otl || 0}`
+                                : `${team.wins}–${team.losses}`}
                             </span>
                           </div>
                         </Link>
@@ -327,7 +329,9 @@ export default function LeaguePage() {
                               </span>
                             </div>
                             <span className="text-sm text-text-secondary tabular-nums">
-                              {team.wins}–{team.losses}
+                              {league === "nhl"
+                                ? `${team.wins}–${team.losses - (team.otl || 0)}–${team.otl || 0}`
+                                : `${team.wins}–${team.losses}`}
                             </span>
                           </div>
                         </Link>

@@ -13,7 +13,7 @@
 - `GET /:league/players`
 - `GET /:league/players/:slug`
 - `GET /:league/players/:slug/similar` — returns `{ players: [...] }` (up to 5); position-filtered for NFL/NHL; requires embeddings to be computed; returns `{ players: [] }` if player has < 5 games (< 2 for NFL)
-- `GET /:league/head-to-head` — query params `team1` and `team2` (team IDs); returns recent head-to-head games
+- `GET /:league/head-to-head` — query params `type` (`players` or `teams`) and `ids` (comma-separated, exactly 2 numeric IDs); returns `{ games: [...] }` with up to 20 recent Final games where the entities faced each other; for players, finds games where both appeared in stats; cached 30d
 - `GET /:league/seasons`
 - `GET /news` — optional `?limit=` (default 4, max 10); returns `{ articles: [{ headline, description, url, imageUrl, published, league }] }`; merged from all 3 leagues sorted by date with at least 1 per league; cached 5 min; filters out roundup/tracker articles
 - `GET /search`
@@ -41,4 +41,5 @@
 - `/:league/players/:slug` → PlayerPage
 - `/:league/games/:gameId` → GamePage
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
+- `/:league/compare` → ComparePage (lazy-loaded; query params `type=players|teams` and `ids=slug1,slug2`)
 - `*` → ErrorPage (404 catch-all, lazy-loaded)

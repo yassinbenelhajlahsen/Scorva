@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { m, AnimatePresence } from "framer-motion";
 
 import { useGamePageData } from "../hooks/data/useGamePageData.js";
+import slugify from "../utils/slugify.js";
 import computeTopPlayers from "../utils/topPlayers.js";
 import GamePageSkeleton from "../components/skeletons/GamePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -182,6 +183,19 @@ export default function GamePage() {
         playoffLogo={playoffLogo}
         scoreColor={scoreColor}
       />
+
+      {/* Compare Teams button */}
+      <div className="flex justify-center mb-6">
+        <Link
+          to={`/${league}/compare?type=teams&ids=${slugify(homeTeam.info.name)},${slugify(awayTeam.info.name)}`}
+          className="inline-flex items-center gap-1.5 border border-white/[0.12] text-text-secondary hover:text-text-primary hover:border-white/[0.2] rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          Compare Teams
+        </Link>
+      </div>
 
       <GameInfoCard game={game} isFinal={isFinal} inProgress={inProgress} />
 

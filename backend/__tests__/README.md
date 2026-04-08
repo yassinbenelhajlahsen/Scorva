@@ -45,6 +45,8 @@ backend/__tests__/
 │   ├── user.test.js                     # GET|PATCH /user/profile, DELETE /user/account
 │   ├── webhooks.test.js                 # POST /webhooks/supabase-auth
 │   └── winProbability.test.js           # GET /:league/games/:eventId/win-probability
+├── controllers/
+│   └── headToHeadController.test.js    # Compare H2H controller validation + routing
 ├── services/
 │   ├── aiSummaryService.test.js         # AI summary generation + data building
 │   ├── chatAgentService.test.js         # Agent loop, tool calls, summarization
@@ -54,7 +56,8 @@ backend/__tests__/
 │   ├── favoritesService.test.js         # ensureUser, getFavorites, CRUD, checkFavorites
 │   ├── gameDetailService.test.js        # getNbaGame/getNflGame/getNhlGame, cacheIf
 │   ├── gamesService.test.js             # getGames (all branches), getGameDates
-│   ├── headToHeadService.test.js        # Head-to-head game history
+│   ├── headToHeadService.test.js        # Head-to-head game history (chat tool)
+│   ├── compareHeadToHead.test.js       # Compare feature H2H service (teams + players)
 │   ├── newsService.test.js              # ESPN news fetch, filtering, caching
 │   ├── playerComparisonService.test.js  # Side-by-side player stats
 │   ├── playerDetailService.test.js      # getNbaPlayer/getNflPlayer/getNhlPlayer, TTL

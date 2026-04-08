@@ -74,6 +74,12 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Game dates hook                    | `frontend/src/hooks/data/useGameDates.js`                                                              |
 | Head-to-head route                 | `backend/src/routes/headToHead.js`                                                                     |
 | Head-to-head controller            | `backend/src/controllers/headToHeadController.js`                                                      |
+| Head-to-head service               | `backend/src/services/headToHeadService.js`                                                            |
+| Compare API (frontend)             | `frontend/src/api/compare.js`                                                                          |
+| Compare hook                       | `frontend/src/hooks/data/useHeadToHead.js`                                                             |
+| Compare modal                      | `frontend/src/components/compare/CompareModal.jsx`                                                     |
+| Compare page                       | `frontend/src/pages/ComparePage.jsx`                                                                   |
+| Compare page skeleton              | `frontend/src/components/skeletons/ComparePageSkeleton.jsx`                                            |
 | Prediction service                 | `backend/src/services/predictionService.js`                                                            |
 | Prediction controller              | `backend/src/controllers/predictionController.js`                                                      |
 | Prediction route                   | `backend/src/routes/prediction.js`                                                                     |

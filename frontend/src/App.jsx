@@ -24,6 +24,7 @@ const TeamPage     = lazy(() => import("./pages/TeamPage.jsx"));
 const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
 const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
+const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -53,6 +54,14 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <LeaguePage />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/:league/compare"
+          element={
+            <PageWrapper>
+              <ComparePage />
             </PageWrapper>
           }
         />

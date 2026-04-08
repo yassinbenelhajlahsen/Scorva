@@ -17,6 +17,7 @@ import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
+import CompareModal from "../components/compare/CompareModal.jsx";
 
 const statConfigs = {
   nba: [
@@ -103,6 +104,7 @@ export default function PlayerPage() {
   }, [playerData?.games]);
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("player", session ? playerData?.id : null);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const filteredGames = useMemo(() => {
     if (!playerData?.games) return [];
@@ -176,7 +178,17 @@ export default function PlayerPage() {
 
         {/* Info card */}
         <div className="flex-1 flex flex-col gap-6">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setCompareOpen(true)}
+              className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
+              aria-label="Compare player"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Compare
+            </button>
             <SeasonSelector
               league={league}
               selectedSeason={selectedSeason}
@@ -284,6 +296,13 @@ export default function PlayerPage() {
         )}
         </div>
       </div>
+      <CompareModal
+        isOpen={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        league={league}
+        entityType="player"
+        source={{ id: playerData.id, name, imageUrl }}
+      />
     </div>
   );
 }

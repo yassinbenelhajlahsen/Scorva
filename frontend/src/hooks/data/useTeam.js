@@ -51,13 +51,33 @@ export function useTeam(league, teamId, selectedSeason) {
         (g) => g.winnerid === g.awayteamid
       ).length;
 
+      const isNHL = league === "nhl";
+      const otStatuses = ["Final/OT", "Final/SO"];
+      const homeOTL = isNHL
+        ? homeGames.filter((g) => g.winnerid !== g.hometeamid && otStatuses.includes(g.status)).length
+        : 0;
+      const awayOTL = isNHL
+        ? awayGames.filter((g) => g.winnerid !== g.awayteamid && otStatuses.includes(g.status)).length
+        : 0;
+
       const standing = standingsData.find((t) => t.id === teamQuery.data.id);
+
+      const homeLosses = homeGames.length - homeWins;
+      const awayLosses = awayGames.length - awayWins;
 
       return {
         games: sorted,
-        teamRecord: standing ? `${standing.wins}-${standing.losses}` : null,
-        homeRecord: `${homeWins}-${homeGames.length - homeWins}`,
-        awayRecord: `${awayWins}-${awayGames.length - awayWins}`,
+        teamRecord: standing
+          ? (isNHL
+            ? `${standing.wins}-${standing.losses - (standing.otl || 0)}-${standing.otl || 0}`
+            : `${standing.wins}-${standing.losses}`)
+          : null,
+        homeRecord: isNHL
+          ? `${homeWins}-${homeLosses - homeOTL}-${homeOTL}`
+          : `${homeWins}-${homeLosses}`,
+        awayRecord: isNHL
+          ? `${awayWins}-${awayLosses - awayOTL}-${awayOTL}`
+          : `${awayWins}-${awayLosses}`,
       };
     },
     enabled: !!teamQuery.data,
