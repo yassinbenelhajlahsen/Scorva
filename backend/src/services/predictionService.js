@@ -155,6 +155,8 @@ export async function getPrediction(league, gameId) {
           COUNT(*) AS games_played,
           COUNT(*) FILTER (WHERE g.winnerid = t.id) AS wins,
           COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses,
+          COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id
+            AND g.status IN ('Final/OT', 'Final/SO')) AS otl,
           AVG(CASE WHEN g.hometeamid = t.id THEN g.homescore ELSE g.awayscore END) AS off_rating,
           AVG(CASE WHEN g.hometeamid = t.id THEN g.awayscore ELSE g.homescore END) AS def_rating,
           -- Home-only splits
@@ -162,11 +164,15 @@ export async function getPrediction(league, gameId) {
           AVG(CASE WHEN g.hometeamid = t.id THEN g.awayscore END) AS home_def_rating,
           COUNT(*) FILTER (WHERE g.hometeamid = t.id AND g.winnerid = t.id) AS home_wins,
           COUNT(*) FILTER (WHERE g.hometeamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id) AS home_losses,
+          COUNT(*) FILTER (WHERE g.hometeamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id
+            AND g.status IN ('Final/OT', 'Final/SO')) AS home_otl,
           -- Away-only splits
           AVG(CASE WHEN g.awayteamid = t.id THEN g.awayscore END) AS away_off_rating,
           AVG(CASE WHEN g.awayteamid = t.id THEN g.homescore END) AS away_def_rating,
           COUNT(*) FILTER (WHERE g.awayteamid = t.id AND g.winnerid = t.id) AS away_wins,
-          COUNT(*) FILTER (WHERE g.awayteamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id) AS away_losses
+          COUNT(*) FILTER (WHERE g.awayteamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id) AS away_losses,
+          COUNT(*) FILTER (WHERE g.awayteamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id
+            AND g.status IN ('Final/OT', 'Final/SO')) AS away_otl
         FROM teams t
         JOIN games g ON (g.hometeamid = t.id OR g.awayteamid = t.id)
         WHERE t.id = ANY($1)
@@ -252,10 +258,12 @@ export async function getPrediction(league, gameId) {
           record: {
             wins: Number(homeStats.wins),
             losses: Number(homeStats.losses),
+            otl: Number(homeStats.otl || 0),
           },
           homeRecord: {
             wins: Number(homeStats.home_wins),
             losses: Number(homeStats.home_losses),
+            otl: Number(homeStats.home_otl || 0),
           },
           recentForm: homeRecent, // newest first, true = win
         },
@@ -270,10 +278,12 @@ export async function getPrediction(league, gameId) {
           record: {
             wins: Number(awayStats.wins),
             losses: Number(awayStats.losses),
+            otl: Number(awayStats.otl || 0),
           },
           awayRecord: {
             wins: Number(awayStats.away_wins),
             losses: Number(awayStats.away_losses),
+            otl: Number(awayStats.away_otl || 0),
           },
           recentForm: awayRecent,
         },

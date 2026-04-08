@@ -23,6 +23,8 @@ export async function getTeamStats(league, teamId, season = null) {
        COUNT(DISTINCT g.id) AS games_played,
        COUNT(DISTINCT g.id) FILTER (WHERE g.winnerid = $3) AS wins,
        COUNT(DISTINCT g.id) FILTER (WHERE g.status ILIKE 'Final%' AND g.winnerid != $3) AS losses,
+       COUNT(DISTINCT g.id) FILTER (WHERE g.winnerid != $3
+         AND g.status IN ('Final/OT', 'Final/SO')) AS otl,
        ${statsSelect}
      FROM stats s
      JOIN games g ON g.id = s.gameid

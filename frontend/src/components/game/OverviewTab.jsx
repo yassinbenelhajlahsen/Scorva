@@ -118,6 +118,7 @@ export default function OverviewTab({
         <PredictionCard
           prediction={prediction}
           loading={predictionLoading}
+          league={league}
           homeColor={homeTeam?.info?.color}
           awayColor={awayTeam?.info?.color}
         />

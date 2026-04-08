@@ -12,7 +12,9 @@ export async function getStandings(league, season) {
     const result = await pool.query(
       `SELECT t.id, t.name, t.shortname, t.location, t.conf, t.logo_url,
           COUNT(*) FILTER (WHERE g.winnerid = t.id) AS wins,
-          COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses
+          COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses,
+          COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id
+            AND g.status IN ('Final/OT', 'Final/SO')) AS otl
         FROM teams t
         LEFT JOIN games g ON (g.hometeamid = t.id OR g.awayteamid = t.id)
           AND g.league = $1

@@ -183,7 +183,15 @@ function LoadingSkeleton() {
   );
 }
 
-export default function PredictionCard({ prediction, loading, homeColor: rawHomeColor, awayColor: rawAwayColor }) {
+function formatRecord(record, league) {
+  if (!record) return "—";
+  const { wins, losses, otl } = record;
+  return league === "nhl"
+    ? `${wins}-${losses - (otl || 0)}-${otl || 0}`
+    : `${wins}-${losses}`;
+}
+
+export default function PredictionCard({ prediction, loading, league, homeColor: rawHomeColor, awayColor: rawAwayColor }) {
   const [homeColor, awayColor] = resolveColors(rawHomeColor, rawAwayColor);
 
   const homeProb = prediction?.homeTeam.winProbability ?? 50;
@@ -232,10 +240,10 @@ export default function PredictionCard({ prediction, loading, homeColor: rawHome
                       {prediction.homeTeam.shortName}
                     </p>
                     <p className="text-[11px] text-text-tertiary leading-tight">
-                      {prediction.homeTeam.record.wins}-{prediction.homeTeam.record.losses}
+                      {formatRecord(prediction.homeTeam.record, league)}
                       {prediction.homeTeam.homeRecord && (
                         <span className="ml-1 opacity-60">
-                          ({prediction.homeTeam.homeRecord.wins}-{prediction.homeTeam.homeRecord.losses} home)
+                          ({formatRecord(prediction.homeTeam.homeRecord, league)} home)
                         </span>
                       )}
                     </p>
@@ -259,10 +267,10 @@ export default function PredictionCard({ prediction, loading, homeColor: rawHome
                       {prediction.awayTeam.shortName}
                     </p>
                     <p className="text-[11px] text-text-tertiary leading-tight">
-                      {prediction.awayTeam.record.wins}-{prediction.awayTeam.record.losses}
+                      {formatRecord(prediction.awayTeam.record, league)}
                       {prediction.awayTeam.awayRecord && (
                         <span className="ml-1 opacity-60">
-                          ({prediction.awayTeam.awayRecord.wins}-{prediction.awayTeam.awayRecord.losses} away)
+                          ({formatRecord(prediction.awayTeam.awayRecord, league)} away)
                         </span>
                       )}
                     </p>
