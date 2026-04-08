@@ -42,7 +42,6 @@ export default function Navbar() {
     { to: "/nba", label: "NBA" },
     { to: "/nfl", label: "NFL" },
     { to: "/nhl", label: "NHL" },
-    { to: "/about", label: "About" },
   ];
 
   return (

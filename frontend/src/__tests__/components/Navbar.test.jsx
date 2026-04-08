@@ -72,13 +72,12 @@ describe("Navbar", () => {
     expect(screen.getByText("Scorva")).toBeInTheDocument();
   });
 
-  it("renders all league and about links", () => {
+  it("renders all league links", () => {
     useAuth.mockReturnValue({ session: null, openAuthModal: vi.fn() });
     renderNavbar();
     expect(screen.getByText("NBA")).toBeInTheDocument();
     expect(screen.getByText("NFL")).toBeInTheDocument();
     expect(screen.getByText("NHL")).toBeInTheDocument();
-    expect(screen.getByText("About")).toBeInTheDocument();
   });
 
   it("shows Sign In button when session is null", () => {
