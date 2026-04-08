@@ -14,6 +14,7 @@
 - `GET /:league/players/:playerId`
 - `GET /:league/players/:playerId/similar` — returns `{ players: [...] }` (up to 5); position-filtered for NFL/NHL; requires embeddings to be computed; returns `{ players: [] }` if player has < 5 games (< 2 for NFL)
 - `GET /:league/seasons`
+- `GET /news` — optional `?limit=` (default 4, max 10); returns `{ articles: [{ headline, description, url, imageUrl, published, league }] }`; merged from all 3 leagues sorted by date with at least 1 per league; cached 5 min; filters out roundup/tracker articles
 - `GET /search`
 - `GET /live/:league/games` — SSE stream; heartbeat `: ping` every 15s; `event: done` when no live games
 - `GET /live/:league/games/:gameId` — SSE stream; `event: done` when game is Final

@@ -102,3 +102,11 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Plays route                        | `backend/src/routes/plays.js`                                                                          |
 | Plays controller                   | `backend/src/controllers/playsController.js`                                                           |
 | Plays service                      | `backend/src/services/playsService.js`                                                                 |
+| News service                       | `backend/src/services/newsService.js`                                                                  |
+| News controller                    | `backend/src/controllers/newsController.js`                                                            |
+| News route                         | `backend/src/routes/news.js`                                                                           |
+| News API (frontend)                | `frontend/src/api/news.js`                                                                             |
+| News hook                          | `frontend/src/hooks/data/useNews.js`                                                                   |
+| News components                    | `frontend/src/components/news/` (NewsSection, NewsCard, NewsPreviewModal)                              |
+| News card skeleton                 | `frontend/src/components/skeletons/NewsCardSkeleton.jsx`                                               |
+| Relative time util                 | `frontend/src/utils/relativeTime.js`                                                                   |

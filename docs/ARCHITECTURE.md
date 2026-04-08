@@ -135,6 +135,7 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `currentSeason:{league}` | 1h | |
 | `gameDates:{league}:{season}` | 5m | All dates + game counts for the season; used by date strip |
 | `games:{league}:{season}:date:{date}` | 30s current / 30d past | Date-filtered games for league page |
+| `news:headlines` | 5m | Merged ESPN news across all leagues; `cacheIf` non-empty |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.
 
@@ -144,6 +145,18 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 - `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch
 
 `REDIS_URL` must be set on all three Railway services (API, liveSync, upsert).
+
+## News headlines
+
+ESPN news articles fetched on demand (no DB table, no ingestion job).
+
+**Data flow**: ESPN `/news` endpoints (3 leagues) → `newsService.js` → Redis cache (5 min) → `GET /api/news` → frontend `useNews()` hook → `NewsSection` on Homepage.
+
+- `newsService.js` fetches all 3 leagues in parallel via `Promise.allSettled` (one league failing doesn't break the others), filters out roundup/tracker articles via `ROUNDUP_PATTERNS` regex list, sorts by `published` descending, guarantees at least 1 article per league in top results
+- ESPN URLs: `site.api.espn.com/apis/site/v2/sports/{sport}/{league}/news?limit=12`
+- Article shape: `{ headline, description, url, imageUrl, published, league }`
+- Frontend: `NewsSection` renders 4 cards in a responsive grid; returns `null` on error (non-critical, never breaks the page); clicking a card opens `NewsPreviewModal` with article details and external link
+- Route mounted before auth-gated routes (`favoritesRoute`, `userRoute`) in `index.js` to avoid `router.use(requireAuth)` interception
 
 ## Date selection (League Page)
 
