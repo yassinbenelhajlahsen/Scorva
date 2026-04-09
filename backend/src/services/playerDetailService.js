@@ -104,7 +104,7 @@ export async function getNbaPlayer(playerId, season) {
       LIMIT 1
     ) season_team ON true
     JOIN teams t ON t.id = COALESCE(season_team.teamid, p.teamid)
-    LEFT JOIN stats s ON p.id = s.playerid
+    LEFT JOIN stats s ON p.id = s.playerid AND s.minutes > 0
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
@@ -192,7 +192,7 @@ export async function getNflPlayer(playerId, season) {
       LIMIT 1
     ) season_team ON true
     JOIN teams t ON t.id = COALESCE(season_team.teamid, p.teamid)
-    LEFT JOIN stats s ON p.id = s.playerid
+    LEFT JOIN stats s ON p.id = s.playerid AND NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
@@ -291,7 +291,7 @@ export async function getNhlPlayer(playerId, season) {
       LIMIT 1
     ) season_team ON true
     JOIN teams t ON t.id = COALESCE(season_team.teamid, p.teamid)
-    LEFT JOIN stats s ON p.id = s.playerid
+    LEFT JOIN stats s ON p.id = s.playerid AND s.toi IS NOT NULL AND s.toi != '0:00'
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type = 'regular'
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;

@@ -30,6 +30,39 @@ Two-tier update strategy:
 - **Per-event client**: `tick()` acquires a separate `pool.connect()` per event inside `Promise.all` — `processEvent` runs its own `BEGIN`/`COMMIT`/`ROLLBACK` and sharing one client across concurrent calls corrupts transaction state
 - Uses the shared `pool` from `db/db.js` (not its own `new Pool()`)
 
+## Historical upsert (`ingestion/historicalUpsert.js`)
+Re-seeds all historical seasons from ESPN. Supports CLI filtering:
+```bash
+node src/ingestion/historicalUpsert.js              # all leagues, all seasons
+node src/ingestion/historicalUpsert.js nhl           # all NHL seasons
+node src/ingestion/historicalUpsert.js nhl 2015-09-15  # single season (use seasonStart date from config)
+```
+- `processEvent` skips Final games that already have sufficient stat rows (`MIN_STAT_ROWS`: nba=12, nhl=20, nfl=10), so re-runs are safe and only process missing games
+- `processEvent` accepts `{ force: true }` to bypass the skip — used by repair scripts to re-process games with corrupted stats
+
+## Stats repair (`ingestion/scripts/repairStats.js`)
+Targeted fix for known data issues:
+- **NHL goalie NULLs**: goalies in pre-2023 seasons had `g = NULL, a = NULL` instead of 0. Direct SQL fix (`UPDATE stats SET g = 0, a = 0`), no ESPN re-fetch needed
+- **NBA blank stat rows**: ESPN re-fetch with `force: true` for games with blank stat rows (`points=0, fg='0-0', minutes IS NULL`). Note: ESPN returns the same blank data for true DNPs — these rows are correct, not corrupted
+- **Low stat count games**: ESPN re-fetch for games with fewer stats rows than expected
+```bash
+node src/ingestion/scripts/repairStats.js --dry-run   # audit only
+node src/ingestion/scripts/repairStats.js nhl null     # fix goalie nulls (instant)
+node src/ingestion/scripts/repairStats.js nba blank    # fix blank NBA stats
+node src/ingestion/scripts/repairStats.js              # fix everything
+```
+
+## DNP (Did Not Play) filtering
+ESPN creates stat rows for players who dressed but didn't play (all-zero stats). Per-game averages must exclude these rows. The filter is league-specific:
+
+| League | DNP filter | Why |
+|--------|-----------|-----|
+| NBA | `s.minutes > 0` | DNPs have `minutes IS NULL`, all other stats = 0 |
+| NHL | `s.toi IS NOT NULL AND s.toi != '0:00'` | DNPs have `toi = '0:00'` |
+| NFL | `NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)` | Only exclude rows where ALL stat columns are NULL — defensive players legitimately have NULL `yds`/`td` but populated `sacks`/`interceptions` |
+
+Applied in: `playerDetailService.js` (stats JOIN), `playerComparison.js`, `teamStats.js`, `statLeaders.js` (WHERE clause).
+
 ## Scheduled upsert (`ingestion/upsert.js`)
 - Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
 - Wraps each league in try/catch so one failure doesn't abort subsequent leagues

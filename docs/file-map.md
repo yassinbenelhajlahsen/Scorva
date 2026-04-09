@@ -29,6 +29,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Player similarity embeddings       | `backend/src/ingestion/computePlayerEmbeddings.js`                                                     |
 | Team colors backfill               | `backend/src/ingestion/scripts/backfillTeamColors.js`                                                  |
 | Embeddings backfill                | `backend/src/ingestion/scripts/backfillEmbeddings.js`                                                  |
+| Stats repair (DNP/null fix)        | `backend/src/ingestion/scripts/repairStats.js`                                                         |
 | Alias seed data                    | `backend/prisma/seeds/player_aliases.json`                                                             |
 | Alias seed script                  | `backend/prisma/seeds/seedAliases.js`                                                                  |
 | ESPN API client (fetch + retry)    | `backend/src/ingestion/espnAPIClient.js`                                                               |

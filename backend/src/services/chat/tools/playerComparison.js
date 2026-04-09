@@ -38,6 +38,9 @@ export async function getPlayerComparison(league, playerId1, playerId2, season =
        AND g.status ILIKE 'Final%'
        AND g.type = 'regular'
        AND p.id IN ($3, $4)
+       AND (($1 = 'nba' AND s.minutes > 0)
+         OR ($1 = 'nhl' AND s.toi IS NOT NULL AND s.toi != '0:00')
+         OR ($1 = 'nfl' AND NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)))
      GROUP BY p.id, p.name, p.position, p.image_url, t.id, t.name, t.shortname
      ORDER BY p.id`,
     [league, season, playerId1, playerId2]
