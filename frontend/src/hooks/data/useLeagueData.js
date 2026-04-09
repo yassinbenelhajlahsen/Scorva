@@ -61,17 +61,17 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
   const todayET = new Date().toLocaleDateString("en-CA", {
     timeZone: "America/New_York",
   });
-  const { liveGames } = useLiveGames(
-    selectedSeason === null &&
-      (selectedDate === null || selectedDate === todayET) &&
-      hasLiveGame(games)
-      ? league
-      : null
-  );
+  const sseLeague = selectedSeason === null &&
+    (selectedDate === null || selectedDate === todayET) &&
+    hasLiveGame(games)
+    ? league
+    : null;
+
+  const { liveGames } = useLiveGames(sseLeague);
 
   // Push SSE updates into the games query cache
   useEffect(() => {
-    if (!liveGames) return;
+    if (!liveGames || !sseLeague) return;
     const updated = selectedDate
       ? { games: liveGames, resolvedDate, resolvedSeason }
       : liveGames;
@@ -79,7 +79,7 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
       queryKeys.leagueGames(league, selectedSeason, selectedDate),
       updated
     );
-  }, [liveGames, queryClient, league, selectedSeason, selectedDate, resolvedDate, resolvedSeason]);
+  }, [liveGames, sseLeague, queryClient, league, selectedSeason, selectedDate, resolvedDate, resolvedSeason]);
 
   // Preserve 50ms display delay for animation timing
   useEffect(() => {

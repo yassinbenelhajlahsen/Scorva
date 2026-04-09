@@ -15,7 +15,10 @@ export function useLiveGames(league) {
   const throttleRef = useRef(null);
 
   useEffect(() => {
-    if (!league) return;
+    if (!league) {
+      setLiveGames(null);
+      return;
+    }
 
     function startPollingFallback() {
       setStreamError(true);
