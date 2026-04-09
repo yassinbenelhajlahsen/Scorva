@@ -57,6 +57,8 @@ export async function getNbaPlayer(playerId, season) {
             SELECT
               g.date,
               g.status,
+              g.type,
+              g.game_label,
               s2.gameid,
               s2.points,
               s2.assists,
@@ -81,7 +83,7 @@ export async function getNbaPlayer(playerId, season) {
             JOIN games g    ON s2.gameid = g.id
             JOIN teams ht   ON g.hometeamid = ht.id
             JOIN teams at   ON g.awayteamid = at.id
-            WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
+            WHERE s2.playerid = p.id AND g.season = $3
             ORDER BY g.date DESC
           ) AS game_data
         ), '[]'::json),
@@ -149,6 +151,8 @@ export async function getNflPlayer(playerId, season) {
             SELECT
               g.date,
               g.status,
+              g.type,
+              g.game_label,
               s2.gameid,
               s2.cmpatt AS "CMPATT",
               s2.yds    AS "YDS",
@@ -167,7 +171,7 @@ export async function getNflPlayer(playerId, season) {
             JOIN games g    ON s2.gameid = g.id
             JOIN teams ht   ON g.hometeamid = ht.id
             JOIN teams at   ON g.awayteamid = at.id
-            WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
+            WHERE s2.playerid = p.id AND g.season = $3
             ORDER BY g.date DESC
           ) AS game_data
         ), '[]'::json),
@@ -236,6 +240,8 @@ export async function getNhlPlayer(playerId, season) {
             SELECT
               g.date,
               g.status,
+              g.type,
+              g.game_label,
               s2.gameid,
               s2.g       AS "G",
               s2.a       AS "A",
@@ -264,7 +270,7 @@ export async function getNhlPlayer(playerId, season) {
             JOIN games g    ON s2.gameid = g.id
             JOIN teams ht   ON g.hometeamid = ht.id
             JOIN teams at   ON g.awayteamid = at.id
-            WHERE s2.playerid = p.id AND g.season = $3 AND g.type = 'regular'
+            WHERE s2.playerid = p.id AND g.season = $3
             ORDER BY g.date DESC
           ) AS game_data
         ), '[]'::json),

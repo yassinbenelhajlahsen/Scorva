@@ -282,6 +282,8 @@ export default function PlayerPage() {
                     result={game.result}
                     status={game.status}
                     playerName={name}
+                    gameType={game.type}
+                    gameLabel={game.game_label}
                   />
                 </m.div>
               );

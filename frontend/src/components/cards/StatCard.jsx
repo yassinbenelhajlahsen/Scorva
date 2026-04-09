@@ -15,6 +15,8 @@ export default function StatCard({
   result,
   status,
   playerName,
+  gameType = "regular",
+  gameLabel,
 }) {
   const isFinal = status?.includes("Final");
   const inProgress =
@@ -22,6 +24,9 @@ export default function StatCard({
     status?.includes("Halftime") ||
     status?.includes("End of Period");
   const queryClient = useQueryClient();
+
+  const isPlayoff = gameType === "playoff" || gameType === "final";
+  const isChampionship = gameType === "final";
 
   if (!stats.length) {
     return (
@@ -98,6 +103,14 @@ export default function StatCard({
             </li>
           ))}
         </ul>
+
+        {isPlayoff && (
+          <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-center gap-2">
+            <span className="text-xs text-text-tertiary font-medium tracking-wide">
+              {gameLabel || (isChampionship ? "Finals" : "Playoffs")}
+            </span>
+          </div>
+        )}
       </div>
     </Link>
   );

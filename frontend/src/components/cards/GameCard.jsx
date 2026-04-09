@@ -150,7 +150,7 @@ function GameCard({ game }) {
               </p>
             )}
             {isPlayoff && (
-              <div className="mt-1 flex items-center justify-center h-10 w-10">
+              <div className="mt-1 flex items-center justify-center h-14 w-14">
                 <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-0.5" : ""}`} />
               </div>
             )}
