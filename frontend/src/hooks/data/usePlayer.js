@@ -17,6 +17,7 @@ export function usePlayer(league, slug, selectedSeason) {
       getPlayer(league, slug, { season: selectedSeason, signal }).then(
         (d) => d.player
       ),
+    enabled: !!league && !!slug,
     // Only keep previous data when it's the same player (slug change = full reload)
     placeholderData: (prevData, prevQuery) => {
       const prevKey = prevQuery?.queryKey;

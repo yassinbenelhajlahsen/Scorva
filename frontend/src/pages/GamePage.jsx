@@ -187,7 +187,8 @@ export default function GamePage() {
       {/* Compare Teams button */}
       <div className="flex justify-center mb-6">
         <Link
-          to={`/${league}/compare?type=teams&ids=${slugify(homeTeam.info.name)},${slugify(awayTeam.info.name)}`}
+          to={`/compare`}
+          state={{ league, type: "teams", id1: slugify(homeTeam.info.name), id2: slugify(awayTeam.info.name) }}
           className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

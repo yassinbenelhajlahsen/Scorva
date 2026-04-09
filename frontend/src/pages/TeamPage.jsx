@@ -9,7 +9,7 @@ import { useTeam } from "../hooks/data/useTeam.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
-import CompareModal from "../components/compare/CompareModal.jsx";
+import slugify from "../utils/slugify.js";
 import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 
@@ -32,7 +32,6 @@ export default function TeamPage() {
   }, [games]);
   const { session } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("team", session ? team?.id : null);
-  const [compareOpen, setCompareOpen] = useState(false);
 
   const filteredGames = useMemo(() => {
     if (!selectedMonth) return games;
@@ -73,8 +72,9 @@ export default function TeamPage() {
 
       {/* Season selector + Compare */}
       <div className="flex justify-end gap-2 mb-6">
-        <button
-          onClick={() => setCompareOpen(true)}
+        <Link
+          to="/compare"
+          state={{ league, type: "teams", id1: slugify(team.name) }}
           className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
           aria-label="Compare team"
         >
@@ -82,7 +82,7 @@ export default function TeamPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
           </svg>
           Compare
-        </button>
+        </Link>
         <SeasonSelector
           league={league}
           selectedSeason={selectedSeason}
@@ -184,13 +184,6 @@ export default function TeamPage() {
           )}
         </div>
       </div>
-      <CompareModal
-        isOpen={compareOpen}
-        onClose={() => setCompareOpen(false)}
-        league={league}
-        entityType="team"
-        source={{ id: team.id, name: team.name, imageUrl: team.logo_url }}
-      />
     </div>
   );
 }

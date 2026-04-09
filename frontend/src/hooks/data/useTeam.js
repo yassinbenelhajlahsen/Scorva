@@ -9,6 +9,7 @@ export function useTeam(league, teamId, selectedSeason) {
   // Phase 1: resolve slug → team object
   const teamQuery = useQuery({
     queryKey: queryKeys.team(league, teamId),
+    enabled: !!league && !!teamId,
     queryFn: async ({ signal }) => {
       const teamList = await getTeams(league, { signal });
       const found = teamList.find(

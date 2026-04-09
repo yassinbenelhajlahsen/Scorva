@@ -58,7 +58,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/:league/compare"
+          path="/compare"
           element={
             <PageWrapper>
               <ComparePage />
