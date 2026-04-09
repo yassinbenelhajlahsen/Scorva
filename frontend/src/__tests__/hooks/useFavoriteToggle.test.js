@@ -108,9 +108,9 @@ describe("useFavoriteToggle — toggle (player, not favorited → add)", () => {
     });
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
 
-    await act(() => result.current.toggle());
+    act(() => { result.current.toggle(); });
 
-    expect(result.current.isFavorited).toBe(true);
+    await waitFor(() => expect(result.current.isFavorited).toBe(true));
     expect(addFavoritePlayer).toHaveBeenCalledWith(1, { token: "tok" });
   });
 });
@@ -144,10 +144,10 @@ describe("useFavoriteToggle — toggle (team)", () => {
     });
     await waitFor(() => expect(checkFavorites).toHaveBeenCalled());
 
-    await act(() => result.current.toggle());
+    act(() => { result.current.toggle(); });
 
+    await waitFor(() => expect(result.current.isFavorited).toBe(true));
     expect(addFavoriteTeam).toHaveBeenCalledWith(7, { token: "tok" });
-    expect(result.current.isFavorited).toBe(true);
   });
 
   it("calls removeFavoriteTeam when team is favorited", async () => {
