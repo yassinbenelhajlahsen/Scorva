@@ -76,34 +76,53 @@ const leagueSeasons = {
   ],
 };
 
+// CLI: node historicalUpsert.js [league] [seasonStart]
+// Examples:
+//   node historicalUpsert.js                    # all leagues, all seasons
+//   node historicalUpsert.js nhl                # all NHL seasons
+//   node historicalUpsert.js nhl 2015-09-15     # single NHL season starting 2015-09-15
+const args = process.argv.slice(2);
+const leagueFilter = args[0] || null;
+const seasonFilter = args[1] || null;
+
 (async () => {
   try {
-    // Run 3 league streams in parallel; within each stream seasons are processed sequentially.
-    // batchSize/batchDelayMs throttle per-league ESPN concurrency to reduce rate-limit risk.
-    // Max concurrency: 3 leagues × 2 events = 6 simultaneous ESPN requests.
+    const entries = Object.entries(leagueSeasons)
+      .filter(([slug]) => !leagueFilter || slug === leagueFilter);
+
+    if (entries.length === 0) {
+      log.error({ leagueFilter }, "unknown league — expected nba, nfl, or nhl");
+      process.exit(1);
+    }
+
     await Promise.all(
-      Object.entries(leagueSeasons).map(async ([slug, seasons]) => {
-        for (const { seasonStart, seasonEnd } of seasons) {
+      entries.map(async ([slug, seasons]) => {
+        const filtered = seasonFilter
+          ? seasons.filter((s) => s.seasonStart === seasonFilter)
+          : seasons;
+
+        if (filtered.length === 0) {
+          log.warn({ league: slug, seasonFilter }, "no matching season found");
+          return;
+        }
+
+        for (const { seasonStart, seasonEnd } of filtered) {
           log.info({ league: slug, seasonStart, seasonEnd }, "starting season");
           const dates = getAllDatesInRange(seasonStart, seasonEnd);
           await runDateRangeProcessing(slug, dates, pool, {
-            batchSize: 2,       // 2 concurrent events per batch (down from 5)
-            batchDelayMs: 500,  // 500ms pause between event batches
+            batchSize: 2,
+            batchDelayMs: 500,
           });
         }
       }),
     );
 
-    // Log cache stats before clearing (useful for monitoring optimization impact)
     const cacheStats = getPlayerCacheStats();
     log.info({ cacheSize: cacheStats.size }, "player cache stats");
-
-    // Clear the player cache to free memory after run completes
     clearPlayerCache();
   } catch (err) {
     log.error({ err }, "fatal error");
   } finally {
-    // Always clear cache on exit to prevent memory leaks
     clearPlayerCache();
     await pool.end();
     process.exit(0);

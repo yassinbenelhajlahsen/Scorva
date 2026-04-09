@@ -90,7 +90,7 @@ async function getExistingGameStatus(client, homeTeamId, awayTeamId, date, leagu
  *
  * Returns the game's internal PK.
  */
-export async function processEvent(client, leagueSlug, event) {
+export async function processEvent(client, leagueSlug, event, { force = false } = {}) {
   const espnEventId = parseInt(event.id, 10);
   if (Number.isNaN(espnEventId)) {
     log.warn({ eventId: event.id }, "invalid event.id, skipping");
@@ -254,7 +254,7 @@ export async function processEvent(client, leagueSlug, event) {
     const gameId = await upsertGame(client, leagueSlug, gamePayload);
     runStats.gamesProcessed++;
 
-    if (existingGame.exists && existingGame.isFinal) {
+    if (existingGame.exists && existingGame.isFinal && !force) {
       const { rows } = await client.query(
         "SELECT COUNT(*) AS cnt FROM stats WHERE gameid = $1",
         [existingGame.gameId],
@@ -382,7 +382,7 @@ export async function runDateRangeProcessing(
   leagueSlug,
   dateStrings,
   pool,
-  { batchSize = 5, batchDelayMs = 0 } = {},
+  { batchSize = 5, batchDelayMs = 0, force = false } = {},
 ) {
   log.info({ league: leagueSlug, dates: dateStrings.length }, "starting import");
 
@@ -405,7 +405,7 @@ export async function runDateRangeProcessing(
           for (let attempt = 1; attempt <= MAX_DEADLOCK_RETRIES; attempt++) {
             const client = await pool.connect();
             try {
-              await processEvent(client, leagueSlug, event);
+              await processEvent(client, leagueSlug, event, { force });
               return;
             } catch (err) {
               if (err.code === "40P01" && attempt < MAX_DEADLOCK_RETRIES) {
