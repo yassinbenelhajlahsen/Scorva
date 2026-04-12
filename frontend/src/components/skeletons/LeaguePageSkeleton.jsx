@@ -1,5 +1,6 @@
 import Skeleton from "../ui/Skeleton.jsx";
 import GameCardSkeleton from "./GameCardSkeleton.jsx";
+import PlayoffsSkeleton from "./PlayoffsSkeleton.jsx";
 
 function StandingsColumnSkeleton({ heading }) {
   return (
@@ -26,7 +27,10 @@ function StandingsColumnSkeleton({ heading }) {
   );
 }
 
-export default function LeaguePageSkeleton({ activeTab = "games", league }) {
+export default function LeaguePageSkeleton({ activeTab = "games", league, season }) {
+  if (activeTab === "playoffs") {
+    return <PlayoffsSkeleton season={season} />;
+  }
   if (activeTab === "standings") {
     const isNFL = league === "nfl";
     return (

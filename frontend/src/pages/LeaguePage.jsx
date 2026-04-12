@@ -1,5 +1,5 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
 import { m, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import { useGameDates } from "../hooks/data/useGameDates.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
+import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
 
 export default function LeaguePage() {
   const queryClient = useQueryClient();
@@ -25,12 +26,44 @@ export default function LeaguePage() {
   );
   const [selectedDate, setSelectedDate] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
-  const tabs = ["games", "standings"];
   const [activeTab, setActiveTab] = useState("games");
   const [tabDirection, setTabDirection] = useState(1);
   const tabRefs = useRef([]);
   const tabNavRef = useRef(null);
   const [pillBounds, setPillBounds] = useState(null);
+
+  const { games, standings, standingsFetching, error, displayData, retry, resolvedDate, resolvedSeason } =
+    useLeagueData(league, selectedSeason, selectedDate);
+  const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
+
+  // Historical seasons always show the playoffs tab; current season requires
+  // every team to have played ≥80 of 82 regular-season games. While standings
+  // are loading we show it optimistically to avoid a layout shift.
+  const showPlayoffsTab = useMemo(() => {
+    if (league !== "nba") return false;
+    if (selectedSeason) return true;
+    const allTeams = [...standings.eastOrAFC, ...standings.westOrNFC];
+    if (allTeams.length === 0) return true;
+    const minGamesPlayed = Math.min(
+      ...allTeams.map((t) => (t.wins || 0) + (t.losses || 0))
+    );
+    return minGamesPlayed >= 80;
+  }, [league, selectedSeason, standings.eastOrAFC, standings.westOrNFC]);
+
+  const tabs = useMemo(
+    () => league === "nba"
+      ? (showPlayoffsTab ? ["games", "standings", "playoffs"] : ["games", "standings"])
+      : ["games", "standings"],
+    [league, showPlayoffsTab]
+  );
+
+  // If the active tab disappears (e.g. switching from a historical season
+  // to the current season mid-regular-season), fall back to games.
+  useEffect(() => {
+    if (!tabs.includes(activeTab)) {
+      setActiveTab("games");
+    }
+  }, [tabs, activeTab]);
 
   useLayoutEffect(() => {
     const idx = tabs.indexOf(activeTab);
@@ -41,15 +74,12 @@ export default function LeaguePage() {
       const navRect = nav.getBoundingClientRect();
       setPillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
     }
-  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab, tabs]);
 
   function pickTab(tab) {
     setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);
     setActiveTab(tab);
   }
-  const { games, standings, standingsFetching, error, displayData, retry, resolvedDate, resolvedSeason } =
-    useLeagueData(league, selectedSeason, selectedDate);
-  const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
 
   // Sync date strip when backend resolved a nearest-date redirect.
   // Only depend on resolvedDate — not selectedDate — to avoid overriding
@@ -99,8 +129,13 @@ export default function LeaguePage() {
     );
   }
 
+  // Playoffs bracket needs a wider container than the header/date strip
+  const contentMaxWidth =
+    activeTab === "playoffs" ? "max-w-[1600px]" : "max-w-[1200px]";
+
   return (
-    <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
+    <div className="px-5 sm:px-8 py-8">
+      <div className="max-w-[1200px] mx-auto">
       {/* Back link */}
       <Link
         to="/"
@@ -177,9 +212,11 @@ export default function LeaguePage() {
           resetKey={`${league}-${selectedSeason ?? "current"}`}
         />
       )}
+      </div>
 
+      <div className={`${contentMaxWidth} mx-auto`}>
       {!displayData && !error ? (
-        <LeaguePageSkeleton activeTab={activeTab} league={league} />
+        <LeaguePageSkeleton activeTab={activeTab} league={league} season={selectedSeason} />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : (
@@ -197,7 +234,9 @@ export default function LeaguePage() {
               animate="animate"
               exit="exit"
             >
-              {activeTab === "games" ? (
+              {activeTab === "playoffs" ? (
+                <PlayoffsBracket league={league} season={selectedSeason} />
+              ) : activeTab === "games" ? (
                 <>
                   <AnimatePresence mode="wait">
                     {games.length === 0 ? (
@@ -344,6 +383,7 @@ export default function LeaguePage() {
           </AnimatePresence>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -28,6 +28,7 @@ export const queryKeys = {
   favoriteCheck:  (type, id) => ["favoriteCheck", type, id],
   news:           () => ["news"],
   headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
+  playoffs:       (league, season) => ["playoffs", league, season],
 };
 
 export const queryFns = {

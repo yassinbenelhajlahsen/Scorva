@@ -109,6 +109,15 @@ export function formatDateShort(input) {
   return `${utcMonthName} ${utcDay}${suffix}`;
 }
 
+export function formatDateNumeric(input) {
+  if (!input) return "";
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(input);
+  if (match) return `${Number(match[2])}/${Number(match[3])}`;
+  const parsed = new Date(input);
+  if (isNaN(parsed.getTime())) return "";
+  return `${parsed.getUTCMonth() + 1}/${parsed.getUTCDate()}`;
+}
+
 export function getPeriodLabel(period, league) {
   if (!period) return "";
   const prefix = league === "nhl" ? "P" : "Q";
