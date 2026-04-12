@@ -244,6 +244,7 @@ export async function tick(liveLeagues) {
     // Standings change when games finalize
     if (justFinalized.length > 0) {
       await invalidatePattern(`standings:${slug}:*`);
+      if (slug === "nba") await invalidatePattern("playoffs:nba:*");
     }
   }
 

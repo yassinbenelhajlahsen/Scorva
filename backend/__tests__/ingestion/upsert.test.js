@@ -153,7 +153,7 @@ describe("runUpsert", () => {
   it("invalidates correct cache patterns for each league", async () => {
     await runUpsert(mockPool);
 
-    expect(mockInvalidatePattern).toHaveBeenCalledTimes(10);
+    expect(mockInvalidatePattern).toHaveBeenCalledTimes(11);
     for (const league of ["nba", "nfl", "nhl"]) {
       expect(mockInvalidatePattern).toHaveBeenCalledWith(`games:${league}:*`);
       expect(mockInvalidatePattern).toHaveBeenCalledWith(
@@ -163,6 +163,7 @@ describe("runUpsert", () => {
         `gameDates:${league}:*`,
       );
     }
+    expect(mockInvalidatePattern).toHaveBeenCalledWith("playoffs:nba:*");
     expect(mockInvalidatePattern).toHaveBeenCalledWith("similarPlayers:*");
   });
 
