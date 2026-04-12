@@ -15,6 +15,7 @@ import {
 } from "./middleware/index.js";
 import teamsRouter from "./routes/teams.js";
 import standingsRouter from "./routes/standings.js";
+import playoffsRoute from "./routes/playoffs.js";
 import gamesInfoRoute from "./routes/gameDetail.js";
 import playersRoute from "./routes/players.js";
 import playerInfoRoute from "./routes/playerDetail.js";
@@ -68,6 +69,7 @@ app.use("/api", liveRoute);
 app.use("/api", generalLimiter);
 app.use("/api", teamsRouter);
 app.use("/api", standingsRouter);
+app.use("/api", playoffsRoute);
 app.use("/api", gamesRoute);
 app.use("/api", gamesInfoRoute);
 app.use("/api", predictionRoute);
