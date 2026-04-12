@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeAll, jest } from "@jest/globals";
 import express from "express";
 import cors from "cors";
+import request from "supertest";
 
 describe("Express App Integration", () => {
   let app;
@@ -35,7 +36,6 @@ describe("Express App Integration", () => {
     testApp.use(express.json());
     testApp.post("/test", (req, res) => res.json(req.body));
 
-    const { default: request } = await import("supertest");
     const response = await request(testApp)
       .post("/test")
       .send({ name: "test" });
@@ -48,17 +48,13 @@ describe("Express App Integration", () => {
     testApp.use(express.json());
 
     const server = testApp.listen(0, () => {
-      const port = server.address().port;
-
-      import("supertest").then(({ default: request }) => {
-        request(testApp)
-          .get("/api/unknown-route")
-          .expect(404)
-          .end((err) => {
-            server.close();
-            done(err);
-          });
-      });
+      request(testApp)
+        .get("/api/unknown-route")
+        .expect(404)
+        .end((err) => {
+          server.close();
+          done(err);
+        });
     });
   });
 });
@@ -71,7 +67,6 @@ describe("API Routes Registration", () => {
 
     testApp.use("/api", mockRouter);
 
-    const { default: request } = await import("supertest");
     const response = await request(testApp).get("/api/test");
 
     expect(response.status).toBe(200);
@@ -89,7 +84,6 @@ describe("API Routes Registration", () => {
     testApp.use("/api", router1);
     testApp.use("/api", router2);
 
-    const { default: request } = await import("supertest");
     const response1 = await request(testApp).get("/api/route1");
     const response2 = await request(testApp).get("/api/route2");
 
@@ -128,7 +122,6 @@ describe("Middleware Order", () => {
     router.get("/test", (req, res) => res.json({ ok: true }));
     testApp.use("/api", router);
 
-    const { default: request } = await import("supertest");
     const response = await request(testApp).get("/api/test");
 
     expect(response.status).toBe(200);
@@ -142,7 +135,6 @@ describe("Middleware Order", () => {
     router.post("/test", (req, res) => res.json(req.body));
     testApp.use("/api", router);
 
-    const { default: request } = await import("supertest");
     const response = await request(testApp)
       .post("/api/test")
       .send({ data: "test" });
@@ -164,7 +156,6 @@ describe("Error Handling", () => {
       res.status(500).json({ error: err.message });
     });
 
-    const { default: request } = await import("supertest");
     const response = await request(testApp).get("/error");
 
     expect(response.status).toBe(500);
@@ -186,7 +177,6 @@ describe("Error Handling", () => {
       res.status(500).json({ error: err.message });
     });
 
-    const { default: request } = await import("supertest");
     const response = await request(testApp).get("/async-error");
 
     expect(response.status).toBe(500);
