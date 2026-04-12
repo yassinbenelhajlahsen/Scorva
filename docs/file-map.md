@@ -81,6 +81,13 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Compare modal                      | `frontend/src/components/compare/CompareModal.jsx`                                                     |
 | Compare page                       | `frontend/src/pages/ComparePage.jsx`                                                                   |
 | Compare page skeleton              | `frontend/src/components/skeletons/ComparePageSkeleton.jsx`                                            |
+| Playoffs service                   | `backend/src/services/playoffsService.js`                                                              |
+| Playoffs controller                | `backend/src/controllers/playoffsController.js`                                                        |
+| Playoffs route                     | `backend/src/routes/playoffs.js`                                                                       |
+| Playoffs API (frontend)            | `frontend/src/api/playoffs.js`                                                                         |
+| Playoffs hook                      | `frontend/src/hooks/data/useNbaPlayoffs.js`                                                            |
+| Playoffs components                | `frontend/src/components/playoffs/` (PlayoffsBracket, SeriesCard, PlayInSection)                       |
+| Playoffs skeleton                  | `frontend/src/components/skeletons/PlayoffsSkeleton.jsx`                                               |
 | Prediction service                 | `backend/src/services/predictionService.js`                                                            |
 | Prediction controller              | `backend/src/controllers/predictionController.js`                                                      |
 | Prediction route                   | `backend/src/routes/prediction.js`                                                                     |
