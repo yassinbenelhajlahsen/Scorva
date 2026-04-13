@@ -444,9 +444,17 @@ All vectors are stored as `vector(14)` (NHL max); NBA and NFL are zero-padded. Q
 
 **Cache:** `similarPlayers:{league}:{playerId}:{season}` — 120s current season, 30 days past. Invalidated on each upsert cycle.
 
-### 13 chat tools
+### 14 chat tools
 `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`,
 `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,
-`web_search`, `get_seasons`, `get_teams`, `semantic_search`
+`web_search`, `get_seasons`, `get_teams`, `semantic_search`, `get_plays`
 
 OpenAI function schemas defined in `chat/toolDefinitions.js`; execution dispatch in `chat/toolsService.js`; individual tool logic in `services/chat/tools/`.
+
+### `get_plays` tool
+Queries the `plays` table directly — no embeddings. Handles both single-game and cross-game queries via a single parameterized SQL query. Optional filters: `gameId`, `playerName` (ILIKE on description), `teamId`, `period`, `scoringOnly`, `playType` (ILIKE), `searchText` (ILIKE on description). Season auto-resolved by `executeTool`. Default limit 30, hard cap 50.
+
+- Single-game (`gameId` provided): omits `game_id`/`game_date`/`matchup` from result rows (redundant); skips `status ILIKE 'Final%'` filter so live games work.
+- Cross-game: only searches Final games; includes `matchup` and `game_date` per row so the LLM can attribute plays to specific games.
+- NFL: conditionally adds `drive_number`, `drive_description`, `drive_result` columns to SELECT and result shape.
+- Returns `{ plays, total, capped }` so the LLM knows if results were truncated.

@@ -84,6 +84,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat tool schemas                 | `backend/src/services/ai/chat/toolDefinitions.js`          |
 | Chat tools (dispatch)             | `backend/src/services/ai/chat/toolsService.js`             |
 | Chat tool implementations         | `backend/src/services/ai/chat/tools/`                      |
+| Chat plays tool                   | `backend/src/services/ai/chat/tools/plays.js`              |
 | Chat history                      | `backend/src/services/ai/chat/historyService.js`           |
 
 ## Backend — Domain: Meta (News, Search, Seasons, H2H, Webhooks)

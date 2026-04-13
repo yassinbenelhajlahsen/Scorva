@@ -69,7 +69,7 @@ describe("AuthModal — rendering", () => {
 
   it("renders context subtitle for chat context", () => {
     render(<AuthModal onClose={vi.fn()} context="chat" />);
-    expect(screen.getByText("to chat with Sid, your AI sports assistant")).toBeInTheDocument();
+    expect(screen.getByText("to chat with SID, your AI sports assistant")).toBeInTheDocument();
   });
 
   it("renders default subtitle for unknown context", () => {

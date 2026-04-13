@@ -221,6 +221,60 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "get_plays",
+      description:
+        "Search play-by-play data for a specific game or across all games in a season. " +
+        "Use gameId for a single game, or omit it to search across games. " +
+        "Filter by player name (searches within play descriptions — use first or last name), " +
+        "play type, scoring plays only, period/quarter, or free-text pattern. " +
+        "Returns plays in chronological order (earliest first). " +
+        "Results are capped at 50 — a full game has 400+ plays. For full-game questions, " +
+        "use the period filter to query one quarter at a time instead of fetching all plays at once. " +
+        "If capped is true in the response, tell the user results were truncated.",
+      parameters: {
+        type: "object",
+        properties: {
+          league: { type: "string", enum: ["nba", "nfl", "nhl"] },
+          gameId: {
+            type: "integer",
+            description: "Specific game ID. Omit to search across all games in the season.",
+          },
+          playerName: {
+            type: "string",
+            description: "Player name to search for in play descriptions. Use first or last name.",
+          },
+          teamId: {
+            type: "integer",
+            description: "Filter plays attributed to this team ID.",
+          },
+          period: {
+            type: "integer",
+            description: "Filter to a specific quarter or period (e.g. 4 for the 4th quarter).",
+          },
+          scoringOnly: {
+            type: "boolean",
+            description: "When true, return only plays that changed the score.",
+          },
+          playType: {
+            type: "string",
+            description: "Filter by play type (e.g. 'Three Point', 'Steal', 'Rush', 'Pass'). Partial match.",
+          },
+          searchText: {
+            type: "string",
+            description: "Free-text search within play descriptions (e.g. 'buzzer', 'dunk', 'overtime'). Partial match. AND-ed with playerName when both are provided.",
+          },
+          limit: {
+            type: "integer",
+            description: "Max plays to return (default 30, max 50).",
+          },
+        },
+        required: ["league"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "semantic_search",
       description:
         "Search game summaries using semantic similarity. Best for broad or narrative queries like " +

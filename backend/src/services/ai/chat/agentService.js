@@ -67,7 +67,7 @@ function buildSystemPrompt(pageContext, entity) {
     } else if (type === "team" && entity) {
       contextBlock = `\n\nThe user is currently viewing the **${entity.name}** ${leagueUpper} team page (team ID: ${entity.id}). When they say "this team", "them", or ask without naming a team, they mean ${entity.name}. You already have the team ID — call get_team_stats or get_games directly with team ID ${entity.id}, do NOT search first.`;
     } else if (type === "game" && entity) {
-      contextBlock = `\n\nThe user is currently viewing the **${entity.name}** ${leagueUpper} game page (game ID: ${entity.id}). When they ask about "this game" or "the game", they mean ${entity.name}. You already have the game ID — call get_game_detail directly with game ID ${entity.id}, do NOT search first.`;
+      contextBlock = `\n\nThe user is currently viewing the **${entity.name}** ${leagueUpper} game page (game ID: ${entity.id}). When they ask about "this game" or "the game", they mean ${entity.name}. You already have the game ID — call get_game_detail directly with game ID ${entity.id}, do NOT search first. For play-by-play questions about this game, use get_plays with game ID ${entity.id}.`;
     } else if (type === "league" && league) {
       contextBlock = `\n\nThe user is currently browsing the ${leagueUpper} section of the app. Default to ${leagueUpper} when the league is ambiguous.`;
     }
@@ -156,6 +156,7 @@ const TOOL_STATUS_LABELS = {
   get_seasons: "Loading seasons",
   get_teams: "Loading teams",
   semantic_search: "Searching knowledge base",
+  get_plays: "Searching play-by-play",
 };
 
 export async function runAgentLoop(history, pageContext, onDelta, { onStatus, conversationSummary, signal } = {}) {

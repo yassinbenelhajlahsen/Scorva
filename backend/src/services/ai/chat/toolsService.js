@@ -11,6 +11,7 @@ import { getPlayerComparison } from "./tools/playerComparison.js";
 import { getTeamStats } from "./tools/teamStats.js";
 import { webSearch } from "./tools/webSearch.js";
 import { semanticSearch } from "./tools/semanticSearch.js";
+import { getPlaysForAgent } from "./tools/plays.js";
 import { getCurrentSeason } from "../../../cache/seasons.js";
 
 export { TOOL_DEFINITIONS } from "./toolDefinitions.js";
@@ -89,6 +90,9 @@ export async function executeTool(name, args) {
 
     case "semantic_search":
       return semanticSearch(args.query, Math.min(args.limit || 5, 10));
+
+    case "get_plays":
+      return getPlaysForAgent(args);
 
     default:
       return { error: `Unknown tool: ${name}` };

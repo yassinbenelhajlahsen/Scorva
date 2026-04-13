@@ -73,6 +73,11 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/se
   semanticSearch: mockSemanticSearch,
 }));
 
+const mockGetPlaysForAgent = jest.fn();
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/plays.js"), () => ({
+  getPlaysForAgent: mockGetPlaysForAgent,
+}));
+
 const servicePath = resolve(__dirname, "../../src/services/ai/chat/toolsService.js");
 const { TOOL_DEFINITIONS, executeTool } = await import(servicePath);
 
@@ -85,7 +90,7 @@ describe("chatToolsService", () => {
   describe("TOOL_DEFINITIONS", () => {
     it("exports an array of tool definitions", () => {
       expect(Array.isArray(TOOL_DEFINITIONS)).toBe(true);
-      expect(TOOL_DEFINITIONS.length).toBe(13);
+      expect(TOOL_DEFINITIONS.length).toBe(14);
     });
 
     it("every definition has type 'function' and a function.name", () => {
@@ -111,6 +116,7 @@ describe("chatToolsService", () => {
       expect(names).toContain("get_seasons");
       expect(names).toContain("get_teams");
       expect(names).toContain("semantic_search");
+      expect(names).toContain("get_plays");
     });
 
     it("semantic_search definition has required 'query' property", () => {
@@ -308,6 +314,22 @@ describe("chatToolsService", () => {
       await executeTool("semantic_search", { query: "close games" });
 
       expect(mockSemanticSearch).toHaveBeenCalledWith("close games", 5);
+    });
+
+    it("delegates 'get_plays' to getPlaysForAgent() with full args object", async () => {
+      const mockResult = { plays: [], capped: false };
+      mockGetPlaysForAgent.mockResolvedValueOnce(mockResult);
+
+      const args = {
+        league: "nba",
+        gameId: 99,
+        playerName: "LeBron",
+        season: "2025-26",
+      };
+      const result = await executeTool("get_plays", args);
+
+      expect(mockGetPlaysForAgent).toHaveBeenCalledWith(args);
+      expect(result).toEqual(mockResult);
     });
   });
 
