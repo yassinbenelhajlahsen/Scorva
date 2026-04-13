@@ -235,7 +235,7 @@ export default function LeaguePage() {
               exit="exit"
             >
               {activeTab === "playoffs" ? (
-                <PlayoffsBracket league={league} season={selectedSeason} />
+                <PlayoffsBracket key={selectedSeason} league={league} season={selectedSeason} />
               ) : activeTab === "games" ? (
                 <>
                   <AnimatePresence mode="wait">
