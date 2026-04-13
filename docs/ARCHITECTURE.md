@@ -217,7 +217,7 @@ Users can filter the league page to a specific date via a scrollable date strip 
 Single source of truth for game classification. Values: `regular`, `preseason`, `playoff`, `final`, `makeup`, `other`.
 - Derived in `ingestion/eventProcessor.js` from ESPN `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`
 - Set as `$24` in `ingestion/upsertGame.js`
-- `standingsService.js` (1 place) and `playerDetailService.js` (6 places) filter `AND g.type = 'regular'`
+- All regular-season queries filter `AND g.type IN ('regular', 'makeup')` — `makeup` games are rescheduled regular-season games (e.g. postponed due to weather) and must be included in standings, player stats, predictions, and chat tools
 - Frontend: `GameCard.jsx` reads `game.type` (snake_case from `gamesService`); `GamePage.jsx` reads `game.gameType` (camelCase from `gameDetailService`)
 
 ### `stats.teamid` (INT?, FK → teams)
