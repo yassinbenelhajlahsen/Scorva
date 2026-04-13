@@ -98,6 +98,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Win probability chart              | `frontend/src/components/ui/GameChart.jsx`                                                             |
 | Game dates controller              | `backend/src/controllers/gameDatesController.js`                                                       |
 | Game dates service                 | `backend/src/services/gamesService.js` (`getGameDates` export)                                         |
+| Standings tiebreaker util          | `backend/src/utils/tiebreaker.js`                                                                      |
 | PG date → string util              | `backend/src/utils/pgDateToString.js`                                                                  |
 | Page skeleton layouts              | `frontend/src/components/skeletons/`                                                                   |
 | Chat route                         | `backend/src/routes/chat.js`                                                                           |

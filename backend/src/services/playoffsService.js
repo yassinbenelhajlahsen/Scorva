@@ -1,7 +1,8 @@
 import pool from "../db/db.js";
 import { cached } from "../cache/cache.js";
 import { getCurrentSeason } from "../cache/seasons.js";
-import { getStandings } from "./standingsService.js";
+import { getStandings, getRegularSeasonGames } from "./standingsService.js";
+import { buildH2HMatrix, sortWithTiebreakers } from "../utils/tiebreaker.js";
 import logger from "../logger.js";
 
 const R1_SEED_PAIRS = [
@@ -101,13 +102,13 @@ function buildSeries(games, teamsById) {
   return seriesList;
 }
 
-function computeStandingsSeeds(teamsById) {
+function computeStandingsSeeds(teamsById, h2hMatrix) {
   const seedByTeamId = new Map();
   for (const conf of ["east", "west"]) {
     const teams = Array.from(teamsById.values())
-      .filter((t) => t.conf === conf)
-      .sort((a, b) => b.wins - a.wins || a.losses - b.losses);
-    teams.forEach((t, i) => seedByTeamId.set(t.id, i + 1));
+      .filter((t) => t.conf === conf);
+    const sorted = sortWithTiebreakers(teams, h2hMatrix, "nba");
+    sorted.forEach((t, i) => seedByTeamId.set(t.id, i + 1));
   }
   return seedByTeamId;
 }
@@ -161,7 +162,7 @@ function classifyConferenceRounds(confSeries) {
 
 // Rank R1 participants by regular-season wins to infer seeds.
 // Validates that inferred seeds produce canonical {1:8, 4:5, 3:6, 2:7} matchups.
-function inferSeedsFromR1(r1Series, standingsByConf) {
+function inferSeedsFromR1(r1Series, standingsByConf, h2hMatrix) {
   if (r1Series.length !== 4) return null;
 
   const participants = new Set();
@@ -171,10 +172,11 @@ function inferSeedsFromR1(r1Series, standingsByConf) {
   }
   if (participants.size !== 8) return null;
 
-  const ranked = Array.from(participants)
-    .map((id) => standingsByConf.get(id))
-    .filter(Boolean)
-    .sort((x, y) => y.wins - x.wins || x.losses - y.losses);
+  const ranked = sortWithTiebreakers(
+    Array.from(participants).map((id) => standingsByConf.get(id)).filter(Boolean),
+    h2hMatrix,
+    "nba"
+  );
 
   if (ranked.length !== 8) return null;
 
@@ -291,12 +293,14 @@ function padConfBlock(block, confKey) {
   }
 }
 
-function buildProjectedConference(conf, teamsById) {
+function buildProjectedConference(conf, teamsById, h2hMatrix) {
   const confKey = conf === "east" ? "eastern" : "western";
 
-  const teams = Array.from(teamsById.values())
-    .filter((t) => t.conf === conf)
-    .sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+  const teams = sortWithTiebreakers(
+    Array.from(teamsById.values()).filter((t) => t.conf === conf),
+    h2hMatrix,
+    "nba"
+  );
 
   const seededTop8 = teams.slice(0, 8);
   const playIn910 = teams.slice(8, 10);
@@ -374,11 +378,11 @@ function orderR1BySeedPairs(r1SerializedList) {
 }
 
 async function derivePlayoffs(season) {
-  const [games, rawStandings] = await Promise.all([
+  const [games, rawStandings, h2hGames] = await Promise.all([
     fetchPlayoffGames(season),
     getStandings("nba", season),
+    getRegularSeasonGames("nba", season),
   ]);
-
   const teamsById = new Map();
   for (const r of rawStandings) {
     teamsById.set(r.id, {
@@ -388,9 +392,13 @@ async function derivePlayoffs(season) {
     });
   }
 
+  const confByTeamId = new Map();
+  for (const [id, t] of teamsById) confByTeamId.set(id, (t.conf || "").toLowerCase());
+  const h2hData = buildH2HMatrix(h2hGames, confByTeamId);
+
   if (games.length === 0) {
-    const east = buildProjectedConference("east", teamsById);
-    const west = buildProjectedConference("west", teamsById);
+    const east = buildProjectedConference("east", teamsById, h2hData.matrix);
+    const west = buildProjectedConference("west", teamsById, h2hData.matrix);
     if (!east || !west) {
       return {
         season,
@@ -423,7 +431,7 @@ async function derivePlayoffs(season) {
   const finalsSeries = allSeries.filter((s) => s.hasFinalTypeGame);
   const nonFinalsSeries = allSeries.filter((s) => !s.hasFinalTypeGame);
 
-  const standingsSeedMap = computeStandingsSeeds(teamsById);
+  const standingsSeedMap = computeStandingsSeeds(teamsById, h2hData.matrix);
 
   const { playInSeries, remainingSeries } = classifyPlayIn(nonFinalsSeries, standingsSeedMap);
 
@@ -461,8 +469,8 @@ async function derivePlayoffs(season) {
   const standingsByConfWest = new Map(
     Array.from(teamsById.values()).filter((t) => t.conf === "west").map((t) => [t.id, t])
   );
-  const eastSeedMap = inferSeedsFromR1(eastRounds.r1, standingsByConfEast);
-  const westSeedMap = inferSeedsFromR1(westRounds.r1, standingsByConfWest);
+  const eastSeedMap = inferSeedsFromR1(eastRounds.r1, standingsByConfEast, h2hData.matrix);
+  const westSeedMap = inferSeedsFromR1(westRounds.r1, standingsByConfWest, h2hData.matrix);
 
   if (!eastSeedMap) {
     logger.debug({ season }, "East seed inference failed, using standings fallback");
@@ -497,11 +505,11 @@ async function derivePlayoffs(season) {
   let projEast = null;
   let projWest = null;
   if (easternBlock.r1.length === 0) {
-    projEast = buildProjectedConference("east", teamsById);
+    projEast = buildProjectedConference("east", teamsById, h2hData.matrix);
     if (projEast) easternBlock.r1 = projEast.r1;
   }
   if (westernBlock.r1.length === 0) {
-    projWest = buildProjectedConference("west", teamsById);
+    projWest = buildProjectedConference("west", teamsById, h2hData.matrix);
     if (projWest) westernBlock.r1 = projWest.r1;
   }
 
@@ -547,8 +555,8 @@ async function derivePlayoffs(season) {
   }
   if (!playInBlock && (!r1Started || hasUnresolvedR1)) {
     // No actual play-in games — build projected play-in from standings
-    const pe = projEast || buildProjectedConference("east", teamsById);
-    const pw = projWest || buildProjectedConference("west", teamsById);
+    const pe = projEast || buildProjectedConference("east", teamsById, h2hData.matrix);
+    const pw = projWest || buildProjectedConference("west", teamsById, h2hData.matrix);
     const block = {
       eastern: pe?.playIn ?? [],
       western: pw?.playIn ?? [],

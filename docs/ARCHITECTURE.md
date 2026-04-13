@@ -160,7 +160,8 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | Key | TTL | Notes |
 |---|---|---|
 | `gameDetail:{league}:{id}` | 30d | Final only via `cacheIf` |
-| `standings:{league}:{season}` | 5m current / 30d past | |
+| `standings:{league}:{season}` | 5m current / 30d past | Sorted by win% with tiebreakers |
+| `h2h-games:{league}:{season}` | 5m current / 30d past | Regular-season games for tiebreaker matrix |
 | `playerDetail:{league}:{playerId}:{season}` | 2m current / 30d past | |
 | `games:{league}:default:{todayEST}` | 30s | |
 | `games:{league}:{season}:team:{teamId}` | 30s/30d | |

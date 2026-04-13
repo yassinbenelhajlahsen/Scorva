@@ -10,6 +10,7 @@ const mockPool = createMockPool();
 const mockGetCurrentSeason = jest.fn().mockResolvedValue("2025-26");
 const mockCached = jest.fn().mockImplementation(async (_key, _ttl, fn) => fn());
 const mockGetStandings = jest.fn();
+const mockGetRegularSeasonGames = jest.fn().mockResolvedValue([]);
 
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
@@ -25,6 +26,7 @@ jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 const standingsPath = resolve(__dirname, "../../src/services/standingsService.js");
 jest.unstable_mockModule(standingsPath, () => ({
   getStandings: mockGetStandings,
+  getRegularSeasonGames: mockGetRegularSeasonGames,
 }));
 
 const { getNbaPlayoffs } = await import(

@@ -44,6 +44,7 @@ describe("getStandings", () => {
     jest.clearAllMocks();
     mockGetCurrentSeason.mockResolvedValue("2025-26");
     mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
+    mockPool.query.mockResolvedValue({ rows: [] });
   });
 
   it("returns standings rows from query", async () => {
@@ -51,20 +52,24 @@ describe("getStandings", () => {
 
     const result = await getStandings("nba");
 
-    expect(result).toEqual([mockTeam]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 1,
+      name: "Boston Celtics",
+      wins: 35,
+      losses: 10,
+    });
+    expect(result[0]).toHaveProperty("winPct");
+    expect(result[0]).toHaveProperty("pointDiff");
   });
 
   it("returns empty array when no teams found", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     const result = await getStandings("nhl");
 
     expect(result).toEqual([]);
   });
 
   it("uses provided season in query params", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba", "2024-25");
 
     expect(mockPool.query).toHaveBeenCalledWith(
@@ -74,8 +79,6 @@ describe("getStandings", () => {
   });
 
   it("passes null when no season provided (SQL uses COALESCE)", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nfl");
 
     expect(mockPool.query).toHaveBeenCalledWith(
@@ -85,8 +88,6 @@ describe("getStandings", () => {
   });
 
   it("uses 300s TTL for current season", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba", "2025-26");
 
     const [, ttl] = mockCached.mock.calls[0];
@@ -94,8 +95,6 @@ describe("getStandings", () => {
   });
 
   it("uses 30-day TTL for historical seasons", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba", "2024-25");
 
     const [, ttl] = mockCached.mock.calls[0];
@@ -103,8 +102,6 @@ describe("getStandings", () => {
   });
 
   it("uses current season TTL when no season param provided", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba");
 
     const [, ttl] = mockCached.mock.calls[0];
@@ -112,8 +109,6 @@ describe("getStandings", () => {
   });
 
   it("cache key includes league and resolved season", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba", "2024-25");
 
     const [key] = mockCached.mock.calls[0];
@@ -121,8 +116,6 @@ describe("getStandings", () => {
   });
 
   it("SQL filters by regular game type", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba");
 
     const [sql] = mockPool.query.mock.calls[0];
@@ -130,28 +123,49 @@ describe("getStandings", () => {
   });
 
   it("SQL filters Final status", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
-
     await getStandings("nba");
 
     const [sql] = mockPool.query.mock.calls[0];
     expect(sql).toContain("Final");
   });
 
-  it("SQL orders by conf, wins DESC, losses ASC", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
+  it("sorts teams by win percentage with H2H tiebreaker", async () => {
+    const teamA = { ...mockTeam, id: 1, conf: "Eastern", wins: 30, losses: 15 };
+    const teamB = { ...mockTeam, id: 2, conf: "Eastern", wins: 35, losses: 10, name: "Miami Heat" };
+    mockPool.query.mockResolvedValueOnce({ rows: [teamA, teamB] });
 
-    await getStandings("nba");
+    const result = await getStandings("nba");
 
-    const [sql] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("wins DESC, losses ASC");
+    expect(result[0].id).toBe(2);
+    expect(result[1].id).toBe(1);
+  });
+
+  it("computes winPct for NBA teams", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [mockTeam] });
+
+    const result = await getStandings("nba");
+
+    expect(result[0].winPct).toBeCloseTo(35 / 45);
+  });
+
+  it("computes ptsPct for NHL teams", async () => {
+    const nhlTeam = { ...mockTeam, id: 1, conf: "Eastern", wins: 30, losses: 20, otl: 5 };
+    mockPool.query.mockResolvedValueOnce({ rows: [nhlTeam] });
+
+    const result = await getStandings("nhl");
+
+    expect(result[0].ptsPct).toBeCloseTo((2 * 30 + 5) / (2 * 50));
+    expect(result[0]).not.toHaveProperty("winPct");
   });
 
   it("works for all supported leagues", async () => {
     for (const league of ["nba", "nfl", "nhl"]) {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      jest.clearAllMocks();
+      mockGetCurrentSeason.mockResolvedValue("2025-26");
+      mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
+      mockPool.query.mockResolvedValue({ rows: [] });
       await getStandings(league);
-      expect(mockPool.query).toHaveBeenLastCalledWith(expect.any(String), [league, null]);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [league, null]);
     }
   });
 });

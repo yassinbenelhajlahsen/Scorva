@@ -25,6 +25,12 @@ jest.unstable_mockModule(seasonsPath, () => ({
   getCurrentSeason: jest.fn().mockResolvedValue("2025-26"),
 }));
 
+// Mock cache so we don't need Redis
+const cachePath = resolve(__dirname, "../../src/cache/cache.js");
+jest.unstable_mockModule(cachePath, () => ({
+  cached: jest.fn().mockImplementation(async (_key, _ttl, fn) => fn()),
+}));
+
 // Now import the modules that depend on db
 const routerPath = resolve(__dirname, "../../src/routes/standings.js");
 const { default: express } = await import("express");
@@ -39,6 +45,7 @@ describe("Standings Route - GET /:league/standings", () => {
     app.use(express.json());
     app.use("/api", standingsRouter);
     jest.clearAllMocks();
+    mockPool.query.mockResolvedValue({ rows: [] });
   });
 
   it("should return standings with wins and losses parsed", async () => {
@@ -65,17 +72,18 @@ describe("Standings Route - GET /:league/standings", () => {
       },
     ];
 
-    mockPool.query.mockResolvedValue({ rows: mockStandings });
+    mockPool.query.mockResolvedValueOnce({ rows: mockStandings });
 
     const response = await request(app).get("/api/nba/standings");
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(mockStandings);
+    expect(response.body).toHaveLength(2);
     expect(response.body[0]).toHaveProperty("wins");
     expect(response.body[0]).toHaveProperty("losses");
+    expect(response.body[0]).toHaveProperty("winPct");
   });
 
-  it("should order by conference, wins desc, losses asc", async () => {
+  it("should sort by win percentage descending", async () => {
     const mockStandings = [
       {
         id: 1,
@@ -86,27 +94,23 @@ describe("Standings Route - GET /:league/standings", () => {
       },
       {
         id: 2,
-        name: "Los Angeles Lakers",
-        conf: "Western",
-        wins: 32,
-        losses: 13,
+        name: "Miami Heat",
+        conf: "Eastern",
+        wins: 30,
+        losses: 15,
       },
     ];
 
-    mockPool.query.mockResolvedValue({ rows: mockStandings });
+    mockPool.query.mockResolvedValueOnce({ rows: mockStandings });
 
     const response = await request(app).get("/api/nba/standings");
 
     expect(response.status).toBe(200);
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining("ORDER BY t.conf, wins DESC, losses ASC"),
-      ["nba", null]
-    );
+    expect(response.body[0].id).toBe(1);
+    expect(response.body[1].id).toBe(2);
   });
 
   it("should return empty array when no teams found", async () => {
-    mockPool.query.mockResolvedValue({ rows: [] });
-
     const response = await request(app).get("/api/nfl/standings");
 
     expect(response.status).toBe(200);
@@ -123,8 +127,6 @@ describe("Standings Route - GET /:league/standings", () => {
   });
 
   it("should work with different league parameters", async () => {
-    mockPool.query.mockResolvedValue({ rows: [] });
-
     await request(app).get("/api/nhl/standings");
 
     expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ["nhl", null]);
@@ -144,7 +146,7 @@ describe("Standings Route - GET /:league/standings", () => {
       },
     ];
 
-    mockPool.query.mockResolvedValue({ rows: mockStandings });
+    mockPool.query.mockResolvedValueOnce({ rows: mockStandings });
 
     const response = await request(app).get("/api/nba/standings");
 
@@ -156,7 +158,7 @@ describe("Standings Route - GET /:league/standings", () => {
   it("should include all required fields", async () => {
     const mockStandings = [fixtures.team()];
 
-    mockPool.query.mockResolvedValue({
+    mockPool.query.mockResolvedValueOnce({
       rows: [
         {
           ...mockStandings[0],
