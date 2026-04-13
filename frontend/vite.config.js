@@ -24,11 +24,20 @@ function fontPreloadPlugin() {
 export default defineConfig({
   plugins: [tailwindcss(), react(), fontPreloadPlugin()],
   test: {
-    environment: "jsdom",
+    environment: "node",
     globals: true,
     reporter: "default",
     setupFiles: ["./src/__tests__/setup.js"],
     include: ["src/**/*.test.{js,jsx}"],
+    pool: "forks",
+    poolOptions: {
+      forks: { minForks: 2, maxForks: 6 },
+    },
+    deps: {
+      optimizer: {
+        web: { enabled: true },
+      },
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

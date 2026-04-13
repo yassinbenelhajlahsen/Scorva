@@ -1,6 +1,6 @@
 # Scorva — Frontend Testing Quick Reference
 
-Framework: **Vitest + Testing Library + jsdom**
+Framework: **Vitest + Testing Library + jsdom (opt-in)**
 Full backend guide: [`backend/__tests__/README.md`](../backend/__tests__/README.md)
 
 ## Setup files
@@ -8,6 +8,14 @@ Full backend guide: [`backend/__tests__/README.md`](../backend/__tests__/README.
 - Test helpers: `frontend/src/__tests__/helpers/testUtils.jsx` — `renderWithProviders`, `mockSession`
 - TQ wrapper: `frontend/src/__tests__/helpers/queryWrapper.jsx` — `createWrapper()`, `createTestQueryClient()`
 - All tests: `frontend/src/__tests__/`
+
+## Test environments
+The default Vitest environment is `node`. Tests that render components, use `renderHook`, or touch DOM globals need jsdom — add this directive as the **first line** of the file:
+```js
+// @vitest-environment jsdom
+```
+- **Needs jsdom**: component tests, hook tests (use `renderHook`), context tests
+- **Does NOT need jsdom**: API wrapper tests, utility/pure-logic tests
 
 ## Patterns
 
