@@ -228,8 +228,14 @@ function projectedTeamInfo(team, seed) {
 }
 
 function serializeSeries(series, { round, conference, teamsById, seedMap }) {
-  const teamA = makeTeamInfo(series.teamAId, teamsById, seedMap);
-  const teamB = makeTeamInfo(series.teamBId, teamsById, seedMap);
+  let teamA = makeTeamInfo(series.teamAId, teamsById, seedMap);
+  let teamB = makeTeamInfo(series.teamBId, teamsById, seedMap);
+
+  // Higher seed (lower number) on top
+  if (teamA?.seed && teamB?.seed && teamB.seed < teamA.seed) {
+    [teamA, teamB] = [teamB, teamA];
+  }
+
   return {
     round,
     conference,
