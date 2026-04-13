@@ -263,6 +263,75 @@ export function calculateTeamStats(teamStats, league) {
   return {};
 }
 
+function cleanBullet(raw) {
+  return raw
+    .trim()
+    .replace(/^[-*•]\s*/, "")
+    .replace(/^\d+\.\s*/, "")
+    .trim();
+}
+
+export async function streamAISummary(gameData, league, onBullet, { signal } = {}) {
+  const prompt = buildPrompt(gameData, league);
+
+  const stream = await Promise.race([
+    openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a sports analyst who writes concise, factual game summaries for knowledgeable fans. Format your response as 3 bullet points. Each bullet point should be one clear insight. Be factual and concise. No hype. Vary your sentence structure and opening words. Never start two bullets the same way.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.9,
+      max_tokens: 250,
+      stream: true,
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("OpenAI request timeout")), 30000)
+    ),
+  ]);
+
+  let buffer = "";
+
+  try {
+    for await (const chunk of stream) {
+      if (signal?.aborted) {
+        stream.controller.abort();
+        return buffer;
+      }
+
+      const token = chunk.choices[0]?.delta?.content ?? "";
+      buffer += token;
+
+      // Extract all completed bullets from the buffer (a bullet ends when the next \n- starts)
+      let match;
+      while ((match = buffer.match(/^([\s\S]+?)\n\s*-\s/))) {
+        const completed = match[1];
+        const cleaned = cleanBullet(completed);
+        if (cleaned) onBullet(cleaned);
+        const boundary = buffer.indexOf("\n", match[1].length);
+        buffer = buffer.slice(boundary + 1).trimStart();
+      }
+    }
+  } catch (err) {
+    if (signal?.aborted) return buffer;
+    logger.error({ err }, "OpenAI stream error");
+    throw err;
+  }
+
+  // Flush remaining buffer as the final bullet
+  const cleaned = cleanBullet(buffer);
+  if (cleaned) onBullet(cleaned);
+
+  return buffer;
+}
+
 export async function generateAISummary(gameData, league) {
   const prompt = buildPrompt(gameData, league);
 

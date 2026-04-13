@@ -1,19 +1,17 @@
+import { m, AnimatePresence } from "framer-motion";
 import { useAISummary } from "../../hooks/ai/useAISummary.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+const BULLET_COUNT = 3;
+
+const bulletVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 30 } },
+};
+
 export default function AISummary({ gameId }) {
   const { session, openAuthModal } = useAuth();
-  const { summary, loading, error } = useAISummary(gameId);
-
-  const parseBulletPoints = (text) => {
-    if (!text) return [];
-    return text
-      .split(/\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => line.replace(/^[-•*]\s*/, "").replace(/^\d+\.\s*/, ""))
-      .filter((line) => line.length > 0);
-  };
+  const { bullets, loading, error, cached } = useAISummary(gameId);
 
   if (!gameId) return null;
 
@@ -79,7 +77,7 @@ export default function AISummary({ gameId }) {
     );
   }
 
-  const bulletPoints = parseBulletPoints(summary);
+  const showFooter = !loading || bullets.length > 0;
 
   return (
     <div className="mb-6">
@@ -99,40 +97,52 @@ export default function AISummary({ gameId }) {
       {/* Content card */}
       <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
         <div className="p-6 sm:p-8">
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 0.8, 0.6].map((w, i) => (
-                <div key={i} className="flex gap-3 animate-pulse">
-                  <div className="w-1.5 h-1.5 bg-accent/30 rounded-full mt-2 flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3.5 bg-white/[0.06] rounded-full" style={{ width: `${w * 100}%` }} />
-                    <div className="h-3.5 bg-white/[0.04] rounded-full" style={{ width: `${(w * 0.7) * 100}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="flex items-start gap-3 text-text-secondary">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-live flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              <p className="text-sm leading-relaxed">{summary}</p>
+              <p className="text-sm leading-relaxed">{error}</p>
             </div>
-          ) : bulletPoints.length > 0 ? (
-            <ul className="space-y-4">
-              {bulletPoints.map((point, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-text-secondary text-sm leading-relaxed flex-1">{point}</p>
-                </li>
-              ))}
-            </ul>
           ) : (
-            <p className="text-text-secondary text-sm leading-relaxed">{summary}</p>
+            <ul className="space-y-4">
+              <AnimatePresence initial={false}>
+                {Array.from({ length: BULLET_COUNT }).map((_, i) => {
+                  const text = bullets[i];
+
+                  if (text !== undefined) {
+                    return (
+                      <m.li
+                        key={`bullet-${i}`}
+                        className="flex items-start gap-3"
+                        variants={cached ? undefined : bulletVariants}
+                        initial={cached ? undefined : "hidden"}
+                        animate={cached ? undefined : "visible"}
+                      >
+                        <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2 flex-shrink-0" />
+                        <p className="text-text-secondary text-sm leading-relaxed flex-1">{text}</p>
+                      </m.li>
+                    );
+                  }
+
+                  // Skeleton placeholder for not-yet-arrived bullets
+                  const widths = [[1, 0.7], [0.85, 0.55], [0.9, 0.6]][i];
+                  return (
+                    <li key={`skeleton-${i}`} className="flex gap-3 animate-pulse">
+                      <div className="w-1.5 h-1.5 bg-accent/30 rounded-full mt-2 flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3.5 bg-white/[0.06] rounded-full" style={{ width: `${widths[0] * 100}%` }} />
+                        <div className="h-3.5 bg-white/[0.04] rounded-full" style={{ width: `${widths[1] * 100}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </AnimatePresence>
+            </ul>
           )}
         </div>
 
-        {!loading && (
+        {showFooter && (
           <div className="px-6 sm:px-8 py-3 bg-surface-base/40 border-t border-white/[0.05]">
             <p className="text-[11px] text-text-tertiary">
               Generated using AI based on official game statistics

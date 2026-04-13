@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createWrapper } from "../helpers/queryWrapper.jsx";
+import { renderHook, waitFor, act } from "@testing-library/react";
 
 vi.mock("../../context/AuthContext.jsx", () => ({ useAuth: vi.fn() }));
-vi.mock("../../api/ai.js", () => ({ getAISummary: vi.fn() }));
+vi.mock("../../api/ai.js", () => ({
+  streamAISummary: vi.fn(),
+  getAISummary: vi.fn(),
+}));
 
 const { useAuth } = await import("../../context/AuthContext.jsx");
-const { getAISummary } = await import("../../api/ai.js");
+const { streamAISummary } = await import("../../api/ai.js");
 const { useAISummary } = await import("../../hooks/ai/useAISummary.js");
 
 const mockSession = { access_token: "tok" };
@@ -16,107 +18,140 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+// Helper: make streamAISummary immediately call the given callbacks
+function mockStream({ bullets = [], error = null } = {}) {
+  streamAISummary.mockImplementation((_gameId, { onBullet, onFull, onDone, onError }) => {
+    if (error) {
+      onError(error);
+      return;
+    }
+    for (const text of bullets) {
+      onBullet(text);
+    }
+    onDone();
+  });
+}
+
+function mockStreamFull(summary, cached = true) {
+  streamAISummary.mockImplementation((_gameId, { onFull, onDone }) => {
+    onFull(summary, cached);
+    onDone();
+  });
+}
+
 describe("useAISummary — auth loading (session undefined)", () => {
-  it("does not call getAISummary while session is undefined", () => {
+  it("does not call streamAISummary while session is undefined", () => {
     useAuth.mockReturnValue({ session: undefined });
-    renderHook(() => useAISummary(42), { wrapper: createWrapper() });
-    expect(getAISummary).not.toHaveBeenCalled();
+    renderHook(() => useAISummary(42));
+    expect(streamAISummary).not.toHaveBeenCalled();
   });
 
   it("stays loading while session is undefined", () => {
     useAuth.mockReturnValue({ session: undefined });
-    const { result } = renderHook(() => useAISummary(42), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useAISummary(42));
     expect(result.current.loading).toBe(true);
   });
 });
 
 describe("useAISummary — no session", () => {
-  it("does not call getAISummary when logged out", () => {
+  it("does not call streamAISummary when logged out", () => {
     useAuth.mockReturnValue({ session: null });
-    renderHook(() => useAISummary(42), { wrapper: createWrapper() });
-    expect(getAISummary).not.toHaveBeenCalled();
+    renderHook(() => useAISummary(42));
+    expect(streamAISummary).not.toHaveBeenCalled();
   });
 
   it("sets loading to false when logged out", async () => {
     useAuth.mockReturnValue({ session: null });
-    const { result } = renderHook(() => useAISummary(42), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useAISummary(42));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.summary).toBeNull();
-    expect(result.current.error).toBe(false);
+    expect(result.current.bullets).toEqual([]);
+    expect(result.current.error).toBeNull();
   });
 });
 
 describe("useAISummary — no gameId", () => {
-  it("does not call getAISummary when gameId is null", () => {
+  it("does not call streamAISummary when gameId is null", () => {
     useAuth.mockReturnValue({ session: mockSession });
-    renderHook(() => useAISummary(null), { wrapper: createWrapper() });
-    expect(getAISummary).not.toHaveBeenCalled();
+    renderHook(() => useAISummary(null));
+    expect(streamAISummary).not.toHaveBeenCalled();
   });
 });
 
-describe("useAISummary — with session and gameId", () => {
-  it("calls getAISummary with gameId and token", async () => {
+describe("useAISummary — streaming bullets", () => {
+  it("accumulates bullets progressively and clears loading on done", async () => {
     useAuth.mockReturnValue({ session: mockSession });
-    getAISummary.mockResolvedValue({ summary: "Great game." });
+    mockStream({ bullets: ["Bullet 1", "Bullet 2", "Bullet 3"] });
 
-    renderHook(() => useAISummary(42), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useAISummary(42));
 
-    await waitFor(() =>
-      expect(getAISummary).toHaveBeenCalledWith(
-        42,
-        expect.objectContaining({ token: "tok", signal: expect.any(AbortSignal) })
-      )
-    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.bullets).toEqual(["Bullet 1", "Bullet 2", "Bullet 3"]);
+    expect(result.current.error).toBeNull();
   });
 
-  it("sets summary and clears loading on success", async () => {
+  it("calls streamAISummary with gameId and token", async () => {
     useAuth.mockReturnValue({ session: mockSession });
-    getAISummary.mockResolvedValue({ summary: "Lakers win!" });
+    mockStream({ bullets: ["A", "B", "C"] });
 
-    const { result } = renderHook(() => useAISummary(42), {
-      wrapper: createWrapper(),
-    });
+    renderHook(() => useAISummary(42));
 
-    await waitFor(() => expect(result.current.summary).toBe("Lakers win!"));
-    expect(result.current.loading).toBe(false);
-    expect(result.current.error).toBe(false);
+    await waitFor(() => expect(streamAISummary).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({ token: "tok", signal: expect.any(AbortSignal) })
+    ));
   });
 
-  it("sets error and fallback summary on fetch failure", async () => {
+  it("sets error and stops loading on onError", async () => {
     useAuth.mockReturnValue({ session: mockSession });
-    getAISummary.mockRejectedValue(new Error("Server error"));
+    mockStream({ error: "Something went wrong" });
 
-    const { result } = renderHook(() => useAISummary(42), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(() => useAISummary(42));
 
-    await waitFor(() => expect(result.current.error).toBe(true));
-    expect(result.current.loading).toBe(false);
-    expect(result.current.summary).toBe("AI summary unavailable for this game.");
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe("Something went wrong");
+    expect(result.current.bullets).toEqual([]);
+  });
+});
+
+describe("useAISummary — cached (onFull path)", () => {
+  it("sets all bullets at once and cached=true via onFull", async () => {
+    useAuth.mockReturnValue({ session: mockSession });
+    mockStreamFull("- Insight 1\n- Insight 2\n- Insight 3", true);
+
+    const { result } = renderHook(() => useAISummary(42));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.bullets).toEqual(["Insight 1", "Insight 2", "Insight 3"]);
+    expect(result.current.cached).toBe(true);
   });
 
-  it("re-fetches when gameId changes", async () => {
+  it("parses bullets from the full summary text", async () => {
     useAuth.mockReturnValue({ session: mockSession });
-    getAISummary.mockResolvedValue({ summary: "Game 1" });
+    mockStreamFull("- First bullet\n- Second bullet", false);
 
-    const { rerender } = renderHook(({ id }) => useAISummary(id), {
+    const { result } = renderHook(() => useAISummary(42));
+
+    await waitFor(() => expect(result.current.bullets).toHaveLength(2));
+    expect(result.current.bullets[0]).toBe("First bullet");
+    expect(result.current.bullets[1]).toBe("Second bullet");
+  });
+});
+
+describe("useAISummary — re-fetch on gameId change", () => {
+  it("resets state and calls streamAISummary again when gameId changes", async () => {
+    useAuth.mockReturnValue({ session: mockSession });
+    mockStream({ bullets: ["A", "B", "C"] });
+
+    const { result, rerender } = renderHook(({ id }) => useAISummary(id), {
       initialProps: { id: 1 },
-      wrapper: createWrapper(),
     });
 
-    await waitFor(() =>
-      expect(getAISummary).toHaveBeenCalledWith(1, expect.any(Object))
-    );
+    await waitFor(() => expect(result.current.bullets).toHaveLength(3));
 
-    getAISummary.mockResolvedValue({ summary: "Game 2" });
-    rerender({ id: 2 });
+    mockStream({ bullets: ["X", "Y", "Z"] });
+    act(() => rerender({ id: 2 }));
 
-    await waitFor(() =>
-      expect(getAISummary).toHaveBeenCalledWith(2, expect.any(Object))
-    );
+    await waitFor(() => expect(result.current.bullets).toEqual(["X", "Y", "Z"]));
+    expect(streamAISummary).toHaveBeenCalledWith(2, expect.any(Object));
   });
 });

@@ -279,7 +279,11 @@ Check `user.app_metadata.providers` array includes `"email"` (not single `provid
 - Cache-first, persisted to `games.ai_summary`
 - Only generated for finalized games
 - Requires auth (`requireAuth` middleware + stricter `aiLimiter`)
-- Never return `error.message` to client on failure — return 500 status only
+- **Transport**: `application/x-ndjson` — one JSON object per line
+- **Cached path**: single `{"type":"full","summary":"...","cached":true}` line; no streaming
+- **Live generation**: streams `{"type":"bullet","text":"..."}` as each of the 3 bullets completes, then `{"type":"done"}`; summary saved to DB after streaming finishes
+- **Error handling**: errors before streaming starts → HTTP 500 JSON; errors mid-stream → `{"type":"error","message":"..."}` NDJSON line
+- Frontend: `useAISummary` hook manages `{ bullets[], loading, error, cached }` state; `AISummary` component renders skeleton slots that swap in with Framer Motion animation as each bullet arrives
 
 ## Prisma
 Schema/migrations only — runtime uses `pg` directly.

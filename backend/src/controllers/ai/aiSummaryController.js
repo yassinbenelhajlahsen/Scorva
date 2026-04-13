@@ -4,9 +4,20 @@ import {
   getGameStats,
   saveSummary,
   buildGameData,
-  generateAISummary,
+  streamAISummary,
 } from "../../services/ai/aiSummaryService.js";
 import logger from "../../logger.js";
+
+const NDJSON_HEADERS = {
+  "Content-Type": "application/x-ndjson",
+  "Cache-Control": "no-cache",
+  Connection: "keep-alive",
+  "X-Accel-Buffering": "no",
+};
+
+function sendLine(res, obj) {
+  res.write(JSON.stringify(obj) + "\n");
+}
 
 export async function getAiSummary(req, res) {
   const { id } = req.params;
@@ -16,7 +27,7 @@ export async function getAiSummary(req, res) {
   }
 
   try {
-    // Step 1: Check if summary already exists (CACHE CHECK)
+    // Step 1: Check DB cache
     const cached = await getCachedSummary(id);
 
     if (cached.notFound) {
@@ -24,53 +35,79 @@ export async function getAiSummary(req, res) {
     }
 
     if (cached.summary) {
-      return res.json({ summary: cached.summary, cached: true });
+      res.writeHead(200, NDJSON_HEADERS);
+      sendLine(res, { type: "full", summary: cached.summary, cached: true });
+      res.end();
+      return;
     }
 
-    // Step 2: Fetch full game data
+    // Step 2: Fetch game data
     const game = await getGameForSummary(id);
 
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
 
-    // Only generate summaries for completed games
+    // Only generate for completed games
     if (!game.status || !game.status.toLowerCase().includes("final")) {
-      return res.json({
+      res.writeHead(200, NDJSON_HEADERS);
+      sendLine(res, {
+        type: "full",
         summary: "AI summary unavailable for this game.",
-        reason: "Game must be completed before summary can be generated",
         cached: false,
       });
+      res.end();
+      return;
     }
 
-    // Step 3: Fetch player stats
-    const stats = await getGameStats(id);
-
-    // Step 4: Build structured game data for OpenAI
-    const gameData = buildGameData(game, stats);
-
-    // Step 5: Validate OpenAI API key
+    // Step 3: Validate API key
     if (!process.env.OPENAI_API_KEY) {
       logger.error("OPENAI_API_KEY not configured");
-      return res.json({
+      res.writeHead(200, NDJSON_HEADERS);
+      sendLine(res, {
+        type: "full",
         summary: "AI summary unavailable for this game.",
         cached: false,
       });
+      res.end();
+      return;
     }
 
-    // Step 6: Generate AI summary (ONLY HAPPENS ONCE)
-    const summary = await generateAISummary(gameData, game.league);
+    // Step 4: Fetch stats and build game data
+    const stats = await getGameStats(id);
+    const gameData = buildGameData(game, stats);
 
-    // Step 7: Store summary permanently in database
-    await saveSummary(id, summary);
+    // Step 5: Stream generation
+    res.writeHead(200, NDJSON_HEADERS);
 
-    // Step 8: Return generated summary
-    return res.json({ summary, cached: false });
+    const abort = new AbortController();
+    req.on("close", () => abort.abort());
+
+    const bullets = [];
+
+    await streamAISummary(gameData, game.league, (text) => {
+      bullets.push(text);
+      sendLine(res, { type: "bullet", text });
+    }, { signal: abort.signal });
+
+    if (!abort.signal.aborted) {
+      sendLine(res, { type: "done" });
+      const fullSummary = bullets.map((b) => `- ${b}`).join("\n");
+      await saveSummary(id, fullSummary).catch((err) => {
+        logger.error({ err }, "Failed to save AI summary");
+      });
+    }
+
+    res.end();
   } catch (error) {
     logger.error({ err: error }, "Error generating AI summary");
-    return res.status(500).json({
-      summary: "AI summary unavailable for this game.",
-      cached: false,
+    if (!res.headersSent) {
+      return res.status(500).json({ summary: "AI summary unavailable for this game.", cached: false });
+    }
+    sendLine(res, {
+      type: "error",
+      message: "AI summary unavailable for this game.",
     });
+    res.end();
   }
 }

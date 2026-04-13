@@ -20,7 +20,7 @@
 - `GET /search`
 - `GET /live/:league/games` — SSE stream; heartbeat `: ping` every 15s; `event: done` when no live games
 - `GET /live/:league/games/:gameId` — SSE stream; `event: done` when game is Final
-- `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**
+- `GET /games/:id/ai-summary` — **requires `Authorization: Bearer <token>` header**; NDJSON stream (`application/x-ndjson`); emits `bullet` (one per insight), `full` (cached — full text at once), `done`, or `error` lines; DB-cached after first generation
 - `GET /favorites` — requires auth; returns `{ players: [...], teams: [...] }`
 - `GET /favorites/check?playerIds=1,2&teamIds=3,4` — requires auth
 - `POST /favorites/players/:playerId` — requires auth
