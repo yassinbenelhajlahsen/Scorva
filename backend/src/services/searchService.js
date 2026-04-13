@@ -8,7 +8,7 @@ WITH latest_seasons AS (
   ORDER BY league, season DESC
 ),
 matching_teams AS (
-  SELECT id FROM teams WHERE name ILIKE $1 OR shortname ILIKE $1
+  SELECT id FROM teams WHERE (name ILIKE $1 OR shortname ILIKE $1) AND conf IS NOT NULL
 ),
 raw_results AS (
   (
@@ -32,7 +32,8 @@ raw_results AS (
     SELECT id, name, league, logo_url AS "imageUrl", shortname, NULL::date AS date, 'team' AS type,
            NULL AS position, NULL AS team_name, NULL::int AS popularity
     FROM teams
-    WHERE name ILIKE $1 OR shortname ILIKE $1
+    WHERE (name ILIKE $1 OR shortname ILIKE $1)
+      AND conf IS NOT NULL
   )
   UNION ALL
   (
@@ -53,6 +54,7 @@ raw_results AS (
     WHERE (g.hometeamid IN (SELECT id FROM matching_teams)
         OR g.awayteamid IN (SELECT id FROM matching_teams)
         OR ($3::date IS NOT NULL AND g.date = $3::date))
+      AND ht.conf IS NOT NULL AND at.conf IS NOT NULL
   )
 ),
 deduped AS (
@@ -108,6 +110,7 @@ WITH fuzzy AS (
            NULL AS position, NULL AS team_name, NULL::int AS popularity
     FROM teams
     WHERE similarity(name, $1) > 0.3
+      AND conf IS NOT NULL
   )
 ),
 deduped AS (

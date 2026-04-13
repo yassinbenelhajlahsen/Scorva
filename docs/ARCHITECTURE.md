@@ -239,6 +239,21 @@ Set once at ingest by `eventProcessor.js` from `event.date` (ESPN UTC ISO timest
 - `gameDetailService.js` exposes as `startTime` (camelCase); `gamesService` exposes as `start_time` (snake_case via `g.*`)
 - Frontend shows only for scheduled games (not live/final)
 
+## NBA Playoffs bracket
+
+Compute-on-read derivation — no dedicated schema, builds bracket from `games WHERE type IN ('playoff', 'final')` + standings.
+
+### Play-in classification
+Seed-based: both teams must be seeds 7–10 in the same conference. Seeds are computed once from standings via `computeStandingsSeeds(teamsById)` and shared with the seed-inference fallback in `derivePlayoffs`.
+
+### ESPN placeholder teams
+ESPN creates placeholder teams (e.g. "Suns/Trail Blazers") for undecided play-in slots. These have `conf IS NULL`:
+- **Backend**: `makeTeamInfo` returns null (TBD slot); `buildSeries` inherits conference from the known opponent so the series isn't dropped. `searchService` and `teamsService` filter `conf IS NOT NULL` to exclude placeholders from user-facing queries.
+- **Frontend**: GameCard/GamePage sanitize team names containing "/" to "TBD"; GameMatchupHeader renders TBD as non-clickable text with an empty spacer instead of a logo.
+
+### Projected mode
+When no playoff games exist, or a conference has no R1 games yet, `buildProjectedConference` fills slots from standings (seeds 1–8 for R1, 9–10 for play-in). Play-in block is shown when actual play-in games are incomplete, R1 hasn't started, or any R1 series has a TBD opponent.
+
 ## Auth & users
 
 ### Users table

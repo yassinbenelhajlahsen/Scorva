@@ -41,6 +41,15 @@ function GameCard({ game }) {
   const league = game.league;
   if (!league) return null;
 
+  // ESPN uses placeholder teams like "Suns/Trail Blazers" for undecided
+  // play-in slots — no real NBA team has "/" in its name.
+  const homePlaceholder = game.home_shortname?.includes("/");
+  const awayPlaceholder = game.away_shortname?.includes("/");
+  const homeName = homePlaceholder ? "TBD" : game.home_shortname;
+  const awayName = awayPlaceholder ? "TBD" : game.away_shortname;
+  const homeLogo = homePlaceholder ? null : game.home_logo;
+  const awayLogo = awayPlaceholder ? null : game.away_logo;
+
   const nhl = league === "nhl";
   const gameType = game.type || 'regular';
   const isPlayoff = gameType === 'playoff' || gameType === 'final';
@@ -79,17 +88,17 @@ function GameCard({ game }) {
         <div className="flex items-center justify-between gap-4 h-[120px]">
           {/* Home */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
-            {game.home_logo && (
+            {homeLogo && (
               <img
                 loading="lazy"
-                src={game.home_logo}
+                src={homeLogo}
                 alt={`${game.home_team_name} logo`}
                 className="w-12 h-12 object-contain"
                 onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
               />
             )}
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
-              {game.home_shortname}
+              {homeName}
             </div>
             {(isFinal || inProgress) && (
               <AnimatePresence mode="wait">
@@ -158,17 +167,17 @@ function GameCard({ game }) {
 
           {/* Away */}
           <div className="flex flex-col items-center flex-1 gap-1.5">
-            {game.away_logo && (
+            {awayLogo && (
               <img
                 loading="lazy"
-                src={game.away_logo}
+                src={awayLogo}
                 alt={`${game.away_team_name} logo`}
                 className="w-12 h-12 object-contain"
                 onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
               />
             )}
             <div className="text-sm font-semibold text-text-primary line-clamp-1">
-              {game.away_shortname}
+              {awayName}
             </div>
             {(isFinal || inProgress) && (
               <AnimatePresence mode="wait">
@@ -209,7 +218,7 @@ function GameCard({ game }) {
                   <span className="w-7 text-center shrink-0 font-semibold text-text-secondary">T</span>
                 </div>
                 <div className="flex items-center gap-x-3 py-2">
-                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{game.home_shortname}</span>
+                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{homeName}</span>
                   {quarters.map((q, i) => (
                     <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[0] ?? "–"}</span>
                   ))}
@@ -222,7 +231,7 @@ function GameCard({ game }) {
                 </div>
                 <div className="border-t border-white/[0.04]" />
                 <div className="flex items-center gap-x-3 py-2">
-                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{game.away_shortname}</span>
+                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{awayName}</span>
                   {quarters.map((q, i) => (
                     <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[1] ?? "–"}</span>
                   ))}

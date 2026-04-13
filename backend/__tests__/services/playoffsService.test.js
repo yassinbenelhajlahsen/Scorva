@@ -31,9 +31,9 @@ const { getNbaPlayoffs } = await import(
   resolve(__dirname, "../../src/services/playoffsService.js")
 );
 
-// 16 teams: 1-8 east, 9-16 west. Wins descend so seeds are predictable.
-// East: t1(60)=1, t2(55)=2, ..., t8(25)=8, t17(24)=9, t18(22)=10
-// West: t9(60)=1, t10(55)=2, ..., t16(25)=8, t19(24)=9, t20(22)=10
+// 15 teams per conference. Wins descend so seeds are predictable.
+// East: t1(60)=1, t2(55)=2, ..., t8(25)=8, t9(20)=9, t10(15)=10, then t11-t15(14-10) below
+// West: t101(60)=1, ..., t108(25)=8, t109(20)=9, t110(15)=10, then t111-t115(14-10) below
 function makeStandingsRows() {
   const east = [];
   const west = [];
@@ -64,6 +64,7 @@ function makeStandingsRows() {
     });
   }
   for (let i = 10; i < 15; i++) {
+    const wins = 14 - (i - 10);
     east.push({
       id: i + 1,
       name: `East ${i + 1}`,
@@ -72,8 +73,8 @@ function makeStandingsRows() {
       conf: "east",
       logo_url: `e${i + 1}.png`,
       primary_color: "#000",
-      wins: 30 - i,
-      losses: 52 + i,
+      wins,
+      losses: 82 - wins,
     });
     west.push({
       id: 100 + i + 1,
@@ -83,8 +84,8 @@ function makeStandingsRows() {
       conf: "west",
       logo_url: `w${i + 1}.png`,
       primary_color: "#000",
-      wins: 30 - i,
-      losses: 52 + i,
+      wins,
+      losses: 82 - wins,
     });
   }
   return [...east, ...west];
@@ -286,5 +287,135 @@ describe("getNbaPlayoffs", () => {
 
     const [key] = mockCached.mock.calls[0];
     expect(key).toBe("playoffs:nba:2023-24");
+  });
+
+  it("does not misclassify R1 series with 1 game played as play-in", async () => {
+    const games = [
+      playInGame({ homeId: 7, awayId: 8, winnerId: 7, date: "2024-04-16", id: 900 }),
+      // 9v10 still in progress — keeps play-in visible
+      {
+        id: 901,
+        date: "2024-04-17",
+        hometeamid: 9,
+        awayteamid: 10,
+        homescore: 0,
+        awayscore: 0,
+        winnerid: null,
+        status: "Scheduled",
+        type: "playoff",
+      },
+      // R1 game 1 only (1 vs 8 seed) — should NOT end up in play-in
+      {
+        id: 950,
+        date: "2024-04-20",
+        hometeamid: 1,
+        awayteamid: 8,
+        homescore: 110,
+        awayscore: 95,
+        winnerid: 1,
+        status: "Final",
+        type: "playoff",
+      },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    expect(result.playIn).not.toBeNull();
+    // Only 7v8 and 9v10 are play-in (seeds 7-10), not 1v8
+    expect(result.playIn.eastern).toHaveLength(2);
+    // The 1v8 series should be in bracket R1, not play-in
+    const r1Teams = result.bracket.eastern.r1
+      .filter((s) => s.teamA && s.teamB)
+      .map((s) => [s.teamA.id, s.teamB.id].sort((a, b) => a - b));
+    expect(r1Teams).toContainEqual([1, 8]);
+  });
+
+  it("shows projected R1 and play-in when only play-in games exist", async () => {
+    // Only play-in games in the DB — no R1 games yet
+    const games = [
+      playInGame({ homeId: 7, awayId: 8, winnerId: 7, date: "2024-04-16", id: 900 }),
+      {
+        id: 901,
+        date: "2024-04-17",
+        hometeamid: 9,
+        awayteamid: 10,
+        homescore: 0,
+        awayscore: 0,
+        winnerid: null,
+        status: "Scheduled",
+        type: "playoff",
+      },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    // Play-in should be visible (actual play-in games exist)
+    expect(result.playIn).not.toBeNull();
+    expect(result.playIn.eastern).toHaveLength(2);
+
+    // R1 should be filled with projected matchups, not all TBD
+    expect(result.bracket.eastern.r1).toHaveLength(4);
+    const r1Seeds = result.bracket.eastern.r1.map((s) => [
+      s.teamA?.seed,
+      s.teamB?.seed,
+    ]);
+    expect(r1Seeds).toEqual([
+      [1, 8],
+      [4, 5],
+      [3, 6],
+      [2, 7],
+    ]);
+  });
+
+  it("handles ESPN placeholder teams (no conference) as TBD in R1", async () => {
+    // ESPN creates projected R1 games with a placeholder team for the
+    // undecided play-in slot (e.g. "Suns/Trail Blazers" with no conf).
+    const standings = makeStandingsRows();
+    standings.push({
+      id: 999999,
+      name: "Placeholder/Team",
+      shortname: "PH",
+      location: "TBD",
+      conf: null,
+      logo_url: "",
+      primary_color: null,
+      wins: 0,
+      losses: 0,
+    });
+    mockGetStandings.mockResolvedValueOnce(standings);
+
+    // R1 game: seed-1 east (id 1) vs placeholder (id 999999)
+    const games = [
+      {
+        id: 1000,
+        date: "2024-04-20",
+        hometeamid: 1,
+        awayteamid: 999999,
+        homescore: 0,
+        awayscore: 0,
+        winnerid: null,
+        status: "Scheduled",
+        type: "playoff",
+      },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    // The series should exist in R1 (not dropped)
+    const seriesWithTeam1 = result.bracket.eastern.r1.find(
+      (s) => s.teamA?.id === 1 || s.teamB?.id === 1
+    );
+    expect(seriesWithTeam1).toBeDefined();
+    expect(seriesWithTeam1.teamA.id).toBe(1);
+    // Placeholder renders as TBD (null)
+    expect(seriesWithTeam1.teamB).toBeNull();
+
+    // TBD opponent in R1 means play-in hasn't resolved — show projected play-in
+    expect(result.playIn).not.toBeNull();
+    expect(result.playIn.eastern.length).toBeGreaterThan(0);
+    expect(result.playIn.western.length).toBeGreaterThan(0);
   });
 });

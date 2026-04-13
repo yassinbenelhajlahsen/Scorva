@@ -24,8 +24,13 @@ export function getGameById(league, gameId, { signal } = {}) {
   return apiFetch(`/api/${league}/games/${gameId}`, { signal });
 }
 
-export function getGamePrediction(league, gameId, { signal } = {}) {
-  return apiFetch(`/api/${league}/games/${gameId}/prediction`, { signal });
+export async function getGamePrediction(league, gameId, { signal } = {}) {
+  try {
+    return await apiFetch(`/api/${league}/games/${gameId}/prediction`, { signal });
+  } catch (err) {
+    if (err.message === "HTTP 404") return null;
+    throw err;
+  }
 }
 
 export function getLiveGamesUrl(league) {

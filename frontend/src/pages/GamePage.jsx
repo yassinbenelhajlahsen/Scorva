@@ -133,7 +133,20 @@ export default function GamePage() {
     );
   }
 
-  const { game, homeTeam, awayTeam } = gameData.json_build_object;
+  const { game, homeTeam: rawHome, awayTeam: rawAway } = gameData.json_build_object;
+
+  // ESPN placeholder teams (e.g. "Suns/Trail Blazers") for undecided
+  // play-in slots — sanitize to TBD so downstream components render cleanly.
+  const sanitizeTeamInfo = (team) => {
+    if (!team?.info?.name?.includes("/")) return team;
+    return {
+      ...team,
+      info: { ...team.info, name: "TBD", shortName: "TBD", logoUrl: null },
+    };
+  };
+  const homeTeam = sanitizeTeamInfo(rawHome);
+  const awayTeam = sanitizeTeamInfo(rawAway);
+
   const isFinal = game.status.includes("Final");
   const inProgress =
     game.status.includes("In Progress") ||
@@ -184,7 +197,8 @@ export default function GamePage() {
         scoreColor={scoreColor}
       />
 
-      {/* Compare Teams button */}
+      {/* Compare Teams button — hidden when either team is a placeholder */}
+      {homeTeam.info.name !== "TBD" && awayTeam.info.name !== "TBD" && (
       <div className="flex justify-center mb-6">
         <Link
           to={`/compare`}
@@ -197,6 +211,7 @@ export default function GamePage() {
           Compare Teams
         </Link>
       </div>
+      )}
 
       <GameInfoCard game={game} isFinal={isFinal} inProgress={inProgress} />
 

@@ -19,6 +19,7 @@ export async function getTeamsByLeague(league) {
       `SELECT *
          FROM teams
         WHERE league = $1
+          AND conf IS NOT NULL
         ORDER BY conf, name`,
       [league]
     );

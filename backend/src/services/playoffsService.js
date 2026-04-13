@@ -85,11 +85,15 @@ function buildSeries(games, teamsById) {
     series.winnerId = a > b ? series.teamAId : b > a ? series.teamBId : null;
     series.isComplete = a >= 4 || b >= 4;
 
-    const confA = teamsById.get(series.teamAId)?.conf ?? null;
-    const confB = teamsById.get(series.teamBId)?.conf ?? null;
-    series.confA = confA;
-    series.confB = confB;
-    series.isInterConference = confA && confB && confA !== confB;
+    const rawConfA = teamsById.get(series.teamAId)?.conf ?? null;
+    const rawConfB = teamsById.get(series.teamBId)?.conf ?? null;
+    // ESPN creates placeholder teams (e.g. "Suns/Trail Blazers") for
+    // undecided play-in slots. These have no conference — inherit from
+    // the known opponent so the series isn't dropped.
+    series.confA = rawConfA || rawConfB;
+    series.confB = rawConfB || rawConfA;
+    series.isInterConference =
+      rawConfA && rawConfB && rawConfA !== rawConfB;
 
     seriesList.push(series);
   }
@@ -97,36 +101,40 @@ function buildSeries(games, teamsById) {
   return seriesList;
 }
 
-// Play-in games: single-elimination series that start strictly before R1
-function classifyPlayIn(allSeries) {
-  const singleGameSeries = allSeries.filter((s) => s.games.length === 1 && !s.hasFinalTypeGame);
-  const multiGameSeries = allSeries.filter((s) => s.games.length > 1 || s.hasFinalTypeGame);
-
-  if (singleGameSeries.length === 0) {
-    return { playInSeries: [], remainingSeries: allSeries };
+function computeStandingsSeeds(teamsById) {
+  const seedByTeamId = new Map();
+  for (const conf of ["east", "west"]) {
+    const teams = Array.from(teamsById.values())
+      .filter((t) => t.conf === conf)
+      .sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+    teams.forEach((t, i) => seedByTeamId.set(t.id, i + 1));
   }
+  return seedByTeamId;
+}
 
-  let earliestR1 = null;
-  for (const s of multiGameSeries) {
-    const d = s.firstGameDate ? new Date(s.firstGameDate).getTime() : null;
-    if (d !== null && (earliestR1 === null || d < earliestR1)) earliestR1 = d;
-  }
-
+// Play-in games: both teams are seeds 7–10 in the same conference.
+// The old heuristic (games.length === 1) broke when R1 series had only
+// one game played — those got misclassified as play-in.
+function classifyPlayIn(allSeries, seedByTeamId) {
   const playInSeries = [];
-  const kept = [];
-  for (const s of singleGameSeries) {
-    const d = s.firstGameDate ? new Date(s.firstGameDate).getTime() : null;
-    if (earliestR1 === null || (d !== null && d < earliestR1)) {
+  const remainingSeries = [];
+
+  for (const s of allSeries) {
+    const seedA = seedByTeamId.get(s.teamAId);
+    const seedB = seedByTeamId.get(s.teamBId);
+    if (
+      seedA != null && seedB != null &&
+      seedA >= 7 && seedA <= 10 &&
+      seedB >= 7 && seedB <= 10 &&
+      !s.isInterConference
+    ) {
       playInSeries.push(s);
     } else {
-      kept.push(s);
+      remainingSeries.push(s);
     }
   }
 
-  return {
-    playInSeries,
-    remainingSeries: [...multiGameSeries, ...kept],
-  };
+  return { playInSeries, remainingSeries };
 }
 
 function groupByConference(seriesList) {
@@ -187,7 +195,9 @@ function inferSeedsFromR1(r1Series, standingsByConf) {
 
 function makeTeamInfo(teamId, teamsById, seedMap) {
   const t = teamsById.get(teamId);
-  if (!t) return null;
+  // ESPN placeholder teams (e.g. "Suns/Trail Blazers" for undecided
+  // play-in slots) have no conference — treat as TBD.
+  if (!t || !t.conf) return null;
   return {
     id: t.id,
     seed: seedMap?.get(teamId) ?? null,
@@ -403,7 +413,9 @@ async function derivePlayoffs(season) {
   const finalsSeries = allSeries.filter((s) => s.hasFinalTypeGame);
   const nonFinalsSeries = allSeries.filter((s) => !s.hasFinalTypeGame);
 
-  const { playInSeries, remainingSeries } = classifyPlayIn(nonFinalsSeries);
+  const standingsSeedMap = computeStandingsSeeds(teamsById);
+
+  const { playInSeries, remainingSeries } = classifyPlayIn(nonFinalsSeries, standingsSeedMap);
 
   // Play-in is best-of-1 — override the best-of-7 isComplete rule
   for (const s of playInSeries) {
@@ -439,27 +451,20 @@ async function derivePlayoffs(season) {
   const standingsByConfWest = new Map(
     Array.from(teamsById.values()).filter((t) => t.conf === "west").map((t) => [t.id, t])
   );
-  let eastSeedMap = inferSeedsFromR1(eastRounds.r1, standingsByConfEast);
-  let westSeedMap = inferSeedsFromR1(westRounds.r1, standingsByConfWest);
+  const eastSeedMap = inferSeedsFromR1(eastRounds.r1, standingsByConfEast);
+  const westSeedMap = inferSeedsFromR1(westRounds.r1, standingsByConfWest);
 
   if (!eastSeedMap) {
-    eastSeedMap = new Map();
-    const ranked = Array.from(standingsByConfEast.values()).sort(
-      (a, b) => b.wins - a.wins || a.losses - b.losses
-    );
-    ranked.forEach((t, i) => eastSeedMap.set(t.id, i + 1));
     logger.debug({ season }, "East seed inference failed, using standings fallback");
   }
   if (!westSeedMap) {
-    westSeedMap = new Map();
-    const ranked = Array.from(standingsByConfWest.values()).sort(
-      (a, b) => b.wins - a.wins || a.losses - b.losses
-    );
-    ranked.forEach((t, i) => westSeedMap.set(t.id, i + 1));
     logger.debug({ season }, "West seed inference failed, using standings fallback");
   }
 
-  const seedMapById = new Map([...eastSeedMap, ...westSeedMap]);
+  // Start with standings-based seeds, overlay R1-inferred seeds where available
+  const seedMapById = new Map(standingsSeedMap);
+  if (eastSeedMap) for (const [id, seed] of eastSeedMap) seedMapById.set(id, seed);
+  if (westSeedMap) for (const [id, seed] of westSeedMap) seedMapById.set(id, seed);
   const ctx = { teamsById, seedMap: seedMapById };
 
   const serializeConf = (rounds, confKey) => ({
@@ -477,6 +482,19 @@ async function derivePlayoffs(season) {
   const easternBlock = serializeConf(eastRounds, "eastern");
   const westernBlock = serializeConf(westRounds, "western");
 
+  // When a conference has no R1 games yet (e.g. play-in phase), fill R1
+  // with projected matchups from standings so seeds 1-6 are visible.
+  let projEast = null;
+  let projWest = null;
+  if (easternBlock.r1.length === 0) {
+    projEast = buildProjectedConference("east", teamsById);
+    if (projEast) easternBlock.r1 = projEast.r1;
+  }
+  if (westernBlock.r1.length === 0) {
+    projWest = buildProjectedConference("west", teamsById);
+    if (projWest) westernBlock.r1 = projWest.r1;
+  }
+
   padConfBlock(easternBlock, "eastern");
   padConfBlock(westernBlock, "western");
 
@@ -487,27 +505,45 @@ async function derivePlayoffs(season) {
         )
       : [emptySeries({ round: "finals", conference: null, teamA: null, teamB: null })];
 
-  // Show play-in if any game is incomplete or R1 hasn't started yet
-  let showPlayIn = false;
+  // Show play-in when:
+  // 1. Actual play-in games exist and are incomplete or R1 hasn't started, OR
+  // 2. Any R1 series has a TBD opponent (placeholder team → null), meaning
+  //    play-in hasn't resolved — show projected play-in from standings.
+  //    ESPN play-in games often arrive with type='regular' so they aren't
+  //    captured by fetchPlayoffGames; the TBD check covers that gap.
+  const r1Started = eastRounds.r1.length > 0 || westRounds.r1.length > 0;
+  const hasUnresolvedR1 = [...easternBlock.r1, ...westernBlock.r1].some(
+    (s) => !s.teamA || !s.teamB
+  );
+
+  let playInBlock = null;
   if (playInSeries.length > 0) {
     const anyIncomplete = playInSeries.some(
       (s) => !s.games.every((g) => isFinalStatus(g.status))
     );
-    const r1Started = eastRounds.r1.length > 0 || westRounds.r1.length > 0;
-    showPlayIn = anyIncomplete || !r1Started;
-  }
-
-  let playInBlock = null;
-  if (showPlayIn) {
-    const byConf = { eastern: [], western: [] };
-    for (const s of playInSeries) {
-      const conf = s.confA === "east" ? "eastern" : s.confA === "west" ? "western" : null;
-      if (!conf) continue;
-      byConf[conf].push(
-        serializeSeries(s, { ...ctx, round: "play_in", conference: conf })
-      );
+    if (anyIncomplete || !r1Started) {
+      const byConf = { eastern: [], western: [] };
+      for (const s of playInSeries) {
+        const conf = s.confA === "east" ? "eastern" : s.confA === "west" ? "western" : null;
+        if (!conf) continue;
+        byConf[conf].push(
+          serializeSeries(s, { ...ctx, round: "play_in", conference: conf })
+        );
+      }
+      playInBlock = byConf;
     }
-    playInBlock = byConf;
+  }
+  if (!playInBlock && (!r1Started || hasUnresolvedR1)) {
+    // No actual play-in games — build projected play-in from standings
+    const pe = projEast || buildProjectedConference("east", teamsById);
+    const pw = projWest || buildProjectedConference("west", teamsById);
+    const block = {
+      eastern: pe?.playIn ?? [],
+      western: pw?.playIn ?? [],
+    };
+    if (block.eastern.length > 0 || block.western.length > 0) {
+      playInBlock = block;
+    }
   }
 
   return {

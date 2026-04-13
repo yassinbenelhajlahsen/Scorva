@@ -193,7 +193,9 @@ export async function getPrediction(league, gameId) {
       const awayStats = statsById[awayteamid];
 
       if (!homeStats || !awayStats) return null;
-      if (Number(homeStats.games_played) === 0 || Number(awayStats.games_played) === 0) return null;
+      if (Number(homeStats.games_played) === 0 || Number(awayStats.games_played) === 0) {
+        return null;
+      }
 
       // Fetch recent form — last 5 games per team this season
       const [homeFormResult, awayFormResult] = await Promise.all([
