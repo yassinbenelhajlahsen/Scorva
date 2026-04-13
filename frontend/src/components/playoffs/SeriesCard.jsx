@@ -88,39 +88,64 @@ export default function SeriesCard({ series, league }) {
 
   const hasGames = games.length > 0;
   const isProjected = !hasGames && teamA && teamB;
+  const isPlayIn = series.round === "play_in" && games.length === 1;
+  const canExpand = hasGames && !isPlayIn;
 
-  const canExpand = hasGames;
+  const cardClasses = `bg-surface-elevated border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+    canExpand || isPlayIn ? "hover:border-white/[0.14]" : ""
+  }`;
+
+  const teamRows = (
+    <>
+      <TeamRow
+        team={teamA}
+        wins={winsA}
+        isWinner={aIsWinner}
+        isLoser={aIsLoser}
+      />
+      <div className="h-px bg-white/[0.05]" />
+      <TeamRow
+        team={teamB}
+        wins={winsB}
+        isWinner={bIsWinner}
+        isLoser={bIsLoser}
+      />
+      {isProjected && (
+        <div className="text-[10px] uppercase tracking-wider text-text-tertiary text-center py-1 border-t border-white/[0.05]">
+          Projected
+        </div>
+      )}
+    </>
+  );
+
+  // Single-game series (play-in): navigate directly to the game
+  if (isPlayIn) {
+    return (
+      <Link
+        to={`/${league}/games/${games[0].id}`}
+        onMouseEnter={() =>
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.game(league, games[0].id),
+            queryFn: queryFns.game(league, games[0].id),
+            staleTime: 10_000,
+          })
+        }
+        className={cardClasses}
+      >
+        {teamRows}
+      </Link>
+    );
+  }
 
   return (
-    <div
-      className={`bg-surface-elevated border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        canExpand ? "hover:border-white/[0.14]" : ""
-      }`}
-    >
+    <div className={cardClasses}>
       <button
         type="button"
         onClick={() => canExpand && setExpanded((v) => !v)}
         className={`w-full text-left ${canExpand ? "cursor-pointer" : "cursor-default"}`}
         aria-expanded={expanded}
       >
-        <TeamRow
-          team={teamA}
-          wins={winsA}
-          isWinner={aIsWinner}
-          isLoser={aIsLoser}
-        />
-        <div className="h-px bg-white/[0.05]" />
-        <TeamRow
-          team={teamB}
-          wins={winsB}
-          isWinner={bIsWinner}
-          isLoser={bIsLoser}
-        />
-        {isProjected && (
-          <div className="text-[10px] uppercase tracking-wider text-text-tertiary text-center py-1 border-t border-white/[0.05]">
-            Projected
-          </div>
-        )}
+        {teamRows}
       </button>
 
       <AnimatePresence initial={false}>
