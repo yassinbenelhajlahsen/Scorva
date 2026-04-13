@@ -26,7 +26,7 @@ async function fetchPlayoffGames(season) {
        FROM games
       WHERE league = 'nba'
         AND season = $1
-        AND type IN ('playoff', 'final')
+        AND (type IN ('playoff', 'final') OR game_label ILIKE '%play-in%')
       ORDER BY date ASC, id ASC`,
     [season]
   );
@@ -509,8 +509,6 @@ async function derivePlayoffs(season) {
   // 1. Actual play-in games exist and are incomplete or R1 hasn't started, OR
   // 2. Any R1 series has a TBD opponent (placeholder team → null), meaning
   //    play-in hasn't resolved — show projected play-in from standings.
-  //    ESPN play-in games often arrive with type='regular' so they aren't
-  //    captured by fetchPlayoffGames; the TBD check covers that gap.
   const r1Started = eastRounds.r1.length > 0 || westRounds.r1.length > 0;
   const hasUnresolvedR1 = [...easternBlock.r1, ...westernBlock.r1].some(
     (s) => !s.teamA || !s.teamB

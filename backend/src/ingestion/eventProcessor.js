@@ -227,7 +227,11 @@ export async function processEvent(client, leagueSlug, event, { force = false } 
       }
     } else {
       const headline = (gameLabel || "").toLowerCase();
-      gameType = headline.includes("makeup") ? "makeup" : "regular";
+      if (headline.includes("play-in")) {
+        gameType = "playoff";
+      } else {
+        gameType = headline.includes("makeup") ? "makeup" : "regular";
+      }
     }
 
     const gamePayload = {
