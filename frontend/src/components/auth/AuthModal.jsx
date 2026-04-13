@@ -12,8 +12,9 @@ const slideVariants = {
 const slideTrans = { duration: 0.3, ease: [0.22, 1, 0.36, 1] };
 
 const CONTEXT_SUBTITLES = {
-  chat: "to use AI Chat",
-  summary: "to use AI Game Summary",
+  chat: "to chat with Sid, your AI sports assistant",
+  summary: "to view AI-powered game summaries",
+  favorites: "to save your favorite players and teams",
 };
 
 export default function AuthModal({ onClose, context }) {
