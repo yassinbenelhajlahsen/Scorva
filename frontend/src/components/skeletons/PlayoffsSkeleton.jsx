@@ -85,31 +85,102 @@ function ConferenceSkeleton({ label, mirrored = false }) {
   );
 }
 
+function OutcomeTagSkeleton() {
+  return <Skeleton className="h-2 w-14 rounded" />;
+}
+
+function BracketConnectorSkeleton() {
+  return (
+    <div className="hidden md:flex flex-col items-stretch w-6 self-stretch">
+      <div className="flex-1 border-r border-b border-white/[0.12] rounded-br-lg" />
+      <div className="flex-1 border-r border-t border-white/[0.12] rounded-tr-lg" />
+    </div>
+  );
+}
+
+function ConferenceBracketSkeleton() {
+  return (
+    <div>
+      <h4 className="text-[11px] font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
+        <Skeleton className="inline-block h-2.5 w-14 rounded align-middle" />
+      </h4>
+
+      {/* Desktop bracket layout */}
+      <div className="hidden md:flex items-stretch gap-0">
+        {/* Tier 1 column */}
+        <div className="flex flex-col justify-between gap-6 w-[180px] shrink-0">
+          <div className="flex flex-col gap-1.5">
+            <SeriesSkeleton />
+            <div className="flex items-center px-1">
+              <OutcomeTagSkeleton />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <SeriesSkeleton />
+            <div className="flex items-center px-1">
+              <OutcomeTagSkeleton />
+            </div>
+          </div>
+        </div>
+
+        <BracketConnectorSkeleton />
+
+        {/* Tier 2 column */}
+        <div className="flex flex-col justify-center w-[180px] shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="h-px w-2 bg-white/[0.12]" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <SeriesSkeleton />
+              <div className="text-center">
+                <OutcomeTagSkeleton />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile stacked layout */}
+      <div className="flex md:hidden flex-col gap-3">
+        <div>
+          <div className="flex items-center justify-between mb-1.5 px-0.5">
+            <Skeleton className="h-2 w-8 rounded" />
+            <OutcomeTagSkeleton />
+          </div>
+          <SeriesSkeleton />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-1.5 px-0.5">
+            <Skeleton className="h-2 w-10 rounded" />
+            <OutcomeTagSkeleton />
+          </div>
+          <SeriesSkeleton />
+        </div>
+        <div className="flex items-center gap-2 px-4">
+          <div className="h-px flex-1 bg-white/[0.08]" />
+          <Skeleton className="h-2 w-28 rounded" />
+          <div className="h-px flex-1 bg-white/[0.08]" />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-1.5 px-0.5">
+            <Skeleton className="h-2 w-12 rounded" />
+            <OutcomeTagSkeleton />
+          </div>
+          <SeriesSkeleton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlayInSkeleton() {
   return (
-    <m.div className="mb-10" variants={skeletonItem}>
-      <h3 className="text-sm font-semibold uppercase tracking-widest text-text-secondary mb-5 text-center">
+    <m.div className="mb-12" variants={skeletonItem}>
+      <h3 className="text-sm font-semibold uppercase tracking-widest text-text-secondary mb-6 text-center">
         Play-In Tournament
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-[720px] mx-auto">
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary mb-3 text-center">
-            Eastern
-          </h4>
-          <div className="flex flex-col gap-2">
-            <SeriesSkeleton projected />
-            <SeriesSkeleton projected />
-          </div>
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary mb-3 text-center">
-            Western
-          </h4>
-          <div className="flex flex-col gap-2">
-            <SeriesSkeleton projected />
-            <SeriesSkeleton projected />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 max-w-[900px] mx-auto">
+        <ConferenceBracketSkeleton />
+        <ConferenceBracketSkeleton />
       </div>
     </m.div>
   );
