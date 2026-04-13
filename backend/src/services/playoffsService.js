@@ -160,6 +160,23 @@ function classifyConferenceRounds(confSeries) {
   };
 }
 
+// Top-half of the bracket: seeds from 1v8 and 4v5 R1 matchups.
+// A semi whose participants came from these matchups belongs in slot 0 (top).
+const TOP_HALF_SEEDS = new Set(R1_SEED_PAIRS.slice(0, 2).flat());
+
+function orderSemisByBracketHalf(semisList) {
+  if (semisList.length !== 2) return semisList;
+  const isTopHalf = (s) => {
+    const sa = s.teamA?.seed;
+    const sb = s.teamB?.seed;
+    return (sa && TOP_HALF_SEEDS.has(sa)) || (sb && TOP_HALF_SEEDS.has(sb));
+  };
+  if (isTopHalf(semisList[1]) && !isTopHalf(semisList[0])) {
+    return [semisList[1], semisList[0]];
+  }
+  return semisList;
+}
+
 // Rank R1 participants by regular-season wins to infer seeds.
 // Validates that inferred seeds produce canonical {1:8, 4:5, 3:6, 2:7} matchups.
 function inferSeedsFromR1(r1Series, standingsByConf, h2hMatrix) {
@@ -231,9 +248,20 @@ function serializeSeries(series, { round, conference, teamsById, seedMap }) {
   let teamA = makeTeamInfo(series.teamAId, teamsById, seedMap);
   let teamB = makeTeamInfo(series.teamBId, teamsById, seedMap);
 
-  // Higher seed (lower number) on top
-  if (teamA?.seed && teamB?.seed && teamB.seed < teamA.seed) {
-    [teamA, teamB] = [teamB, teamA];
+  // Higher seed (lower number) on top; if seeds match (e.g. Finals),
+  // fall back to better regular-season record.
+  if (teamA && teamB) {
+    const sA = teamA.seed;
+    const sB = teamB.seed;
+    if (sA && sB && sA !== sB && sB < sA) {
+      [teamA, teamB] = [teamB, teamA];
+    } else if ((!sA || !sB || sA === sB) && teamA.record && teamB.record) {
+      const winsA = parseInt(teamA.record, 10);
+      const winsB = parseInt(teamB.record, 10);
+      if (winsB > winsA) {
+        [teamA, teamB] = [teamB, teamA];
+      }
+    }
   }
 
   return {
@@ -508,8 +536,8 @@ async function derivePlayoffs(season) {
 
   const serializeConf = (rounds, confKey) => ({
     r1: rounds.r1.map((s) => serializeSeries(s, { ...ctx, round: "r1", conference: confKey })),
-    semis: rounds.semis.map((s) =>
-      serializeSeries(s, { ...ctx, round: "semis", conference: confKey })
+    semis: orderSemisByBracketHalf(
+      rounds.semis.map((s) => serializeSeries(s, { ...ctx, round: "semis", conference: confKey }))
     ),
     confFinals: rounds.confFinals.map((s) =>
       serializeSeries(s, { ...ctx, round: "confFinals", conference: confKey })
