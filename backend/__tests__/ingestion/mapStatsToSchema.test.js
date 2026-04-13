@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import mapStatsToSchema from "../../src/ingestion/mapStatsToSchema.js";
+import mapStatsToSchema from "../../src/ingestion/mappings/mapStatsToSchema.js";
 
 describe("mapStatsToSchema", () => {
   describe("NBA Stats Mapping", () => {

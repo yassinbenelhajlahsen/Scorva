@@ -17,7 +17,7 @@ jest.unstable_mockModule(dbPath, () => ({
   default: mockPool,
 }));
 
-const routerPath = resolve(__dirname, "../../src/routes/seasons.js");
+const routerPath = resolve(__dirname, "../../src/routes/meta/seasons.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: seasonsRouter } = await import(routerPath);

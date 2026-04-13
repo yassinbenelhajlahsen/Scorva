@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const { espnImage } = await import(
-  resolve(__dirname, "../../src/ingestion/espnImage.js")
+  resolve(__dirname, "../../src/ingestion/espn/espnImage.js")
 );
 
 const ESPN_URL = "https://a.espncdn.com/i/teamlogos/nba/500/lal.png";

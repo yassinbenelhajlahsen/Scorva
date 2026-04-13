@@ -18,7 +18,7 @@ jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
 jest.unstable_mockModule("axios", () => ({ default: { get: mockAxiosGet } }));
 
-const { getPlays } = await import(resolve(__dirname, "../../src/services/playsService.js"));
+const { getPlays } = await import(resolve(__dirname, "../../src/services/games/playsService.js"));
 
 const THIRTY_DAYS = 30 * 86400;
 

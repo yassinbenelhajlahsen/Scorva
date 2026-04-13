@@ -26,7 +26,7 @@ jest.unstable_mockModule(authPath, () => ({
   }),
 }));
 
-const routerPath = resolve(__dirname, "../../src/routes/favorites.js");
+const routerPath = resolve(__dirname, "../../src/routes/user/favorites.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: favoritesRouter } = await import(routerPath);

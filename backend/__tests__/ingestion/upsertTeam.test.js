@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import upsertTeam from "../../src/ingestion/upsertTeam.js";
+import upsertTeam from "../../src/ingestion/upsert/upsertTeam.js";
 
 describe("upsertTeam", () => {
   let mockClient;

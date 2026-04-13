@@ -24,27 +24,27 @@ const mockUpsertPlays = jest.fn();
 const mockMapStats = jest.fn();
 
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/upsertTeam.js"),
+  resolve(__dirname, "../../src/ingestion/upsert/upsertTeam.js"),
   () => ({ default: mockUpsertTeam })
 );
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/upsertPlayer.js"),
+  resolve(__dirname, "../../src/ingestion/upsert/upsertPlayer.js"),
   () => ({ default: mockUpsertPlayer })
 );
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/upsertStat.js"),
+  resolve(__dirname, "../../src/ingestion/upsert/upsertStat.js"),
   () => ({ default: mockUpsertStat })
 );
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/upsertGame.js"),
+  resolve(__dirname, "../../src/ingestion/upsert/upsertGame.js"),
   () => ({ default: mockUpsertGame })
 );
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/upsertPlays.js"),
+  resolve(__dirname, "../../src/ingestion/upsert/upsertPlays.js"),
   () => ({ default: mockUpsertPlays })
 );
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/mapStatsToSchema.js"),
+  resolve(__dirname, "../../src/ingestion/mappings/mapStatsToSchema.js"),
   () => ({ default: mockMapStats })
 );
 
@@ -134,7 +134,7 @@ function createMockEvent(overrides = {}) {
 
 describe("eventProcessor", () => {
   beforeAll(async () => {
-    const epPath = resolve(__dirname, "../../src/ingestion/eventProcessor.js");
+    const epPath = resolve(__dirname, "../../src/ingestion/pipeline/eventProcessor.js");
     const mod = await import(epPath);
     getSportPath = mod.getSportPath;
     clearPlayerCache = mod.clearPlayerCache;

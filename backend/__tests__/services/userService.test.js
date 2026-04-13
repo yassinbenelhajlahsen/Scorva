@@ -12,7 +12,7 @@ const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
 
 const { getUser, updateUser, deleteUser } = await import(
-  resolve(__dirname, "../../src/services/userService.js")
+  resolve(__dirname, "../../src/services/user/userService.js")
 );
 
 const mockUserRow = {

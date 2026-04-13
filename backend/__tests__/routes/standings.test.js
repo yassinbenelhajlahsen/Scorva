@@ -32,7 +32,7 @@ jest.unstable_mockModule(cachePath, () => ({
 }));
 
 // Now import the modules that depend on db
-const routerPath = resolve(__dirname, "../../src/routes/standings.js");
+const routerPath = resolve(__dirname, "../../src/routes/standings/standings.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: standingsRouter } = await import(routerPath);

@@ -23,7 +23,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/db/db.js"), () => {
 // Mock eventProcessor so processEvent doesn't make real ESPN calls
 const eventProcessorPath = resolve(
   __dirname,
-  "../../src/ingestion/eventProcessor.js"
+  "../../src/ingestion/pipeline/eventProcessor.js"
 );
 jest.unstable_mockModule(eventProcessorPath, () => ({
   processEvent: jest.fn().mockResolvedValue(1),
@@ -32,11 +32,11 @@ jest.unstable_mockModule(eventProcessorPath, () => ({
 
 // Import liveSync after mocks are set up
 const { upsertGameScoreboard, tick, eventState } = await import(
-  "../../src/ingestion/liveSync.js"
+  "../../src/ingestion/pipeline/liveSync.js"
 );
 
 const { processEvent } = await import(
-  "../../src/ingestion/eventProcessor.js"
+  "../../src/ingestion/pipeline/eventProcessor.js"
 );
 
 // ---------------------------------------------------------------------------

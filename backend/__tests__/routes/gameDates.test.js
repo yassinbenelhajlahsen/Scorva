@@ -28,7 +28,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/cache/cache.js"), () => (
   closeCache: jest.fn(),
 }));
 
-const routerPath = resolve(__dirname, "../../src/routes/games.js");
+const routerPath = resolve(__dirname, "../../src/routes/games/games.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: gamesRouter } = await import(routerPath);

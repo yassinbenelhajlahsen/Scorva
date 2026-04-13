@@ -36,7 +36,7 @@ jest.unstable_mockModule("@supabase/supabase-js", () => ({
   })),
 }));
 
-const routerPath = resolve(__dirname, "../../src/routes/user.js");
+const routerPath = resolve(__dirname, "../../src/routes/user/user.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: userRouter } = await import(routerPath);

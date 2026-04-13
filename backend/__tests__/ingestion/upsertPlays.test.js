@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import upsertPlays from "../../src/ingestion/upsertPlays.js";
+import upsertPlays from "../../src/ingestion/upsert/upsertPlays.js";
 
 function makeMockClient() {
   return { query: jest.fn().mockResolvedValue({ rows: [] }) };

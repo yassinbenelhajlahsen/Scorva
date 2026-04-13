@@ -16,7 +16,7 @@ const cachePath = resolve(__dirname, "../../src/cache/cache.js");
 jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
 const { getTeamsByLeague } = await import(
-  resolve(__dirname, "../../src/services/teamsService.js")
+  resolve(__dirname, "../../src/services/teams/teamsService.js")
 );
 
 const mockTeam = {

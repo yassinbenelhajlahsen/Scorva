@@ -25,7 +25,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
   default: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }));
 
-const servicePath = resolve(__dirname, "../../src/services/embeddingService.js");
+const servicePath = resolve(__dirname, "../../src/services/ai/embeddingService.js");
 const { generateEmbedding, embedGameSummary, searchEmbeddings } = await import(servicePath);
 
 const FAKE_EMBEDDING = Array.from({ length: 1536 }, (_, i) => i / 1536);

@@ -11,7 +11,7 @@ const mockStreamChat = jest.fn((req, res) => {
   res.status(200).json({ ok: true });
 });
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/controllers/chatController.js"),
+  resolve(__dirname, "../../src/controllers/ai/chatController.js"),
   () => ({ streamChat: mockStreamChat })
 );
 
@@ -31,7 +31,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/middleware/index.js"), ()
 
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
-const routerPath = resolve(__dirname, "../../src/routes/chat.js");
+const routerPath = resolve(__dirname, "../../src/routes/ai/chat.js");
 const { default: chatRouter } = await import(routerPath);
 
 describe("Chat Route — POST /api/chat", () => {

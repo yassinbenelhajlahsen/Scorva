@@ -26,7 +26,7 @@ jest.unstable_mockModule(seasonsPath, () => ({
 }));
 
 // Now import the modules that depend on db
-const routerPath = resolve(__dirname, "../../src/routes/games.js");
+const routerPath = resolve(__dirname, "../../src/routes/games/games.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: gamesRouter } = await import(routerPath);

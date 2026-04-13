@@ -16,7 +16,7 @@ const cachePath = resolve(__dirname, "../../src/cache/cache.js");
 jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
 const { getNbaGame, getNflGame, getNhlGame } = await import(
-  resolve(__dirname, "../../src/services/gameDetailService.js")
+  resolve(__dirname, "../../src/services/games/gameDetailService.js")
 );
 
 const THIRTY_DAYS = 30 * 86400;

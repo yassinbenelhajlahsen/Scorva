@@ -23,14 +23,14 @@ jest.unstable_mockModule(seasonsPath, () => ({
 const cachePath = resolve(__dirname, "../../src/cache/cache.js");
 jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
-const standingsPath = resolve(__dirname, "../../src/services/standingsService.js");
+const standingsPath = resolve(__dirname, "../../src/services/standings/standingsService.js");
 jest.unstable_mockModule(standingsPath, () => ({
   getStandings: mockGetStandings,
   getRegularSeasonGames: mockGetRegularSeasonGames,
 }));
 
 const { getNbaPlayoffs } = await import(
-  resolve(__dirname, "../../src/services/playoffsService.js")
+  resolve(__dirname, "../../src/services/standings/playoffsService.js")
 );
 
 // 15 teams per conference. Wins descend so seeds are predictable.

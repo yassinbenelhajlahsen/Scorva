@@ -25,7 +25,7 @@ jest.unstable_mockModule("axios", () => ({ default: { get: mockAxiosGet } }));
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: playsRouter } = await import(
-  resolve(__dirname, "../../src/routes/plays.js")
+  resolve(__dirname, "../../src/routes/games/plays.js")
 );
 
 function makeFinalGameRow() {

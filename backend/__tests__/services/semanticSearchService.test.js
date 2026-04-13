@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 // --- Mocks ---
 
 const mockSearchEmbeddings = jest.fn();
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/embeddingService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/embeddingService.js"), () => ({
   searchEmbeddings: mockSearchEmbeddings,
 }));
 
@@ -18,7 +18,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
 
 const servicePath = resolve(
   __dirname,
-  "../../src/services/chat/tools/semanticSearch.js"
+  "../../src/services/ai/chat/tools/semanticSearch.js"
 );
 const { semanticSearch } = await import(servicePath);
 

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { Pool } from "pg";
 import axios from "axios";
 import logger from "../../logger.js";
-import { getSportPath } from "../eventProcessor.js";
+import { getSportPath } from "../pipeline/eventProcessor.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 

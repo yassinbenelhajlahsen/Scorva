@@ -19,7 +19,7 @@ const {
   addFavoriteTeam,
   removeFavoriteTeam,
   checkFavorites,
-} = await import(resolve(__dirname, "../../src/services/favoritesService.js"));
+} = await import(resolve(__dirname, "../../src/services/user/favoritesService.js"));
 
 describe("favoritesService", () => {
   beforeEach(() => {

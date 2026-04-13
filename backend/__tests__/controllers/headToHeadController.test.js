@@ -7,12 +7,12 @@ const __dirname = dirname(__filename);
 
 const mockGetHeadToHead = jest.fn();
 
-const servicePath = resolve(__dirname, "../../src/services/headToHeadService.js");
+const servicePath = resolve(__dirname, "../../src/services/meta/headToHeadService.js");
 jest.unstable_mockModule(servicePath, () => ({
   getHeadToHead: mockGetHeadToHead,
 }));
 
-const controllerPath = resolve(__dirname, "../../src/controllers/headToHeadController.js");
+const controllerPath = resolve(__dirname, "../../src/controllers/meta/headToHeadController.js");
 const { headToHead } = await import(controllerPath);
 
 function makeReq(params = {}, query = {}) {

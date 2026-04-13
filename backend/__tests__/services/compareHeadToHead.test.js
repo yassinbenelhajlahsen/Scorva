@@ -16,7 +16,7 @@ jest.unstable_mockModule(cachePath, () => ({
   cached: jest.fn().mockImplementation(async (_k, _t, fn) => fn()),
 }));
 
-const servicePath = resolve(__dirname, "../../src/services/headToHeadService.js");
+const servicePath = resolve(__dirname, "../../src/services/meta/headToHeadService.js");
 const { getHeadToHead } = await import(servicePath);
 
 describe("headToHeadService (compare)", () => {

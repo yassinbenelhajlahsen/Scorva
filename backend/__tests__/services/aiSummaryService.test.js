@@ -21,7 +21,7 @@ jest.unstable_mockModule("openai", () => ({
   })),
 }));
 
-const servicePath = resolve(__dirname, "../../src/services/aiSummaryService.js");
+const servicePath = resolve(__dirname, "../../src/services/ai/aiSummaryService.js");
 const {
   buildGameData,
   getTopPerformers,

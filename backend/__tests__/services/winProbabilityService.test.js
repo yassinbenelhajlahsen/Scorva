@@ -17,7 +17,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/cache/cache.js"), () => (
   cached: mockCached,
 }));
 
-jest.unstable_mockModule(resolve(__dirname, "../../src/ingestion/eventProcessor.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/utils/sportPath.js"), () => ({
   getSportPath: (league) => {
     const map = { nba: "basketball", nfl: "football", nhl: "hockey" };
     return map[league];
@@ -29,7 +29,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
 }));
 
 const { getWinProbability } = await import(
-  resolve(__dirname, "../../src/services/winProbabilityService.js")
+  resolve(__dirname, "../../src/services/games/winProbabilityService.js")
 );
 
 const SAMPLE_PLAYS = [

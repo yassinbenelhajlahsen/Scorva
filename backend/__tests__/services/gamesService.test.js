@@ -19,7 +19,7 @@ jest.unstable_mockModule(seasonsPath, () => ({
 
 // cache is a no-op without Redis — it calls the queryFn directly
 const { getGames, getGameDates } = await import(
-  resolve(__dirname, "../../src/services/gamesService.js")
+  resolve(__dirname, "../../src/services/games/gamesService.js")
 );
 
 const mockGame = {

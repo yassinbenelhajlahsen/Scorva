@@ -39,7 +39,7 @@ jest.unstable_mockModule("openai", () => ({
 }));
 
 // Mock embeddingService so fire-and-forget embedGameSummary doesn't hit the pool
-const embeddingPath = resolve(__dirname, "../../src/services/embeddingService.js");
+const embeddingPath = resolve(__dirname, "../../src/services/ai/embeddingService.js");
 jest.unstable_mockModule(embeddingPath, () => ({
   embedGameSummary: jest.fn().mockResolvedValue(undefined),
   generateEmbedding: jest.fn(),
@@ -47,7 +47,7 @@ jest.unstable_mockModule(embeddingPath, () => ({
 }));
 
 // Now import the modules that depend on db and OpenAI
-const routerPath = resolve(__dirname, "../../src/routes/aiSummary.js");
+const routerPath = resolve(__dirname, "../../src/routes/ai/aiSummary.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: aiSummaryRouter } = await import(routerPath);

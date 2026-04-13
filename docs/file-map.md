@@ -3,135 +3,237 @@
 Key file locations for every backend and frontend subsystem.
 For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 
-| What                               | Where                                                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Backend entry                      | `backend/src/index.js`                                                                                 |
-| Backend logger                     | `backend/src/logger.js`                                                                                |
-| CORS, rate limits, SSE limiter     | `backend/src/middleware/index.js`                                                                      |
-| JWT auth middleware                | `backend/src/middleware/auth.js`                                                                       |
-| Routes                             | `backend/src/routes/`                                                                                  |
-| Controllers                        | `backend/src/controllers/`                                                                             |
-| Services                           | `backend/src/services/`                                                                                |
-| Game detail SQL query builder      | `backend/src/services/gameDetailQueryBuilder.js`                                                       |
-| Prisma schema                      | `backend/prisma/schema.prisma`                                                                         |
-| Generated client                   | `backend/src/generated/prisma/` (do not edit)                                                          |
-| Notification bus (PG LISTEN)       | `backend/src/db/notificationBus.js`                                                                    |
-| Cache module                       | `backend/src/cache/cache.js`                                                                           |
-| Season cache helper                | `backend/src/cache/seasons.js`                                                                         |
-| Scheduled upsert                   | `backend/src/ingestion/upsert.js`                                                                      |
-| Live sync worker                   | `backend/src/ingestion/liveSync.js`                                                                    |
-| Historical upsert                  | `backend/src/ingestion/historicalUpsert.js`                                                            |
-| Stats teamid backfill              | `backend/src/ingestion/scripts/backfillStatsTeamid.js`                                                 |
-| Plays backfill                     | `backend/src/ingestion/scripts/backfillPlays.js`                                                       |
-| Plays upsert                       | `backend/src/ingestion/upsertPlays.js`                                                                 |
-| Game replay script (dev)           | `backend/scripts/replayGame.js`                                                                        |
-| Popularity refresh                 | `backend/src/ingestion/refreshPopularity.js`                                                           |
-| Player similarity embeddings       | `backend/src/ingestion/computePlayerEmbeddings.js`                                                     |
-| Team colors backfill               | `backend/src/ingestion/scripts/backfillTeamColors.js`                                                  |
-| Embeddings backfill                | `backend/src/ingestion/scripts/backfillEmbeddings.js`                                                  |
-| Stats repair (DNP/null fix)        | `backend/src/ingestion/scripts/repairStats.js`                                                         |
-| Alias seed data                    | `backend/prisma/seeds/player_aliases.json`                                                             |
-| Alias seed script                  | `backend/prisma/seeds/seedAliases.js`                                                                  |
-| ESPN API client (fetch + retry)    | `backend/src/ingestion/espnAPIClient.js`                                                               |
-| Player cache manager               | `backend/src/ingestion/playerCacheManager.js`                                                          |
-| Data ingestion helpers             | `backend/src/ingestion/` (flat — no `src/` subfolder)                                                  |
-| Frontend entry                     | `frontend/src/main.jsx`                                                                                |
-| Frontend router                    | `frontend/src/App.jsx`                                                                                 |
-| Design tokens                      | `frontend/src/index.css` (`@theme`)                                                                    |
-| Supabase client                    | `frontend/src/lib/supabase.js`                                                                         |
-| TanStack Query client              | `frontend/src/lib/queryClient.js`                                                                      |
-| Query keys + prefetch fns          | `frontend/src/lib/query.js`                                                                            |
-| Auth context                       | `frontend/src/context/AuthContext.jsx`                                                                 |
-| Settings context                   | `frontend/src/context/SettingsContext.jsx`                                                             |
-| Auth modal                         | `frontend/src/components/auth/AuthModal.jsx`                                                           |
-| Auth components                    | `frontend/src/components/auth/` (AuthModal, PasswordChecklist)                                         |
-| Error boundary                     | `frontend/src/components/ErrorBoundary.jsx`                                                            |
-| Game page sub-components           | `frontend/src/components/game/` (GameMatchupHeader, GameInfoCard, GameTabBar, OverviewTab, AnalysisTab, PlaysTab) |
-| OAuth callback page                | `frontend/src/pages/AuthCallback.jsx`                                                                  |
-| API wrappers                       | `frontend/src/api/`                                                                                    |
-| Data hooks                         | `frontend/src/hooks/{ai,data,live,user}/`                                                              |
-| Game page data hook                | `frontend/src/hooks/data/useGamePageData.js`                                                           |
-| Frontend utilities                 | `frontend/src/utils/`                                                                                  |
-| Favorites API                      | `frontend/src/api/favorites.js`                                                                        |
-| Favorites hooks                    | `frontend/src/hooks/user/useFavorites.js`, `frontend/src/hooks/user/useFavoriteToggle.js`              |
-| Favorites overlay panel            | `frontend/src/context/FavoritesPanelContext.jsx`, `frontend/src/components/favorites/FavoritesPanel.jsx`|
-| Favorites display components       | `frontend/src/components/favorites/FavoritePlayersSection.jsx`, `frontend/src/components/favorites/FavoriteTeamsSection.jsx` |
-| User API                           | `frontend/src/api/user.js`                                                                             |
-| User prefs hook                    | `frontend/src/hooks/user/useUserPrefs.js`                                                              |
-| Settings drawer                    | `frontend/src/components/settings/SettingsDrawer.jsx`                                                  |
-| Settings tabs                      | `frontend/src/components/settings/FavoritesTab.jsx`, `frontend/src/components/settings/AccountTab.jsx` |
-| User controller                    | `backend/src/controllers/userController.js`                                                            |
-| User service                       | `backend/src/services/userService.js`                                                                  |
-| User route                         | `backend/src/routes/user.js`                                                                           |
-| Webhook handler                    | `backend/src/routes/webhooks.js`, `backend/src/controllers/webhooksController.js`                      |
-| SSE live route                     | `backend/src/routes/live.js`, `backend/src/controllers/liveController.js`                              |
-| SSE live hooks                     | `frontend/src/hooks/live/useLiveGame.js`, `frontend/src/hooks/live/useLiveGames.js`                    |
-| Similar players hook               | `frontend/src/hooks/data/useSimilarPlayers.js`                                                         |
-| Similar players card               | `frontend/src/components/cards/SimilarPlayersCard.jsx`                                                 |
-| Skeleton primitive                 | `frontend/src/components/ui/Skeleton.jsx`                                                              |
-| Error state component              | `frontend/src/components/ui/ErrorState.jsx`                                                            |
-| Date navigation (strip + calendar) | `frontend/src/components/ui/DateNavigation.jsx`, `DateStrip.jsx`, `CalendarPopup.jsx`                  |
-| Navigation components              | `frontend/src/components/navigation/` (MonthNavigation, SeasonSelector)                                |
-| Game dates hook                    | `frontend/src/hooks/data/useGameDates.js`                                                              |
-| Head-to-head route                 | `backend/src/routes/headToHead.js`                                                                     |
-| Head-to-head controller            | `backend/src/controllers/headToHeadController.js`                                                      |
-| Head-to-head service               | `backend/src/services/headToHeadService.js`                                                            |
-| Compare API (frontend)             | `frontend/src/api/compare.js`                                                                          |
-| Compare hook                       | `frontend/src/hooks/data/useHeadToHead.js`                                                             |
-| Compare modal                      | `frontend/src/components/compare/CompareModal.jsx`                                                     |
-| Compare page                       | `frontend/src/pages/ComparePage.jsx`                                                                   |
-| Compare page skeleton              | `frontend/src/components/skeletons/ComparePageSkeleton.jsx`                                            |
-| Playoffs service                   | `backend/src/services/playoffsService.js`                                                              |
-| Playoffs controller                | `backend/src/controllers/playoffsController.js`                                                        |
-| Playoffs route                     | `backend/src/routes/playoffs.js`                                                                       |
-| Playoffs API (frontend)            | `frontend/src/api/playoffs.js`                                                                         |
-| Playoffs hook                      | `frontend/src/hooks/data/useNbaPlayoffs.js`                                                            |
-| Playoffs components                | `frontend/src/components/playoffs/` (PlayoffsBracket, SeriesCard, PlayInSection)                       |
-| Playoffs skeleton                  | `frontend/src/components/skeletons/PlayoffsSkeleton.jsx`                                               |
-| Prediction service                 | `backend/src/services/predictionService.js`                                                            |
-| Prediction controller              | `backend/src/controllers/predictionController.js`                                                      |
-| Prediction route                   | `backend/src/routes/prediction.js`                                                                     |
-| Prediction hook                    | `frontend/src/hooks/data/usePrediction.js`                                                             |
-| Prediction card                    | `frontend/src/components/cards/PredictionCard.jsx`                                                     |
-| Win probability service            | `backend/src/services/winProbabilityService.js`                                                        |
-| Win probability hook               | `frontend/src/hooks/data/useWinProbability.js`                                                         |
-| Win probability chart              | `frontend/src/components/ui/GameChart.jsx`                                                             |
-| Game dates controller              | `backend/src/controllers/gameDatesController.js`                                                       |
-| Game dates service                 | `backend/src/services/gamesService.js` (`getGameDates` export)                                         |
-| Standings tiebreaker util          | `backend/src/utils/tiebreaker.js`                                                                      |
-| PG date → string util              | `backend/src/utils/pgDateToString.js`                                                                  |
-| Page skeleton layouts              | `frontend/src/components/skeletons/`                                                                   |
-| Chat route                         | `backend/src/routes/chat.js`                                                                           |
-| Chat controller                    | `backend/src/controllers/chatController.js`                                                            |
-| Chat agent (LLM loop)              | `backend/src/services/chat/agentService.js`                                                            |
-| Chat tool schemas (TOOL_DEFINITIONS) | `backend/src/services/chat/toolDefinitions.js`                                                       |
-| Chat tools (execution + dispatch)  | `backend/src/services/chat/toolsService.js`                                                            |
-| Chat tool services                 | `backend/src/services/chat/tools/`                                                                     |
-| Embedding service (RAG)            | `backend/src/services/embeddingService.js`                                                             |
-| Player similarity service          | `backend/src/services/similarPlayersService.js`                                                        |
-| Semantic search tool               | `backend/src/services/chat/tools/semanticSearch.js`                                                    |
-| Chat history                       | `backend/src/services/chat/historyService.js`                                                          |
-| Chat API (frontend)                | `frontend/src/api/chat.js`                                                                             |
-| Chat context                       | `frontend/src/context/ChatContext.jsx`                                                                 |
-| Chat actions hook                  | `frontend/src/hooks/ai/useChatActions.js`                                                              |
-| Chat components                    | `frontend/src/components/chat/`                                                                        |
-| Backend test suite                 | `backend/__tests__/`                                                                                   |
-| Backend test helpers               | `backend/__tests__/helpers/testHelpers.js`                                                             |
-| Frontend test suite                | `frontend/src/__tests__/`                                                                              |
-| Frontend test setup                | `frontend/src/__tests__/setup.js`                                                                      |
-| Frontend test helpers              | `frontend/src/__tests__/helpers/testUtils.jsx`                                                         |
-| Frontend utility tests             | `frontend/src/__tests__/utils/`                                                                        |
-| Plays API (frontend)               | `frontend/src/api/plays.js`                                                                            |
-| Plays hook                         | `frontend/src/hooks/data/usePlays.js`                                                                  |
-| Play-by-play component             | `frontend/src/components/ui/PlayByPlay.jsx`                                                            |
-| Plays route                        | `backend/src/routes/plays.js`                                                                          |
-| Plays controller                   | `backend/src/controllers/playsController.js`                                                           |
-| Plays service                      | `backend/src/services/playsService.js`                                                                 |
-| News service                       | `backend/src/services/newsService.js`                                                                  |
-| News controller                    | `backend/src/controllers/newsController.js`                                                            |
-| News route                         | `backend/src/routes/news.js`                                                                           |
-| News API (frontend)                | `frontend/src/api/news.js`                                                                             |
-| News hook                          | `frontend/src/hooks/data/useNews.js`                                                                   |
-| News components                    | `frontend/src/components/news/` (NewsSection, NewsCard, NewsPreviewModal)                              |
-| News card skeleton                 | `frontend/src/components/skeletons/NewsCardSkeleton.jsx`                                               |
-| Relative time util                 | `frontend/src/utils/relativeTime.js`                                                                   |
+## Backend — Infrastructure
+
+| What                               | Where                                                         |
+| ---------------------------------- | ------------------------------------------------------------- |
+| Backend entry                      | `backend/src/index.js`                                        |
+| Backend logger                     | `backend/src/logger.js`                                       |
+| CORS, rate limits, SSE limiter     | `backend/src/middleware/index.js`                              |
+| JWT auth middleware                | `backend/src/middleware/auth.js`                               |
+| Prisma schema                      | `backend/prisma/schema.prisma`                                |
+| Generated client                   | `backend/src/generated/prisma/` (do not edit)                 |
+| DB pool singleton                  | `backend/src/db/db.js`                                        |
+| Notification bus (PG LISTEN)       | `backend/src/db/notificationBus.js`                           |
+| Cache module                       | `backend/src/cache/cache.js`                                  |
+| Season cache helper                | `backend/src/cache/seasons.js`                                |
+| Sport path mapping util            | `backend/src/utils/sportPath.js`                              |
+| Standings tiebreaker util          | `backend/src/utils/tiebreaker.js`                             |
+| PG date → string util              | `backend/src/utils/pgDateToString.js`                         |
+| Date parser util                   | `backend/src/utils/dateParser.js`                             |
+| Slug resolver util                 | `backend/src/utils/slugResolver.js`                           |
+
+## Backend — Domain: Games
+
+| What                    | Where                                                           |
+| ----------------------- | --------------------------------------------------------------- |
+| Routes                  | `backend/src/routes/games/` (games, gameDetail, prediction, plays, live) |
+| Controllers             | `backend/src/controllers/games/` (games, gameDates, gameDetail, prediction, plays, live) |
+| Games service           | `backend/src/services/games/gamesService.js`                    |
+| Game detail service     | `backend/src/services/games/gameDetailService.js`               |
+| Game detail query builder | `backend/src/services/games/gameDetailQueryBuilder.js`        |
+| Win probability service | `backend/src/services/games/winProbabilityService.js`           |
+| Prediction service      | `backend/src/services/games/predictionService.js`               |
+| Plays service           | `backend/src/services/games/playsService.js`                    |
+
+## Backend — Domain: Players
+
+| What                       | Where                                                        |
+| -------------------------- | ------------------------------------------------------------ |
+| Routes                     | `backend/src/routes/players/` (players, playerDetail, similarPlayers) |
+| Controllers                | `backend/src/controllers/players/`                           |
+| Players service            | `backend/src/services/players/playersService.js`             |
+| Player detail service      | `backend/src/services/players/playerDetailService.js`        |
+| Similar players service    | `backend/src/services/players/similarPlayersService.js`      |
+
+## Backend — Domain: Teams
+
+| What            | Where                                                |
+| --------------- | ---------------------------------------------------- |
+| Route           | `backend/src/routes/teams/teams.js`                  |
+| Controller      | `backend/src/controllers/teams/teamsController.js`   |
+| Service         | `backend/src/services/teams/teamsService.js`         |
+
+## Backend — Domain: Standings & Playoffs
+
+| What                  | Where                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| Routes                | `backend/src/routes/standings/` (standings, playoffs)         |
+| Controllers           | `backend/src/controllers/standings/`                          |
+| Standings service     | `backend/src/services/standings/standingsService.js`          |
+| Playoffs service      | `backend/src/services/standings/playoffsService.js`           |
+
+## Backend — Domain: User & Favorites
+
+| What                  | Where                                                        |
+| --------------------- | ------------------------------------------------------------ |
+| Routes                | `backend/src/routes/user/` (user, favorites)                 |
+| Controllers           | `backend/src/controllers/user/`                              |
+| User service          | `backend/src/services/user/userService.js`                   |
+| Favorites service     | `backend/src/services/user/favoritesService.js`              |
+
+## Backend — Domain: AI (Chat, Summary, Embeddings)
+
+| What                              | Where                                                      |
+| --------------------------------- | ---------------------------------------------------------- |
+| Routes                            | `backend/src/routes/ai/` (aiSummary, chat)                 |
+| Controllers                       | `backend/src/controllers/ai/`                              |
+| AI summary service                | `backend/src/services/ai/aiSummaryService.js`              |
+| Embedding service (RAG)           | `backend/src/services/ai/embeddingService.js`              |
+| Chat agent (LLM loop)             | `backend/src/services/ai/chat/agentService.js`             |
+| Chat tool schemas                 | `backend/src/services/ai/chat/toolDefinitions.js`          |
+| Chat tools (dispatch)             | `backend/src/services/ai/chat/toolsService.js`             |
+| Chat tool implementations         | `backend/src/services/ai/chat/tools/`                      |
+| Chat history                      | `backend/src/services/ai/chat/historyService.js`           |
+
+## Backend — Domain: Meta (News, Search, Seasons, H2H, Webhooks)
+
+| What                  | Where                                                             |
+| --------------------- | ----------------------------------------------------------------- |
+| Routes                | `backend/src/routes/meta/` (news, search, seasons, headToHead, webhooks) |
+| Controllers           | `backend/src/controllers/meta/`                                   |
+| News service          | `backend/src/services/meta/newsService.js`                        |
+| Search service        | `backend/src/services/meta/searchService.js`                      |
+| Seasons service       | `backend/src/services/meta/seasonsService.js`                     |
+| Head-to-head service  | `backend/src/services/meta/headToHeadService.js`                  |
+
+## Backend — Ingestion
+
+| What                          | Where                                                    |
+| ----------------------------- | -------------------------------------------------------- |
+| ESPN API client (fetch+retry) | `backend/src/ingestion/espn/espnAPIClient.js`            |
+| ESPN image helper             | `backend/src/ingestion/espn/espnImage.js`                |
+| Event processor               | `backend/src/ingestion/pipeline/eventProcessor.js`       |
+| Scheduled upsert              | `backend/src/ingestion/pipeline/upsert.js`               |
+| Live sync worker              | `backend/src/ingestion/pipeline/liveSync.js`             |
+| Historical upsert             | `backend/src/ingestion/pipeline/historicalUpsert.js`     |
+| Common stat mappings          | `backend/src/ingestion/mappings/commonMappings.js`       |
+| Stats → schema mapper         | `backend/src/ingestion/mappings/mapStatsToSchema.js`     |
+| Upsert functions              | `backend/src/ingestion/upsert/` (Game, Team, Player, Stat, Plays) |
+| Player cache manager          | `backend/src/ingestion/playerCacheManager.js`            |
+| Player similarity embeddings  | `backend/src/ingestion/computePlayerEmbeddings.js`       |
+| Popularity refresh            | `backend/src/ingestion/refreshPopularity.js`             |
+| Backfill scripts              | `backend/src/ingestion/scripts/`                         |
+| Game replay script (dev)      | `backend/scripts/replayGame.js`                          |
+| Alias seed data               | `backend/prisma/seeds/player_aliases.json`               |
+| Alias seed script             | `backend/prisma/seeds/seedAliases.js`                    |
+
+## Backend — Tests
+
+| What                 | Where                                          |
+| -------------------- | ---------------------------------------------- |
+| Test suite           | `backend/__tests__/`                           |
+| Test helpers         | `backend/__tests__/helpers/testHelpers.js`     |
+
+## Frontend — Core
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Entry                   | `frontend/src/main.jsx`                                        |
+| Router                  | `frontend/src/App.jsx`                                         |
+| Design tokens           | `frontend/src/index.css` (`@theme`)                            |
+| Supabase client         | `frontend/src/lib/supabase.js`                                 |
+| TanStack Query client   | `frontend/src/lib/queryClient.js`                              |
+| Query keys + prefetch   | `frontend/src/lib/query.js`                                    |
+| Auth context            | `frontend/src/context/AuthContext.jsx`                         |
+| Settings context        | `frontend/src/context/SettingsContext.jsx`                     |
+| Error boundary          | `frontend/src/components/ErrorBoundary.jsx`                    |
+| OAuth callback page     | `frontend/src/pages/AuthCallback.jsx`                          |
+| API wrappers            | `frontend/src/api/`                                            |
+| Data hooks              | `frontend/src/hooks/{ai,data,live,user}/`                      |
+| Utilities               | `frontend/src/utils/`                                          |
+
+## Frontend — Game
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Game page data hook     | `frontend/src/hooks/data/useGamePageData.js`                   |
+| Game page components    | `frontend/src/components/game/` (GameMatchupHeader, GameInfoCard, GameTabBar, OverviewTab, AnalysisTab, PlaysTab) |
+| Prediction hook         | `frontend/src/hooks/data/usePrediction.js`                     |
+| Prediction card         | `frontend/src/components/cards/PredictionCard.jsx`             |
+| Win probability hook    | `frontend/src/hooks/data/useWinProbability.js`                 |
+| Win probability chart   | `frontend/src/components/ui/GameChart.jsx`                     |
+| Plays API               | `frontend/src/api/plays.js`                                    |
+| Plays hook              | `frontend/src/hooks/data/usePlays.js`                          |
+| Play-by-play component  | `frontend/src/components/ui/PlayByPlay.jsx`                    |
+| Game dates hook         | `frontend/src/hooks/data/useGameDates.js`                      |
+| SSE live hooks          | `frontend/src/hooks/live/useLiveGame.js`, `useLiveGames.js`   |
+
+## Frontend — Players
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Similar players hook    | `frontend/src/hooks/data/useSimilarPlayers.js`                 |
+| Similar players card    | `frontend/src/components/cards/SimilarPlayersCard.jsx`         |
+
+## Frontend — Compare
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Compare API             | `frontend/src/api/compare.js`                                  |
+| Compare hook            | `frontend/src/hooks/data/useHeadToHead.js`                     |
+| Compare modal           | `frontend/src/components/compare/CompareModal.jsx`             |
+| Compare page            | `frontend/src/pages/ComparePage.jsx`                           |
+| Compare page skeleton   | `frontend/src/components/skeletons/ComparePageSkeleton.jsx`    |
+
+## Frontend — Playoffs
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Playoffs API            | `frontend/src/api/playoffs.js`                                 |
+| Playoffs hook           | `frontend/src/hooks/data/useNbaPlayoffs.js`                    |
+| Playoffs components     | `frontend/src/components/playoffs/` (PlayoffsBracket, SeriesCard, PlayInSection) |
+| Playoffs skeleton       | `frontend/src/components/skeletons/PlayoffsSkeleton.jsx`       |
+
+## Frontend — User & Favorites
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Favorites API           | `frontend/src/api/favorites.js`                                |
+| Favorites hooks         | `frontend/src/hooks/user/useFavorites.js`, `useFavoriteToggle.js` |
+| Favorites panel         | `frontend/src/context/FavoritesPanelContext.jsx`, `frontend/src/components/favorites/FavoritesPanel.jsx` |
+| Favorites sections      | `frontend/src/components/favorites/FavoritePlayersSection.jsx`, `FavoriteTeamsSection.jsx` |
+| User API                | `frontend/src/api/user.js`                                     |
+| User prefs hook         | `frontend/src/hooks/user/useUserPrefs.js`                      |
+| Settings drawer         | `frontend/src/components/settings/SettingsDrawer.jsx`          |
+| Settings tabs           | `frontend/src/components/settings/FavoritesTab.jsx`, `AccountTab.jsx` |
+| Auth modal              | `frontend/src/components/auth/AuthModal.jsx`                   |
+| Auth components         | `frontend/src/components/auth/` (AuthModal, PasswordChecklist) |
+
+## Frontend — Chat
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Chat API                | `frontend/src/api/chat.js`                                     |
+| Chat context            | `frontend/src/context/ChatContext.jsx`                         |
+| Chat actions hook       | `frontend/src/hooks/ai/useChatActions.js`                      |
+| Chat components         | `frontend/src/components/chat/`                                |
+
+## Frontend — News
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| News API                | `frontend/src/api/news.js`                                     |
+| News hook               | `frontend/src/hooks/data/useNews.js`                           |
+| News components         | `frontend/src/components/news/` (NewsSection, NewsCard, NewsPreviewModal) |
+| News card skeleton      | `frontend/src/components/skeletons/NewsCardSkeleton.jsx`       |
+
+## Frontend — UI Primitives
+
+| What                           | Where                                                       |
+| ------------------------------ | ----------------------------------------------------------- |
+| Skeleton primitive             | `frontend/src/components/ui/Skeleton.jsx`                   |
+| Error state component          | `frontend/src/components/ui/ErrorState.jsx`                 |
+| Date navigation (strip + cal)  | `frontend/src/components/ui/DateNavigation.jsx`, `DateStrip.jsx`, `CalendarPopup.jsx` |
+| Navigation components          | `frontend/src/components/navigation/` (MonthNavigation, SeasonSelector) |
+| Page skeleton layouts          | `frontend/src/components/skeletons/`                        |
+| Relative time util             | `frontend/src/utils/relativeTime.js`                        |
+
+## Frontend — Tests
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Test suite              | `frontend/src/__tests__/`                                      |
+| Test setup              | `frontend/src/__tests__/setup.js`                              |
+| Test helpers            | `frontend/src/__tests__/helpers/testUtils.jsx`                 |
+| Utility tests           | `frontend/src/__tests__/utils/`                                |

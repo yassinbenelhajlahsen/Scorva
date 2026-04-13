@@ -16,7 +16,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/cache/cache.js"), () => (
 }));
 
 const { getNews } = await import(
-  resolve(__dirname, "../../src/services/newsService.js")
+  resolve(__dirname, "../../src/services/meta/newsService.js")
 );
 
 function espnResponse(articles) {

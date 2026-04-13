@@ -22,7 +22,7 @@ const cachePath = resolve(__dirname, "../../src/cache/cache.js");
 jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
 const { getStandings } = await import(
-  resolve(__dirname, "../../src/services/standingsService.js")
+  resolve(__dirname, "../../src/services/standings/standingsService.js")
 );
 
 const CURRENT_TTL = 300;

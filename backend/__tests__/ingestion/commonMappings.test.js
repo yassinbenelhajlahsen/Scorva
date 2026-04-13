@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const { default: commonMappings } = await import(
-  resolve(__dirname, "../../src/ingestion/commonMappings.js")
+  resolve(__dirname, "../../src/ingestion/mappings/commonMappings.js")
 );
 
 describe("commonMappings", () => {

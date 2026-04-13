@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
 import logger from "../../logger.js";
-import { getEventsByDate } from "../espnAPIClient.js";
-import { processEvent } from "../eventProcessor.js";
+import { getEventsByDate } from "../espn/espnAPIClient.js";
+import { processEvent } from "../pipeline/eventProcessor.js";
 import { clearPlayerCache, getPlayerCacheStats } from "../playerCacheManager.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";

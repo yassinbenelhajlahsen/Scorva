@@ -40,7 +40,7 @@ jest.unstable_mockModule(dbPath, () => ({
 
 const controllerPath = resolve(
   __dirname,
-  "../../src/controllers/liveController.js"
+  "../../src/controllers/games/liveController.js"
 );
 const { streamGames, streamGame } = await import(controllerPath);
 

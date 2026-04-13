@@ -1,6 +1,6 @@
 import axios from "axios";
 import logger from "../logger.js";
-import { getSportPath } from "./espnAPIClient.js";
+import { getSportPath } from "./espn/espnAPIClient.js";
 
 const log = logger.child({ worker: "eventProcessor" });
 

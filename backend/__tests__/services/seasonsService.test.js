@@ -16,7 +16,7 @@ const cachePath = resolve(__dirname, "../../src/cache/cache.js");
 jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
 const { getSeasons } = await import(
-  resolve(__dirname, "../../src/services/seasonsService.js")
+  resolve(__dirname, "../../src/services/meta/seasonsService.js")
 );
 
 describe("getSeasons", () => {

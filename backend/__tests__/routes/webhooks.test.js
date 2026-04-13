@@ -17,7 +17,7 @@ jest.unstable_mockModule(dbPath, () => ({
   default: mockPool,
 }));
 
-const routerPath = resolve(__dirname, "../../src/routes/webhooks.js");
+const routerPath = resolve(__dirname, "../../src/routes/meta/webhooks.js");
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: webhooksRouter } = await import(routerPath);

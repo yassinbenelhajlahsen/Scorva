@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 // Mock the win probability service
 const mockGetWinProbability = jest.fn();
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/services/winProbabilityService.js"),
+  resolve(__dirname, "../../src/services/games/winProbabilityService.js"),
   () => ({ getWinProbability: mockGetWinProbability })
 );
 
@@ -32,7 +32,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: gameInfoRouter } = await import(
-  resolve(__dirname, "../../src/routes/gameDetail.js")
+  resolve(__dirname, "../../src/routes/games/gameDetail.js")
 );
 
 const SAMPLE_DATA = {

@@ -13,26 +13,26 @@ import {
   chatSseConnectionLimiter,
   corsOrigins,
 } from "./middleware/index.js";
-import teamsRouter from "./routes/teams.js";
-import standingsRouter from "./routes/standings.js";
-import playoffsRoute from "./routes/playoffs.js";
-import gamesInfoRoute from "./routes/gameDetail.js";
-import playersRoute from "./routes/players.js";
-import playerInfoRoute from "./routes/playerDetail.js";
-import similarPlayersRoute from "./routes/similarPlayers.js";
-import gamesRoute from "./routes/games.js";
-import searchRoute from "./routes/search.js";
-import aiSummaryRoute from "./routes/aiSummary.js";
-import chatRoute from "./routes/chat.js";
-import seasonsRoute from "./routes/seasons.js";
-import favoritesRoute from "./routes/favorites.js";
-import userRoute from "./routes/user.js";
-import webhooksRoute from "./routes/webhooks.js";
-import liveRoute from "./routes/live.js";
-import predictionRoute from "./routes/prediction.js";
-import playsRoute from "./routes/plays.js";
-import newsRoute from "./routes/news.js";
-import headToHeadRoute from "./routes/headToHead.js";
+import teamsRouter from "./routes/teams/teams.js";
+import standingsRouter from "./routes/standings/standings.js";
+import playoffsRoute from "./routes/standings/playoffs.js";
+import gamesInfoRoute from "./routes/games/gameDetail.js";
+import playersRoute from "./routes/players/players.js";
+import playerInfoRoute from "./routes/players/playerDetail.js";
+import similarPlayersRoute from "./routes/players/similarPlayers.js";
+import gamesRoute from "./routes/games/games.js";
+import searchRoute from "./routes/meta/search.js";
+import aiSummaryRoute from "./routes/ai/aiSummary.js";
+import chatRoute from "./routes/ai/chat.js";
+import seasonsRoute from "./routes/meta/seasons.js";
+import favoritesRoute from "./routes/user/favorites.js";
+import userRoute from "./routes/user/user.js";
+import webhooksRoute from "./routes/meta/webhooks.js";
+import liveRoute from "./routes/games/live.js";
+import predictionRoute from "./routes/games/prediction.js";
+import playsRoute from "./routes/games/plays.js";
+import newsRoute from "./routes/meta/news.js";
+import headToHeadRoute from "./routes/meta/headToHead.js";
 
 const app = express();
 

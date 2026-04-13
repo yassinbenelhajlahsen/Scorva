@@ -4,6 +4,7 @@ import logger from "../../logger.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 import { closeCache } from "../../cache/cache.js";
 import { computeLeagueEmbeddings } from "../computePlayerEmbeddings.js";
+
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 

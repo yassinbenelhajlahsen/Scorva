@@ -17,7 +17,7 @@ jest.unstable_mockModule("openai", () => ({
 }));
 
 const mockExecuteTool = jest.fn();
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/chat/toolsService.js"), () => ({
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/toolsService.js"), () => ({
   TOOL_DEFINITIONS: [],
   executeTool: mockExecuteTool,
 }));
@@ -36,7 +36,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
   default: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }));
 
-const servicePath = resolve(__dirname, "../../src/services/chat/agentService.js");
+const servicePath = resolve(__dirname, "../../src/services/ai/chat/agentService.js");
 const { runAgentLoop, summarizeOlderMessages } = await import(servicePath);
 
 // --- Helpers ---

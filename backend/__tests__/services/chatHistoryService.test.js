@@ -11,7 +11,7 @@ const mockPool = createMockPool();
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
 
-const servicePath = resolve(__dirname, "../../src/services/chat/historyService.js");
+const servicePath = resolve(__dirname, "../../src/services/ai/chat/historyService.js");
 const {
   getOrCreateConversation,
   getConversationMessages,

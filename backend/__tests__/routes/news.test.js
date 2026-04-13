@@ -7,14 +7,14 @@ const __dirname = dirname(__filename);
 
 const mockGetNews = jest.fn();
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/services/newsService.js"),
+  resolve(__dirname, "../../src/services/meta/newsService.js"),
   () => ({ getNews: mockGetNews })
 );
 
 const { default: express } = await import("express");
 const { default: request } = await import("supertest");
 const { default: newsRouter } = await import(
-  resolve(__dirname, "../../src/routes/news.js")
+  resolve(__dirname, "../../src/routes/meta/news.js")
 );
 
 const sampleArticles = [

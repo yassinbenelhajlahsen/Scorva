@@ -14,7 +14,7 @@ const mockGetPlayerCacheStats = jest
   .mockReturnValue({ size: 42, hits: 100, misses: 10 });
 
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/ingestion/eventProcessor.js"),
+  resolve(__dirname, "../../src/ingestion/pipeline/eventProcessor.js"),
   () => ({
     runTodayProcessing: mockRunTodayProcessing,
     runUpcomingProcessing: mockRunUpcomingProcessing,
@@ -58,11 +58,11 @@ jest.unstable_mockModule(
 );
 
 const { runUpsert, addOrdinal } = await import(
-  resolve(__dirname, "../../src/ingestion/upsert.js")
+  resolve(__dirname, "../../src/ingestion/pipeline/upsert.js")
 );
 
 describe("CLI guard", () => {
-  const upsertPath = resolve(__dirname, "../../src/ingestion/upsert.js");
+  const upsertPath = resolve(__dirname, "../../src/ingestion/pipeline/upsert.js");
 
   it("does NOT fire when imported by Jest (guard is false)", () => {
     // process.argv[1] is the Jest worker — resolve() of it will never equal upsert.js
@@ -73,9 +73,9 @@ describe("CLI guard", () => {
   it("WOULD fire when run directly (guard is true)", () => {
     // Simulate: node src/ingestion/upsert.js from the backend directory.
     // Derive the backend root from upsertPath so this works on any machine.
-    const backendDir = resolve(upsertPath, "../../..");
+    const backendDir = resolve(upsertPath, "../../../..");
     const guardWouldFire =
-      resolve(backendDir, "src/ingestion/upsert.js") === upsertPath;
+      resolve(backendDir, "src/ingestion/pipeline/upsert.js") === upsertPath;
     expect(guardWouldFire).toBe(true);
   });
 

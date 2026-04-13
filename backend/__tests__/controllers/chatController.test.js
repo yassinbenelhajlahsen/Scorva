@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const mockRunAgentLoop = jest.fn();
 const mockSummarizeOlderMessages = jest.fn();
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/services/chat/agentService.js"),
+  resolve(__dirname, "../../src/services/ai/chat/agentService.js"),
   () => ({ runAgentLoop: mockRunAgentLoop, summarizeOlderMessages: mockSummarizeOlderMessages })
 );
 
@@ -23,7 +23,7 @@ const mockGetMessageCount = jest.fn();
 const mockGetMessagesForSummarization = jest.fn();
 const mockUpdateConversationSummary = jest.fn();
 jest.unstable_mockModule(
-  resolve(__dirname, "../../src/services/chat/historyService.js"),
+  resolve(__dirname, "../../src/services/ai/chat/historyService.js"),
   () => ({
     getOrCreateConversation: mockGetOrCreateConversation,
     getConversationMessages: mockGetConversationMessages,
@@ -40,7 +40,7 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/logger.js"), () => ({
   default: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
 }));
 
-const controllerPath = resolve(__dirname, "../../src/controllers/chatController.js");
+const controllerPath = resolve(__dirname, "../../src/controllers/ai/chatController.js");
 const { streamChat } = await import(controllerPath);
 
 // --- Helpers ---

@@ -17,7 +17,7 @@ jest.unstable_mockModule(dateParserPath, () => ({
   tryParseDate: mockTryParseDate,
 }));
 
-const { search } = await import(resolve(__dirname, "../../src/services/searchService.js"));
+const { search } = await import(resolve(__dirname, "../../src/services/meta/searchService.js"));
 
 describe("searchService", () => {
   beforeEach(() => {
