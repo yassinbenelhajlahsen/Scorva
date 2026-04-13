@@ -314,6 +314,16 @@ Check `user.app_metadata.providers` array includes `"email"` (not single `provid
 - **Error handling**: errors before streaming starts → HTTP 500 JSON; errors mid-stream → `{"type":"error","message":"..."}` NDJSON line
 - Frontend: `useAISummary` hook manages `{ bullets[], loading, error, cached }` state; `AISummary` component renders skeleton slots that swap in with Framer Motion animation as each bullet arrives
 
+### Play-by-play context in summaries
+`aiSummaryService.js` fetches plays via `getClutchPlays(gameId, league)` in parallel with stats and injects two fields into `gameData`:
+
+- **`clutchPlays`**: all plays from the last 5 minutes of the final regulation period (Q4 for NBA/NFL, P3 for NHL) plus all overtime plays. Capped at 20 (the most recent). Shape: `{ clock, period, description, score, scoringPlay }`.
+- **`gameWinningPlay`**: the last scoring play of the entire game (highest sequence with `scoring_play = true`), surfaced as a distinct field so the LLM can't miss it.
+
+Both fields are omitted entirely for blowout games (garbage time). `getClutchPlays` returns from the plays Redis cache (30-day TTL for final games) — no extra DB round trip.
+
+Clock parsing handles two ESPN formats: `"5:32"` (M:SS, most plays) and `"5.4"` (sub-minute seconds-only, used when under 1 minute remaining). The prompt instructs the LLM to describe the `gameWinningPlay` by player name in one bullet.
+
 ## Prisma
 Schema/migrations only — runtime uses `pg` directly.
 - Schema: `backend/prisma/schema.prisma`

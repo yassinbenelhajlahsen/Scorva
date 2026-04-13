@@ -2,6 +2,7 @@ import {
   getCachedSummary,
   getGameForSummary,
   getGameStats,
+  getClutchPlays,
   saveSummary,
   buildGameData,
   streamAISummary,
@@ -73,9 +74,12 @@ export async function getAiSummary(req, res) {
       return;
     }
 
-    // Step 4: Fetch stats and build game data
-    const stats = await getGameStats(id);
-    const gameData = buildGameData(game, stats);
+    // Step 4: Fetch stats and clutch plays, then build game data
+    const [stats, clutchPlays] = await Promise.all([
+      getGameStats(id),
+      getClutchPlays(id, game.league),
+    ]);
+    const gameData = buildGameData(game, stats, clutchPlays);
 
     // Step 5: Stream generation
     res.writeHead(200, NDJSON_HEADERS);

@@ -269,7 +269,7 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
       expect(openAICall.stream).toBe(true);
     });
 
-    it("should make 4 queries for new summary generation", async () => {
+    it("should make 5 queries for new summary generation", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [{ ai_summary: null }] });
       mockPool.query.mockResolvedValueOnce({
         rows: [
@@ -286,8 +286,9 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
           },
         ],
       });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      mockPool.query.mockResolvedValueOnce({ rows: [] }); // getGameStats
+      mockPool.query.mockResolvedValueOnce({ rows: [] }); // getClutchPlays status lookup (no plays)
+      mockPool.query.mockResolvedValueOnce({ rows: [] }); // saveSummary
 
       mockOpenAI.chat.completions.create.mockResolvedValueOnce(
         makeStreamMock("- A\n- B\n- C")
@@ -295,7 +296,7 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
 
       await request(app).get("/api/games/1/ai-summary");
 
-      expect(mockPool.query).toHaveBeenCalledTimes(4);
+      expect(mockPool.query).toHaveBeenCalledTimes(5);
     });
 
     it("should handle NFL games correctly", async () => {

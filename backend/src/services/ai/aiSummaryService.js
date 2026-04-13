@@ -2,6 +2,97 @@ import OpenAI from "openai";
 import pool from "../../db/db.js";
 import logger from "../../logger.js";
 import { embedGameSummary } from "./embeddingService.js";
+import { getPlays } from "../games/playsService.js";
+
+function parseClockToSeconds(clock) {
+  if (!clock) return null;
+  // Sub-minute format: "5.4" or "0.4" (seconds only, no colon)
+  if (!clock.includes(":")) {
+    const secs = parseFloat(clock);
+    return Number.isNaN(secs) ? null : secs;
+  }
+  const parts = clock.split(":");
+  if (parts.length !== 2) return null;
+  const mins = parseInt(parts[0], 10);
+  const secs = parseFloat(parts[1]);
+  if (Number.isNaN(mins) || Number.isNaN(secs)) return null;
+  return mins * 60 + secs;
+}
+
+// NHL stores elapsed time per period; convert to time remaining
+function nhlClockToRemaining(clock, period) {
+  const elapsed = parseClockToSeconds(clock);
+  if (elapsed === null) return null;
+  // Playoff OT is 20 min; regular-season OT is 5 min — heuristic: elapsed > 300 means 20-min period
+  const periodLen = period > 3 && elapsed <= 300 ? 300 : 1200;
+  return Math.max(0, periodLen - elapsed);
+}
+
+function periodLabel(period, league) {
+  const isHockey = league === "NHL";
+  const finalReg = isHockey ? 3 : 4;
+  if (period <= finalReg) {
+    return isHockey ? `P${period}` : `Q${period}`;
+  }
+  const otNum = period - finalReg;
+  return otNum === 1 ? "OT" : `OT${otNum}`;
+}
+
+function mapPlay(play, leagueUpper) {
+  return {
+    clock: play.clock,
+    period: periodLabel(play.period, leagueUpper),
+    description: play.description,
+    score: play.home_score != null && play.away_score != null
+      ? `${play.home_score}-${play.away_score}`
+      : null,
+    scoringPlay: play.scoring_play,
+  };
+}
+
+export async function getClutchPlays(gameId, league) {
+  try {
+    const result = await getPlays(gameId, league);
+    if (!result || !result.plays || result.plays.length === 0) {
+      return { plays: [], gameWinningPlay: null };
+    }
+
+    const leagueUpper = league.toUpperCase();
+    const finalRegPeriod = leagueUpper === "NHL" ? 3 : 4;
+    const CLUTCH_SECONDS = 300; // 5 minutes
+
+    // Last scoring play from the entire game = the game winner
+    const lastScoringPlay = [...result.plays]
+      .reverse()
+      .find((p) => p.scoring_play);
+    const gameWinningPlay = lastScoringPlay ? mapPlay(lastScoringPlay, leagueUpper) : null;
+
+    const clutch = result.plays.filter((play) => {
+      if (play.period > finalRegPeriod) return true; // all OT plays
+      if (play.period !== finalRegPeriod) return false;
+
+      let remaining;
+      if (leagueUpper === "NHL") {
+        remaining = nhlClockToRemaining(play.clock, play.period);
+      } else {
+        remaining = parseClockToSeconds(play.clock);
+      }
+      return remaining !== null && remaining <= CLUTCH_SECONDS;
+    });
+
+    // Sort chronologically, cap at last 20 (most clutch)
+    clutch.sort((a, b) => a.sequence - b.sequence);
+    const capped = clutch.slice(-20);
+
+    return {
+      plays: capped.map((play) => mapPlay(play, leagueUpper)),
+      gameWinningPlay,
+    };
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch clutch plays for AI summary");
+    return { plays: [], gameWinningPlay: null };
+  }
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -74,7 +165,8 @@ export async function saveSummary(id, summary) {
   embedGameSummary(id).catch(() => {});
 }
 
-export function buildGameData(game, stats) {
+export function buildGameData(game, stats, clutchData = {}) {
+  const { plays: clutchPlays = [], gameWinningPlay = null } = clutchData;
   const league = game.league.toUpperCase();
 
   const parseScore = (scoreStr) => {
@@ -125,6 +217,11 @@ export function buildGameData(game, stats) {
     storyType = "standard";
   }
 
+  // Garbage time — don't include clutch plays for blowouts
+  const isBlowout = storyType === "blowout";
+  const filteredClutchPlays = isBlowout ? [] : clutchPlays;
+  const filteredGameWinner = isBlowout ? null : gameWinningPlay;
+
   const topPerformers = getTopPerformers(stats, league);
 
   const homeStats = calculateTeamStats(
@@ -156,6 +253,8 @@ export function buildGameData(game, stats) {
       home: homeStats,
       away: awayStats,
     },
+    ...(filteredClutchPlays.length > 0 ? { clutchPlays: filteredClutchPlays } : {}),
+    ...(filteredGameWinner ? { gameWinningPlay: filteredGameWinner } : {}),
   };
 }
 
@@ -289,7 +388,7 @@ export async function streamAISummary(gameData, league, onBullet, { signal } = {
         },
       ],
       temperature: 0.9,
-      max_tokens: 250,
+      max_tokens: 300,
       stream: true,
     }),
     new Promise((_, reject) =>
@@ -351,7 +450,7 @@ export async function generateAISummary(gameData, league) {
           },
         ],
         temperature: 0.9,
-        max_tokens: 250,
+        max_tokens: 300,
       }),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("OpenAI request timeout")), 30000)
@@ -382,8 +481,8 @@ Narrative frame: ${frame}
 Rules:
 - Start each bullet with a dash (-)
 - Do NOT restate the final score as a bullet — the reader already knows it
-- Anchor each bullet to something specific from the game data: a player performance, a quarter swing, or a statistical gap
-- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors
+- Anchor each bullet to something specific from the game data: a player performance, a quarter swing, a statistical gap, or a late-game play
+- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors${gameData.gameWinningPlay ? "\n- One bullet MUST describe the gameWinningPlay by player name — this is the decisive final play" : gameData.clutchPlays ? "\n- One bullet MUST reference a specific late-game moment from the clutchPlays data" : ""}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;
