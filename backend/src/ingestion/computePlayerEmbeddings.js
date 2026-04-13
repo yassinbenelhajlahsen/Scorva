@@ -98,7 +98,7 @@ const LEAGUE_CONFIGS = {
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
-      WHERE p.league = 'nba' AND g.season = $1 AND g.type = 'regular'
+      WHERE p.league = 'nba' AND g.season = $1 AND g.type IN ('regular', 'makeup')
         AND s.minutes > 0
       GROUP BY s.playerid, p.position
       HAVING COUNT(*) >= $2 AND AVG(s.minutes) >= 10
@@ -123,7 +123,7 @@ const LEAGUE_CONFIGS = {
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
-      WHERE p.league = 'nfl' AND g.season = $1 AND g.type = 'regular'
+      WHERE p.league = 'nfl' AND g.season = $1 AND g.type IN ('regular', 'makeup')
       GROUP BY s.playerid, p.position
       HAVING COUNT(*) >= $2
     `,
@@ -153,7 +153,7 @@ const LEAGUE_CONFIGS = {
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
-      WHERE p.league = 'nhl' AND g.season = $1 AND g.type = 'regular'
+      WHERE p.league = 'nhl' AND g.season = $1 AND g.type IN ('regular', 'makeup')
       GROUP BY s.playerid, p.position
       HAVING COUNT(*) >= $2
     `,

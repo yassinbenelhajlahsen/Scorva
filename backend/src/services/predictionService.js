@@ -179,7 +179,7 @@ export async function getPrediction(league, gameId) {
           AND g.league = $2
           AND g.season = $3
           AND g.status ILIKE 'Final%'
-          AND g.type = 'regular'
+          AND g.type IN ('regular', 'makeup')
         GROUP BY t.id, t.name, t.shortname, t.logo_url`,
         [[hometeamid, awayteamid], league, season]
       );
@@ -201,14 +201,14 @@ export async function getPrediction(league, gameId) {
       const [homeFormResult, awayFormResult] = await Promise.all([
         pool.query(
           `SELECT winnerid FROM games
-           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type = 'regular'
+           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
              AND (hometeamid = $3 OR awayteamid = $3)
            ORDER BY id DESC LIMIT 5`,
           [league, season, hometeamid]
         ),
         pool.query(
           `SELECT winnerid FROM games
-           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type = 'regular'
+           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
              AND (hometeamid = $3 OR awayteamid = $3)
            ORDER BY id DESC LIMIT 5`,
           [league, season, awayteamid]
@@ -220,7 +220,7 @@ export async function getPrediction(league, gameId) {
       // Fetch head-to-head — last 15 meetings all time
       const h2hResult = await pool.query(
         `SELECT winnerid FROM games
-         WHERE league = $1 AND status ILIKE 'Final%' AND type = 'regular'
+         WHERE league = $1 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
            AND (
              (hometeamid = $2 AND awayteamid = $3) OR
              (hometeamid = $3 AND awayteamid = $2)

@@ -126,7 +126,7 @@ describe("getStandings", () => {
     await getStandings("nba");
 
     const [sql] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("type = 'regular'");
+    expect(sql).toContain("type IN ('regular', 'makeup')");
   });
 
   it("SQL filters Final status", async () => {

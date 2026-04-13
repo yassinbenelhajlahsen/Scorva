@@ -39,7 +39,7 @@ async function findBrokenNbaGames() {
     JOIN stats s ON s.gameid = g.id
     WHERE g.league = 'nba'
       AND g.status = 'Final'
-      AND g.type = 'regular'
+      AND g.type IN ('regular', 'makeup')
       AND g.eventid IS NOT NULL
       AND s.points = 0
       AND s.fg = '0-0'
@@ -107,7 +107,7 @@ async function findLowStatCountGames() {
     FROM games g
     LEFT JOIN stats s ON s.gameid = g.id
     WHERE g.status = 'Final'
-      AND g.type = 'regular'
+      AND g.type IN ('regular', 'makeup')
       AND g.eventid IS NOT NULL
     GROUP BY g.id
     HAVING (

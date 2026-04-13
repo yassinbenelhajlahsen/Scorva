@@ -36,7 +36,7 @@ export async function getPlayerComparison(league, playerId1, playerId2, season =
      WHERE g.league = $1
        AND g.season = COALESCE($2, (SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL))
        AND g.status ILIKE 'Final%'
-       AND g.type = 'regular'
+       AND g.type IN ('regular', 'makeup')
        AND p.id IN ($3, $4)
        AND (($1 = 'nba' AND s.minutes > 0)
          OR ($1 = 'nhl' AND s.toi IS NOT NULL AND s.toi != '0:00')
