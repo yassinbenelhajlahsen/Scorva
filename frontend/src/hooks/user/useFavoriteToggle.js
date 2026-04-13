@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
@@ -30,6 +30,10 @@ export function useFavoriteToggle(type, id) {
     enabled: !!session && !!id,
   });
 
+  // Ref-based guard so back-to-back toggle() calls are blocked synchronously,
+  // without waiting for React to re-render with the updated isPending state.
+  const togglingRef = useRef(false);
+
   // Toggle mutation — receives current isFavorited as argument so mutationFn
   // always operates on the value captured at toggle() time, not after onMutate
   // updates the cache (which would flip it before mutationFn reads it).
@@ -56,12 +60,14 @@ export function useFavoriteToggle(type, id) {
       queryClient.setQueryData(queryKeys.favoriteCheck(type, id), context.previous);
     },
     onSettled: () => {
+      togglingRef.current = false;
       queryClient.invalidateQueries({ queryKey: queryKeys.favorites() });
     },
   });
 
   const toggle = useCallback(() => {
-    if (!session || mutation.isPending) return;
+    if (!session || togglingRef.current) return;
+    togglingRef.current = true;
     mutation.mutate(isFavorited);
   }, [session, mutation, isFavorited]);
 
