@@ -86,6 +86,7 @@ export function useTeam(league, teamId, selectedSeason) {
   });
 
   const loading = teamQuery.isLoading;
+  const recordsLoading = gamesQuery.isLoading;
   const seasonLoading = gamesQuery.isPlaceholderData && gamesQuery.isFetching;
   const error =
     teamQuery.error?.message ?? gamesQuery.error?.message ?? null;
@@ -102,6 +103,7 @@ export function useTeam(league, teamId, selectedSeason) {
     homeRecord: gamesQuery.data?.homeRecord ?? null,
     awayRecord: gamesQuery.data?.awayRecord ?? null,
     loading,
+    recordsLoading,
     seasonLoading,
     error,
     retry,

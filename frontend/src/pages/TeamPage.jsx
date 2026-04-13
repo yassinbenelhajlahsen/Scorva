@@ -15,13 +15,14 @@ import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
 import slugify from "../utils/slugify.js";
 import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
+import Skeleton from "../components/ui/Skeleton.jsx";
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
-  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry } = useTeam(league, teamId, urlSeason);
+  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, recordsLoading, seasonLoading, error, retry } = useTeam(league, teamId, urlSeason);
   const { seasons: leagueSeasons } = useSeasons(league);
   const [selectedSeason, setSelectedSeason] = useSeasonParam(availableSeasons.length > 0 ? availableSeasons : [], leagueSeasons[0] ?? null);
   const [selectedMonth, setSelectedMonth] = useState(null);
@@ -141,13 +142,16 @@ export default function TeamPage() {
               style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
             >
               {[
-                { label: "Record", value: teamRecord ?? team.record },
-                { label: "Home", value: homeRecord ?? "—" },
-                { label: "Away", value: awayRecord ?? "—" },
-              ].map(({ label, value }) => (
+                { label: "Record", value: teamRecord ?? team.record, skeleton: false },
+                { label: "Home", value: homeRecord, skeleton: recordsLoading },
+                { label: "Away", value: awayRecord, skeleton: recordsLoading },
+              ].map(({ label, value, skeleton }) => (
                 <div key={label} className="flex flex-col items-center gap-1 px-3 first:pl-0 last:pr-0">
                   <span className="text-xs uppercase tracking-wider text-text-tertiary">{label}</span>
-                  <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
+                  {skeleton
+                    ? <Skeleton className="h-7 w-16 mt-0.5" />
+                    : <span className="text-xl font-bold tabular-nums text-text-primary">{value ?? "—"}</span>
+                  }
                 </div>
               ))}
             </div>
