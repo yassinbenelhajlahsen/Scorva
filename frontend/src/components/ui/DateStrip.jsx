@@ -102,11 +102,11 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
                   "text-[9px] font-semibold uppercase tracking-widest leading-none",
                   isSelected
                     ? "text-white/60"
+                    : !hasGames
+                    ? "text-text-tertiary/20"
                     : isToday
                     ? "text-accent"
-                    : hasGames
-                    ? "text-text-tertiary"
-                    : "text-text-tertiary/20",
+                    : "text-text-tertiary",
                 ].join(" ")}
               >
                 {dayLabel}
@@ -116,11 +116,11 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
                   "text-[13px] font-bold leading-none tabular-nums",
                   isSelected
                     ? "text-white"
+                    : !hasGames
+                    ? "text-text-tertiary/20"
                     : isToday
                     ? "text-text-primary"
-                    : hasGames
-                    ? "text-text-secondary"
-                    : "text-text-tertiary/20",
+                    : "text-text-secondary",
                 ].join(" ")}
               >
                 {month}/{day}
