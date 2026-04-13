@@ -362,25 +362,40 @@ function buildProjectedConference(conf, teamsById, h2hMatrix) {
   return { r1, semis, confFinals, playIn };
 }
 
-// Order R1 series to match the canonical [1v8, 4v5, 3v6, 2v7] layout
-function orderR1BySeedPairs(r1SerializedList) {
-  const byKey = new Map();
-  for (const s of r1SerializedList) {
-    const sa = s.teamA?.seed;
-    const sb = s.teamB?.seed;
-    if (!sa || !sb) continue;
-    const key = sa < sb ? `${sa}-${sb}` : `${sb}-${sa}`;
-    byKey.set(key, s);
-  }
-  const ordered = [];
+// Merge actual R1 series with projected fallbacks in canonical order.
+// Handles partial R1 (e.g. play-in phase when 1v?/2v? are still TBD).
+function mergeR1WithCanonicalOrder(actualR1, projectedR1, confKey) {
+  const seedToSlot = new Map();
   for (const [a, b] of R1_SEED_PAIRS) {
     const key = `${a}-${b}`;
-    ordered.push(byKey.get(key) ?? null);
+    seedToSlot.set(a, key);
+    seedToSlot.set(b, key);
   }
-  if (ordered.some((s) => s === null)) {
-    return r1SerializedList;
-  }
-  return ordered;
+
+  const index = (list, inferFromSingle) => {
+    const map = new Map();
+    for (const s of list) {
+      const sa = s.teamA?.seed;
+      const sb = s.teamB?.seed;
+      if (sa && sb) {
+        const key = sa < sb ? `${sa}-${sb}` : `${sb}-${sa}`;
+        map.set(key, s);
+      } else if (inferFromSingle && (sa || sb)) {
+        const key = seedToSlot.get(sa || sb);
+        if (key && !map.has(key)) map.set(key, s);
+      }
+    }
+    return map;
+  };
+
+  const actual = index(actualR1, true);
+  const projected = index(projectedR1, false);
+
+  return R1_SEED_PAIRS.map(([a, b]) => {
+    const key = `${a}-${b}`;
+    return actual.get(key) ?? projected.get(key) ??
+      emptySeries({ round: "r1", conference: confKey, teamA: null, teamB: null });
+  });
 }
 
 async function derivePlayoffs(season) {
@@ -492,9 +507,7 @@ async function derivePlayoffs(season) {
   const ctx = { teamsById, seedMap: seedMapById };
 
   const serializeConf = (rounds, confKey) => ({
-    r1: orderR1BySeedPairs(
-      rounds.r1.map((s) => serializeSeries(s, { ...ctx, round: "r1", conference: confKey }))
-    ),
+    r1: rounds.r1.map((s) => serializeSeries(s, { ...ctx, round: "r1", conference: confKey })),
     semis: rounds.semis.map((s) =>
       serializeSeries(s, { ...ctx, round: "semis", conference: confKey })
     ),
@@ -506,18 +519,12 @@ async function derivePlayoffs(season) {
   const easternBlock = serializeConf(eastRounds, "eastern");
   const westernBlock = serializeConf(westRounds, "western");
 
-  // When a conference has no R1 games yet (e.g. play-in phase), fill R1
-  // with projected matchups from standings so seeds 1-6 are visible.
-  let projEast = null;
-  let projWest = null;
-  if (easternBlock.r1.length === 0) {
-    projEast = buildProjectedConference("east", teamsById, h2hData.matrix);
-    if (projEast) easternBlock.r1 = projEast.r1;
-  }
-  if (westernBlock.r1.length === 0) {
-    projWest = buildProjectedConference("west", teamsById, h2hData.matrix);
-    if (projWest) westernBlock.r1 = projWest.r1;
-  }
+  // Merge actual R1 with projected matchups in canonical seed order.
+  // Handles partial R1 (e.g. play-in phase when 1v?/2v? slots are TBD).
+  const projEast = buildProjectedConference("east", teamsById, h2hData.matrix);
+  const projWest = buildProjectedConference("west", teamsById, h2hData.matrix);
+  easternBlock.r1 = mergeR1WithCanonicalOrder(easternBlock.r1, projEast?.r1 ?? [], "eastern");
+  westernBlock.r1 = mergeR1WithCanonicalOrder(westernBlock.r1, projWest?.r1 ?? [], "western");
 
   padConfBlock(easternBlock, "eastern");
   padConfBlock(westernBlock, "western");
