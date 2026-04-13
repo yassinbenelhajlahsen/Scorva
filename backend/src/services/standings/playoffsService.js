@@ -177,8 +177,76 @@ function orderSemisByBracketHalf(semisList) {
   return semisList;
 }
 
+// When tiebreaker ordering doesn't match the NBA's actual seedings (e.g.
+// multi-way ties resolved differently), re-assign seeds within tie groups
+// so that actual R1 matchups map to canonical pairs.
+function reassignSeedsFromMatchups(r1Series, ranked) {
+  const winPct = (t) => {
+    const gp = t.wins + t.losses;
+    return gp > 0 ? t.wins / gp : 0;
+  };
+
+  // Build tie groups: ranges of consecutive seeds sharing the same win%
+  const groups = []; // { startSeed, endSeed, teamIds: Set }
+  let gi = 0;
+  while (gi < ranked.length) {
+    let gj = gi + 1;
+    const pv = winPct(ranked[gi]);
+    while (gj < ranked.length && Math.abs(winPct(ranked[gj]) - pv) < 1e-9) gj++;
+    const teamIds = new Set(ranked.slice(gi, gj).map((t) => t.id));
+    groups.push({ startSeed: gi + 1, endSeed: gj, teamIds });
+    gi = gj;
+  }
+
+  const groupForSeed = (seed) => groups.find((g) => seed >= g.startSeed && seed <= g.endSeed);
+
+  // For each canonical pair [a, b], find the R1 series whose two teams
+  // both belong to the tie group(s) spanning seeds a and b.
+  const seedMap = new Map();
+  const usedSeries = new Set();
+  const rankedIndex = new Map(ranked.map((t, i) => [t.id, i]));
+
+  for (const [a, b] of R1_SEED_PAIRS) {
+    const ga = groupForSeed(a);
+    const gb = groupForSeed(b);
+    if (!ga || !gb) return null;
+
+    let match = null;
+    for (let si = 0; si < r1Series.length; si++) {
+      if (usedSeries.has(si)) continue;
+      const s = r1Series[si];
+      if (ga.teamIds.has(s.teamAId) && gb.teamIds.has(s.teamBId)) {
+        match = { si, higherTeam: s.teamAId, lowerTeam: s.teamBId };
+      } else if (ga.teamIds.has(s.teamBId) && gb.teamIds.has(s.teamAId)) {
+        match = { si, higherTeam: s.teamBId, lowerTeam: s.teamAId };
+      }
+      if (match) break;
+    }
+    if (!match) return null;
+
+    // Within same tie group, use tiebreaker rank to pick higher seed
+    if (ga === gb) {
+      const rA = rankedIndex.get(match.higherTeam);
+      const rB = rankedIndex.get(match.lowerTeam);
+      if (rA > rB) {
+        [match.higherTeam, match.lowerTeam] = [match.lowerTeam, match.higherTeam];
+      }
+    }
+
+    seedMap.set(match.higherTeam, a);
+    seedMap.set(match.lowerTeam, b);
+    usedSeries.add(match.si);
+    ga.teamIds.delete(match.higherTeam);
+    gb.teamIds.delete(match.lowerTeam);
+  }
+
+  return seedMap;
+}
+
 // Rank R1 participants by regular-season wins to infer seeds.
 // Validates that inferred seeds produce canonical {1:8, 4:5, 3:6, 2:7} matchups.
+// Falls back to reassigning seeds within tie groups when our tiebreaker
+// doesn't perfectly match the NBA's actual seedings.
 function inferSeedsFromR1(r1Series, standingsByConf, h2hMatrix) {
   if (r1Series.length !== 4) return null;
 
@@ -201,15 +269,18 @@ function inferSeedsFromR1(r1Series, standingsByConf, h2hMatrix) {
   ranked.forEach((t, i) => seedMap.set(t.id, i + 1));
 
   const valid = new Set(["1-8", "2-7", "3-6", "4-5"]);
+  let allValid = true;
   for (const s of r1Series) {
     const sa = seedMap.get(s.teamAId);
     const sb = seedMap.get(s.teamBId);
     if (!sa || !sb) return null;
     const key = sa < sb ? `${sa}-${sb}` : `${sb}-${sa}`;
-    if (!valid.has(key)) return null;
+    if (!valid.has(key)) { allValid = false; break; }
   }
 
-  return seedMap;
+  if (allValid) return seedMap;
+
+  return reassignSeedsFromMatchups(r1Series, ranked);
 }
 
 function makeTeamInfo(teamId, teamsById, seedMap) {
