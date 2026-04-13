@@ -30,12 +30,12 @@ Two-tier update strategy:
 - **Per-event client**: `tick()` acquires a separate `pool.connect()` per event inside `Promise.all` — `processEvent` runs its own `BEGIN`/`COMMIT`/`ROLLBACK` and sharing one client across concurrent calls corrupts transaction state
 - Uses the shared `pool` from `db/db.js` (not its own `new Pool()`)
 
-## Historical upsert (`ingestion/historicalUpsert.js`)
+## Historical upsert (`ingestion/pipeline/historicalUpsert.js`)
 Re-seeds all historical seasons from ESPN. Supports CLI filtering:
 ```bash
-node src/ingestion/historicalUpsert.js              # all leagues, all seasons
-node src/ingestion/historicalUpsert.js nhl           # all NHL seasons
-node src/ingestion/historicalUpsert.js nhl 2015-09-15  # single season (use seasonStart date from config)
+node src/ingestion/pipeline/historicalUpsert.js              # all leagues, all seasons
+node src/ingestion/pipeline/historicalUpsert.js nhl           # all NHL seasons
+node src/ingestion/pipeline/historicalUpsert.js nhl 2015-09-15  # single season (use seasonStart date from config)
 ```
 - `processEvent` skips Final games that already have sufficient stat rows (`MIN_STAT_ROWS`: nba=12, nhl=20, nfl=10), so re-runs are safe and only process missing games
 - `processEvent` accepts `{ force: true }` to bypass the skip — used by repair scripts to re-process games with corrupted stats

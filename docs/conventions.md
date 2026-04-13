@@ -32,8 +32,8 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 - **`gameDetailService` player arrays** — all 6 `json_agg()` subqueries wrapped with `COALESCE(..., '[]'::json)` so games with no stats return `[]` not `null`
 
 ## Adding a new endpoint (checklist)
-1. `backend/src/routes/myRoute.js` — router + controller delegation only
-2. `backend/src/controllers/myController.js` — extract params, call service, handle errors
-3. `backend/src/services/myService.js` — SQL query, return data
+1. `backend/src/routes/{domain}/myRoute.js` — router + controller delegation only
+2. `backend/src/controllers/{domain}/myController.js` — extract params, call service, handle errors
+3. `backend/src/services/{domain}/myService.js` — SQL query, return data
 4. Mount in `backend/src/index.js` under `/api`
 5. Test in `backend/__tests__/routes/myRoute.test.js` — mock db with `createMockPool()`

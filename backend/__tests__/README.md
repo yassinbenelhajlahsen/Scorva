@@ -136,7 +136,7 @@ const mockPool = createMockPool();
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
 
-const { myFunction } = await import(resolve(__dirname, "../../src/services/myService.js"));
+const { myFunction } = await import(resolve(__dirname, "../../src/services/{domain}/myService.js"));
 
 describe("myService", () => {
   beforeEach(() => jest.clearAllMocks());
