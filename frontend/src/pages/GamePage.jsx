@@ -239,6 +239,7 @@ export default function GamePage() {
               homeTeam={homeTeam}
               awayTeam={awayTeam}
               league={league}
+              season={game.season}
               quarterKeys={quarterKeys}
               isFinal={isFinal}
               inProgress={inProgress}

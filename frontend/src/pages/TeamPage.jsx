@@ -6,6 +6,9 @@ import GameCard from "../components/cards/GameCard";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import { useTeam } from "../hooks/data/useTeam.js";
+import { useSeasonParam } from "../hooks/useSeasonParam.js";
+import { useSeasons } from "../hooks/data/useSeasons.js";
+import buildSeasonUrl from "../utils/buildSeasonUrl.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
@@ -17,8 +20,10 @@ export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
-  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
-  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry } = useTeam(league, teamId, selectedSeason);
+  const urlSeason = searchParams.get("season") || null;
+  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, seasonLoading, error, retry } = useTeam(league, teamId, urlSeason);
+  const { seasons: leagueSeasons } = useSeasons(league);
+  const [selectedSeason, setSelectedSeason] = useSeasonParam(availableSeasons.length > 0 ? availableSeasons : [], leagueSeasons[0] ?? null);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
   useEffect(() => {
@@ -48,7 +53,7 @@ export default function TeamPage() {
           The team you&apos;re looking for doesn&apos;t exist or hasn&apos;t been added yet.
         </p>
         <Link
-          to={`/${league}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+          to={buildSeasonUrl(`/${league}`, selectedSeason)}
           className="bg-accent text-white font-semibold py-3 px-6 rounded-full text-sm transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent-hover hover:shadow-[0_0_20px_rgba(232,134,58,0.3)]"
         >
           {league?.toUpperCase()} Teams

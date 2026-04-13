@@ -205,6 +205,35 @@ ESPN news articles fetched on demand (no DB table, no ingestion job).
 - Frontend: `NewsSection` renders 4 cards in a responsive grid; returns `null` on error (non-critical, never breaks the page); clicking a card opens `NewsPreviewModal` with article details and external link
 - Route mounted before auth-gated routes (`favoritesRoute`, `userRoute`) in `index.js` to avoid `router.use(requireAuth)` interception
 
+## Season URL persistence
+
+Selected season is stored in `?season=XXXX-XX` URL search params. No param = current (max) season. This makes browser back/forward preserve the selected season and lets users share deep links to historical seasons.
+
+### Hook: `useSeasonParam(seasons, currentSeason?)` (`hooks/useSeasonParam.js`)
+- `seasons`: league-wide season list from `useSeasons(league)` — used to detect which value is the current season. **Never pass entity-specific `availableSeasons` here** — a player whose most recent DB season is historical would cause incorrect param removal.
+- `currentSeason`: explicit override for the current season (e.g. `leagueSeasons[0]`). Used on TeamPage/PlayerPage where entity `availableSeasons` are passed to `SeasonSelector` but league-wide max must govern cleanup.
+- Returns `[selectedSeason, setSelectedSeason]` (same API as `useState`).
+- Setter uses `setSearchParams({ replace: true })` — no extra history entries per season change.
+- If the selected season equals the current season, the param is removed from the URL (redundant).
+- Cleanup effect: when `seasons` loads and the URL param equals the current season, removes it automatically.
+
+### Utility: `buildSeasonUrl(path, season)` (`utils/buildSeasonUrl.js`)
+Returns `path?season=XXXX-XX` if `season` is set, otherwise `path`. Used in all `<Link to=…>` expressions.
+
+### Page wiring
+| Page | seasons arg | currentSeason arg |
+|---|---|---|
+| `LeaguePage` | `useSeasons(league).seasons` | — (defaults to `seasons[0]`) |
+| `TeamPage` | `availableSeasons` (for selector display) | `leagueSeasons[0]` |
+| `PlayerPage` | `availableSeasons` (for selector display) | `leagueSeasons[0]` |
+| `ComparePage` | — (uses plain `useState` per entity) | — |
+
+### GamePage / TopPerformerCard
+GamePage doesn't have a season selector — `game.season` is passed down through `OverviewTab` as a `season` prop to `TopPerformerCard`. `TopPerformerCard` prefers this prop over the URL param so clicks from historical games route to the correct season.
+
+### Links that carry `?season=`
+All `<Link>` components in LeaguePage, TeamPage, PlayerPage, ComparePage hero sections, SimilarPlayersCard, and TopPerformerCard use `buildSeasonUrl`. Favorites panel and Navbar links deliberately omit the param (default to current season on arrival).
+
 ## Date selection (League Page)
 
 Users can filter the league page to a specific date via a scrollable date strip and a calendar popup (`DateNavigation` → `DateStrip` + `CalendarPopup`).

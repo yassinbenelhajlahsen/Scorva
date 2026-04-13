@@ -3,6 +3,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import { usePlayer } from "../hooks/data/usePlayer.js";
+import { useSeasonParam } from "../hooks/useSeasonParam.js";
+import buildSeasonUrl from "../utils/buildSeasonUrl.js";
 import { queryKeys, queryFns } from "../lib/query.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
@@ -17,6 +19,7 @@ import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
+import { useSeasons } from "../hooks/data/useSeasons.js";
 
 const statConfigs = {
   nba: [
@@ -77,10 +80,12 @@ const nflStatsByPosition = {
 export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [searchParams] = useSearchParams();
+  const urlSeason = searchParams.get("season") || null;
   const queryClient = useQueryClient();
-  const [selectedSeason, setSelectedSeason] = useState(searchParams.get("season") || null);
   const [selectedMonth, setSelectedMonth] = useState(null);
-  const { playerData, loading, seasonLoading, error, retry } = usePlayer(league, slug, selectedSeason);
+  const { playerData, loading, seasonLoading, error, retry } = usePlayer(league, slug, urlSeason);
+  const { seasons: leagueSeasons } = useSeasons(league);
+  const [selectedSeason, setSelectedSeason] = useSeasonParam(playerData?.availableSeasons ?? [], leagueSeasons[0] ?? null);
 
   useEffect(() => {
     setSelectedMonth(null);
@@ -94,7 +99,7 @@ export default function PlayerPage() {
         !playerData.availableSeasons.includes(playerData.season)) {
       setSelectedSeason(playerData.availableSeasons[0]);
     }
-  }, [playerData, selectedSeason]);
+  }, [playerData, selectedSeason, setSelectedSeason]);
 
   useEffect(() => {
     if (!playerData?.games?.length) return;
@@ -136,7 +141,7 @@ export default function PlayerPage() {
     <div className="max-w-[1500px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
       <Link
-        to={`/${league}`}
+        to={buildSeasonUrl(`/${league}`, selectedSeason)}
         className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 mb-8 text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,7 +215,7 @@ export default function PlayerPage() {
               <span className="text-sm font-medium text-text-primary">{draftInfo}</span>
               <span className="text-sm text-text-tertiary">Team</span>
               <Link
-                to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+                to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
                 className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
                 onMouseEnter={() => {
                   if (window.matchMedia("(hover: hover)").matches) {

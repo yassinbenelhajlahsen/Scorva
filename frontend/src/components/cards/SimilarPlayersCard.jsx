@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import { useSimilarPlayers } from "../../hooks/data/useSimilarPlayers.js";
 import slugify from "../../utils/slugify.js";
+import buildSeasonUrl from "../../utils/buildSeasonUrl.js";
 import Skeleton from "../ui/Skeleton.jsx";
 
 function SimilarPlayerSkeleton() {
@@ -20,6 +21,8 @@ function SimilarPlayerSkeleton() {
 
 export default function SimilarPlayersCard({ league, slug, season }) {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const urlSeason = searchParams.get("season") || null;
   const { players, loading } = useSimilarPlayers(league, slug, season);
   const show = loading || players.length > 0;
 
@@ -44,8 +47,8 @@ export default function SimilarPlayersCard({ league, slug, season }) {
                 : players.map((player) => (
                     <Link
                       key={player.id}
-                      to={`/${league}/players/${slugify(player.name)}`}
-                      onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slugify(player.name), null), queryFn: queryFns.player(league, slugify(player.name), null), staleTime: 10_000 })}
+                      to={buildSeasonUrl(`/${league}/players/${slugify(player.name)}`, urlSeason)}
+                      onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slugify(player.name), urlSeason), queryFn: queryFns.player(league, slugify(player.name), urlSeason), staleTime: 10_000 })}
                       className="flex items-center gap-3 group transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:translate-x-0.5"
                     >
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-overlay border border-white/[0.08] shrink-0">

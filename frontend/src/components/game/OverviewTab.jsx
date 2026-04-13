@@ -7,6 +7,7 @@ export default function OverviewTab({
   homeTeam,
   awayTeam,
   league,
+  season,
   quarterKeys,
   isFinal,
   inProgress,
@@ -131,16 +132,19 @@ export default function OverviewTab({
             title="Top Performer"
             player={topPerformer}
             league={league}
+            season={season}
           />
           <TopPerformerCard
             title="Top Scorer"
             player={topScorer}
             league={league}
+            season={season}
           />
           <TopPerformerCard
             title="Impact Player"
             player={impactPlayer}
             league={league}
+            season={season}
           />
         </div>
       )}

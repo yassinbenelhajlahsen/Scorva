@@ -8,6 +8,7 @@ vi.mock("@tanstack/react-query", () => ({
 
 vi.mock("react-router-dom", () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+  useSearchParams: () => [new URLSearchParams()],
 }));
 
 vi.mock("../../utils/slugify.js", () => ({

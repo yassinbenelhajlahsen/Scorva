@@ -1,4 +1,4 @@
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
@@ -11,6 +11,9 @@ import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import DateNavigation from "../components/ui/DateNavigation.jsx";
 import { useLeagueData } from "../hooks/data/useLeagueData.js";
 import { useGameDates } from "../hooks/data/useGameDates.js";
+import { useSeasons } from "../hooks/data/useSeasons.js";
+import { useSeasonParam } from "../hooks/useSeasonParam.js";
+import buildSeasonUrl from "../utils/buildSeasonUrl.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -20,10 +23,8 @@ export default function LeaguePage() {
   const queryClient = useQueryClient();
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
-  const [searchParams] = useSearchParams();
-  const [selectedSeason, setSelectedSeason] = useState(
-    searchParams.get("season") || null,
-  );
+  const { seasons } = useSeasons(league);
+  const [selectedSeason, setSelectedSeason] = useSeasonParam(seasons);
   const [selectedDate, setSelectedDate] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
   const [activeTab, setActiveTab] = useState("games");
@@ -298,7 +299,7 @@ export default function LeaguePage() {
                     <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
                       {standings.eastOrAFC.map((team, index) => (
                         <Link
-                          to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+                          to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
                           key={team.id}
                           onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
                         >
@@ -342,7 +343,7 @@ export default function LeaguePage() {
                     <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
                       {standings.westOrNFC.map((team, index) => (
                         <Link
-                          to={`/${league}/teams/${slugify(team.name)}${selectedSeason ? `?season=${selectedSeason}` : ""}`}
+                          to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
                           key={team.id}
                           onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
                         >

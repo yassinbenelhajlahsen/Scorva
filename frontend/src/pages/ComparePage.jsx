@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
+import buildSeasonUrl from "../utils/buildSeasonUrl.js";
 import { usePlayer } from "../hooks/data/usePlayer.js";
 import { useTeam } from "../hooks/data/useTeam.js";
 import { useHeadToHead } from "../hooks/data/useHeadToHead.js";
@@ -160,7 +161,7 @@ function PlayerCompare({
           <div className="flex items-center justify-center gap-6 sm:gap-25">
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
               {slug1 && a ? (
-                <PlayerHero player={a} league={league} onClear={() => onClear(1)} />
+                <PlayerHero player={a} league={league} season={selectedSeason1} onClear={() => onClear(1)} />
               ) : (
                 <EntitySearchCard
                   league={league}
@@ -183,7 +184,7 @@ function PlayerCompare({
             <span className="text-2xl sm:text-3xl font-bold text-text-tertiary">VS</span>
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
               {slug2 && b ? (
-                <PlayerHero player={b} league={league} onClear={() => onClear(2)} />
+                <PlayerHero player={b} league={league} season={selectedSeason2} onClear={() => onClear(2)} />
               ) : (
                 <EntitySearchCard
                   league={league}
@@ -332,7 +333,7 @@ function TeamCompare({
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
               {slug1 && a ? (
-                <TeamHero team={a} league={league} onClear={() => onClear(1)} />
+                <TeamHero team={a} league={league} season={selectedSeason1} onClear={() => onClear(1)} />
               ) : (
                 <EntitySearchCard
                   league={league}
@@ -355,7 +356,7 @@ function TeamCompare({
             <span className="text-2xl sm:text-3xl font-bold text-text-tertiary">VS</span>
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
               {slug2 && b ? (
-                <TeamHero team={b} league={league} onClear={() => onClear(2)} />
+                <TeamHero team={b} league={league} season={selectedSeason2} onClear={() => onClear(2)} />
               ) : (
                 <EntitySearchCard
                   league={league}
@@ -525,7 +526,7 @@ function SectionHeader({ title }) {
   );
 }
 
-function PlayerHero({ player, league, onClear }) {
+function PlayerHero({ player, league, season, onClear }) {
   return (
     <div className="relative flex flex-col items-center gap-3">
       {onClear && (
@@ -539,7 +540,7 @@ function PlayerHero({ player, league, onClear }) {
           </svg>
         </button>
       )}
-      <Link to={`/${league}/players/${slugify(player.name)}`}>
+      <Link to={buildSeasonUrl(`/${league}/players/${slugify(player.name)}`, season)}>
         <img
           src={player.imageUrl || "/images/placeholder.png"}
           alt={player.name}
@@ -547,12 +548,12 @@ function PlayerHero({ player, league, onClear }) {
         />
       </Link>
       <div className="text-center">
-        <Link to={`/${league}/players/${slugify(player.name)}`} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
+        <Link to={buildSeasonUrl(`/${league}/players/${slugify(player.name)}`, season)} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
           {player.name}
         </Link>
         <p className="text-xs text-text-tertiary">{player.position} {player.jerseyNumber ? `#${player.jerseyNumber}` : ""}</p>
         {player.team && (
-          <Link to={`/${league}/teams/${slugify(player.team.name)}`} className="flex items-center justify-center gap-1.5 mt-1 hover:text-accent transition-colors duration-200">
+          <Link to={buildSeasonUrl(`/${league}/teams/${slugify(player.team.name)}`, season)} className="flex items-center justify-center gap-1.5 mt-1 hover:text-accent transition-colors duration-200">
             {player.team.logoUrl && (
               <img src={player.team.logoUrl} alt={player.team.name} className="w-4 h-4 object-contain" />
             )}
@@ -564,7 +565,7 @@ function PlayerHero({ player, league, onClear }) {
   );
 }
 
-function TeamHero({ team, league, onClear }) {
+function TeamHero({ team, league, season, onClear }) {
   return (
     <div className="relative flex flex-col items-center gap-3">
       {onClear && (
@@ -578,7 +579,7 @@ function TeamHero({ team, league, onClear }) {
           </svg>
         </button>
       )}
-      <Link to={`/${league}/teams/${slugify(team.name)}`}>
+      <Link to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, season)}>
         {team.logo_url && (
           <img
             src={team.logo_url}
@@ -588,7 +589,7 @@ function TeamHero({ team, league, onClear }) {
         )}
       </Link>
       <div className="text-center">
-        <Link to={`/${league}/teams/${slugify(team.name)}`} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
+        <Link to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, season)} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
           {team.name}
         </Link>
         <p className="text-xs text-text-tertiary">{team.location}</p>

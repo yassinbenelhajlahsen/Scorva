@@ -228,6 +228,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Navigation components          | `frontend/src/components/navigation/` (MonthNavigation, SeasonSelector) |
 | Page skeleton layouts          | `frontend/src/components/skeletons/`                        |
 | Relative time util             | `frontend/src/utils/relativeTime.js`                        |
+| Season URL param hook          | `frontend/src/hooks/useSeasonParam.js`                      |
+| Season URL builder util        | `frontend/src/utils/buildSeasonUrl.js`                      |
 
 ## Frontend — Tests
 
