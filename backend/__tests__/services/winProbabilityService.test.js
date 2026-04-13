@@ -58,7 +58,7 @@ describe("getWinProbability — cache key and TTL", () => {
   it("uses the versioned cache key", async () => {
     mockAxiosGet.mockResolvedValue({ data: SAMPLE_ESPN_RESPONSE });
     await getWinProbability("nba", "401585757", false);
-    expect(mockCached.mock.calls[0][0]).toBe("winprob:v2:nba:401585757");
+    expect(mockCached.mock.calls[0][0]).toBe("winprob:nba:401585757");
   });
 
   it("uses 30-day TTL for final games", async () => {

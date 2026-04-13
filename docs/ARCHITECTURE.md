@@ -152,6 +152,11 @@ Components call `queryClient.prefetchQuery()` on `mouseenter` with `staleTime: 1
 Module: `backend/src/cache/cache.js`
 Exports: `cached(key, ttl, queryFn, {cacheIf}?)`, `invalidate(...keys)`, `invalidatePattern(pattern)`, `closeCache()`
 
+### Cache versioning
+All keys are automatically prefixed with `v{CACHE_VERSION}:` inside the cache module — callers don't include the prefix. When the shape of cached data changes in a way that would make existing entries invalid (e.g., adding/removing fields from a service response), bump `CACHE_VERSION` in `cache.js` before deploying. Old keys become orphaned and expire naturally via their TTL; no manual flush needed.
+
+**When to bump**: rename/remove fields in a cached service response, change the structure of cached objects, or alter SQL queries that feed cached endpoints. **Don't bump** for new endpoints, TTL changes, or adding fields the frontend ignores. When modifying a service that has a `cached()` call, always check whether the response shape changed and bump `CACHE_VERSION` if so.
+
 Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1h TTL, SELECT MAX(season))
 
 **Graceful fallback**: if `REDIS_URL` unset, all ops are no-ops — no behavior change in local dev or tests.
@@ -174,9 +179,9 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `games:{league}:{season}:date:{date}` | 30s current / 30d past | Date-filtered games for league page |
 | `news:headlines` | 5m | Merged ESPN news across all leagues; `cacheIf` non-empty |
 | `plays:{league}:{gameId}` | 30d | Final games only (stored plays) |
-| `winprob:v2:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
+| `winprob:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
 | `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
-| `prediction:v2:{league}:{gameId}` | 1h | Pre-game predictions |
+| `prediction:{league}:{gameId}` | 1h | Pre-game predictions |
 | `h2h:{league}:{type}:{id1}:{id2}` | 30d | Head-to-head games (IDs sorted for consistency) |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.

@@ -16,7 +16,7 @@ function extractPlays(respData) {
 
 export async function getWinProbability(league, espnEventId, isFinal) {
   const ttl = isFinal ? FINAL_TTL : LIVE_TTL;
-  const key = `winprob:v2:${league}:${espnEventId}`;
+  const key = `winprob:${league}:${espnEventId}`;
 
   return cached(
     key,

@@ -122,7 +122,7 @@ function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, l
 
 export async function getPrediction(league, gameId) {
   return cached(
-    `prediction:v2:${league}:${gameId}`,
+    `prediction:${league}:${gameId}`,
     PREDICTION_TTL,
     async () => {
       // Fetch game row
