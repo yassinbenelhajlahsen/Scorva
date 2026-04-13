@@ -24,11 +24,16 @@ export default function TeamPageSkeleton({ teamId }) {
       <div className="flex flex-col md:flex-row gap-10 mb-12">
         {/* Logo + name */}
         <div className="flex flex-col items-center md:items-start gap-4">
-          <div className="relative">
-            <span className="text-3xl sm:text-4xl font-bold tracking-tight text-transparent select-none">
-              {displayName}
-            </span>
-            <Skeleton className="absolute inset-0 rounded-xl" />
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="text-3xl sm:text-4xl font-bold tracking-tight text-transparent select-none">
+                {displayName}
+              </span>
+              <Skeleton className="absolute inset-0 rounded-xl" />
+            </div>
+            <svg className="w-7 h-7 fill-none text-text-tertiary/30 shrink-0" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+            </svg>
           </div>
           <Skeleton className="w-44 h-44 rounded-2xl" />
         </div>
