@@ -54,10 +54,10 @@ describe("NewsCard", () => {
     expect(imgs[0].getAttribute("src")).toBe("/test.jpg");
   });
 
-  it("skips article image when imageUrl is null", () => {
+  it("shows placeholder league logo when imageUrl is null", () => {
     const { container } = render(<NewsCard article={makeArticle({ imageUrl: null })} onClick={vi.fn()} />);
     const imgs = container.querySelectorAll("img");
-    expect(imgs).toHaveLength(1); // league logo only
+    expect(imgs).toHaveLength(2); // placeholder league logo + footer league logo
   });
 
   it("calls onClick when clicked", () => {
