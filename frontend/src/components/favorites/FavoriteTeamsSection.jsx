@@ -15,7 +15,7 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
       <div className="flex flex-col gap-3">
         {teams.map((team) => {
           const teamSlug = slugify(team.name);
-          const recentGames = compact ? team.recentGames.slice(0, 2) : team.recentGames;
+          const recentGames = compact ? team.recentGames.slice(0, 3) : team.recentGames;
 
           return (
             <m.div

@@ -34,7 +34,7 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
         {players.map((player) => {
           const statKeys = statKeysForLeague[player.league] || statKeysForLeague.nba;
           const playerSlug = slugify(player.name);
-          const recentStats = compact ? player.recentStats.slice(0, 2) : player.recentStats;
+          const recentStats = compact ? player.recentStats.slice(0, 3) : player.recentStats;
 
           return (
             <m.div
