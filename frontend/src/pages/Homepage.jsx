@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
@@ -15,6 +15,7 @@ import Skeleton from "../components/ui/Skeleton.jsx";
 import NewsSection from "../components/news/NewsSection.jsx";
 
 export default function Homepage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { games, loading, error, retry } = useHomeGames();
   const { session } = useAuth();
@@ -50,6 +51,10 @@ export default function Homepage() {
   }, [resolvedLeague, userPicked]);
 
   function pickLeague(id) {
+    if (id === activeLeague) {
+      navigate(`/${id}`);
+      return;
+    }
     const order = Object.keys(leagueData);
     setTabDirection(order.indexOf(id) > order.indexOf(activeLeague) ? 1 : -1);
     setActiveLeague(id);
@@ -121,7 +126,7 @@ export default function Homepage() {
                     key={league.id}
                     ref={(el) => (tabRefs.current[i] = el)}
                     onClick={() => pickLeague(league.id)}
-                    className={`relative flex items-center gap-2 px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${isActive ? "text-accent" : "text-text-secondary hover:text-text-primary"}`}
+                    className={`relative flex items-center gap-2 px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px cursor-pointer ${isActive ? "text-accent" : "text-text-secondary hover:text-text-primary"}`}
                   >
                     <img src={league.logo} alt={league.name} className="w-4 h-4 object-contain" />
                     <span>{league.name}</span>
