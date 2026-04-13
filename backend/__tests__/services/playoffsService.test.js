@@ -147,8 +147,10 @@ describe("getNbaPlayoffs", () => {
     expect(result.bracket.eastern.r1[1].teamB.seed).toBe(5);
     expect(result.bracket.eastern.r1[0].games).toEqual([]);
     expect(result.playIn).not.toBeNull();
-    expect(result.playIn.eastern).toHaveLength(2);
-    expect(result.playIn.western).toHaveLength(2);
+    expect(result.playIn.eastern).toHaveLength(3);
+    expect(result.playIn.western).toHaveLength(3);
+    expect(result.playIn.eastern.filter((s) => s.playInTier === 1)).toHaveLength(2);
+    expect(result.playIn.eastern.filter((s) => s.playInTier === 2)).toHaveLength(1);
     expect(result.bracket.finals).toHaveLength(1);
     expect(result.bracket.finals[0].games).toEqual([]);
   });
@@ -230,6 +232,11 @@ describe("getNbaPlayoffs", () => {
     for (const s of result.playIn.eastern) {
       expect(s.games).toHaveLength(1);
     }
+    // Tier 1: 7v8 and 9v10; Tier 2: crossover (8v9)
+    const tier1 = result.playIn.eastern.filter((s) => s.playInTier === 1);
+    const tier2 = result.playIn.eastern.filter((s) => s.playInTier === 2);
+    expect(tier1).toHaveLength(2);
+    expect(tier2).toHaveLength(1);
   });
 
   it("marks completed play-in series as isComplete", async () => {

@@ -252,7 +252,7 @@ function serializeSeries(series, { round, conference, teamsById, seedMap }) {
   };
 }
 
-function emptySeries({ round, conference, teamA, teamB }) {
+function emptySeries({ round, conference, teamA, teamB, playInTier = null }) {
   return {
     round,
     conference,
@@ -262,6 +262,7 @@ function emptySeries({ round, conference, teamA, teamB }) {
     games: [],
     winnerId: null,
     isComplete: false,
+    ...(playInTier != null && { playInTier }),
   };
 }
 
@@ -329,12 +330,21 @@ function buildProjectedConference(conf, teamsById) {
         conference: confKey,
         teamA: infoBySeed.get(7),
         teamB: infoBySeed.get(8),
+        playInTier: 1,
       }),
       emptySeries({
         round: "play_in",
         conference: confKey,
         teamA: projectedTeamInfo(playIn910[0], 9),
         teamB: projectedTeamInfo(playIn910[1], 10),
+        playInTier: 1,
+      }),
+      emptySeries({
+        round: "play_in",
+        conference: confKey,
+        teamA: null,
+        teamB: null,
+        playInTier: 2,
       })
     );
   }
@@ -524,9 +534,13 @@ async function derivePlayoffs(season) {
       for (const s of playInSeries) {
         const conf = s.confA === "east" ? "eastern" : s.confA === "west" ? "western" : null;
         if (!conf) continue;
-        byConf[conf].push(
-          serializeSeries(s, { ...ctx, round: "play_in", conference: conf })
-        );
+        const serialized = serializeSeries(s, { ...ctx, round: "play_in", conference: conf });
+        const sA = standingsSeedMap.get(s.teamAId);
+        const sB = standingsSeedMap.get(s.teamBId);
+        const bothHigh = sA >= 7 && sA <= 8 && sB >= 7 && sB <= 8;
+        const bothLow = sA >= 9 && sA <= 10 && sB >= 9 && sB <= 10;
+        serialized.playInTier = (bothHigh || bothLow) ? 1 : 2;
+        byConf[conf].push(serialized);
       }
       playInBlock = byConf;
     }
