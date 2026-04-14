@@ -33,8 +33,8 @@ https://scorva.dev
 
 | Layer      | Technologies                                                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Frontend   | React 19, React Router 7, Tailwind CSS v4, Framer Motion, Recharts, Vite 6                                                     |
-| Backend    | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis)                                      |
+| Frontend   | React 19, React Router 7, TanStack Query v5, Tailwind CSS v4, Framer Motion, Recharts, Vite 6                                  |
+| Backend    | Node.js, Express 5, PostgreSQL (`pg`), Prisma 7 (schema/migrations only), Redis (ioredis), Pino, Helmet, Luxon                 |
 | Auth       | Supabase Auth — email/password + Google OAuth; JWT verified server-side                                                        |
 | AI         | OpenAI GPT-4o-mini (game summaries + summarization) · GPT-4.1-mini (chat agent, tool-calling) · `text-embedding-3-small` (RAG) · Tavily (web search) |
 | Database   | PostgreSQL — `pg_trgm` GIN indexes, `pgvector` cosine similarity, window functions, `ON CONFLICT DO UPDATE`                    |
@@ -48,16 +48,20 @@ Scorva
 │   ├── prisma/                   # Schema, config, and migration history
 │   ├── src/
 │   │   ├── index.js              # Express server entry point
-│   │   ├── db/db.js              # PostgreSQL pool singleton
+│   │   ├── db/db.js              # PostgreSQL pool singleton; notificationBus.js (PG LISTEN/NOTIFY)
 │   │   ├── cache/                # Redis caching layer (cache.js, seasons.js)
 │   │   ├── middleware/           # CORS, rate limiting, request logging, JWT auth
 │   │   ├── routes/               # Thin route definitions (one per resource)
 │   │   ├── controllers/          # Param extraction, response handling
 │   │   ├── services/             # SQL queries and business logic
-│   │   ├── utils/                # slugResolver, dateParser
+│   │   ├── utils/                # slugResolver, dateParser, tiebreaker
 │   │   ├── config/env.js         # dotenv initialization
-│   │   └── ingestion/            # ESPN data pipeline: upsert.js (scheduled), liveSync.js (live worker)
-│   │       └── scripts/          # One-off backfill scripts (backfillStatsTeamid, backfillPlays, backfillTeamColors)
+│   │   └── ingestion/            # ESPN data pipeline
+│   │       ├── pipeline/         # upsert.js (scheduled), liveSync.js (live worker), eventProcessor.js, historicalUpsert.js
+│   │       ├── espn/             # espnAPIClient.js, espnImage.js
+│   │       ├── upsert/           # upsertGame, upsertPlayer, upsertTeam, upsertStat, upsertPlays
+│   │       ├── mappings/         # commonMappings.js, mapStatsToSchema.js
+│   │       └── scripts/          # One-off backfill scripts (backfillStatsTeamid, backfillPlays, backfillTeamColors, backfillEmbeddings, repairStats)
 │   └── __tests__/                # Jest + Supertest test suite
 │
 ├── frontend
@@ -65,15 +69,16 @@ Scorva
 │   │   ├── App.jsx               # Root component and router
 │   │   ├── main.jsx              # Vite entry point
 │   │   ├── index.css             # Tailwind v4 theme tokens and global styles
-│   │   ├── lib/supabase.js       # Supabase client singleton
-│   │   ├── context/              # AuthContext — session state and auth modal; ChatContext — chat panel state; SettingsContext — settings drawer state
+│   │   ├── lib/                  # supabase.js, queryClient.js, query.js (TanStack Query keys + fns)
+│   │   ├── context/              # AuthContext — session state and auth modal; ChatContext — chat panel state; SettingsContext — settings drawer state; FavoritesPanelContext — favorites overlay panel state
 │   │   ├── api/                  # Backend API client and per-resource wrappers
 │   │   ├── hooks/                # Data-fetching and state hooks
 │   │   ├── components/           # Reusable UI (cards, layout, ui primitives)
 │   │   ├── pages/                # Page-level route components
-│   │   └── utils/                # Formatters, slugify, normalize, topPlayers scoring
+│   │   └── utils/                # Formatters, slugify, normalize, topPlayers scoring, tiebreaker
 │   └── public/                   # League and playoff logos (NBA/, NFL/, NHL/)
 │
+├── docs/                         # Architecture, API reference, conventions, design, testing, file map
 ├── LICENSE
 └── README.md
 ```
@@ -95,6 +100,7 @@ Backend follows a strict 4-layer separation: Routes → Controllers → Services
 | `/:league/teams/:teamId`     | TeamPage                           |
 | `/:league/players/:playerId` | PlayerPage                         |
 | `/:league/games/:gameId`     | GamePage                           |
+| `/compare`                   | ComparePage                        |
 | `/auth/callback`             | AuthCallback (OAuth popup handler) |
 | `*`                          | ErrorPage (404 catch-all)          |
 
@@ -125,10 +131,22 @@ Avatar dropdown in the navbar opens a slide-in settings drawer (requires auth):
 - `user_favorite_players` and `user_favorite_teams` tables with cascade deletes linked to `users` (Supabase UUID as PK)
 - `favoritesService.ensureUser()` is a fallback upsert guard on first favorite action in case the webhook was missed
 
+### Favorites Overlay Panel
+
+- Slide-in panel triggered by the Navbar star icon, accessible from any page
+- `FavoritesPanelContext` manages open/close state; requires auth (shows sign-in prompt otherwise)
+- Mutually exclusive with the chat and settings panels — opening one closes the others
+- Closes automatically on route change
+
 ### Default League Preference
 
 - Stored in `users.default_league`; fetched via `GET /api/user/profile`
 - Homepage defers rendering league tabs until the preference resolves, preventing a flash of the wrong league
+
+### News Headlines
+
+- `GET /api/news` — proxied from ESPN; cached 5 minutes (`cacheIf` non-empty array)
+- Homepage `NewsSection` renders a 4-card grid (`NewsCard`) with a `NewsPreviewModal` for article previews without leaving the app
 
 ### Live Game Sync
 
@@ -154,7 +172,7 @@ A floating chat panel (FAB → slide-in panel) available on every page, powered 
 
 - **Requires auth** — unauthenticated users see the sign-in modal instead
 - **Streaming SSE** — `POST /api/chat` returns a server-sent event stream; the frontend reads deltas and appends them character-by-character into the message bubble
-- **Tool-calling agent** — up to 5 rounds per turn; 13 tools: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `get_teams`, `get_seasons`, `web_search`, `semantic_search`
+- **Tool-calling agent** — up to 5 rounds per turn; 14 tools: `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`, `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`, `get_plays`, `get_teams`, `get_seasons`, `web_search`, `semantic_search`
 - **Semantic search (RAG)** — `semantic_search` tool performs cosine similarity search over `game_embeddings` (pgvector, 1536-dim `text-embedding-3-small` vectors). Embeddings are generated fire-and-forget whenever an AI game summary is saved. Best for narrative queries like "biggest upsets this week" or "overtime thrillers".
 - **Tool status streaming** — as tools execute, the agent emits SSE `status` events with friendly labels (e.g. "Checking standings · Fetching player stats") shown below the typing indicator; cleared once content begins streaming
 - **Conversation summarization** — once a conversation exceeds 20 messages, older messages are compressed via `gpt-4o-mini` and stored in `chat_conversations.summary`; the rolling summary is prepended to the system prompt each turn so no context is lost
@@ -193,6 +211,12 @@ A floating chat panel (FAB → slide-in panel) available on every page, powered 
 - Position-filtered for NFL/NHL; minimum games threshold (NBA/NHL 5, NFL 2)
 - `SimilarPlayersCard` on PlayerPage; `computePlayerEmbeddings.js` runs as part of the daily upsert cycle
 
+### Compare / Head-to-Head
+
+- `/compare` page supports player and team comparisons across all three leagues
+- `GET /api/:league/head-to-head?type=players|teams&ids=id1,id2` — returns season stats side-by-side from `headToHeadService.js`
+- Per-league stat column configs; independent season selectors for each side; cached 30d
+
 ### Play-by-Play
 
 - `GET /api/:league/games/:gameId/plays` — returns `{ plays[], source }` where `source` is `db` (Final, cached 30d), `espn` (live, proxied), or `none`
@@ -228,6 +252,13 @@ Single-query, relevance-ranked search across players, teams, and games:
 - `games.game_label` stores ESPN playoff round labels sourced from `event.competitions[0].notes[0].headline` when `event.season.type === 3`
 - Examples: `"NBA Finals - Game 1"`, `"Super Bowl LIX"`, `"Stanley Cup Final - Game 3"`
 - GameCard and GamePage display league-specific playoff or finals logos in place of generic text badges
+
+### NBA Playoffs Bracket
+
+- LeaguePage "Playoffs" tab (NBA only) — visible when the season is historical or teams have played 80+ games
+- `GET /api/:league/playoffs` — returns bracket data computed on read by `playoffsService.js`
+- `PlayoffsBracket.jsx` renders full Eastern/Western bracket; `SeriesCard.jsx` per matchup; `PlayInSection.jsx` for play-in rounds
+- Falls back to projected-from-standings when bracket is not yet set; tiebreakers applied via `tiebreaker.js` (H2H → conference record → point differential)
 
 ### Top Players Analysis
 
@@ -298,14 +329,15 @@ cd frontend && npm run verify
 
 ### Backend (Jest 29 + Supertest)
 
-- **All API routes** — teams, players, games, game detail (`gameDetail`), player detail (`playerInfo`), standings, seasons, search, plays, game dates, win probability, prediction, similar players
+- **All API routes** — teams, players, games, game detail (`gameDetail`), player detail (`playerInfo`), standings, seasons, search, plays, game dates, win probability, prediction, similar players, news, head-to-head, playoffs
 - **Auth-protected routes** — favorites, user profile, AI summary, account deletion
 - **Webhook handler** — Supabase auth event parsing, user creation, name extraction for email and OAuth signup flows
 - **Live SSE routes** — stream lifecycle, 15s heartbeat, `done` event on game completion
-- **Database layer** — connection pooling, `pg` Pool error handling
+- **Database layer** — connection pooling, `pg` Pool error handling, notification bus (`notificationBus.js`)
+- **Middleware** — rate limiters (`generalLimiter`, `aiLimiter`, `chatLimiter`, `sseConnectionLimiter`)
 - **Data ingestion** — `mapStatsToSchema`, `upsertPlayer`, `upsertTeam`, `upsertGame`, `upsertStat`, `upsertPlays`, `eventProcessor`, `upsertGameScoreboard` (live sync fast path), `commonMappings`, `espnImage`, `refreshPopularity`
 - **Cache module** — Redis `cached()`, `invalidate()`, `invalidatePattern()`, graceful fallback when `REDIS_URL` unset
-- **Service unit tests** — `aiSummaryService` cache-first logic, summary generation, error handling; `embeddingService` (generate, store, search); `semanticSearchService` (result mapping, error handling); `chatHistoryService` (summarization queries); `chatAgentService` (summarizeOlderMessages, conversationSummary injection, onStatus labels); `chatToolsService` (tool definitions, executeTool dispatch); `playsService`; `winProbabilityService`; `gamesService` (incl. `getGameDates`); `chat/tools` (headToHead, playerComparison, statLeaders, teamStats, webSearch)
+- **Service unit tests** — `aiSummaryService`, `embeddingService`, `semanticSearchService`, `chatHistoryService`, `chatAgentService`, `chatToolsService`, `playsService`, `winProbabilityService`, `gamesService`, `newsService`, `headToHeadService`, `playoffsService`; `chat/tools` (headToHead, playerComparison, statLeaders, teamStats, webSearch, plays)
 - **Integration** — full Express app behavior across all mounted routes
 - Pattern: mock `db/db.js` via `jest.unstable_mockModule()`; `createMockPool()` stubs `.query()`; season-aware routes also mock `cache/seasons.js`
 
@@ -315,15 +347,16 @@ cd frontend && npm run verify
 
 - **Utility functions** — `formatDate`, `getPeriodLabel` (NBA/NFL/NHL periods + OT), `slugify`, `normalize`, `computeTopPlayers`
 - **API client** — URL construction, headers, body serialization, abort signal, 204 handling, error propagation
-- **API wrappers** — favorites, user profile, search
-- **Hooks** — `useFavorites`, `useFavoriteToggle` (optimistic updates + rollback), `useUserPrefs`, `useSearch` (debounce + abort cancel), `useLiveGame`, `useLiveGames` (SSE lifecycle, REST fallback, `done` event handling)
-- **Components** — Navbar (auth state variants), PasswordChecklist (validation logic and rendering)
+- **API wrappers** — favorites, user profile, search, compare, news, plays, AI, chat
+- **Hooks** — `useFavorites`, `useFavoriteToggle` (optimistic updates + rollback), `useUserPrefs`, `useSearch` (debounce + abort cancel), `useLiveGame`, `useLiveGames` (SSE lifecycle, REST fallback, `done` event handling), `useHeadToHead`, `useNews`, `usePlays`
+- **Components** — Navbar (auth state variants), PasswordChecklist, GameCard, NewsCard, NewsPreviewModal, PlayByPlay, GameChart, StatCard, TopPerformerCard, PlayerAvgCard, chat components (ChatPanel, ChatMessages, ChatFAB, ChatInput, MessageBubble, ChatTypingIndicator)
+- **Contexts** — AuthContext, ChatContext, SettingsContext
 
 ---
 
 ## CI/CD
 
-Two GitHub Actions workflows run on push and pull request to `main`:
+Two GitHub Actions workflows (Node.js 24) run on push and pull request to `main`:
 
 - **`frontend.yml`** — runs `npm run verify` (lint + Vitest + production build) on frontend file changes; deploys to Vercel via CLI on main push
 - **`backend.yml`** — runs `npm run verify` (lint + Jest) on backend file changes
