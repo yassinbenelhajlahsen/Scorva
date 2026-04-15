@@ -57,6 +57,17 @@ jest.unstable_mockModule(
   }),
 );
 
+const mockCleanupClinchedPlayoffGames = jest.fn();
+jest.unstable_mockModule(
+  resolve(
+    __dirname,
+    "../../src/ingestion/cleanup/cleanupClinchedPlayoffGames.js",
+  ),
+  () => ({
+    cleanupClinchedPlayoffGames: mockCleanupClinchedPlayoffGames,
+  }),
+);
+
 const { runUpsert, addOrdinal } = await import(
   resolve(__dirname, "../../src/ingestion/pipeline/upsert.js")
 );
@@ -115,6 +126,7 @@ describe("runUpsert", () => {
     mockRefreshPopularity.mockResolvedValue(undefined);
     mockInvalidatePattern.mockResolvedValue(undefined);
     mockCloseCache.mockResolvedValue(undefined);
+    mockCleanupClinchedPlayoffGames.mockResolvedValue([]);
   });
 
   it("calls runTodayProcessing and runUpcomingProcessing for each league", async () => {
@@ -223,5 +235,47 @@ describe("runUpsert", () => {
     await runUpsert(mockPool);
     expect(mockPool.end).toHaveBeenCalledTimes(1);
     expect(mockCloseCache).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs cleanupClinchedPlayoffGames once, only for NBA", async () => {
+    await runUpsert(mockPool);
+
+    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledTimes(1);
+    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledWith(mockPool);
+  });
+
+  it("runs cleanup after upcoming processing but before playoff cache invalidation", async () => {
+    const order = [];
+    mockRunUpcomingProcessing.mockImplementation(async (league) => {
+      order.push(`upcoming:${league}`);
+    });
+    mockCleanupClinchedPlayoffGames.mockImplementation(async () => {
+      order.push("cleanup");
+    });
+    mockInvalidatePattern.mockImplementation(async (pattern) => {
+      if (pattern === "playoffs:nba:*") order.push("invalidate:playoffs");
+    });
+
+    await runUpsert(mockPool);
+
+    expect(order.indexOf("cleanup")).toBeGreaterThan(
+      order.indexOf("upcoming:nba"),
+    );
+    expect(order.indexOf("invalidate:playoffs")).toBeGreaterThan(
+      order.indexOf("cleanup"),
+    );
+  });
+
+  it("does not abort the run when cleanup fails", async () => {
+    mockCleanupClinchedPlayoffGames.mockRejectedValue(
+      new Error("cleanup failed"),
+    );
+
+    await runUpsert(mockPool);
+
+    // NFL and NHL still processed, popularity still refreshed
+    expect(mockRunUpcomingProcessing).toHaveBeenCalledWith("nfl", mockPool);
+    expect(mockRunUpcomingProcessing).toHaveBeenCalledWith("nhl", mockPool);
+    expect(mockRefreshPopularity).toHaveBeenCalledTimes(1);
   });
 });

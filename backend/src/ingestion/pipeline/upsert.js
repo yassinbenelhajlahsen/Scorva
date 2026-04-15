@@ -11,6 +11,7 @@ import {
 } from "./eventProcessor.js";
 import { refreshPopularity } from "../refreshPopularity.js";
 import { computeAllEmbeddings } from "../computePlayerEmbeddings.js";
+import { cleanupClinchedPlayoffGames } from "../cleanup/cleanupClinchedPlayoffGames.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
@@ -42,6 +43,13 @@ export async function runUpsert(pool) {
       try {
         await runTodayProcessing(league, pool);
         await runUpcomingProcessing(league, pool);
+        if (league === "nba") {
+          try {
+            await cleanupClinchedPlayoffGames(pool);
+          } catch (err) {
+            log.error({ err, league }, "failed cleaning up clinched playoff games");
+          }
+        }
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
         await invalidatePattern(`gameDates:${league}:*`);
