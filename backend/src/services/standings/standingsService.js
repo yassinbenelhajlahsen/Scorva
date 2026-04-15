@@ -18,7 +18,8 @@ export async function getRegularSeasonGames(league, season) {
             SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL
           ))
           AND status ILIKE 'Final%'
-          AND type IN ('regular', 'makeup')`,
+          AND type IN ('regular', 'makeup')
+          AND (game_label IS NULL OR game_label NOT ILIKE '%play-in%')`,
       [league, season || null]
     );
     return rows;
@@ -48,6 +49,7 @@ export async function getStandings(league, season) {
             ))
             AND g.status ILIKE 'Final%'
             AND g.type IN ('regular', 'makeup')
+            AND (g.game_label IS NULL OR g.game_label NOT ILIKE '%play-in%')
           WHERE t.league = $1
           GROUP BY t.id, t.name, t.shortname, t.location, t.conf, t.logo_url,
                    t.primary_color`,
