@@ -43,10 +43,10 @@ export async function runUpsert(pool) {
       try {
         await runTodayProcessing(league, pool);
         await runUpcomingProcessing(league, pool);
-        if (league === "nba") {
+        if (league === "nba" || league === "nhl") {
           // Isolated so a cleanup failure still lets cache invalidations below run.
           try {
-            await cleanupClinchedPlayoffGames(pool);
+            await cleanupClinchedPlayoffGames(pool, league);
           } catch (err) {
             log.error({ err, league }, "failed cleaning up clinched playoff games");
           }
@@ -55,6 +55,7 @@ export async function runUpsert(pool) {
         await invalidatePattern(`standings:${league}:*`);
         await invalidatePattern(`gameDates:${league}:*`);
         if (league === "nba") await invalidatePattern("playoffs:nba:*");
+        if (league === "nhl") await invalidatePattern("playoffs:nhl:*");
       } catch (err) {
         log.error({ err, league }, "failed processing league");
       }

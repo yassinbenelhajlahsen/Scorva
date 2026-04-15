@@ -165,7 +165,7 @@ describe("runUpsert", () => {
   it("invalidates correct cache patterns for each league", async () => {
     await runUpsert(mockPool);
 
-    expect(mockInvalidatePattern).toHaveBeenCalledTimes(11);
+    expect(mockInvalidatePattern).toHaveBeenCalledTimes(12);
     for (const league of ["nba", "nfl", "nhl"]) {
       expect(mockInvalidatePattern).toHaveBeenCalledWith(`games:${league}:*`);
       expect(mockInvalidatePattern).toHaveBeenCalledWith(
@@ -176,6 +176,7 @@ describe("runUpsert", () => {
       );
     }
     expect(mockInvalidatePattern).toHaveBeenCalledWith("playoffs:nba:*");
+    expect(mockInvalidatePattern).toHaveBeenCalledWith("playoffs:nhl:*");
     expect(mockInvalidatePattern).toHaveBeenCalledWith("similarPlayers:*");
   });
 
@@ -237,32 +238,59 @@ describe("runUpsert", () => {
     expect(mockCloseCache).toHaveBeenCalledTimes(1);
   });
 
-  it("runs cleanupClinchedPlayoffGames once, only for NBA", async () => {
+  it("runs cleanupClinchedPlayoffGames for NBA and NHL, not NFL", async () => {
     await runUpsert(mockPool);
 
-    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledTimes(1);
-    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledWith(mockPool);
+    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledTimes(2);
+    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledWith(mockPool, "nba");
+    expect(mockCleanupClinchedPlayoffGames).toHaveBeenCalledWith(mockPool, "nhl");
+    expect(mockCleanupClinchedPlayoffGames).not.toHaveBeenCalledWith(
+      mockPool, "nfl"
+    );
   });
 
-  it("runs cleanup after upcoming processing but before playoff cache invalidation", async () => {
+  it("runs NBA cleanup after upcoming:nba and before playoffs:nba invalidation", async () => {
     const order = [];
     mockRunUpcomingProcessing.mockImplementation(async (league) => {
       order.push(`upcoming:${league}`);
     });
-    mockCleanupClinchedPlayoffGames.mockImplementation(async () => {
-      order.push("cleanup");
+    mockCleanupClinchedPlayoffGames.mockImplementation(async (_pool, league) => {
+      order.push(`cleanup:${league}`);
     });
     mockInvalidatePattern.mockImplementation(async (pattern) => {
-      if (pattern === "playoffs:nba:*") order.push("invalidate:playoffs");
+      if (pattern === "playoffs:nba:*") order.push("invalidate:playoffs:nba");
+      if (pattern === "playoffs:nhl:*") order.push("invalidate:playoffs:nhl");
     });
 
     await runUpsert(mockPool);
 
-    expect(order.indexOf("cleanup")).toBeGreaterThan(
+    expect(order.indexOf("cleanup:nba")).toBeGreaterThan(
       order.indexOf("upcoming:nba"),
     );
-    expect(order.indexOf("invalidate:playoffs")).toBeGreaterThan(
-      order.indexOf("cleanup"),
+    expect(order.indexOf("invalidate:playoffs:nba")).toBeGreaterThan(
+      order.indexOf("cleanup:nba"),
+    );
+  });
+
+  it("runs NHL cleanup after upcoming:nhl and before playoffs:nhl invalidation", async () => {
+    const order = [];
+    mockRunUpcomingProcessing.mockImplementation(async (league) => {
+      order.push(`upcoming:${league}`);
+    });
+    mockCleanupClinchedPlayoffGames.mockImplementation(async (_pool, league) => {
+      order.push(`cleanup:${league}`);
+    });
+    mockInvalidatePattern.mockImplementation(async (pattern) => {
+      if (pattern === "playoffs:nhl:*") order.push("invalidate:playoffs:nhl");
+    });
+
+    await runUpsert(mockPool);
+
+    expect(order.indexOf("cleanup:nhl")).toBeGreaterThan(
+      order.indexOf("upcoming:nhl"),
+    );
+    expect(order.indexOf("invalidate:playoffs:nhl")).toBeGreaterThan(
+      order.indexOf("cleanup:nhl"),
     );
   });
 

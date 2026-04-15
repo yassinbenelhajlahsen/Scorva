@@ -245,6 +245,7 @@ export async function tick(liveLeagues) {
     if (justFinalized.length > 0) {
       await invalidatePattern(`standings:${slug}:*`);
       if (slug === "nba") await invalidatePattern("playoffs:nba:*");
+      if (slug === "nhl") await invalidatePattern("playoffs:nhl:*");
     }
   }
 
