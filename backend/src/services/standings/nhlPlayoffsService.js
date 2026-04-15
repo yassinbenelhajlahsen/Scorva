@@ -120,14 +120,32 @@ function buildConfCanonical(conf, teamsById, matrix) {
 
 // Match actual R1 series to the 4 canonical slots.
 // Returns array[4]: each element is the matching actual series or null.
-function matchR1ToSlots(actualR1, r1TeamToSlot) {
+//
+// When both teams of a series map to different projected slots (cross-slot
+// series — possible when historical standings data differs from the actual
+// playoff seeding), we assign to the slot of the better-seeded team so the
+// higher seed's series stays in its expected bracket position.
+function matchR1ToSlots(actualR1, r1TeamToSlot, seedMap) {
   const matched = new Array(4).fill(null);
   const usedSlots = new Set();
 
   for (const series of actualR1) {
-    const slotA = r1TeamToSlot.get(series.teamAId);
-    const slotB = r1TeamToSlot.get(series.teamBId);
-    const slot = slotA ?? slotB ?? null;
+    const slotA = r1TeamToSlot.get(series.teamAId) ?? null;
+    const slotB = r1TeamToSlot.get(series.teamBId) ?? null;
+
+    let slot;
+    if (slotA === null && slotB === null) continue;
+    else if (slotA === null) slot = slotB;
+    else if (slotB === null) slot = slotA;
+    else if (slotA === slotB) slot = slotA;
+    else {
+      // Cross-slot: pick the slot belonging to the better-seeded (lower seed
+      // number) team so the projected bracket position is preserved.
+      const seedA = seedMap?.get(series.teamAId) ?? 99;
+      const seedB = seedMap?.get(series.teamBId) ?? 99;
+      slot = seedA <= seedB ? slotA : slotB;
+    }
+
     if (slot != null && !usedSlots.has(slot)) {
       matched[slot] = series;
       usedSlots.add(slot);
@@ -276,7 +294,7 @@ async function deriveNhlPlayoffs(season) {
   }
 
   const buildConfBlock = (confSeriesList, canon) => {
-    const { projectedR1, r1TeamToSlot, confKey } = canon;
+    const { projectedR1, r1TeamToSlot, seedMap: confSeedMap, confKey } = canon;
 
     // Date-based round classification: first 4 = R1, next 2 = semis, next 1 = CF
     const sorted = [...confSeriesList].sort(
@@ -287,7 +305,7 @@ async function deriveNhlPlayoffs(season) {
     const actualCF = sorted.slice(6, 7);
 
     // Match actual R1 to canonical slots for consistent bracket ordering
-    const r1Matched = matchR1ToSlots(actualR1, r1TeamToSlot);
+    const r1Matched = matchR1ToSlots(actualR1, r1TeamToSlot, confSeedMap);
 
     const r1 = r1Matched.map((actual, i) => {
       if (actual) {
