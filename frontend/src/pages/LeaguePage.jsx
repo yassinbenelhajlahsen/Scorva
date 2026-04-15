@@ -18,6 +18,7 @@ import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
+import { LEAGUE_LABELS } from "../constants/leagueLabels.js";
 
 export default function LeaguePage() {
   const queryClient = useQueryClient();
@@ -41,7 +42,7 @@ export default function LeaguePage() {
   // every team to have played ≥80 of 82 regular-season games. While standings
   // are loading we show it optimistically to avoid a layout shift.
   const showPlayoffsTab = useMemo(() => {
-    if (league !== "nba") return false;
+    if (!LEAGUE_LABELS[league]?.playoffsSupported) return false;
     if (selectedSeason) return true;
     const allTeams = [...standings.eastOrAFC, ...standings.westOrNFC];
     if (allTeams.length === 0) return true;
@@ -52,7 +53,7 @@ export default function LeaguePage() {
   }, [league, selectedSeason, standings.eastOrAFC, standings.westOrNFC]);
 
   const tabs = useMemo(
-    () => league === "nba"
+    () => LEAGUE_LABELS[league]?.playoffsSupported
       ? (showPlayoffsTab ? ["games", "standings", "playoffs"] : ["games", "standings"])
       : ["games", "standings"],
     [league, showPlayoffsTab]

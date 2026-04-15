@@ -1,6 +1,7 @@
 import { m } from "framer-motion";
 import Skeleton from "../ui/Skeleton.jsx";
 import { EASE_OUT_EXPO } from "../../utils/motion.js";
+import { LEAGUE_LABELS } from "../../constants/leagueLabels.js";
 
 // Slower + delayed so the stagger plays AFTER the LeaguePage tab
 // transition (x: 40→0 over 220ms) lands, not during it.
@@ -66,12 +67,12 @@ function RoundColumnSkeleton({ title, count = 4, projected = false }) {
   );
 }
 
-function ConferenceSkeleton({ label, mirrored = false }) {
+function ConferenceSkeleton({ label, labels, mirrored = false }) {
   // R1 has games (no projected footer); semis + CF are projected on current season
   const columns = [
-    <RoundColumnSkeleton key="r1" title="First Round" count={4} />,
-    <RoundColumnSkeleton key="semis" title="Conf. Semis" count={2} projected />,
-    <RoundColumnSkeleton key="cf" title="Conf. Finals" count={1} projected />,
+    <RoundColumnSkeleton key="r1" title={labels.round1} count={4} />,
+    <RoundColumnSkeleton key="semis" title={labels.semis} count={2} projected />,
+    <RoundColumnSkeleton key="cf" title={labels.confFinal} count={1} projected />,
   ];
   const ordered = mirrored ? [...columns].reverse() : columns;
 
@@ -186,11 +187,11 @@ function PlayInSkeleton() {
   );
 }
 
-export default function PlayoffsSkeleton({ season } = {}) {
-  // Only the current season (null) can still be showing the play-in tournament.
-  // Historical seasons always return playIn: null from the API, so rendering
-  // a play-in skeleton for them is just a flash of content that vanishes.
-  const showPlayIn = !season;
+export default function PlayoffsSkeleton({ league, season } = {}) {
+  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
+  // Only show play-in skeleton if the league supports it and it's the current season.
+  // Historical seasons always return playIn: null so the skeleton would just flash.
+  const showPlayIn = !season && labels.playInSupported;
   return (
     <m.div
       className="w-full"
@@ -206,15 +207,15 @@ export default function PlayoffsSkeleton({ season } = {}) {
         variants={skeletonItem}
       >
         <h3 className="text-sm font-semibold uppercase tracking-widest text-accent text-center">
-          NBA Finals
+          {labels.finals}
         </h3>
         <div className="w-full max-w-[280px]">
           <SeriesSkeleton projected />
         </div>
       </m.div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6">
-        <ConferenceSkeleton label="Eastern" />
-        <ConferenceSkeleton label="Western" mirrored />
+        <ConferenceSkeleton label="Eastern" labels={labels} />
+        <ConferenceSkeleton label="Western" labels={labels} mirrored />
       </div>
     </m.div>
   );

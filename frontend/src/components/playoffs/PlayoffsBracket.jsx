@@ -1,7 +1,8 @@
 import { m } from "framer-motion";
 import SeriesCard from "./SeriesCard.jsx";
 import PlayInSection from "./PlayInSection.jsx";
-import { useNbaPlayoffs } from "../../hooks/data/useNbaPlayoffs.js";
+import { usePlayoffs } from "../../hooks/data/usePlayoffs.js";
+import { LEAGUE_LABELS } from "../../constants/leagueLabels.js";
 import ErrorState from "../ui/ErrorState.jsx";
 import PlayoffsSkeleton from "../skeletons/PlayoffsSkeleton.jsx";
 import { EASE_OUT_EXPO } from "../../utils/motion.js";
@@ -32,10 +33,11 @@ function RoundColumn({ title, series, league, align = "left", delay = 0 }) {
 
 function ConferenceColumn({ conference, rounds, league, mirrored = false, baseDelay = 0 }) {
   const label = conference === "eastern" ? "Eastern" : "Western";
+  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
   const columns = [
-    { key: "r1", title: "First Round", series: rounds.r1 },
-    { key: "semis", title: "Conf. Semis", series: rounds.semis },
-    { key: "cf", title: "Conf. Finals", series: rounds.confFinals },
+    { key: "r1", title: labels.round1, series: rounds.r1 },
+    { key: "semis", title: labels.semis, series: rounds.semis },
+    { key: "cf", title: labels.confFinal, series: rounds.confFinals },
   ];
   const ordered = mirrored ? [...columns].reverse() : columns;
 
@@ -62,10 +64,11 @@ function ConferenceColumn({ conference, rounds, league, mirrored = false, baseDe
 function FinalsSection({ finals, league }) {
   const series = finals?.[0];
   if (!series) return null;
+  const finalsLabel = LEAGUE_LABELS[league]?.finals ?? "Finals";
   return (
     <div className="flex flex-col items-center gap-3">
       <h3 className="text-sm font-semibold uppercase tracking-widest text-accent text-center">
-        NBA Finals
+        {finalsLabel}
       </h3>
       <m.div
         className="w-full max-w-[280px]"
@@ -80,11 +83,19 @@ function FinalsSection({ finals, league }) {
 }
 
 export default function PlayoffsBracket({ league, season }) {
-  const { data, loading, error, retry } = useNbaPlayoffs(league, season);
+  const { data, loading, error, retry } = usePlayoffs(league, season);
 
-  if (loading) return <PlayoffsSkeleton season={season} />;
+  if (loading) return <PlayoffsSkeleton season={season} league={league} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
   if (!data) return null;
+
+  if (data.unsupported) {
+    return (
+      <div className="text-center text-text-tertiary py-20 text-sm">
+        Bracket format unsupported for this season.
+      </div>
+    );
+  }
 
   const { bracket, playIn } = data;
   const eastern = bracket?.eastern;
@@ -99,9 +110,11 @@ export default function PlayoffsBracket({ league, season }) {
     );
   }
 
+  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
+
   return (
     <div className="w-full">
-      {playIn && (
+      {labels.playInSupported && playIn && (
         <m.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
