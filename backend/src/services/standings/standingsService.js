@@ -11,7 +11,7 @@ export async function getRegularSeasonGames(league, season) {
 
   return cached(`h2h-games:${league}:${resolvedSeason}`, ttl, async () => {
     const { rows } = await pool.query(
-      `SELECT hometeamid, awayteamid, winnerid, homescore, awayscore
+      `SELECT hometeamid, awayteamid, winnerid, homescore, awayscore, ot1
          FROM games
         WHERE league = $1
           AND season = COALESCE($2, (
@@ -35,12 +35,12 @@ export async function getStandings(league, season) {
   return cached(`standings:${league}:${resolvedSeason}`, ttl, async () => {
     const [standingsResult, h2hGames] = await Promise.all([
       pool.query(
-        `SELECT t.id, t.name, t.shortname, t.location, t.conf, t.logo_url,
+        `SELECT t.id, t.name, t.shortname, t.location, t.conf, t.division, t.logo_url,
               t.primary_color,
             COUNT(*) FILTER (WHERE g.winnerid = t.id) AS wins,
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses,
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id
-              AND g.status IN ('Final/OT', 'Final/SO')) AS otl
+              AND (g.status IN ('Final/OT', 'Final/SO') OR ($1 = 'nhl' AND g.ot1 IS NOT NULL))) AS otl
           FROM teams t
           LEFT JOIN games g ON (g.hometeamid = t.id OR g.awayteamid = t.id)
             AND g.league = $1
@@ -51,7 +51,7 @@ export async function getStandings(league, season) {
             AND g.type IN ('regular', 'makeup')
             AND (g.game_label IS NULL OR g.game_label NOT ILIKE '%play-in%')
           WHERE t.league = $1
-          GROUP BY t.id, t.name, t.shortname, t.location, t.conf, t.logo_url,
+          GROUP BY t.id, t.name, t.shortname, t.location, t.conf, t.division, t.logo_url,
                    t.primary_color`,
         [league, season || null]
       ),
@@ -70,13 +70,15 @@ export async function getStandings(league, season) {
       confByTeamId.set(t.id, (t.conf || "").toLowerCase());
     }
 
-    const { matrix, teamPointDiffs, confRecords } = buildH2HMatrix(h2hGames, confByTeamId);
+    const { matrix, teamPointDiffs, teamRegWins, teamGf, confRecords } = buildH2HMatrix(h2hGames, confByTeamId, league);
 
     for (const t of teams) {
       t.pointDiff = teamPointDiffs.get(t.id) ?? 0;
       const gp = t.wins + t.losses;
       if (league === "nhl") {
         t.ptsPct = gp > 0 ? (2 * t.wins + t.otl) / (2 * gp) : 0;
+        t.regWins = teamRegWins.get(t.id) ?? 0;
+        t.gf = teamGf.get(t.id) ?? 0;
       } else {
         t.winPct = gp > 0 ? t.wins / gp : 0;
       }
