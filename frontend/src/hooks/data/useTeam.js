@@ -42,7 +42,12 @@ export function useTeam(league, teamId, selectedSeason) {
         .slice()
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      const finalGames = gamesData.filter((g) => /final/i.test(g.status ?? ""));
+      const finalGames = gamesData.filter(
+        (g) =>
+          /final/i.test(g.status ?? "") &&
+          (g.type === "regular" || g.type === "makeup") &&
+          !(g.game_label || "").toLowerCase().includes("play-in")
+      );
       const homeGames = finalGames.filter((g) => g.hometeamid === teamQuery.data.id);
       const homeWins = homeGames.filter(
         (g) => g.winnerid === g.hometeamid
