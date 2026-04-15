@@ -9,7 +9,8 @@ export function pairKey(a, b) {
   return a < b ? `${a}-${b}` : `${b}-${a}`;
 }
 
-export function buildSeries(games, teamsById) {
+export function buildSeries(games, teamsById, { bestOf = 7 } = {}) {
+  const winsNeeded = Math.ceil(bestOf / 2);
   const seriesMap = new Map();
 
   for (const g of games) {
@@ -41,6 +42,7 @@ export function buildSeries(games, teamsById) {
       winnerid: g.winnerid,
       status: g.status,
       type: g.type,
+      game_label: g.game_label ?? null,
     });
     if (g.winnerid != null && series.wins[g.winnerid] !== undefined) {
       series.wins[g.winnerid] += 1;
@@ -62,7 +64,7 @@ export function buildSeries(games, teamsById) {
     const a = series.wins[series.teamAId];
     const b = series.wins[series.teamBId];
     series.winnerId = a > b ? series.teamAId : b > a ? series.teamBId : null;
-    series.isComplete = a >= 4 || b >= 4;
+    series.isComplete = a >= winsNeeded || b >= winsNeeded;
 
     const rawConfA = teamsById.get(series.teamAId)?.conf ?? null;
     const rawConfB = teamsById.get(series.teamBId)?.conf ?? null;

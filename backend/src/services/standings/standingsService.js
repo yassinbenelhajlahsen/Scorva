@@ -41,7 +41,10 @@ export async function getStandings(league, season) {
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses,
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id
               AND (g.status IN ('Final/OT', 'Final/SO')
-                   OR ($1 = 'nhl' AND (g.fourthqtr IS NOT NULL OR g.ot1 IS NOT NULL)))) AS otl
+                   OR ($1 = 'nhl' AND (g.fourthqtr IS NOT NULL OR g.ot1 IS NOT NULL)))) AS otl,
+            COUNT(*) FILTER (WHERE $1 = 'nfl' AND g.winnerid IS NULL
+              AND g.homescore IS NOT NULL
+              AND g.homescore = g.awayscore) AS ties
           FROM teams t
           LEFT JOIN games g ON (g.hometeamid = t.id OR g.awayteamid = t.id)
             AND g.league = $1
@@ -64,28 +67,45 @@ export async function getStandings(league, season) {
       wins: Number(r.wins) || 0,
       losses: Number(r.losses) || 0,
       otl: Number(r.otl) || 0,
+      ties: Number(r.ties) || 0,
     }));
 
     const confByTeamId = new Map();
+    const divByTeamId = new Map();
     for (const t of teams) {
       confByTeamId.set(t.id, (t.conf || "").toLowerCase());
+      divByTeamId.set(t.id, (t.division || "").toLowerCase());
     }
 
-    const { matrix, teamPointDiffs, teamRegWins, teamGf, confRecords } = buildH2HMatrix(h2hGames, confByTeamId, league);
+    const { matrix, teamPointDiffs, teamRegWins, teamGf, confRecords, divRecords } =
+      buildH2HMatrix(h2hGames, confByTeamId, league, divByTeamId);
 
     for (const t of teams) {
       t.pointDiff = teamPointDiffs.get(t.id) ?? 0;
-      const gp = t.wins + t.losses;
       if (league === "nhl") {
+        const gp = t.wins + t.losses;
         t.ptsPct = gp > 0 ? (2 * t.wins + t.otl) / (2 * gp) : 0;
         t.regWins = teamRegWins.get(t.id) ?? 0;
         t.gf = teamGf.get(t.id) ?? 0;
+        const cr = confRecords.get(t.id);
+        const confGp = cr ? cr.wins + cr.losses : 0;
+        t.confWinPct = confGp > 0 ? cr.wins / confGp : 0;
+      } else if (league === "nfl") {
+        const gp = t.wins + t.losses + t.ties;
+        t.winPct = gp > 0 ? (t.wins + 0.5 * t.ties) / gp : 0;
+        const dr = divRecords.get(t.id);
+        const divGp = dr ? dr.wins + dr.losses + (dr.ties || 0) : 0;
+        t.divWinPct = divGp > 0 ? (dr.wins + 0.5 * (dr.ties || 0)) / divGp : 0;
+        const cr = confRecords.get(t.id);
+        const confGp = cr ? cr.wins + cr.losses + (cr.ties || 0) : 0;
+        t.confWinPct = confGp > 0 ? (cr.wins + 0.5 * (cr.ties || 0)) / confGp : 0;
       } else {
+        const gp = t.wins + t.losses;
         t.winPct = gp > 0 ? t.wins / gp : 0;
+        const cr = confRecords.get(t.id);
+        const confGp = cr ? cr.wins + cr.losses : 0;
+        t.confWinPct = confGp > 0 ? cr.wins / confGp : 0;
       }
-      const cr = confRecords.get(t.id);
-      const confGp = cr ? cr.wins + cr.losses : 0;
-      t.confWinPct = confGp > 0 ? cr.wins / confGp : 0;
     }
 
     const conferences = new Map();

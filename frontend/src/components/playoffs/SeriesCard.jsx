@@ -89,28 +89,38 @@ export default function SeriesCard({ series, league }) {
   const hasGames = games.length > 0;
   const isProjected = !hasGames && teamA && teamB;
   const isPlayIn = series.round === "play_in" && games.length === 1;
-  const canExpand = hasGames && !isPlayIn;
+  const isSingleGameLink = isPlayIn || (games.length === 1 && isComplete);
+  const canExpand = hasGames && !isSingleGameLink && games.length > 1;
 
-  const cardClasses = `bg-surface-elevated border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-    canExpand || isPlayIn ? "hover:border-white/[0.14]" : ""
+  const cardClasses = `block bg-surface-elevated border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+    canExpand || isSingleGameLink ? "hover:border-white/[0.14]" : ""
   }`;
+
+  const showWins = !isSingleGameLink;
+  const singleGame = isSingleGameLink ? games[0] : null;
+  const scoreA = singleGame
+    ? (teamA?.id === singleGame.homeTeamId ? singleGame.homescore : singleGame.awayscore) ?? "–"
+    : null;
+  const scoreB = singleGame
+    ? (teamB?.id === singleGame.homeTeamId ? singleGame.homescore : singleGame.awayscore) ?? "–"
+    : null;
 
   const teamRows = (
     <>
       <TeamRow
         team={teamA}
-        wins={series.round === "play_in" ? null : winsA}
+        wins={showWins ? winsA : scoreA}
         isWinner={aIsWinner}
         isLoser={aIsLoser}
-        greenName={isPlayIn && aIsWinner}
+        greenName={isSingleGameLink && aIsWinner}
       />
       <div className="h-px bg-white/[0.05]" />
       <TeamRow
         team={teamB}
-        wins={series.round === "play_in" ? null : winsB}
+        wins={showWins ? winsB : scoreB}
         isWinner={bIsWinner}
         isLoser={bIsLoser}
-        greenName={isPlayIn && bIsWinner}
+        greenName={isSingleGameLink && bIsWinner}
       />
       {isProjected && (
         <div className="text-[10px] uppercase tracking-wider text-text-tertiary text-center py-1 border-t border-white/[0.05]">
@@ -120,8 +130,8 @@ export default function SeriesCard({ series, league }) {
     </>
   );
 
-  // Single-game series (play-in): navigate directly to the game
-  if (isPlayIn) {
+  // Single-game series: navigate directly to the game.
+  if (isSingleGameLink) {
     return (
       <Link
         to={`/${league}/games/${games[0].id}`}

@@ -1,20 +1,43 @@
 const EPSILON = 1e-9;
 
 function getRecord(matrix, teamId, opponentId) {
-  return matrix.get(teamId)?.get(opponentId) ?? { wins: 0, losses: 0, pf: 0, pa: 0, otLosses: 0 };
+  return matrix.get(teamId)?.get(opponentId) ?? { wins: 0, losses: 0, pf: 0, pa: 0, otLosses: 0, ties: 0 };
+}
+
+// Accumulates win/loss/tie record for a group (conf or division) — used for both
+// confRecords and divRecords in buildH2HMatrix to avoid duplicating the same logic.
+function accumulateGroupRecord(groupByTeamId, groupRecords, home, away, g) {
+  if (!groupByTeamId) return;
+  const hGroup = groupByTeamId.get(home);
+  const aGroup = groupByTeamId.get(away);
+  if (!hGroup || !aGroup || hGroup !== aGroup) return;
+  if (!groupRecords.has(home)) groupRecords.set(home, { wins: 0, losses: 0, ties: 0 });
+  if (!groupRecords.has(away)) groupRecords.set(away, { wins: 0, losses: 0, ties: 0 });
+  if (g.winnerid === home) {
+    groupRecords.get(home).wins++;
+    groupRecords.get(away).losses++;
+  } else if (g.winnerid === away) {
+    groupRecords.get(away).wins++;
+    groupRecords.get(home).losses++;
+  } else if (g.homescore != null && Number(g.homescore) === Number(g.awayscore)) {
+    groupRecords.get(home).ties++;
+    groupRecords.get(away).ties++;
+  }
 }
 
 // league is optional; when "nhl", tracks regWins per team and otLosses per pair.
-export function buildH2HMatrix(games, confByTeamId, league) {
+// divByTeamId is optional; when provided, tracks per-team division records.
+export function buildH2HMatrix(games, confByTeamId, league, divByTeamId) {
   const matrix = new Map();
   const teamTotals = new Map();
   const confRecords = new Map();
+  const divRecords = new Map();
 
   function ensure(teamId, opponentId) {
     if (!matrix.has(teamId)) matrix.set(teamId, new Map());
     const row = matrix.get(teamId);
     if (!row.has(opponentId)) {
-      row.set(opponentId, { wins: 0, losses: 0, pf: 0, pa: 0, otLosses: 0 });
+      row.set(opponentId, { wins: 0, losses: 0, pf: 0, pa: 0, otLosses: 0, ties: 0 });
     }
     if (!teamTotals.has(teamId)) {
       teamTotals.set(teamId, { pf: 0, pa: 0, regWins: 0 });
@@ -71,24 +94,14 @@ export function buildH2HMatrix(games, confByTeamId, league) {
           totAway.regWins++;
         }
       }
+    } else if (g.homescore != null && Number(g.homescore) === Number(g.awayscore)) {
+      // Tie game (NFL regular season)
+      homeRec.ties++;
+      awayRec.ties++;
     }
 
-    // Conference records
-    if (confByTeamId) {
-      const homeConf = confByTeamId.get(home);
-      const awayConf = confByTeamId.get(away);
-      if (homeConf && awayConf && homeConf === awayConf) {
-        if (!confRecords.has(home)) confRecords.set(home, { wins: 0, losses: 0 });
-        if (!confRecords.has(away)) confRecords.set(away, { wins: 0, losses: 0 });
-        if (g.winnerid === home) {
-          confRecords.get(home).wins++;
-          confRecords.get(away).losses++;
-        } else if (g.winnerid === away) {
-          confRecords.get(away).wins++;
-          confRecords.get(home).losses++;
-        }
-      }
-    }
+    accumulateGroupRecord(confByTeamId, confRecords, home, away, g);
+    accumulateGroupRecord(divByTeamId, divRecords, home, away, g);
   }
 
   const teamPointDiffs = new Map();
@@ -100,17 +113,24 @@ export function buildH2HMatrix(games, confByTeamId, league) {
     teamGf.set(id, t.pf);
   }
 
-  return { matrix, teamPointDiffs, teamRegWins, teamGf, confRecords };
+  return { matrix, teamPointDiffs, teamRegWins, teamGf, confRecords, divRecords };
 }
 
 function primaryValue(team, league) {
   const w = Number(team.wins) || 0;
   const l = Number(team.losses) || 0;
-  const otl = Number(team.otl) || 0;
+  if (league === "nhl") {
+    const otl = Number(team.otl) || 0;
+    const gp = w + l;
+    return gp === 0 ? 0 : (2 * w + otl) / (2 * gp);
+  }
+  if (league === "nfl") {
+    const ties = Number(team.ties) || 0;
+    const gp = w + l + ties;
+    return gp === 0 ? 0 : (w + 0.5 * ties) / gp;
+  }
   const gp = w + l;
-  if (gp === 0) return 0;
-  if (league === "nhl") return (2 * w + otl) / (2 * gp);
-  return w / gp;
+  return gp === 0 ? 0 : w / gp;
 }
 
 // NHL 4-step tiebreaker within a tied group (all have equal ptsPct):
@@ -217,10 +237,52 @@ function computeDivisionLeaders(teams, matrix) {
   return leaders;
 }
 
+// NFL simplified cascade within a tied group (all have equal winPct):
+//   1. H2H record (2-way: W/L; 3+-way: combined pct, only if every pair has played)
+//   2. Division win pct
+//   3. Conference win pct
+//   4. Point differential
+//   5. id asc (deterministic)
+function nflResolveGroup(group, matrix) {
+  if (group.length <= 1) return group;
+
+  const groupIds = new Set(group.map((t) => t.id));
+
+  const scored = group.map((team) => {
+    let h2hW = 0, h2hL = 0, h2hT = 0;
+    let allPlayed = true;
+    for (const otherId of groupIds) {
+      if (otherId === team.id) continue;
+      const rec = getRecord(matrix, team.id, otherId);
+      if (rec.wins + rec.losses + rec.ties === 0) allPlayed = false;
+      h2hW += rec.wins;
+      h2hL += rec.losses;
+      h2hT += rec.ties || 0;
+    }
+    const h2hGp = h2hW + h2hL + h2hT;
+    const h2hPct = h2hGp > 0 ? (h2hW + 0.5 * h2hT) / h2hGp : 0;
+    return { team, h2hPct, allPlayed };
+  });
+
+  // For 3+-way ties, H2H only applies if every pair has played each other
+  const useH2H = group.length === 2 || scored.every((s) => s.allPlayed);
+
+  scored.sort((a, b) =>
+    (useH2H ? b.h2hPct - a.h2hPct : 0) ||
+    ((b.team.divWinPct ?? 0) - (a.team.divWinPct ?? 0)) ||
+    ((b.team.confWinPct ?? 0) - (a.team.confWinPct ?? 0)) ||
+    ((b.team.pointDiff ?? 0) - (a.team.pointDiff ?? 0)) ||
+    (a.team.id - b.team.id)
+  );
+
+  return scored.map((s) => s.team);
+}
+
 function resolveGroup(group, matrix, league, divLeaders) {
   if (group.length <= 1) return group;
 
   if (league === "nhl") return nhlResolveGroup(group, matrix);
+  if (league === "nfl") return nflResolveGroup(group, matrix);
 
   if (group.length === 2) {
     const [a, b] = group;
@@ -260,9 +322,9 @@ export function sortWithTiebreakers(teams, matrix, league) {
   });
   sorted.sort((a, b) => b._pv - a._pv);
 
-  // Compute NBA division leaders once for this sort pass. Skip for NHL (uses its
-  // own cascade) and when no teams carry a division field (e.g. NFL for now).
-  const hasDivisions = league !== "nhl" && teams.some((t) => t.division);
+  // Compute NBA division leaders once for this sort pass (NBA only — NHL uses its
+  // own cascade; NFL uses divWinPct on team objects directly).
+  const hasDivisions = league === "nba" && teams.some((t) => t.division);
   const divLeaders = hasDivisions ? computeDivisionLeaders(sorted, matrix) : null;
 
   const result = [];

@@ -63,6 +63,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Standings service     | `backend/src/services/standings/standingsService.js`          |
 | NBA playoffs service  | `backend/src/services/standings/playoffsService.js`           |
 | NHL playoffs service  | `backend/src/services/standings/nhlPlayoffsService.js`        |
+| NFL playoffs service  | `backend/src/services/standings/nflPlayoffsService.js`        |
 | Shared playoffs helpers | `backend/src/services/standings/_playoffsCommon.js`         |
 
 ## Backend — Domain: User & Favorites
@@ -185,8 +186,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | What                    | Where                                                          |
 | ----------------------- | -------------------------------------------------------------- |
 | Playoffs API            | `frontend/src/api/playoffs.js`                                 |
-| Playoffs hook (NBA + NHL) | `frontend/src/hooks/data/usePlayoffs.js`                     |
-| League labels constant  | `frontend/src/constants/leagueLabels.js` (LEAGUE_LABELS — round titles, playoffsSupported, playInSupported per league) |
+| Playoffs hook (NBA + NHL + NFL) | `frontend/src/hooks/data/usePlayoffs.js`               |
+| League labels constant  | `frontend/src/constants/leagueLabels.js` (LEAGUE_LABELS — per-league: round titles, `playoffsSupported`, `playInSupported`, `bracketKeys`, `bracketTitles`, `finalsKey`, `conferences`, `round1SeriesCount`) |
 | Playoffs components     | `frontend/src/components/playoffs/` (PlayoffsBracket, SeriesCard, PlayInSection) |
 | Playoffs skeleton       | `frontend/src/components/skeletons/PlayoffsSkeleton.jsx`       |
 

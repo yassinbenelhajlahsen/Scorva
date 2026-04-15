@@ -31,20 +31,20 @@ function RoundColumn({ title, series, league, align = "left", delay = 0 }) {
   );
 }
 
-function ConferenceColumn({ conference, rounds, league, mirrored = false, baseDelay = 0 }) {
-  const label = conference === "eastern" ? "Eastern" : "Western";
+function ConferenceColumn({ confLabel, rounds, league, mirrored = false, baseDelay = 0 }) {
   const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
-  const columns = [
-    { key: "r1", title: labels.round1, series: rounds.r1 },
-    { key: "semis", title: labels.semis, series: rounds.semis },
-    { key: "cf", title: labels.confFinal, series: rounds.confFinals },
-  ];
+
+  const columns = labels.bracketKeys.map((k) => ({
+    key: k,
+    title: labels.bracketTitles[k] ?? k,
+    series: rounds[k] || [],
+  }));
   const ordered = mirrored ? [...columns].reverse() : columns;
 
   return (
     <div className="flex flex-col gap-4 min-w-0">
       <h3 className="text-sm font-semibold uppercase tracking-widest text-text-secondary text-center mb-8">
-        {label}
+        {confLabel}
       </h3>
       <div className="grid grid-cols-3 gap-3 md:gap-4 mb-4">
         {ordered.map((col, i) => (
@@ -97,20 +97,20 @@ export default function PlayoffsBracket({ league, season }) {
     );
   }
 
+  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
   const { bracket, playIn } = data;
-  const eastern = bracket?.eastern;
-  const western = bracket?.western;
-  const finals = bracket?.finals || [];
+  const [confA, confB] = labels.conferences;
+  const blockA = bracket?.[confA.key];
+  const blockB = bracket?.[confB.key];
+  const finals = bracket?.[labels.finalsKey] || [];
 
-  if (!eastern || !western) {
+  if (!blockA || !blockB) {
     return (
       <div className="text-center text-text-tertiary py-20 text-sm">
         Bracket unavailable for this season.
       </div>
     );
   }
-
-  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
 
   return (
     <div className="w-full">
@@ -124,7 +124,7 @@ export default function PlayoffsBracket({ league, season }) {
         </m.div>
       )}
 
-      {/* Finals at top, centered */}
+      {/* Finals/Super Bowl at top, centered */}
       <div className="mb-10">
         <FinalsSection finals={finals} league={league} />
       </div>
@@ -132,14 +132,14 @@ export default function PlayoffsBracket({ league, season }) {
       {/* Two conferences side-by-side on desktop, stacked on mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6">
         <ConferenceColumn
-          conference="eastern"
-          rounds={eastern}
+          confLabel={confA.label}
+          rounds={blockA}
           league={league}
           baseDelay={ROUND_STAGGER}
         />
         <ConferenceColumn
-          conference="western"
-          rounds={western}
+          confLabel={confB.label}
+          rounds={blockB}
           league={league}
           mirrored
           baseDelay={ROUND_STAGGER * 4}

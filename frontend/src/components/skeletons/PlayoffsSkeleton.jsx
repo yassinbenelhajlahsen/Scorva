@@ -68,9 +68,10 @@ function RoundColumnSkeleton({ title, count = 4, projected = false }) {
 }
 
 function ConferenceSkeleton({ label, labels, mirrored = false }) {
+  const round1Count = labels.round1SeriesCount ?? 4;
   // R1 has games (no projected footer); semis + CF are projected on current season
   const columns = [
-    <RoundColumnSkeleton key="r1" title={labels.round1} count={4} />,
+    <RoundColumnSkeleton key="r1" title={labels.round1} count={round1Count} />,
     <RoundColumnSkeleton key="semis" title={labels.semis} count={2} projected />,
     <RoundColumnSkeleton key="cf" title={labels.confFinal} count={1} projected />,
   ];
@@ -214,8 +215,8 @@ export default function PlayoffsSkeleton({ league, season } = {}) {
         </div>
       </m.div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6">
-        <ConferenceSkeleton label="Eastern" labels={labels} />
-        <ConferenceSkeleton label="Western" labels={labels} mirrored />
+        <ConferenceSkeleton label={labels.conferences?.[0]?.label ?? "Eastern"} labels={labels} />
+        <ConferenceSkeleton label={labels.conferences?.[1]?.label ?? "Western"} labels={labels} mirrored />
       </div>
     </m.div>
   );

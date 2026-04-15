@@ -67,8 +67,8 @@ Applied in: `playerDetailService.js` (stats JOIN), `playerComparison.js`, `teamS
 - Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
 - Wraps each league in try/catch so one failure doesn't abort subsequent leagues
 - Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
-- For NBA and NHL: calls `cleanupClinchedPlayoffGames(pool, league)` inside isolated try/catch — deletes `status='Scheduled'` playoff games whose series already clinched (one team has ≥ 4 wins; both leagues are best-of-7)
-- Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch; also invalidates `playoffs:nba:*` / `playoffs:nhl:*` per league
+- For NBA and NHL: calls `cleanupClinchedPlayoffGames(pool, league)` inside isolated try/catch — deletes `status='Scheduled'` playoff games whose series already clinched (one team has ≥ 4 wins; both leagues are best-of-7). Not called for NFL — single-elimination has no extra games to clean up.
+- Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch; also invalidates `playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*` per league
 - `runUpcomingProcessing` fetches 14 days ahead (days 1–14) in batches of 3, deduplicating by ESPN event ID
 - After the league loop, calls `refreshPopularity(pool)` — single UPDATE that counts `stats` rows per player and writes to `players.popularity`
 
@@ -179,7 +179,7 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `gameDates:{league}:{season}` | 5m | All dates + game counts for the season; used by date strip |
 | `games:{league}:{season}:date:{date}` | 30s current / 30d past | Date-filtered games for league page |
 | `news:headlines` | 5m | Merged ESPN news across all leagues; `cacheIf` non-empty |
-| `playoffs:{league}:{season}` | 30s current / 30d past | NBA and NHL bracket derivation |
+| `playoffs:{league}:{season}` | 30s current / 30d past | NBA, NHL, and NFL bracket derivation |
 | `plays:{league}:{gameId}` | 30d | Final games only (stored plays) |
 | `winprob:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
 | `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
@@ -190,8 +190,8 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 
 ### Invalidation
 - `upsertGame.js` — deletes `gameDetail` + `games:*:default:*` on every write
-- `liveSync.js` — deletes today default on scoreboard update; standings on finalize; also `playoffs:nba:*` (NBA) / `playoffs:nhl:*` (NHL) when games in that league finalize; `closeCache()` on shutdown
-- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch; also invalidates `playoffs:nba:*` or `playoffs:nhl:*` per league
+- `liveSync.js` — deletes today default on scoreboard update; standings on finalize; also invalidates `playoffs:{league}:*` (`playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*`) when games in that league finalize; `closeCache()` on shutdown
+- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch; also invalidates `playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*` per league
 
 `REDIS_URL` must be set on all three Railway services (API, liveSync, upsert).
 
@@ -265,7 +265,7 @@ Records which team a player was on **at the time of the game** — set at ingest
 - Backfill: `ingestion/backfillStatsTeamid.js` — fetches ESPN boxscores for all games with NULL `stats.teamid` and `eventid IS NOT NULL`, then updates rows in place. Run once after migration.
 
 ### `teams.division` (VARCHAR, nullable)
-Seeded per league per ESPN team ID by migration `20260415000001_seed_conf_division`. Used by `nhlPlayoffsService.js` to build divisional brackets and by `tiebreaker.js` to compute the NBA/NFL division-leader bonus. If not populated for a team, NHL playoff derivation falls back to a "division_data_missing" warning and NBA tiebreaker skips the bonus silently.
+Seeded per league per ESPN team ID by migration `20260415000001_seed_conf_division`. Used by `nhlPlayoffsService.js` and `nflPlayoffsService.js` to build divisional brackets, and by `tiebreaker.js` for the NBA division-leader bonus and the NFL `divWinPct` tiebreaker step. If not populated for a team: NHL and NFL playoff derivation returns `warning: "division_data_missing"` with an empty projected bracket; NBA tiebreaker skips the division-leader bonus silently.
 
 ### `games.game_label` (TEXT, nullable)
 Display-only text (e.g. `"NBA Finals - Game 1"`, `"Wild Card Round"`). Never use for classification logic.
@@ -279,11 +279,13 @@ Set once at ingest by `eventProcessor.js` from `event.date` (ESPN UTC ISO timest
 - `gameDetailService.js` exposes as `startTime` (camelCase); `gamesService` exposes as `start_time` (snake_case via `g.*`)
 - Frontend shows only for scheduled games (not live/final)
 
-## Playoffs bracket (NBA + NHL)
+## Playoffs bracket (NBA + NHL + NFL)
 
 Compute-on-read derivation — no dedicated schema, builds bracket from `games WHERE type IN ('playoff', 'final')` + standings.
 
 Shared helpers live in `services/standings/_playoffsCommon.js`: `isFinalStatus`, `pairKey`, `buildSeries`, `makeTeamInfo`, `projectedTeamInfo`, `serializeSeries`, `emptySeries`, `emptyConfBlock`, `padConfBlock`, `clearDownstream`.
+
+`buildSeries(games, teamsById, { bestOf = 7 } = {})` — `isComplete` threshold is `Math.ceil(bestOf / 2)` wins. NFL passes `bestOf: 1` for single-elimination. Each game in the series now carries `game_label` so services can classify rounds by label substring.
 
 ### NBA
 
@@ -323,6 +325,40 @@ Returns `{ season, unsupported: true }` for seasons before 2013-14 (pre-realignm
 
 #### Division-missing guard
 If any team has a `conf` but no `division` value, `getNhlPlayoffs` logs a warning and returns an empty projected bracket with `warning: "division_data_missing"`. Prevents the service from silently producing a wrong bracket when `teams.division` hasn't been seeded for a new team.
+
+### NFL
+
+Service: `services/standings/nflPlayoffsService.js`. No play-in. Single-elimination (`bestOf: 1` passed to `buildSeries`).
+
+#### Bracket structure
+`{ afc, nfc, superBowl }` — each conf block is `{ wildCard[], divisional[], confChampionship[] }`.
+
+#### Formats
+- **14-team** (2020-21+): 7 seeds/conf, 1-seed bye, 3 Wild Card games/conf
+- **12-team** (2015-16 to 2019-20): 6 seeds/conf, seeds 1+2 bye, 2 Wild Card games/conf
+- Selected by opening calendar year of the season string (e.g. `"2023-24"` → 2023)
+
+#### Seeding (`buildConfCanonical`)
+Requires exactly 4 divisions per conference. Division winner = top-ranked team per division via `nflSort` (standings tiebreakers). Seeds 1–4: division winners ranked against each other. Seeds 5–7 (14-team) or 5–6 (12-team): best remaining non-div-winners.
+
+#### Round classification
+`classifyRound(game_label, hasFinalTypeGame)` — `type='final'` → Super Bowl; otherwise matches `game_label` substring: "wild card" → `wildCard`, "divisional" → `divisional`, "championship" → `confChampionship`.
+
+#### Reseeding after Wild Card
+`projectDivisional` collects bye teams + Wild Card survivors, sorts by seed, and pairs highest-vs-lowest (e.g. 1 vs lowest remaining, 2nd-best vs 2nd-lowest).
+
+#### Slot matching
+`matchActualToSlots` maps each actual series to one of the canonical projected slots via team-ID lookup. Cross-slot matches (team moved to unexpected bracket position) resolve to the slot of the better-seeded (lower number) team.
+
+#### Downstream clearing
+`clearNflDownstream` resets `confChampionship` to an empty placeholder until at least one Divisional game completes.
+
+#### Unsupported / missing data
+- Pre-2015-16 seasons → `{ season, unsupported: true }`
+- Any conf-assigned team missing `division` → `{ isProjected: true, format, warning: "division_data_missing", bracket: emptyNflBracket(format) }`
+
+#### Cleanup
+`cleanupClinchedPlayoffGames` runs only for NBA and NHL (both best-of-7). It is **not** called for NFL — single-elimination means there are no "if necessary" extra games to clean up.
 
 ## Auth & users
 

@@ -56,6 +56,7 @@ export async function runUpsert(pool) {
         await invalidatePattern(`gameDates:${league}:*`);
         if (league === "nba") await invalidatePattern("playoffs:nba:*");
         if (league === "nhl") await invalidatePattern("playoffs:nhl:*");
+        if (league === "nfl") await invalidatePattern("playoffs:nfl:*");
       } catch (err) {
         log.error({ err, league }, "failed processing league");
       }
