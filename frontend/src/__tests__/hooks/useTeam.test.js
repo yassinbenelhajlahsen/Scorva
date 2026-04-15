@@ -24,9 +24,9 @@ const mockTeamList = [
 ];
 
 const mockGames = [
-  { id: 1, date: "2025-01-10", status: "Final", hometeamid: 17, awayteamid: 2, winnerid: 17 },
-  { id: 2, date: "2025-01-05", status: "Final", hometeamid: 2, awayteamid: 17, winnerid: 17 },
-  { id: 3, date: "2025-01-15", status: "Scheduled", hometeamid: 17, awayteamid: 2, winnerid: null },
+  { id: 1, date: "2025-01-10", status: "Final", hometeamid: 17, awayteamid: 2, winnerid: 17, type: "regular" },
+  { id: 2, date: "2025-01-05", status: "Final", hometeamid: 2, awayteamid: 17, winnerid: 17, type: "regular" },
+  { id: 3, date: "2025-01-15", status: "Scheduled", hometeamid: 17, awayteamid: 2, winnerid: null, type: "regular" },
 ];
 
 const mockStandings = [
