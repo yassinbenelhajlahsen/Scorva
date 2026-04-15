@@ -6,9 +6,7 @@ import { buildH2HMatrix, sortWithTiebreakers } from "../../utils/tiebreaker.js";
 import logger from "../../logger.js";
 import {
   isFinalStatus,
-  pairKey,
   buildSeries,
-  makeTeamInfo,
   projectedTeamInfo,
   serializeSeries,
   emptySeries,
