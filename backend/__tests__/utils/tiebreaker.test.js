@@ -12,11 +12,28 @@ function team(id, opts = {}) {
     wins,
     losses,
     otl,
+    division:  opts.division  ?? null,
     regWins:   opts.regWins   ?? wins,
     gf:        opts.gf        ?? wins * 3,
     pointDiff: opts.pointDiff ?? wins - losses,
     confWinPct: opts.confWinPct ?? (gp > 0 ? wins / gp : 0),
   };
+}
+
+// Build a simple NBA H2H matrix (no OT tracking, all teams in same conf by default).
+function nbaMatrix(records, confMap) {
+  const games = records.map((r, i) => ({
+    id: i + 1,
+    hometeamid: r.home,
+    awayteamid: r.away,
+    homescore: r.winner === r.home ? 2 : 1,
+    awayscore: r.winner === r.away ? 2 : 1,
+    winnerid: r.winner,
+    ot1: null,
+  }));
+  const teamIds = new Set(records.flatMap((r) => [r.home, r.away]));
+  const confByTeamId = confMap ?? new Map([...teamIds].map((id) => [id, "east"]));
+  return buildH2HMatrix(games, confByTeamId, "nba");
 }
 
 // Build a simple H2H matrix from an array of game records:
@@ -164,5 +181,138 @@ describe("sortWithTiebreakers — NHL tiebreaker cascade", () => {
 
     const sorted = sortWithTiebreakers([B, A], matrix, "nhl");
     expect(sorted[0].id).toBe(1); // lower id wins
+  });
+});
+
+// ---------------------------------------------------------------------------
+// NBA division-leader bonus
+// ---------------------------------------------------------------------------
+// Setup: two conferences, each with two divisions. Team IDs:
+//   East Atlantic:  1 (leader), 2
+//   East Central:   3 (leader), 4
+// All teams have identical W/L (40-35) unless overridden, so they land in
+// the same primary-value group and tiebreakers decide order.
+
+describe("sortWithTiebreakers — NBA division leader bonus", () => {
+  const BASE = { wins: 40, losses: 35 };
+
+  it("2-way tie: division leader wins when H2H is split evenly", () => {
+    // A is the sole leader of Atlantic; B is second in Central (C leads Central).
+    // No H2H games between A and B, so H2H is 0-0 (tied).
+    // Division leader bonus should put A first.
+    const A = team(1, { ...BASE, division: "Atlantic", confWinPct: 0.5 });
+    const B = team(2, { ...BASE, division: "Central",  confWinPct: 0.5 });
+    const C = team(3, { ...BASE, wins: 41, division: "Central", confWinPct: 0.55 }); // C leads Central
+    const { matrix } = nbaMatrix([]);
+
+    // Only sort A and B — C is here to ensure B is NOT a division leader
+    // (C has a better record than B in the same division).
+    const sorted = sortWithTiebreakers([A, B, C], matrix, "nba");
+    expect(sorted[0].id).toBe(3); // C — better win%
+    expect(sorted[1].id).toBe(1); // A — division leader (Atlantic) beats B
+    expect(sorted[2].id).toBe(2); // B — non-leader
+  });
+
+  it("2-way tie: H2H overrides division-leader bonus", () => {
+    // B beat A 2-0 head-to-head; A leads its division; B does not.
+    // H2H fires before division-leader, so B should still win.
+    const A = team(1, { ...BASE, division: "Atlantic", confWinPct: 0.5 });
+    const B = team(2, { ...BASE, division: "Central",  confWinPct: 0.5 });
+    const { matrix } = nbaMatrix([
+      { home: 2, away: 1, winner: 2 },
+      { home: 1, away: 2, winner: 2 },
+    ]);
+
+    const sorted = sortWithTiebreakers([A, B], matrix, "nba");
+    expect(sorted[0].id).toBe(2); // B — H2H advantage trumps division-leader
+    expect(sorted[1].id).toBe(1);
+  });
+
+  it("2-way tie: both teams are division leaders — falls through to conf%", () => {
+    const A = team(1, { ...BASE, division: "Atlantic", confWinPct: 0.6 });
+    const B = team(2, { ...BASE, division: "Central",  confWinPct: 0.5 });
+    const { matrix } = nbaMatrix([]);
+
+    const sorted = sortWithTiebreakers([A, B], matrix, "nba");
+    expect(sorted[0].id).toBe(1); // A — better conf% after div-leader step skipped
+    expect(sorted[1].id).toBe(2);
+  });
+
+  it("2-way tie: neither team has a division — falls through to conf%", () => {
+    // division: null on both → hasDivisions is false, divLeaders is null
+    const A = team(1, { ...BASE, confWinPct: 0.6 });
+    const B = team(2, { ...BASE, confWinPct: 0.5 });
+    const { matrix } = nbaMatrix([]);
+
+    const sorted = sortWithTiebreakers([A, B], matrix, "nba");
+    expect(sorted[0].id).toBe(1); // A — better conf%
+    expect(sorted[1].id).toBe(2);
+  });
+
+  it("3-way tie, mixed: non-leader ranks last", () => {
+    // A leads Atlantic, B leads Central, C is a non-leader (Atlantic second).
+    // A and B both leaders → they rank 1st/2nd (resolved by conf%);
+    // C (non-leader) ranks 3rd.
+    const A = team(1, { ...BASE, division: "Atlantic", confWinPct: 0.55 });
+    const B = team(2, { ...BASE, division: "Central",  confWinPct: 0.50 });
+    const C = team(3, { ...BASE, wins: 39, division: "Atlantic", confWinPct: 0.45 }); // worse record → non-leader
+    const { matrix } = nbaMatrix([]);
+
+    const sorted = sortWithTiebreakers([A, B, C], matrix, "nba");
+    expect(sorted[2].id).toBe(3); // C — non-leader always last
+    // A and B are both leaders; A has better conf% so A first
+    expect(sorted[0].id).toBe(1);
+    expect(sorted[1].id).toBe(2);
+  });
+
+  it("3-way tie, all leaders: division-leader step skipped, cascade decides", () => {
+    // Each team leads its own division. Step skipped; sorted by combined H2H pct.
+    // A beat B and C; B beat C.  H2H pct: A=1.0, B=0.5, C=0.0
+    const A = team(1, { ...BASE, division: "Atlantic" });
+    const B = team(2, { ...BASE, division: "Central" });
+    const C = team(3, { ...BASE, division: "Southeast" });
+    const { matrix } = nbaMatrix([
+      { home: 1, away: 2, winner: 1 },
+      { home: 1, away: 3, winner: 1 },
+      { home: 2, away: 3, winner: 2 },
+    ]);
+
+    const sorted = sortWithTiebreakers([A, B, C], matrix, "nba");
+    expect(sorted[0].id).toBe(1);
+    expect(sorted[1].id).toBe(2);
+    expect(sorted[2].id).toBe(3);
+  });
+
+  it("division leader is determined by H2H within the division (recursion-free)", () => {
+    // D1 and D2 are in the same division with identical records (40-35).
+    // D1 beat D2 head-to-head. D3 is alone in a second division.
+    // D1 should be the Atlantic leader; D3 leads Southeast.
+    // All three have identical W/L and no cross-division H2H games → primary sort ties.
+    // D1 (leader) > D2 (non-leader); D3 (leader) > D2 (non-leader).
+    // D1 vs D3: both leaders → falls through to conf% (D1 has better conf%).
+    const D1 = team(1, { ...BASE, division: "Atlantic", confWinPct: 0.6 });
+    const D2 = team(2, { ...BASE, division: "Atlantic", confWinPct: 0.5 });
+    const D3 = team(3, { ...BASE, division: "Southeast", confWinPct: 0.55 });
+    const { matrix } = nbaMatrix([
+      { home: 1, away: 2, winner: 1 },
+      { home: 2, away: 1, winner: 1 }, // D1 wins both — clear H2H leader
+    ]);
+
+    const sorted = sortWithTiebreakers([D1, D2, D3], matrix, "nba");
+    expect(sorted[2].id).toBe(2); // D2 — non-leader
+    // D1 and D3 are leaders; D1 has better conf%
+    expect(sorted[0].id).toBe(1);
+    expect(sorted[1].id).toBe(3);
+  });
+
+  it("NHL regression: division field on teams does not affect NHL cascade", () => {
+    // Same as the NHL regWins test but teams now carry a division field.
+    const A = team(1, { wins: 50, losses: 24, otl: 0, regWins: 45, division: "Atlantic" });
+    const B = team(2, { wins: 50, losses: 24, otl: 0, regWins: 38, division: "Metro" });
+    const { matrix } = matrixFrom([]);
+
+    const sorted = sortWithTiebreakers([B, A], matrix, "nhl");
+    expect(sorted[0].id).toBe(1); // A — more regWins, NHL path unchanged
+    expect(sorted[1].id).toBe(2);
   });
 });

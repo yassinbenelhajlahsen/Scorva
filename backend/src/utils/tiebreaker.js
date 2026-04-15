@@ -140,10 +140,12 @@ function nhlResolveGroup(group, matrix) {
   return scored.map((s) => s.team);
 }
 
-function resolveGroup(group, matrix, league) {
+// NBA/NFL tiebreaker cascade (no division-leader step):
+//   2-way: H2H → conf% → point diff → id
+//   3+way: combined H2H pct → conf% → point diff → id
+// Used both as the base fallback and for computing division leaders (no recursion).
+function resolveGroupBase(group, matrix) {
   if (group.length <= 1) return group;
-
-  if (league === "nhl") return nhlResolveGroup(group, matrix);
 
   if (group.length === 2) {
     const [a, b] = group;
@@ -184,12 +186,79 @@ function resolveGroup(group, matrix, league) {
   return scored.map((s) => s.team);
 }
 
+// Determine the division leader for each division in the passed team list.
+// Uses resolveGroupBase (no division-leader step) to avoid recursion.
+// Returns a Set of team IDs that lead their respective divisions.
+function computeDivisionLeaders(teams, matrix) {
+  const byDivision = new Map();
+  for (const t of teams) {
+    if (!t.division) continue;
+    if (!byDivision.has(t.division)) byDivision.set(t.division, []);
+    byDivision.get(t.division).push(t);
+  }
+
+  const leaders = new Set();
+  for (const divTeams of byDivision.values()) {
+    if (divTeams.length === 0) continue;
+    const withPv = divTeams.map((t) => ({ t, pv: primaryValue(t, "nba") }));
+    withPv.sort((a, b) => b.pv - a.pv);
+    const bestPv = withPv[0].pv;
+    let j = 1;
+    while (j < withPv.length && Math.abs(withPv[j].pv - bestPv) < EPSILON) j++;
+    const topGroup = withPv.slice(0, j).map((x) => x.t);
+    const resolved = resolveGroupBase(topGroup, matrix);
+    leaders.add(resolved[0].id);
+  }
+  return leaders;
+}
+
+function resolveGroup(group, matrix, league, divLeaders) {
+  if (group.length <= 1) return group;
+
+  if (league === "nhl") return nhlResolveGroup(group, matrix);
+
+  if (group.length === 2) {
+    const [a, b] = group;
+    // H2H
+    const rec = getRecord(matrix, a.id, b.id);
+    if (rec.wins !== rec.losses) return rec.wins > rec.losses ? [a, b] : [b, a];
+    // NBA division-leader bonus: after H2H, before conf%
+    if (divLeaders) {
+      const aL = divLeaders.has(a.id);
+      const bL = divLeaders.has(b.id);
+      if (aL && !bL) return [a, b];
+      if (bL && !aL) return [b, a];
+    }
+    return resolveGroupBase([a, b], matrix);
+  }
+
+  // 3+ way tie: if some leaders and some non-leaders exist, rank leaders first.
+  // Each partition is then resolved independently by resolveGroupBase.
+  if (divLeaders) {
+    const leaders = group.filter((t) => divLeaders.has(t.id));
+    const nonLeaders = group.filter((t) => !divLeaders.has(t.id));
+    if (leaders.length > 0 && nonLeaders.length > 0) {
+      return [
+        ...resolveGroupBase(leaders, matrix),
+        ...resolveGroupBase(nonLeaders, matrix),
+      ];
+    }
+  }
+
+  return resolveGroupBase(group, matrix);
+}
+
 export function sortWithTiebreakers(teams, matrix, league) {
   const sorted = [...teams];
   sorted.forEach((t) => {
     t._pv = primaryValue(t, league);
   });
   sorted.sort((a, b) => b._pv - a._pv);
+
+  // Compute NBA division leaders once for this sort pass. Skip for NHL (uses its
+  // own cascade) and when no teams carry a division field (e.g. NFL for now).
+  const hasDivisions = league !== "nhl" && teams.some((t) => t.division);
+  const divLeaders = hasDivisions ? computeDivisionLeaders(sorted, matrix) : null;
 
   const result = [];
   let i = 0;
@@ -199,7 +268,7 @@ export function sortWithTiebreakers(teams, matrix, league) {
       j++;
     }
     const group = sorted.slice(i, j);
-    result.push(...resolveGroup(group, matrix, league));
+    result.push(...resolveGroup(group, matrix, league, divLeaders));
     i = j;
   }
 
