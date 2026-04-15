@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import { formatDateNumeric } from "../../utils/formatDate.js";
 
-function TeamRow({ team, wins, isWinner, isLoser, greenName = false }) {
+function TeamRow({ team, wins, isWinner, isLoser }) {
   if (!team) {
     return (
       <div className="flex items-center justify-between px-3 py-2 gap-2">
@@ -45,11 +45,7 @@ function TeamRow({ team, wins, isWinner, isLoser, greenName = false }) {
         <div className="min-w-0">
           <div
             className={`text-xs font-medium truncate ${
-              greenName
-                ? "text-win"
-                : isLoser
-                ? "text-text-tertiary"
-                : "text-text-primary"
+              isLoser ? "text-text-tertiary" : "text-text-primary"
             }`}
           >
             {team.shortname || team.name}
@@ -112,7 +108,6 @@ export default function SeriesCard({ series, league }) {
         wins={showWins ? winsA : scoreA}
         isWinner={aIsWinner}
         isLoser={aIsLoser}
-        greenName={isSingleGameLink && aIsWinner}
       />
       <div className="h-px bg-white/[0.05]" />
       <TeamRow
@@ -120,7 +115,6 @@ export default function SeriesCard({ series, league }) {
         wins={showWins ? winsB : scoreB}
         isWinner={bIsWinner}
         isLoser={bIsLoser}
-        greenName={isSingleGameLink && bIsWinner}
       />
       {isProjected && (
         <div className="text-[10px] uppercase tracking-wider text-text-tertiary text-center py-1 border-t border-white/[0.05]">
