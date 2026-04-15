@@ -129,9 +129,19 @@ Return shape:
   if (league === "nhl") return res.json(await getNhlPlayoffs(season));
   return res.status(400).json({ error: "Playoffs bracket is only available for NBA and NHL" });
   ```
-- `backend/src/ingestion/pipeline/upsert.js` — find existing `invalidatePattern("playoffs:nba:*")` call and add conditional `"playoffs:nhl:*"` when `league === "nhl"`.
-- `backend/src/ingestion/pipeline/liveSync.js` — same.
-- Update `backend/__tests__/ingestion/upsert.test.js` expected `invalidatePattern` call count (was bumped from 10→11 for NBA playoffs; will be 12 now for NHL).
+- `backend/src/ingestion/pipeline/upsert.js` — find existing `invalidatePattern("playoffs:nba:*")` call and add conditional `"playoffs:nhl:*"` when `league === "nhl"`. Also add an NHL cleanup call mirroring the existing NBA pattern:
+  ```js
+  if (league === "nhl") {
+    try {
+      await cleanupClinchedPlayoffGames(pool, "nhl");
+    } catch (err) {
+      log.error({ err, league }, "failed cleaning up clinched playoff games");
+    }
+  }
+  ```
+- `backend/src/ingestion/pipeline/liveSync.js` — add `invalidatePattern("playoffs:nhl:*")` when `league === "nhl"`.
+- `backend/src/ingestion/cleanup/cleanupClinchedPlayoffGames.js` — extend to accept a `league` param (currently hardcoded to `'nba'`). Replace the hardcoded `WHERE league = 'nba'` filters with a parameterized `$1` binding and pass `league` through. Series clinch threshold is the same (4 wins) for NHL.
+- Update `backend/__tests__/ingestion/upsert.test.js`: `invalidatePattern` is currently called 11 times — adding `playoffs:nhl:*` brings it to 12. Also assert `cleanupClinchedPlayoffGames` is called once for NHL (in addition to the existing assertion for NBA).
 
 ### 9. Frontend: generalize hook + labels
 - New `frontend/src/constants/leagueLabels.js`:
@@ -166,7 +176,6 @@ Return shape:
   7. Mid-playoffs partial: 3 R1 series complete, 1 ongoing, no semis — verify structure.
   8. Completed playoffs: full bracket with Stanley Cup Final (`type='final'`) — verify `finals[0].isComplete`.
 - Extend `backend/__tests__/utils/tiebreaker.test.js` (create if absent) with one test per NHL cascade step.
-- Update `backend/__tests__/ingestion/upsert.test.js` expected call count.
 - No frontend tests required (matches NBA precedent — memory notes no existing playoff FE tests).
 
 ## Critical Files
@@ -187,8 +196,9 @@ Return shape:
 - `backend/src/services/standings/standingsService.js:14, 38-55, 98` (add `status` + `division` to SELECT; pass league to sort)
 - `backend/src/utils/tiebreaker.js` (NHL cascade branch)
 - `backend/src/controllers/standings/playoffsController.js:4-18` (NHL dispatch)
-- `backend/src/ingestion/pipeline/upsert.js` (add `playoffs:nhl:*` invalidation)
-- `backend/src/ingestion/pipeline/liveSync.js` (same)
+- `backend/src/ingestion/pipeline/upsert.js` (add `playoffs:nhl:*` invalidation + NHL cleanup call)
+- `backend/src/ingestion/pipeline/liveSync.js` (add `playoffs:nhl:*` invalidation)
+- `backend/src/ingestion/cleanup/cleanupClinchedPlayoffGames.js` (extend for NHL via `league` param)
 - `backend/__tests__/ingestion/upsert.test.js` (bump expected invalidate count)
 - `frontend/src/pages/LeaguePage.jsx:44, 55-59`
 - `frontend/src/components/playoffs/PlayoffsBracket.jsx:4, 36-39, 68, 83, 104-112`
