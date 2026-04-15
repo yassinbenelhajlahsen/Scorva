@@ -67,7 +67,8 @@ Applied in: `playerDetailService.js` (stats JOIN), `playerComparison.js`, `teamS
 - Runs every 30 min as a catch-up mechanism — picks up scheduled games, season transitions, data liveSync may have missed
 - Wraps each league in try/catch so one failure doesn't abort subsequent leagues
 - Both workers use `ON CONFLICT DO UPDATE` so concurrent writes are safe
-- Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch
+- For NBA and NHL: calls `cleanupClinchedPlayoffGames(pool, league)` inside isolated try/catch — deletes `status='Scheduled'` playoff games whose series already clinched (one team has ≥ 4 wins; both leagues are best-of-7)
+- Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch; also invalidates `playoffs:nba:*` / `playoffs:nhl:*` per league
 - `runUpcomingProcessing` fetches 14 days ahead (days 1–14) in batches of 3, deduplicating by ESPN event ID
 - After the league loop, calls `refreshPopularity(pool)` — single UPDATE that counts `stats` rows per player and writes to `players.popularity`
 
@@ -178,6 +179,7 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `gameDates:{league}:{season}` | 5m | All dates + game counts for the season; used by date strip |
 | `games:{league}:{season}:date:{date}` | 30s current / 30d past | Date-filtered games for league page |
 | `news:headlines` | 5m | Merged ESPN news across all leagues; `cacheIf` non-empty |
+| `playoffs:{league}:{season}` | 30s current / 30d past | NBA and NHL bracket derivation |
 | `plays:{league}:{gameId}` | 30d | Final games only (stored plays) |
 | `winprob:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
 | `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
@@ -188,8 +190,8 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 
 ### Invalidation
 - `upsertGame.js` — deletes `gameDetail` + `games:*:default:*` on every write
-- `liveSync.js` — deletes today default on scoreboard update; standings on finalize; `closeCache()` on shutdown
-- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch
+- `liveSync.js` — deletes today default on scoreboard update; standings on finalize; also `playoffs:nba:*` (NBA) / `playoffs:nhl:*` (NHL) when games in that league finalize; `closeCache()` on shutdown
+- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch; also invalidates `playoffs:nba:*` or `playoffs:nhl:*` per league
 
 `REDIS_URL` must be set on all three Railway services (API, liveSync, upsert).
 
@@ -250,7 +252,7 @@ Users can filter the league page to a specific date via a scrollable date strip 
 
 ### `games.type` (VARCHAR 20, DEFAULT 'regular')
 Single source of truth for game classification. Values: `regular`, `preseason`, `playoff`, `final`, `makeup`, `other`.
-- Derived in `ingestion/eventProcessor.js` from ESPN `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`
+- Derived in `ingestion/eventProcessor.js` from ESPN `event.season.type` (1=preseason, 2=regular, 3=playoffs) + `isSpecialEventGame()` for `other`; NBA Cup Championship game (regular-season type, `game_label` contains "nba cup" but NOT "group play"/"quarterfinal"/"semifinal") is also classified as `'other'` — Cup group play / QF / SF stay `'regular'` and count toward standings
 - Set as `$24` in `ingestion/upsertGame.js`
 - All regular-season queries filter `AND g.type IN ('regular', 'makeup')` — `makeup` games are rescheduled regular-season games (e.g. postponed due to weather) and must be included in standings, player stats, predictions, and chat tools
 - Frontend: `GameCard.jsx` reads `game.type` (snake_case from `gamesService`); `GamePage.jsx` reads `game.gameType` (camelCase from `gameDetailService`)
@@ -261,6 +263,9 @@ Records which team a player was on **at the time of the game** — set at ingest
 - `gameDetailService.js`: all 6 player subqueries use `COALESCE(s.teamid, p.teamid) = g.hometeamid/awayteamid` to correctly place traded players in historical box scores
 - `playerDetailService.js`: LATERAL subquery finds the player's most recent team for the selected season (`ORDER BY g.date DESC LIMIT 1`) and falls back to `p.teamid`; game-log CASE expressions (opponent, isHome, result) also use `COALESCE(s2.teamid, p.teamid)`
 - Backfill: `ingestion/backfillStatsTeamid.js` — fetches ESPN boxscores for all games with NULL `stats.teamid` and `eventid IS NOT NULL`, then updates rows in place. Run once after migration.
+
+### `teams.division` (VARCHAR, nullable)
+Seeded per league per ESPN team ID by migration `20260415000001_seed_conf_division`. Used by `nhlPlayoffsService.js` to build divisional brackets and by `tiebreaker.js` to compute the NBA/NFL division-leader bonus. If not populated for a team, NHL playoff derivation falls back to a "division_data_missing" warning and NBA tiebreaker skips the bonus silently.
 
 ### `games.game_label` (TEXT, nullable)
 Display-only text (e.g. `"NBA Finals - Game 1"`, `"Wild Card Round"`). Never use for classification logic.
@@ -274,20 +279,50 @@ Set once at ingest by `eventProcessor.js` from `event.date` (ESPN UTC ISO timest
 - `gameDetailService.js` exposes as `startTime` (camelCase); `gamesService` exposes as `start_time` (snake_case via `g.*`)
 - Frontend shows only for scheduled games (not live/final)
 
-## NBA Playoffs bracket
+## Playoffs bracket (NBA + NHL)
 
 Compute-on-read derivation — no dedicated schema, builds bracket from `games WHERE type IN ('playoff', 'final')` + standings.
 
-### Play-in classification
+Shared helpers live in `services/standings/_playoffsCommon.js`: `isFinalStatus`, `pairKey`, `buildSeries`, `makeTeamInfo`, `projectedTeamInfo`, `serializeSeries`, `emptySeries`, `emptyConfBlock`, `padConfBlock`, `clearDownstream`.
+
+### NBA
+
+Service: `services/standings/playoffsService.js`.
+
+#### Play-in classification
 Seed-based: both teams must be seeds 7–10 in the same conference. Seeds are computed once from standings via `computeStandingsSeeds(teamsById)` and shared with the seed-inference fallback in `derivePlayoffs`.
 
-### ESPN placeholder teams
+#### ESPN placeholder teams
 ESPN creates placeholder teams (e.g. "Suns/Trail Blazers") for undecided play-in slots. These have `conf IS NULL`:
 - **Backend**: `makeTeamInfo` returns null (TBD slot); `buildSeries` inherits conference from the known opponent so the series isn't dropped. `searchService` and `teamsService` filter `conf IS NOT NULL` to exclude placeholders from user-facing queries.
 - **Frontend**: GameCard/GamePage sanitize team names containing "/" to "TBD"; GameMatchupHeader renders TBD as non-clickable text with an empty spacer instead of a logo.
 
-### Projected mode
+#### Projected mode
 When no playoff games exist, or a conference has no R1 games yet, `buildProjectedConference` fills slots from standings (seeds 1–8 for R1, 9–10 for play-in). Play-in block is shown when actual play-in games are incomplete, R1 hasn't started, or any R1 series has a TBD opponent.
+
+### NHL
+
+Service: `services/standings/nhlPlayoffsService.js`. No play-in — 8 teams per conference advance directly to R1.
+
+#### Divisional format
+Each conference has 2 divisions. Seeds are derived by `buildConfCanonical`:
+- Top 3 teams per division → slots A1/A2/A3 (better division) and B1/B2/B3
+- Best 2 remaining teams (regardless of division) → WC1/WC2
+- "Better division" = the division whose leader ranks higher after `sortWithTiebreakers`
+- Seed numbers: A1=1, B1=2, A2=3, A3=4, B2=5, B3=6, WC1=7, WC2=8
+
+Canonical R1 slot order: **A1–WC2, A2–A3, B2–B3, B1–WC1**
+
+Round labels: First Round → Second Round → Conf. Finals → **Stanley Cup Final**
+
+#### Cross-slot R1 matching
+`matchR1ToSlots` maps each actual R1 series to one of the 4 canonical slots. When a series spans two canonical slots (mid-playoff team shuffle), it picks the slot of the better-seeded team.
+
+#### Unsupported seasons
+Returns `{ season, unsupported: true }` for seasons before 2013-14 (pre-realignment) and 2019-20 (bubble — no divisional bracket). Frontend renders a "not available" message instead of an empty bracket.
+
+#### Division-missing guard
+If any team has a `conf` but no `division` value, `getNhlPlayoffs` logs a warning and returns an empty projected bracket with `warning: "division_data_missing"`. Prevents the service from silently producing a wrong bracket when `teams.division` hasn't been seeded for a new team.
 
 ## Auth & users
 

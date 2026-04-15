@@ -15,7 +15,8 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 - **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `SUPABASE_URL`
 
 ## Validation rules
-- **League validation** — all 8 league-param controllers (teams, standings, games, gameDetail, players, playerDetail, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid)
+- **League validation** — all 8 league-param controllers (teams, standings, games, gameDetail, players, playerDetail, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid); playoffs controller additionally accepts only `nba` and `nhl`
+- **Tiebreaker cascades** — league-specific logic lives in `backend/src/utils/tiebreaker.js`; `resolveGroup` branches on `league === "nhl"` (NHL: regWins → H2H points → goal diff → goals for) vs NBA/NFL (H2H → division-leader bonus → conf% → point diff); `teams.division` must be populated for the division-leader bonus to take effect
 - **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isInteger(n) && n > 0` and caps at 50 IDs per array; service uses `ROW_NUMBER()` for 3 most recent per favorite
 - **Search input** — term capped at 200 chars; LIKE metacharacters (`%`, `_`, `\`) escaped before building the ILIKE pattern to prevent full-table scans
 - **Search deduplication** — `DISTINCT ON (type, id)` in the `deduped` CTE ensures a player matched by both real name and alias appears only once
@@ -25,7 +26,7 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 - **`apiFetch`** (`frontend/src/api/client.js`) — supports `method` + `body` + `timeout` (default 15 000 ms); sets `Content-Type: application/json` when body present; handles 204 responses; uses `AbortSignal.any([callerSignal, AbortSignal.timeout(ms)])` so callers can still cancel
 - **`useUserPrefs`** — pass `controller.signal` to `getProfile()` so the AbortController signal is forwarded (not just creating the controller)
 - **`game_label`** — display-only text, null for regular season; never use for classification logic
-- **`games.type`** — single source of truth for game classification; see [docs/ARCHITECTURE.md](ARCHITECTURE.md)
+- **`games.type`** — single source of truth for game classification; see [docs/ARCHITECTURE.md](ARCHITECTURE.md); NBA Cup Championship game is `'other'` (group play / QF / SF remain `'regular'` and count toward standings)
 
 ## Backend conventions
 - **`userController`** — delete Supabase auth user *before* DB delete (not after)

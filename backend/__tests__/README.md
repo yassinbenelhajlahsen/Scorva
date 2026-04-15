@@ -66,6 +66,7 @@ backend/__tests__/
 │   ├── searchService.test.js            # ILIKE stage 1 + fuzzy stage 2 fallback
 │   ├── seasonsService.test.js           # Season list queries
 │   ├── semanticSearchService.test.js    # Embedding-based game search
+│   ├── nhlPlayoffsService.test.js        # getNhlPlayoffs — unsupported seasons, projected bracket, tiebreakers, partial/complete bracket
 │   ├── standingsService.test.js         # getStandings, season-aware TTL
 │   ├── statLeadersService.test.js       # Stat leader queries + validation
 │   ├── teamStatsService.test.js         # Team aggregate stats
@@ -89,7 +90,8 @@ backend/__tests__/
 ├── utils/
 │   ├── dateParser.test.js               # tryParseDate — all formats + season-aware year
 │   ├── pgDateToString.test.js           # UTC date formatting
-│   └── slugResolver.test.js             # Slug/numeric ID resolution
+│   ├── slugResolver.test.js             # Slug/numeric ID resolution
+│   └── tiebreaker.test.js               # NHL cascade, NBA division-leader bonus, OT-loss tracking, ptsPct sort
 ├── middleware/
 │   ├── auth.test.js                     # requireAuth — JWT verification via Supabase
 │   └── rateLimiters.test.js             # Rate limiter configuration tests
@@ -105,7 +107,7 @@ backend/__tests__/
     └── app.test.js                      # Full app middleware + routing
 ```
 
-**Total: 65 test files.**
+**Total: 72 test files.**
 
 ## Running Tests
 

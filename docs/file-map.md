@@ -61,7 +61,9 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Routes                | `backend/src/routes/standings/` (standings, playoffs)         |
 | Controllers           | `backend/src/controllers/standings/`                          |
 | Standings service     | `backend/src/services/standings/standingsService.js`          |
-| Playoffs service      | `backend/src/services/standings/playoffsService.js`           |
+| NBA playoffs service  | `backend/src/services/standings/playoffsService.js`           |
+| NHL playoffs service  | `backend/src/services/standings/nhlPlayoffsService.js`        |
+| Shared playoffs helpers | `backend/src/services/standings/_playoffsCommon.js`         |
 
 ## Backend — Domain: User & Favorites
 
@@ -114,6 +116,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Player cache manager          | `backend/src/ingestion/playerCacheManager.js`            |
 | Player similarity embeddings  | `backend/src/ingestion/computePlayerEmbeddings.js`       |
 | Popularity refresh            | `backend/src/ingestion/refreshPopularity.js`             |
+| Playoff game cleanup          | `backend/src/ingestion/cleanup/cleanupClinchedPlayoffGames.js` |
 | Backfill scripts              | `backend/src/ingestion/scripts/`                         |
 | Game replay script (dev)      | `backend/scripts/replayGame.js`                          |
 | Alias seed data               | `backend/prisma/seeds/player_aliases.json`               |
@@ -182,7 +185,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | What                    | Where                                                          |
 | ----------------------- | -------------------------------------------------------------- |
 | Playoffs API            | `frontend/src/api/playoffs.js`                                 |
-| Playoffs hook           | `frontend/src/hooks/data/useNbaPlayoffs.js`                    |
+| Playoffs hook (NBA + NHL) | `frontend/src/hooks/data/usePlayoffs.js`                     |
+| League labels constant  | `frontend/src/constants/leagueLabels.js` (LEAGUE_LABELS — round titles, playoffsSupported, playInSupported per league) |
 | Playoffs components     | `frontend/src/components/playoffs/` (PlayoffsBracket, SeriesCard, PlayInSection) |
 | Playoffs skeleton       | `frontend/src/components/skeletons/PlayoffsSkeleton.jsx`       |
 

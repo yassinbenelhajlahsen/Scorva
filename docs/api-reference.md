@@ -3,8 +3,13 @@
 ## API endpoints (all under `/api`)
 - `GET /:league/teams`
 - `GET /:league/teams/:teamId/seasons` — distinct seasons the team has played in, ordered DESC
-- `GET /:league/standings` — optional `?season=`; returns array of team objects sorted by conference then win% with H2H → conference record → point differential tiebreakers; each team includes `wins`, `losses`, `otl` (NHL), `winPct` (NBA/NFL) or `ptsPct` (NHL), `pointDiff`, `confWinPct`; cached 5m current / 30d past
-- `GET /:league/playoffs` — NBA only (400 for others); optional `?season=`; returns `{ season, isProjected, playIn, bracket: { eastern, western, finals } }`; cached 30s current / 30d historical
+- `GET /:league/standings` — optional `?season=`; returns array of team objects sorted by conference then primary value. Each team includes `wins`, `losses`, `otl` (NHL), `winPct` (NBA/NFL) or `ptsPct` (NHL), `pointDiff`, `confWinPct`, `division`. Tiebreaker cascade is league-specific:
+  - **NBA/NFL**: H2H record → division-leader bonus (leader of own division ranks above non-leader) → conf% → point diff → id
+  - **NHL**: regWins → H2H points (W=2, OTL=1, L=0) → goal diff → goals for → id; OTL counted when `ot1 IS NOT NULL` OR `fourthqtr IS NOT NULL` (period 4/5 scores, independent of ESPN status string)
+  - Cached 5m current / 30d past
+- `GET /:league/playoffs` — supports `nba` and `nhl` (400 for others); optional `?season=`; cached `playoffs:{league}:{season}` 30s current / 30d historical
+  - **NBA response**: `{ season, isProjected, playIn, bracket: { eastern, western, finals } }` — `playIn` null for pre-play-in seasons
+  - **NHL response**: `{ season, isProjected, playIn: null, bracket: { eastern, western, finals } }` — no play-in; also returns `{ season, unsupported: true }` for pre-2013-14 and 2019-20 seasons, or `{ season, isProjected: true, warning: "division_data_missing", bracket: {…} }` when team division metadata is missing
 - `GET /:league/games` — optional `?date=YYYY-MM-DD` returns `{ games[], resolvedDate, resolvedSeason }` instead of a flat array; nearest-date fallback when no games exist on the requested date; validates format, 400 on mismatch
 - `GET /:league/games/dates` — optional `?season=`; returns `[{ date: "YYYY-MM-DD", count: N }]` for all dates with games in the season (cached 5 min)
 - `GET /:league/games/:gameId`
