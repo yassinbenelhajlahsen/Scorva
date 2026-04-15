@@ -331,8 +331,9 @@ describe("getNbaPlayoffs", () => {
     const result = await getNbaPlayoffs("2023-24");
 
     expect(result.playIn).not.toBeNull();
-    // Only 7v8 and 9v10 are play-in (seeds 7-10), not 1v8
-    expect(result.playIn.eastern).toHaveLength(2);
+    // Only 7v8 and 9v10 are play-in (seeds 7-10), not 1v8.
+    // After the 7v8 finishes, a tier-2 decisive slot is injected (team-8 vs TBD).
+    expect(result.playIn.eastern).toHaveLength(3);
     // The 1v8 series should be in bracket R1, not play-in
     const r1Teams = result.bracket.eastern.r1
       .filter((s) => s.teamA && s.teamB)
@@ -360,21 +361,28 @@ describe("getNbaPlayoffs", () => {
 
     const result = await getNbaPlayoffs("2023-24");
 
-    // Play-in should be visible (actual play-in games exist)
+    // Play-in should be visible (actual play-in games exist).
+    // A tier-2 decisive slot is injected: 7v8 is done so team-8 (loser) advances; 9v10
+    // is still scheduled so the other side is TBD.
     expect(result.playIn).not.toBeNull();
-    expect(result.playIn.eastern).toHaveLength(2);
+    expect(result.playIn.eastern).toHaveLength(3);
+    const decisive = result.playIn.eastern.find((s) => s.playInTier === 2);
+    expect(decisive).toBeDefined();
+    expect(decisive.teamA?.id).toBe(8); // loser of 7v8
+    expect(decisive.teamB).toBeNull(); // 9v10 winner not yet known
 
-    // R1 should be filled with projected matchups, not all TBD
+    // R1 1v8 and 2v7 slots show the locked higher seed vs TBD (play-in still live).
+    // 3v6 and 4v5 are projected normally since those seeds are locked.
     expect(result.bracket.eastern.r1).toHaveLength(4);
     const r1Seeds = result.bracket.eastern.r1.map((s) => [
       s.teamA?.seed,
       s.teamB?.seed,
     ]);
     expect(r1Seeds).toEqual([
-      [1, 8],
+      [1, undefined],
       [4, 5],
       [3, 6],
-      [2, 7],
+      [2, undefined],
     ]);
   });
 
@@ -426,5 +434,151 @@ describe("getNbaPlayoffs", () => {
     expect(result.playIn).not.toBeNull();
     expect(result.playIn.eastern.length).toBeGreaterThan(0);
     expect(result.playIn.western.length).toBeGreaterThan(0);
+  });
+
+  it("classifies play-in by game_label even when standings seed is outside 7-10", async () => {
+    // Simulates the 2023-24 bug: Philly had an extra DB game inflating their wins
+    // to seed 5 instead of 7. Without label-based classification the Philly-Heat
+    // play-in game landed in R1, pushing Bucks-Pacers into the semis slot.
+    const playInGame76ers = {
+      id: 900,
+      date: "2024-04-16",
+      hometeamid: 7,  // seed 7 in standings (normal)
+      awayteamid: 5,  // seed 5 in standings (should be 7 — inflated wins)
+      homescore: 105,
+      awayscore: 104,
+      winnerid: 5,
+      status: "Final",
+      type: "regular",
+      game_label: "NBA Play-In - East - 7th Place vs 8th Place",
+    };
+    const r1Games = [
+      { id: 1000, date: "2024-04-20", hometeamid: 1, awayteamid: 8,  homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff", game_label: null },
+      { id: 1010, date: "2024-04-21", hometeamid: 4, awayteamid: 5,  homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff", game_label: null },
+      { id: 1020, date: "2024-04-22", hometeamid: 3, awayteamid: 6,  homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff", game_label: null },
+      { id: 1030, date: "2024-04-23", hometeamid: 2, awayteamid: 7,  homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff", game_label: null },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: [playInGame76ers, ...r1Games] });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    // The play-in game should NOT be counted as R1 — R1 should have all 4 real matchups
+    expect(result.bracket.eastern.r1).toHaveLength(4);
+    // No R1 series should contain the play-in teams (ids 5 and 7 are both in play-in)
+    const r1TeamIds = result.bracket.eastern.r1.flatMap((s) =>
+      [s.teamA?.id, s.teamB?.id].filter(Boolean)
+    );
+    // Seeds 5 and 7 (play-in participants) must not appear as a pair in R1
+    expect(r1TeamIds).not.toEqual(expect.arrayContaining([5, 7]));
+    // The play-in block should include the mislabeled game
+    expect(result.playIn).not.toBeNull();
+  });
+
+  it("propagates 9v10 winner into decisive slot when only 9v10 is complete", async () => {
+    // 9v10 finished; 7v8 not started yet
+    const games = [
+      playInGame({ homeId: 9, awayId: 10, winnerId: 9, date: "2024-04-17", id: 901 }),
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    expect(result.playIn).not.toBeNull();
+    const decisive = result.playIn.eastern.find((s) => s.playInTier === 2);
+    expect(decisive).toBeDefined();
+    expect(decisive.teamA).toBeNull(); // 7v8 loser not yet known
+    expect(decisive.teamB?.id).toBe(9); // winner of 9v10
+    expect(decisive.isComplete).toBe(false);
+  });
+
+  it("propagates both tier-1 results into decisive slot when both are complete", async () => {
+    // Both 7v8 (winner=7) and 9v10 (winner=9) are done; no decisive game yet
+    const games = [
+      playInGame({ homeId: 7, awayId: 8, winnerId: 7, date: "2024-04-16", id: 900 }),
+      playInGame({ homeId: 9, awayId: 10, winnerId: 9, date: "2024-04-17", id: 901 }),
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    expect(result.playIn).not.toBeNull();
+    const decisive = result.playIn.eastern.find((s) => s.playInTier === 2);
+    expect(decisive).toBeDefined();
+    expect(decisive.teamA?.id).toBe(8); // loser of 7v8
+    expect(decisive.teamB?.id).toBe(9); // winner of 9v10
+    expect(decisive.isComplete).toBe(false); // decisive game hasn't been played
+  });
+
+  it("clears semis to TBD when no R1 series has completed", async () => {
+    // 4 R1 games in progress + a spurious "pre-created" semis row (like ESPN sometimes
+    // adds before R1 is done). Semis should be cleared so the leaked row is invisible.
+    const games = [
+      // R1 games in progress (no winner yet)
+      { id: 1000, date: "2024-04-20", hometeamid: 1, awayteamid: 8, homescore: 0, awayscore: 0, winnerid: null, status: "In Progress", type: "playoff" },
+      { id: 1010, date: "2024-04-21", hometeamid: 4, awayteamid: 5, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1020, date: "2024-04-22", hometeamid: 3, awayteamid: 6, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1030, date: "2024-04-23", hometeamid: 2, awayteamid: 7, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      // Spurious pre-created semis row that ESPN put in early (team 1 vs team 4)
+      { id: 2000, date: "2024-05-06", hometeamid: 1, awayteamid: 4, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    // No R1 complete → semis should be TBD
+    expect(result.bracket.eastern.semis[0].teamA).toBeNull();
+    expect(result.bracket.eastern.semis[0].teamB).toBeNull();
+    expect(result.bracket.eastern.semis[1].teamA).toBeNull();
+    expect(result.bracket.eastern.semis[1].teamB).toBeNull();
+    // Conf finals also TBD
+    expect(result.bracket.eastern.confFinals[0].teamA).toBeNull();
+  });
+
+  it("slots a 9-seed play-in winner correctly into the 1v8 R1 position", async () => {
+    // East play-in: seed-8 beats seed-7 in 7v8, seed-9 beats seed-10, seed-9 wins decisive.
+    // Seed-9 is now the playoff 8-seed and should face the 1-seed in R1.
+    const playInGames = [
+      playInGame({ homeId: 7, awayId: 8, winnerId: 8, date: "2024-04-16", id: 900 }), // 8 beats 7
+      playInGame({ homeId: 9, awayId: 10, winnerId: 9, date: "2024-04-17", id: 901 }), // 9 beats 10
+      playInGame({ homeId: 8, awayId: 9, winnerId: 9, date: "2024-04-19", id: 902 }), // 9 wins decisive → playoff 8 seed
+    ];
+    // R1: seed-1 vs playoff-8-seed (team id=9, originally 9th in standings)
+    const r1Games = [
+      { id: 1000, date: "2024-04-20", hometeamid: 1, awayteamid: 9, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1010, date: "2024-04-21", hometeamid: 4, awayteamid: 5, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1020, date: "2024-04-22", hometeamid: 3, awayteamid: 6, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1030, date: "2024-04-23", hometeamid: 2, awayteamid: 8, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: [...playInGames, ...r1Games] });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    // 1v8 slot should show seed-1 vs seed-9 team (now carrying playoff seed 8)
+    const slot18 = result.bracket.eastern.r1.find(
+      (s) => s.teamA?.seed === 1 || s.teamB?.seed === 1
+    );
+    expect(slot18).toBeDefined();
+    const opponent = slot18.teamA?.id === 1 ? slot18.teamB : slot18.teamA;
+    expect(opponent?.id).toBe(9);   // originally 9th in standings
+    expect(opponent?.seed).toBe(8); // but carries playoff seed 8 now
+  });
+
+  it("shows semis once at least one R1 series completes", async () => {
+    // R1: team-1 sweeps team-8; others still in progress
+    const games = [
+      ...sweep({ winnerId: 1, loserId: 8, startDate: "2024-04-20", gameIdStart: 1000 }),
+      { id: 1010, date: "2024-04-21", hometeamid: 4, awayteamid: 5, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1020, date: "2024-04-22", hometeamid: 3, awayteamid: 6, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1030, date: "2024-04-23", hometeamid: 2, awayteamid: 7, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    // R1[0] is complete → semis should NOT be cleared
+    const r1Complete = result.bracket.eastern.r1.some((s) => s.isComplete);
+    expect(r1Complete).toBe(true);
+    // Semis array exists with correct length (may be TBD teams since only 1 of 4 R1 done)
+    expect(result.bracket.eastern.semis).toHaveLength(2);
   });
 });

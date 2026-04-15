@@ -20,8 +20,8 @@ function OutcomeTag({ label, variant = "neutral" }) {
 function BracketConnector() {
   return (
     <div className="hidden md:flex flex-col items-stretch w-6 self-stretch">
-      <div className="flex-1 border-r border-b border-white/[0.12] rounded-br-lg" />
-      <div className="flex-1 border-r border-t border-white/[0.12] rounded-tr-lg" />
+      <div className="flex-[0.46] border-r border-b border-white/[0.12] rounded-br-lg" />
+      <div className="flex-[0.46] border-r border-t border-white/[0.12] rounded-tr-lg" />
     </div>
   );
 }
@@ -91,10 +91,11 @@ function ConferenceBracket({ heading, series, league, delay = 0 }) {
         {/* Bracket connector lines */}
         <BracketConnector />
 
-        {/* Tier 2 column: decisive game */}
-        <div className="flex flex-col justify-center w-[180px] shrink-0">
+        {/* Tier 2 column: decisive game — spacer ratios must match BracketConnector */}
+        <div className="flex flex-col self-stretch w-[180px] shrink-0">
+          <div className="flex-[0.54]" />
           <div className="flex items-center gap-2">
-            <div className="h-px w-2 bg-white/[0.12]" />
+            <div className="h-px w-2 " />
             <div className="flex-1 flex flex-col gap-1.5">
               {gameDecisive ? (
                 <SeriesCard series={gameDecisive} league={league} />
@@ -108,6 +109,7 @@ function ConferenceBracket({ heading, series, league, delay = 0 }) {
               </div>
             </div>
           </div>
+          <div className="flex-[0.46]" />
         </div>
       </div>
 

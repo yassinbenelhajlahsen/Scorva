@@ -23,7 +23,8 @@ function pairKey(a, b) {
 async function fetchPlayoffGames(season) {
   const { rows } = await pool.query(
     `SELECT id, date, hometeamid, awayteamid, homescore, awayscore,
-            winnerid, status, type
+            winnerid, status, type,
+            (game_label ILIKE '%play-in%') AS is_playin
        FROM games
       WHERE league = 'nba'
         AND season = $1
@@ -52,6 +53,7 @@ function buildSeries(games, teamsById) {
         firstGameDate: null,
         lastGameDate: null,
         hasFinalTypeGame: false,
+        hasPlayInLabel: false,
       };
       seriesMap.set(key, series);
     }
@@ -64,11 +66,13 @@ function buildSeries(games, teamsById) {
       awayscore: g.awayscore,
       winnerid: g.winnerid,
       status: g.status,
+      type: g.type,
     });
     if (g.winnerid != null && series.wins[g.winnerid] !== undefined) {
       series.wins[g.winnerid] += 1;
     }
     if (g.type === "final") series.hasFinalTypeGame = true;
+    if (g.is_playin) series.hasPlayInLabel = true;
   }
 
   const seriesList = [];
@@ -113,14 +117,20 @@ function computeStandingsSeeds(teamsById, h2hMatrix) {
   return seedByTeamId;
 }
 
-// Play-in games: both teams are seeds 7–10 in the same conference.
-// The old heuristic (games.length === 1) broke when R1 series had only
-// one game played — those got misclassified as play-in.
+// Play-in games: classified first by ESPN game_label (authoritative), then by
+// seeds 7–10 as a fallback. The label-based check is necessary because our
+// standings seeds can drift from ESPN's official seedings (e.g. duplicate game
+// rows inflate a team's win count, shifting their computed seed out of 7–10).
 function classifyPlayIn(allSeries, seedByTeamId) {
   const playInSeries = [];
   const remainingSeries = [];
 
   for (const s of allSeries) {
+    if (s.hasPlayInLabel) {
+      // ESPN explicitly labeled these games as play-in — trust it
+      playInSeries.push(s);
+      continue;
+    }
     const seedA = seedByTeamId.get(s.teamAId);
     const seedB = seedByTeamId.get(s.teamBId);
     if (
@@ -463,7 +473,9 @@ function buildProjectedConference(conf, teamsById, h2hMatrix) {
 
 // Merge actual R1 series with projected fallbacks in canonical order.
 // Handles partial R1 (e.g. play-in phase when 1v?/2v? are still TBD).
-function mergeR1WithCanonicalOrder(actualR1, projectedR1, confKey) {
+// playInUnresolved: when true, the 1v8 and 2v7 slots show the locked higher
+// seed (1 or 2) vs TBD instead of projecting the 7/8 seed from standings.
+function mergeR1WithCanonicalOrder(actualR1, projectedR1, confKey, playInUnresolved = false) {
   const seedToSlot = new Map();
   for (const [a, b] of R1_SEED_PAIRS) {
     const key = `${a}-${b}`;
@@ -477,8 +489,19 @@ function mergeR1WithCanonicalOrder(actualR1, projectedR1, confKey) {
       const sa = s.teamA?.seed;
       const sb = s.teamB?.seed;
       if (sa && sb) {
+        // Match by the higher-seeded team (lower number, always 1-4 in R1) so that
+        // a series like Bucks(3) vs Pacers(7) still slots into the "3-6" canonical
+        // position even when the lower team's computed seed is off (e.g. data issues).
+        const higherSeed = Math.min(sa, sb);
+        const pair = R1_SEED_PAIRS.find(([a]) => a === higherSeed);
+        if (pair) {
+          const key = `${pair[0]}-${pair[1]}`;
+          if (!map.has(key)) map.set(key, s);
+          continue;
+        }
+        // Fallback: exact pair key
         const key = sa < sb ? `${sa}-${sb}` : `${sb}-${sa}`;
-        map.set(key, s);
+        if (!map.has(key)) map.set(key, s);
       } else if (inferFromSingle && (sa || sb)) {
         const key = seedToSlot.get(sa || sb);
         if (key && !map.has(key)) map.set(key, s);
@@ -492,9 +515,75 @@ function mergeR1WithCanonicalOrder(actualR1, projectedR1, confKey) {
 
   return R1_SEED_PAIRS.map(([a, b]) => {
     const key = `${a}-${b}`;
-    return actual.get(key) ?? projected.get(key) ??
+    const actualSeries = actual.get(key);
+    if (actualSeries) return actualSeries;
+
+    // For 1v8 and 2v7, the lower seed (7 or 8) depends on play-in outcome.
+    // While play-in is unresolved, only show the locked top seed vs TBD.
+    if (playInUnresolved && (a === 1 || a === 2)) {
+      const projSeries = projected.get(key);
+      return emptySeries({
+        round: "r1",
+        conference: confKey,
+        teamA: projSeries?.teamA ?? null,
+        teamB: null,
+      });
+    }
+
+    return projected.get(key) ??
       emptySeries({ round: "r1", conference: confKey, teamA: null, teamB: null });
   });
+}
+
+// After play-in tier-1 results are known, populate the tier-2 (decisive) slot
+// so users can see who will be playing next. Skips if ESPN has already created
+// a real decisive game row (tier2.games.length > 0).
+function fillPlayInTier2(playInBlock) {
+  for (const conf of ["eastern", "western"]) {
+    const series = playInBlock[conf];
+    if (!series || series.length === 0) continue;
+
+    const tier1 = series.filter((s) => s.playInTier === 1);
+    if (tier1.length === 0) continue;
+
+    let tier2 = series.find((s) => s.playInTier === 2);
+    if (!tier2) {
+      // No decisive game in DB yet — inject a placeholder so the bracket slot renders
+      tier2 = emptySeries({
+        round: "play_in",
+        conference: conf,
+        teamA: null,
+        teamB: null,
+        playInTier: 2,
+      });
+      series.push(tier2);
+    } else if (tier2.games.length > 0) {
+      continue; // ESPN has real decisive-game data — trust it, don't overwrite
+    }
+
+    // 7v8: series whose lowest known seed is ≤ 8
+    const game78 = tier1.find((s) => {
+      const sA = s.teamA?.seed ?? Infinity;
+      const sB = s.teamB?.seed ?? Infinity;
+      return Math.min(sA, sB) <= 8;
+    });
+    const game910 = tier1.find((s) => s !== game78);
+
+    // Loser of 7v8 advances to the decisive game
+    let loser78 = null;
+    if (game78?.isComplete && game78.winnerId != null) {
+      loser78 = game78.winnerId === game78.teamA?.id ? game78.teamB : game78.teamA;
+    }
+
+    // Winner of 9v10 advances to the decisive game
+    let winner910 = null;
+    if (game910?.isComplete && game910.winnerId != null) {
+      winner910 = game910.winnerId === game910.teamA?.id ? game910.teamA : game910.teamB;
+    }
+
+    tier2.teamA = loser78;
+    tier2.teamB = winner910;
+  }
 }
 
 async function derivePlayoffs(season) {
@@ -551,13 +640,33 @@ async function derivePlayoffs(season) {
   const finalsSeries = allSeries.filter((s) => s.hasFinalTypeGame);
   const nonFinalsSeries = allSeries.filter((s) => !s.hasFinalTypeGame);
 
-  const standingsSeedMap = computeStandingsSeeds(teamsById, h2hData.matrix);
+  let standingsSeedMap = computeStandingsSeeds(teamsById, h2hData.matrix);
 
   const { playInSeries, remainingSeries } = classifyPlayIn(nonFinalsSeries, standingsSeedMap);
 
   // Play-in is best-of-1 — override the best-of-7 isComplete rule
   for (const s of playInSeries) {
     s.isComplete = s.games.length > 0 && s.games.every((g) => isFinalStatus(g.status));
+  }
+
+  // In some seasons (e.g. 2023-24) play-in games have type='regular', so
+  // getStandings() counts them toward regular-season win/loss totals. This inflates
+  // play-in winners' seeds and breaks canonical R1 slot matching. Subtract those
+  // game results from teamsById and recompute seeds with clean regular-season records.
+  let standingsNeedRecompute = false;
+  for (const s of playInSeries) {
+    for (const g of s.games) {
+      if (g.type !== "regular" && g.type !== "makeup") continue;
+      if (g.winnerid == null) continue;
+      const loserId = g.homeTeamId === g.winnerid ? g.awayTeamId : g.homeTeamId;
+      const winner = teamsById.get(g.winnerid);
+      const loser = teamsById.get(loserId);
+      if (winner) { winner.wins = Math.max(0, winner.wins - 1); standingsNeedRecompute = true; }
+      if (loser) { loser.losses = Math.max(0, loser.losses - 1); standingsNeedRecompute = true; }
+    }
+  }
+  if (standingsNeedRecompute) {
+    standingsSeedMap = computeStandingsSeeds(teamsById, h2hData.matrix);
   }
 
   const cleanSeries = [];
@@ -603,6 +712,29 @@ async function derivePlayoffs(season) {
   const seedMapById = new Map(standingsSeedMap);
   if (eastSeedMap) for (const [id, seed] of eastSeedMap) seedMapById.set(id, seed);
   if (westSeedMap) for (const [id, seed] of westSeedMap) seedMapById.set(id, seed);
+
+  // Override play-in winners to their actual playoff seeds (7 or 8).
+  // A 9/10-seed team that won through to the playoffs keeps their regular-season
+  // seed in standingsSeedMap, which would key their R1 series as e.g. "1-9"
+  // and break the canonical slot matching. Assign 7 to the 7v8 winner and 8 to
+  // the decisive winner so their R1 matchups slot correctly regardless of origin.
+  for (const s of playInSeries) {
+    if (!s.isComplete || s.winnerId == null) continue;
+    const sA = standingsSeedMap.get(s.teamAId);
+    const sB = standingsSeedMap.get(s.teamBId);
+    if (sA == null || sB == null) continue;
+    const both78 = sA >= 7 && sA <= 8 && sB >= 7 && sB <= 8;
+    const both910 = sA >= 9 && sA <= 10 && sB >= 9 && sB <= 10;
+    if (both78) {
+      // 7v8 game: winner earns the 7 playoff seed
+      seedMapById.set(s.winnerId, 7);
+    } else if (!both910) {
+      // Decisive (crossover) game: winner earns the 8 playoff seed
+      seedMapById.set(s.winnerId, 8);
+    }
+    // 9v10 loser is eliminated — no seed override needed
+  }
+
   const ctx = { teamsById, seedMap: seedMapById };
 
   const serializeConf = (rounds, confKey) => ({
@@ -622,11 +754,48 @@ async function derivePlayoffs(season) {
   // Handles partial R1 (e.g. play-in phase when 1v?/2v? slots are TBD).
   const projEast = buildProjectedConference("east", teamsById, h2hData.matrix);
   const projWest = buildProjectedConference("west", teamsById, h2hData.matrix);
-  easternBlock.r1 = mergeR1WithCanonicalOrder(easternBlock.r1, projEast?.r1 ?? [], "eastern");
-  westernBlock.r1 = mergeR1WithCanonicalOrder(westernBlock.r1, projWest?.r1 ?? [], "western");
+
+  // Determine per-conference whether play-in is unresolved so that 1v8/2v7
+  // slots don't project the standings-inferred 7/8 seed before play-in settles.
+  const isPlayInTier1Series = (s) => {
+    const sA = standingsSeedMap.get(s.teamAId);
+    const sB = standingsSeedMap.get(s.teamBId);
+    if (!sA || !sB) return false;
+    return (
+      (sA >= 7 && sA <= 8 && sB >= 7 && sB <= 8) ||
+      (sA >= 9 && sA <= 10 && sB >= 9 && sB <= 10)
+    );
+  };
+  const eastTier1PI = playInSeries.filter((s) => s.confA === "east" && isPlayInTier1Series(s));
+  const westTier1PI = playInSeries.filter((s) => s.confA === "west" && isPlayInTier1Series(s));
+  const eastPlayInUnresolved = eastTier1PI.length < 2 || eastTier1PI.some((s) => !s.isComplete);
+  const westPlayInUnresolved = westTier1PI.length < 2 || westTier1PI.some((s) => !s.isComplete);
+
+  easternBlock.r1 = mergeR1WithCanonicalOrder(easternBlock.r1, projEast?.r1 ?? [], "eastern", eastPlayInUnresolved);
+  westernBlock.r1 = mergeR1WithCanonicalOrder(westernBlock.r1, projWest?.r1 ?? [], "western", westPlayInUnresolved);
 
   padConfBlock(easternBlock, "eastern");
   padConfBlock(westernBlock, "western");
+
+  // Cascade-clear downstream rounds until predecessors are complete.
+  // Prevents pre-created ESPN semi/CF game rows from leaking into the bracket
+  // before the preceding round has actually been decided.
+  const clearDownstream = (block, confKey) => {
+    const r1Done = block.r1.some((s) => s.isComplete);
+    if (!r1Done) {
+      block.semis = Array.from({ length: 2 }, () =>
+        emptySeries({ round: "semis", conference: confKey, teamA: null, teamB: null })
+      );
+    }
+    const semisDone = block.semis.some((s) => s.isComplete);
+    if (!semisDone) {
+      block.confFinals = [
+        emptySeries({ round: "confFinals", conference: confKey, teamA: null, teamB: null }),
+      ];
+    }
+  };
+  clearDownstream(easternBlock, "eastern");
+  clearDownstream(westernBlock, "western");
 
   const finals =
     finalsSeries.length > 0
@@ -677,6 +846,9 @@ async function derivePlayoffs(season) {
       playInBlock = block;
     }
   }
+
+  // Propagate known tier-1 play-in results into the decisive (tier-2) slot.
+  if (playInBlock) fillPlayInTier2(playInBlock);
 
   return {
     season,
