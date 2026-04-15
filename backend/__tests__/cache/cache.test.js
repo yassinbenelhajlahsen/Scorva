@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from "@jest/globals";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
+import { CACHE_VERSION } from "../../src/cache/cache.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -115,7 +116,7 @@ describe("cache.js — with Redis connected", () => {
       expect(result).toEqual(data);
       expect(queryFn).toHaveBeenCalledTimes(1);
       expect(mockSet).toHaveBeenCalledWith(
-        "v1:teams:nba",
+        `v${CACHE_VERSION}:teams:nba`,
         JSON.stringify(data),
         "EX",
         86400
@@ -189,8 +190,8 @@ describe("cache.js — with Redis connected", () => {
       await invalidate("gameDetail:nba:1", "games:nba:default:2026-03-07");
 
       expect(mockDel).toHaveBeenCalledWith(
-        "v1:gameDetail:nba:1",
-        "v1:games:nba:default:2026-03-07"
+        `v${CACHE_VERSION}:gameDetail:nba:1`,
+        `v${CACHE_VERSION}:games:nba:default:2026-03-07`
       );
     });
 
@@ -220,7 +221,7 @@ describe("cache.js — with Redis connected", () => {
 
       await invalidatePattern("games:nba:*");
 
-      expect(mockScanStream).toHaveBeenCalledWith({ match: "v1:games:nba:*", count: 100 });
+      expect(mockScanStream).toHaveBeenCalledWith({ match: `v${CACHE_VERSION}:games:nba:*`, count: 100 });
       expect(mockPipelineInstance.del).toHaveBeenCalledTimes(3);
       expect(mockPipelineInstance.exec).toHaveBeenCalledTimes(1);
     });
