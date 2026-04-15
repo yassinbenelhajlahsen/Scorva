@@ -38,34 +38,12 @@ export default function LeaguePage() {
     useLeagueData(league, selectedSeason, selectedDate);
   const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
 
-  // Historical seasons always show the playoffs tab; current season requires
-  // every team to have played ≥80 of 82 regular-season games. While standings
-  // are loading we show it optimistically to avoid a layout shift.
-  const showPlayoffsTab = useMemo(() => {
-    if (!LEAGUE_LABELS[league]?.playoffsSupported) return false;
-    if (selectedSeason) return true;
-    const allTeams = [...standings.eastOrAFC, ...standings.westOrNFC];
-    if (allTeams.length === 0) return true;
-    const minGamesPlayed = Math.min(
-      ...allTeams.map((t) => (t.wins || 0) + (t.losses || 0))
-    );
-    return minGamesPlayed >= 80;
-  }, [league, selectedSeason, standings.eastOrAFC, standings.westOrNFC]);
-
   const tabs = useMemo(
     () => LEAGUE_LABELS[league]?.playoffsSupported
-      ? (showPlayoffsTab ? ["games", "standings", "playoffs"] : ["games", "standings"])
+      ? ["games", "standings", "playoffs"]
       : ["games", "standings"],
-    [league, showPlayoffsTab]
+    [league]
   );
-
-  // If the active tab disappears (e.g. switching from a historical season
-  // to the current season mid-regular-season), fall back to games.
-  useEffect(() => {
-    if (!tabs.includes(activeTab)) {
-      setActiveTab("games");
-    }
-  }, [tabs, activeTab]);
 
   useLayoutEffect(() => {
     const idx = tabs.indexOf(activeTab);
