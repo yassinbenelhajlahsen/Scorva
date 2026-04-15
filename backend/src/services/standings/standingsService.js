@@ -11,7 +11,7 @@ export async function getRegularSeasonGames(league, season) {
 
   return cached(`h2h-games:${league}:${resolvedSeason}`, ttl, async () => {
     const { rows } = await pool.query(
-      `SELECT hometeamid, awayteamid, winnerid, homescore, awayscore, ot1
+      `SELECT hometeamid, awayteamid, winnerid, homescore, awayscore, ot1, fourthqtr
          FROM games
         WHERE league = $1
           AND season = COALESCE($2, (
@@ -40,7 +40,8 @@ export async function getStandings(league, season) {
             COUNT(*) FILTER (WHERE g.winnerid = t.id) AS wins,
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses,
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id
-              AND (g.status IN ('Final/OT', 'Final/SO') OR ($1 = 'nhl' AND g.ot1 IS NOT NULL))) AS otl
+              AND (g.status IN ('Final/OT', 'Final/SO')
+                   OR ($1 = 'nhl' AND (g.fourthqtr IS NOT NULL OR g.ot1 IS NOT NULL)))) AS otl
           FROM teams t
           LEFT JOIN games g ON (g.hometeamid = t.id OR g.awayteamid = t.id)
             AND g.league = $1

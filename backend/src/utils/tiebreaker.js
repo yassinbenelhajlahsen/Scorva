@@ -45,12 +45,17 @@ export function buildH2HMatrix(games, confByTeamId, league) {
     totAway.pf += as;
     totAway.pa += hs;
 
+    // NHL periods: 1-3 regulation, 4 = OT, 5 = SO. Our ingestion stores period 4
+    // scores in `fourthqtr` and period 5 (SO) scores in `ot1`, so either being
+    // populated means the game went past regulation.
+    const wentPastRegulation =
+      league === "nhl" ? (g.ot1 != null || g.fourthqtr != null) : g.ot1 != null;
+
     if (g.winnerid === home) {
       homeRec.wins++;
       awayRec.losses++;
       if (league === "nhl") {
-        // ot1 IS NOT NULL means the game went to OT or SO
-        if (g.ot1 != null) {
+        if (wentPastRegulation) {
           awayRec.otLosses++;
         } else {
           totHome.regWins++;
@@ -60,7 +65,7 @@ export function buildH2HMatrix(games, confByTeamId, league) {
       awayRec.wins++;
       homeRec.losses++;
       if (league === "nhl") {
-        if (g.ot1 != null) {
+        if (wentPastRegulation) {
           homeRec.otLosses++;
         } else {
           totAway.regWins++;
