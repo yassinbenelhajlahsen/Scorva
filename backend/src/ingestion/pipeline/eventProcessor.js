@@ -229,6 +229,16 @@ export async function processEvent(client, leagueSlug, event, { force = false } 
       const headline = (gameLabel || "").toLowerCase();
       if (headline.includes("play-in")) {
         gameType = "playoff";
+      } else if (
+        headline.includes("nba cup") &&
+        !headline.includes("group play") &&
+        !headline.includes("semifinal") &&
+        !headline.includes("quarterfinal")
+      ) {
+        // NBA Cup Championship does not count toward regular-season standings.
+        // Group play, quarterfinals, and semifinals do count (played at home arenas
+        // or as regular-season games per NBA rules).
+        gameType = "other";
       } else {
         gameType = headline.includes("makeup") ? "makeup" : "regular";
       }
