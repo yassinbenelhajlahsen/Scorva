@@ -53,10 +53,12 @@ export async function cleanupClinchedPlayoffGames(pool) {
     RETURNING g.id, g.league, g.season
   `);
 
-  log.info(
-    { deleted: rows.length, league: "nba" },
-    "cleaned up clinched-series playoff games",
-  );
+  if (rows.length > 0) {
+    log.info(
+      { deleted: rows.length, league: "nba" },
+      "cleaned up clinched-series playoff games",
+    );
+  }
 
   return rows;
 }

@@ -44,6 +44,7 @@ export async function runUpsert(pool) {
         await runTodayProcessing(league, pool);
         await runUpcomingProcessing(league, pool);
         if (league === "nba") {
+          // Isolated so a cleanup failure still lets cache invalidations below run.
           try {
             await cleanupClinchedPlayoffGames(pool);
           } catch (err) {
