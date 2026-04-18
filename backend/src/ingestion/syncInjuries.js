@@ -26,21 +26,40 @@ export function normalizeStatus(raw) {
   return ESPN_STATUS_MAP[key] || null;
 }
 
-async function fetchTeamInjuries(leagueSlug, espnTeamId) {
+// The per-team endpoint (`/teams/{id}/injuries`) returns `{}` — use the
+// league-wide feed instead. Shape: { injuries: [{id, displayName, injuries: [...]}] }
+async function fetchLeagueInjuries(leagueSlug) {
   const path = getSportPath(leagueSlug);
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/${leagueSlug}/teams/${espnTeamId}/injuries`;
+  const url = `https://site.api.espn.com/apis/site/v2/sports/${path}/${leagueSlug}/injuries`;
   try {
     const resp = await withRetry(() => axios.get(url), {
-      label: `injuries:${leagueSlug}:${espnTeamId}`,
+      label: `injuries:${leagueSlug}`,
     });
     return resp.data?.injuries || [];
   } catch (err) {
     log.warn(
-      { err: err?.message, status: err?.response?.status, league: leagueSlug, espnTeamId },
-      "failed to fetch team injuries",
+      { err: err?.message, status: err?.response?.status, league: leagueSlug },
+      "failed to fetch league injuries",
     );
     return null;
   }
+}
+
+// The league-wide feed omits `athlete.id`; the numeric id only appears inside
+// `athlete.links[].href` (e.g. `/nba/player/_/id/3146557/jock-landale`).
+function extractEspnPlayerId(athlete) {
+  if (!athlete) return null;
+  const direct = parseInt(athlete.id, 10);
+  if (Number.isFinite(direct)) return direct;
+  const links = Array.isArray(athlete.links) ? athlete.links : [];
+  for (const link of links) {
+    const match = /\/id\/(\d+)/.exec(link?.href || "");
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
 }
 
 const STALE_CLEAR_DAYS = 14;
@@ -53,24 +72,30 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
   let teamsProcessed = 0;
 
   try {
+    const blocks = await fetchLeagueInjuries(leagueSlug);
+    if (blocks === null) {
+      return { teamsProcessed, updated, cleared, staleCleared };
+    }
+
+    const byTeam = new Map();
+    for (const block of blocks) {
+      const teamEspnId = block?.id != null ? String(block.id) : null;
+      if (!teamEspnId) continue;
+      byTeam.set(teamEspnId, Array.isArray(block?.injuries) ? block.injuries : []);
+    }
+
     const { rows: teams } = await client.query(
       `SELECT id, espnid FROM teams WHERE league = $1 AND espnid IS NOT NULL`,
       [leagueSlug],
     );
 
     for (const team of teams) {
-      const payload = await fetchTeamInjuries(leagueSlug, team.espnid);
-      if (payload === null) continue;
       teamsProcessed++;
-
-      const entries = Array.isArray(payload)
-        ? payload.flatMap((block) => block?.injuries || [])
-        : [];
-
+      const entries = byTeam.get(String(team.espnid)) || [];
       const injuredEspnIds = [];
 
       for (const entry of entries) {
-        const espnPlayerId = parseInt(entry?.athlete?.id, 10);
+        const espnPlayerId = extractEspnPlayerId(entry?.athlete);
         if (!Number.isFinite(espnPlayerId)) continue;
         const status = normalizeStatus(entry?.status);
         if (!status) continue;
