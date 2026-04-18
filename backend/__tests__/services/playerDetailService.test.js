@@ -85,14 +85,14 @@ describe("playerDetailService", () => {
       expect(key).toBe(`playerDetail:${league}:7:2025-26`);
     });
 
-    it("passes league, playerId, season to DB query", async () => {
+    it("passes league, playerId, season, currentSeason to DB query", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       await fn()(7, "2025-26");
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.any(String),
-        [league, 7, "2025-26"]
+        [league, 7, "2025-26", "2025-26"]
       );
     });
 

@@ -12,6 +12,7 @@ import {
 import { refreshPopularity } from "../refreshPopularity.js";
 import { computeAllEmbeddings } from "../computePlayerEmbeddings.js";
 import { cleanupClinchedPlayoffGames } from "../cleanup/cleanupClinchedPlayoffGames.js";
+import { syncInjuriesForLeague } from "../syncInjuries.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
@@ -51,9 +52,17 @@ export async function runUpsert(pool) {
             log.error({ err, league }, "failed cleaning up clinched playoff games");
           }
         }
+        // Injury sync — covers players who aren't in any boxscore this cycle.
+        // Isolated so an ESPN hiccup here doesn't block the rest of the upsert.
+        try {
+          await syncInjuriesForLeague(pool, league);
+        } catch (err) {
+          log.error({ err, league }, "failed syncing injuries");
+        }
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
         await invalidatePattern(`gameDates:${league}:*`);
+        await invalidatePattern(`playerDetail:${league}:*`);
         if (league === "nba") await invalidatePattern("playoffs:nba:*");
         if (league === "nhl") await invalidatePattern("playoffs:nhl:*");
         if (league === "nfl") await invalidatePattern("playoffs:nfl:*");

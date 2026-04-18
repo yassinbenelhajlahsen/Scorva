@@ -12,6 +12,7 @@ import ErrorState from "../components/ui/ErrorState.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
+import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
 import slugify from "../utils/slugify.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
@@ -135,7 +136,8 @@ export default function PlayerPage() {
     );
   }
 
-  const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo } = playerData;
+  const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo, status, statusDescription, currentSeason } = playerData;
+  const viewingCurrentSeason = (selectedSeason || apiSeason) === currentSeason;
 
   return (
     <div className="max-w-[1500px] mx-auto px-5 sm:px-8 py-8">
@@ -175,6 +177,9 @@ export default function PlayerPage() {
             alt={name}
             className="w-56 h-56 object-cover rounded-3xl ring-1 ring-white/[0.08]"
           />
+          {status && viewingCurrentSeason && (
+            <PlayerStatusBadge status={status} description={statusDescription} />
+          )}
         </div>
 
         {/* Info card */}

@@ -30,7 +30,10 @@ export default async function upsertPlayer(
       weight      = EXCLUDED.weight,
       dob         = EXCLUDED.dob,
       draftinfo   = EXCLUDED.draftinfo,
-      popularity  = players.popularity
+      popularity  = players.popularity,
+      status             = players.status,
+      status_description = players.status_description,
+      status_updated_at  = players.status_updated_at
     RETURNING id;
   `;
 

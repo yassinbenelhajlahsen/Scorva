@@ -2,13 +2,9 @@ import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 
-async function playerTTL(league, season) {
-  const currentSeason = await getCurrentSeason(league);
-  return season === currentSeason ? 120 : 30 * 86400; // 2 min current, 30 days past
-}
-
 export async function getNbaPlayer(playerId, season) {
-  const ttl = await playerTTL("nba", season);
+  const currentSeason = await getCurrentSeason("nba");
+  const ttl = season === currentSeason ? 120 : 30 * 86400;
   return cached(`playerDetail:nba:${playerId}:${season}`, ttl, async () => {
     const result = await pool.query(
       `
@@ -24,6 +20,10 @@ export async function getNbaPlayer(playerId, season) {
       'imageUrl', p.image_url,
       'espnId', p.espn_playerid,
       'season', $3,
+      'currentSeason', $4,
+      'status', p.status,
+      'statusDescription', p.status_description,
+      'statusUpdatedAt', p.status_updated_at,
       'team', json_build_object(
         'id', t.id,
         'name', t.name,
@@ -109,14 +109,15 @@ export async function getNbaPlayer(playerId, season) {
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
-      ["nba", playerId, season]
+      ["nba", playerId, season, currentSeason]
     );
     return result.rows[0] ?? null;
   });
 }
 
 export async function getNflPlayer(playerId, season) {
-  const ttl = await playerTTL("nfl", season);
+  const currentSeason = await getCurrentSeason("nfl");
+  const ttl = season === currentSeason ? 120 : 30 * 86400;
   return cached(`playerDetail:nfl:${playerId}:${season}`, ttl, async () => {
     const result = await pool.query(
       `
@@ -132,6 +133,10 @@ export async function getNflPlayer(playerId, season) {
       'imageUrl', p.image_url,
       'espnId', p.espn_playerid,
       'season', $3,
+      'currentSeason', $4,
+      'status', p.status,
+      'statusDescription', p.status_description,
+      'statusUpdatedAt', p.status_updated_at,
       'team', json_build_object(
         'id', t.id,
         'name', t.name,
@@ -197,14 +202,15 @@ export async function getNflPlayer(playerId, season) {
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
-      ["nfl", playerId, season]
+      ["nfl", playerId, season, currentSeason]
     );
     return result.rows[0] ?? null;
   });
 }
 
 export async function getNhlPlayer(playerId, season) {
-  const ttl = await playerTTL("nhl", season);
+  const currentSeason = await getCurrentSeason("nhl");
+  const ttl = season === currentSeason ? 120 : 30 * 86400;
   return cached(`playerDetail:nhl:${playerId}:${season}`, ttl, async () => {
     const result = await pool.query(
       `
@@ -220,6 +226,10 @@ export async function getNhlPlayer(playerId, season) {
       'imageUrl', p.image_url,
       'espnId', p.espn_playerid,
       'season', $3,
+      'currentSeason', $4,
+      'status', p.status,
+      'statusDescription', p.status_description,
+      'statusUpdatedAt', p.status_updated_at,
       'team', json_build_object(
         'id', t.id,
         'name', t.name,
@@ -296,7 +306,7 @@ export async function getNhlPlayer(playerId, season) {
     WHERE p.league = $1 AND p.id = $2
     GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
     `,
-      ["nhl", playerId, season]
+      ["nhl", playerId, season, currentSeason]
     );
     return result.rows[0] ?? null;
   });

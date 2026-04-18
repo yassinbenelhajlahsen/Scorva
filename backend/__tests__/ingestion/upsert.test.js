@@ -68,6 +68,14 @@ jest.unstable_mockModule(
   }),
 );
 
+const mockSyncInjuriesForLeague = jest.fn();
+jest.unstable_mockModule(
+  resolve(__dirname, "../../src/ingestion/syncInjuries.js"),
+  () => ({
+    syncInjuriesForLeague: mockSyncInjuriesForLeague,
+  }),
+);
+
 const { runUpsert, addOrdinal } = await import(
   resolve(__dirname, "../../src/ingestion/pipeline/upsert.js")
 );
@@ -127,6 +135,7 @@ describe("runUpsert", () => {
     mockInvalidatePattern.mockResolvedValue(undefined);
     mockCloseCache.mockResolvedValue(undefined);
     mockCleanupClinchedPlayoffGames.mockResolvedValue([]);
+    mockSyncInjuriesForLeague.mockResolvedValue({ teamsProcessed: 0, updated: 0, cleared: 0 });
   });
 
   it("calls runTodayProcessing and runUpcomingProcessing for each league", async () => {
@@ -165,7 +174,7 @@ describe("runUpsert", () => {
   it("invalidates correct cache patterns for each league", async () => {
     await runUpsert(mockPool);
 
-    expect(mockInvalidatePattern).toHaveBeenCalledTimes(13);
+    expect(mockInvalidatePattern).toHaveBeenCalledTimes(16);
     for (const league of ["nba", "nfl", "nhl"]) {
       expect(mockInvalidatePattern).toHaveBeenCalledWith(`games:${league}:*`);
       expect(mockInvalidatePattern).toHaveBeenCalledWith(
@@ -173,6 +182,9 @@ describe("runUpsert", () => {
       );
       expect(mockInvalidatePattern).toHaveBeenCalledWith(
         `gameDates:${league}:*`,
+      );
+      expect(mockInvalidatePattern).toHaveBeenCalledWith(
+        `playerDetail:${league}:*`,
       );
     }
     expect(mockInvalidatePattern).toHaveBeenCalledWith("playoffs:nba:*");
@@ -293,6 +305,25 @@ describe("runUpsert", () => {
     expect(order.indexOf("invalidate:playoffs:nhl")).toBeGreaterThan(
       order.indexOf("cleanup:nhl"),
     );
+  });
+
+  it("calls syncInjuriesForLeague for each league", async () => {
+    await runUpsert(mockPool);
+
+    expect(mockSyncInjuriesForLeague).toHaveBeenCalledTimes(3);
+    for (const league of ["nba", "nfl", "nhl"]) {
+      expect(mockSyncInjuriesForLeague).toHaveBeenCalledWith(mockPool, league);
+    }
+  });
+
+  it("does not abort the run when injury sync fails", async () => {
+    mockSyncInjuriesForLeague.mockRejectedValue(new Error("espn down"));
+
+    await runUpsert(mockPool);
+
+    // all leagues processed, popularity still refreshed
+    expect(mockRunUpcomingProcessing).toHaveBeenCalledTimes(3);
+    expect(mockRefreshPopularity).toHaveBeenCalledTimes(1);
   });
 
   it("does not abort the run when cleanup fails", async () => {
