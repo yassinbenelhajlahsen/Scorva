@@ -177,32 +177,42 @@ export default function PlayerPage() {
             alt={name}
             className="w-56 h-56 object-cover rounded-3xl ring-1 ring-white/[0.08]"
           />
-          {viewingCurrentSeason && (
-            <PlayerStatusBadge status={status} description={statusDescription} />
-          )}
         </div>
 
         {/* Info card */}
         <div className="flex-1 flex flex-col gap-6">
-          <div className="flex justify-end gap-2">
-            <Link
-              to={`/compare`}
-              state={{ league, type: "players", id1: slugify(name) }}
-              className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
-              aria-label="Compare player"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              Compare
-            </Link>
-            <SeasonSelector
-              league={league}
-              selectedSeason={selectedSeason}
-              onSeasonChange={setSelectedSeason}
-              seasons={playerData.availableSeasons}
-            />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            {viewingCurrentSeason ? (
+              <PlayerStatusBadge
+                status={status}
+                title={statusDescription || undefined}
+              />
+            ) : <span />}
+            <div className="flex gap-2 ml-auto">
+              <Link
+                to={`/compare`}
+                state={{ league, type: "players", id1: slugify(name) }}
+                className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
+                aria-label="Compare player"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Compare
+              </Link>
+              <SeasonSelector
+                league={league}
+                selectedSeason={selectedSeason}
+                onSeasonChange={setSelectedSeason}
+                seasons={playerData.availableSeasons}
+              />
+            </div>
           </div>
+          {viewingCurrentSeason && status && statusDescription && (
+            <p className="text-xs text-text-secondary leading-snug -mt-3 break-words">
+              {statusDescription}
+            </p>
+          )}
           <div
             className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
             style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
