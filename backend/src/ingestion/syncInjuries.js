@@ -43,10 +43,13 @@ async function fetchTeamInjuries(leagueSlug, espnTeamId) {
   }
 }
 
+const STALE_CLEAR_DAYS = 14;
+
 export async function syncInjuriesForLeague(pool, leagueSlug) {
   const client = await pool.connect();
   let updated = 0;
   let cleared = 0;
+  let staleCleared = 0;
   let teamsProcessed = 0;
 
   try {
@@ -107,11 +110,26 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
       cleared += clearRes.rowCount;
     }
 
+    // Stale sweep — catches players (traded, cut, retired, team-less) whose
+    // injury rows never got refreshed above because they aren't on any active
+    // team's injury feed. Anything older than the threshold is cleared.
+    const staleRes = await client.query(
+      `UPDATE players
+          SET status = NULL,
+              status_description = NULL,
+              status_updated_at = NOW()
+        WHERE league = $1
+          AND status IS NOT NULL
+          AND status_updated_at < NOW() - ($2 || ' days')::INTERVAL`,
+      [leagueSlug, String(STALE_CLEAR_DAYS)],
+    );
+    staleCleared = staleRes.rowCount;
+
     log.info(
-      { league: leagueSlug, teamsProcessed, updated, cleared },
+      { league: leagueSlug, teamsProcessed, updated, cleared, staleCleared },
       "injury sync complete",
     );
-    return { teamsProcessed, updated, cleared };
+    return { teamsProcessed, updated, cleared, staleCleared };
   } finally {
     client.release();
   }
