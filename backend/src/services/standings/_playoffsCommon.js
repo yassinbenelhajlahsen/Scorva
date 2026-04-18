@@ -44,7 +44,11 @@ export function buildSeries(games, teamsById, { bestOf = 7 } = {}) {
       type: g.type,
       game_label: g.game_label ?? null,
     });
-    if (g.winnerid != null && series.wins[g.winnerid] !== undefined) {
+    if (
+      isFinalStatus(g.status) &&
+      g.winnerid != null &&
+      series.wins[g.winnerid] !== undefined
+    ) {
       series.wins[g.winnerid] += 1;
     }
     if (g.type === "final") series.hasFinalTypeGame = true;

@@ -165,6 +165,7 @@ export default function SeriesCard({ series, league }) {
           >
             <div className="p-2 space-y-1">
               {games.map((g, i) => {
+                const isScheduled = g.status === "Scheduled";
                 const homeWon = g.winnerid === g.homeTeamId;
                 const awayWon = g.winnerid === g.awayTeamId;
                 const winnerTeam =
@@ -193,22 +194,31 @@ export default function SeriesCard({ series, league }) {
                       {formatDateNumeric(g.date)}
                     </span>
                     <span className="flex-1 flex items-center justify-end gap-1.5 tabular-nums text-text-primary">
-                      <span className={awayWon ? "font-semibold text-win" : "font-normal"}>
-                        {g.awayscore ?? "–"}
-                      </span>
-                      <span className="text-text-tertiary">–</span>
-                      <span className={homeWon ? "font-semibold text-win" : "font-normal"}>
-                        {g.homescore ?? "–"}
-                      </span>
-                      {winnerTeam?.logo_url ? (
-                        <img
-                          loading="lazy"
-                          src={winnerTeam.logo_url}
-                          alt=""
-                          className="w-4 h-4 object-contain flex-shrink-0 ml-1"
-                        />
+                      {isScheduled ? (
+                        <>
+                          <span className="text-text-tertiary">—</span>
+                          <span className="w-4 h-4 flex-shrink-0 ml-1" />
+                        </>
                       ) : (
-                        <span className="w-4 h-4 flex-shrink-0 ml-1" />
+                        <>
+                          <span className={awayWon ? "font-semibold text-win" : "font-normal"}>
+                            {g.awayscore ?? "–"}
+                          </span>
+                          <span className="text-text-tertiary">–</span>
+                          <span className={homeWon ? "font-semibold text-win" : "font-normal"}>
+                            {g.homescore ?? "–"}
+                          </span>
+                          {winnerTeam?.logo_url ? (
+                            <img
+                              loading="lazy"
+                              src={winnerTeam.logo_url}
+                              alt=""
+                              className="w-4 h-4 object-contain flex-shrink-0 ml-1"
+                            />
+                          ) : (
+                            <span className="w-4 h-4 flex-shrink-0 ml-1" />
+                          )}
+                        </>
                       )}
                     </span>
                   </Link>
