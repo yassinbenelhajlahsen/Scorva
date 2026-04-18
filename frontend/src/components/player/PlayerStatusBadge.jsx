@@ -1,4 +1,5 @@
 const STATUS_LABELS = {
+  available: "Available",
   active: "Active",
   "day-to-day": "Day-to-Day",
   questionable: "Questionable",
@@ -9,6 +10,7 @@ const STATUS_LABELS = {
 };
 
 const STATUS_TONE = {
+  available: { pill: "bg-win/15 text-win border-win/30", dot: "bg-win" },
   active: { pill: "bg-win/15 text-win border-win/30", dot: "bg-win" },
   "day-to-day": { pill: "bg-amber-500/15 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
   questionable: { pill: "bg-amber-500/15 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
@@ -19,8 +21,9 @@ const STATUS_TONE = {
 };
 
 export default function PlayerStatusBadge({ status, description }) {
-  const label = STATUS_LABELS[status];
-  const tone = STATUS_TONE[status];
+  const key = status ?? "available";
+  const label = STATUS_LABELS[key];
+  const tone = STATUS_TONE[key];
   if (!label || !tone) return null;
 
   return (

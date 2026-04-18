@@ -177,7 +177,7 @@ export default function PlayerPage() {
             alt={name}
             className="w-56 h-56 object-cover rounded-3xl ring-1 ring-white/[0.08]"
           />
-          {status && viewingCurrentSeason && (
+          {viewingCurrentSeason && (
             <PlayerStatusBadge status={status} description={statusDescription} />
           )}
         </div>
