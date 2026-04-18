@@ -581,4 +581,27 @@ describe("getNbaPlayoffs", () => {
     // Semis array exists with correct length (may be TBD teams since only 1 of 4 R1 done)
     expect(result.bracket.eastern.semis).toHaveLength(2);
   });
+
+  it("does not count a win for an in-progress game with a winnerid set", async () => {
+    // Game 1 is still In Progress but already has winnerid set (e.g. live sync
+    // provisionally marked the leader). Series counter must stay 0-0 until Final.
+    const games = [
+      { id: 1000, date: "2024-04-20", hometeamid: 1, awayteamid: 8, homescore: 30, awayscore: 24, winnerid: 1, status: "In Progress", type: "playoff" },
+      { id: 1010, date: "2024-04-21", hometeamid: 4, awayteamid: 5, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1020, date: "2024-04-22", hometeamid: 3, awayteamid: 6, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+      { id: 1030, date: "2024-04-23", hometeamid: 2, awayteamid: 7, homescore: 0, awayscore: 0, winnerid: null, status: "Scheduled", type: "playoff" },
+    ];
+    mockPool.query.mockResolvedValueOnce({ rows: games });
+
+    const result = await getNbaPlayoffs("2023-24");
+
+    const slot = result.bracket.eastern.r1.find(
+      (s) => s.teamA?.id === 1 || s.teamB?.id === 1
+    );
+    expect(slot).toBeDefined();
+    expect(slot.wins[1]).toBe(0);
+    expect(slot.wins[8]).toBe(0);
+    expect(slot.isComplete).toBe(false);
+    expect(slot.winnerId).toBeNull();
+  });
 });
