@@ -57,13 +57,15 @@ describe("headToHeadService (compare)", () => {
       expect(sql).toContain("Final");
     });
 
-    it("limits to 20 results", async () => {
+    it("filters to the two most recent seasons", async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       await getHeadToHead("nba", "teams", 1, 2);
 
       const [sql] = mockPool.query.mock.calls[0];
-      expect(sql).toContain("LIMIT 20");
+      expect(sql).toContain("g.season IN");
+      expect(sql).toContain("ORDER BY season DESC");
+      expect(sql).toContain("LIMIT 2");
     });
 
     it("orders by date DESC", async () => {

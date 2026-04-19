@@ -403,6 +403,7 @@ function TeamCompare({
               entityA={{ id: a.id, name: a.name, teamId: a.id }}
               entityB={{ id: b.id, name: b.name, teamId: b.id }}
               league={league}
+              scopeNote="Only current and previous season"
             />
           </div>
         )}
@@ -705,7 +706,7 @@ function RecentGamesColumn({ player, stats, league }) {
   );
 }
 
-function HeadToHeadSection({ games, loading, entityA, entityB, league }) {
+function HeadToHeadSection({ games, loading, entityA, entityB, league, scopeNote }) {
   if (loading) {
     return (
       <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
@@ -721,6 +722,9 @@ function HeadToHeadSection({ games, loading, entityA, entityB, league }) {
   if (!games || games.length === 0) {
     return (
       <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+        {scopeNote && (
+          <p className="text-xs text-text-tertiary text-center mb-2">{scopeNote}</p>
+        )}
         <p className="text-sm text-text-tertiary text-center">No head-to-head games found</p>
       </div>
     );
@@ -744,7 +748,11 @@ function HeadToHeadSection({ games, loading, entityA, entityB, league }) {
           <p className="text-2xl font-bold tabular-nums text-text-primary">{bWins}</p>
           <p className="text-xs text-text-tertiary">{entityB.name}</p>
         </div>
+        
       </div>
+            {scopeNote && (
+        <p className="text-xs text-text-tertiary text-center mb-3">{scopeNote}</p>
+      )}
 
       {/* Game list */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

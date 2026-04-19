@@ -5,10 +5,13 @@ const TTL_30D = 30 * 86400;
 
 export async function getHeadToHead(league, type, id1, id2) {
   const sortedIds = [id1, id2].sort((a, b) => a - b);
-  const key = `h2h:${league}:${type}:${sortedIds[0]}:${sortedIds[1]}`;
+  const keyPrefix = type === "teams" ? "h2h-2season" : "h2h";
+  const key = `${keyPrefix}:${league}:${type}:${sortedIds[0]}:${sortedIds[1]}`;
 
   return cached(key, TTL_30D, async () => {
     if (type === "teams") {
+      // Limit to the current and previous season only — older meetings
+      // feature rosters too different to be a meaningful comparison.
       const { rows } = await pool.query(
         `SELECT g.id, g.date, g.status, g.homescore, g.awayscore, g.winnerid,
                 g.hometeamid, g.awayteamid,
@@ -22,8 +25,16 @@ export async function getHeadToHead(league, type, id1, id2) {
            AND g.awayteamid IN ($2, $3)
            AND g.hometeamid != g.awayteamid
            AND g.status ILIKE '%Final%'
-         ORDER BY g.date DESC
-         LIMIT 20`,
+           AND g.season IN (
+             SELECT season FROM (
+               SELECT DISTINCT season
+               FROM games
+               WHERE league = $1 AND season IS NOT NULL
+               ORDER BY season DESC
+               LIMIT 2
+             ) recent
+           )
+         ORDER BY g.date DESC`,
         [league, sortedIds[0], sortedIds[1]]
       );
       return rows;
