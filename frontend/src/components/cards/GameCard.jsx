@@ -53,11 +53,6 @@ function GameCard({ game }) {
   const nhl = league === "nhl";
   const gameType = game.type || 'regular';
   const isPlayoff = gameType === 'playoff' || gameType === 'final';
-  const isChampionship = gameType === 'final';
-
-  const playoffLogo = isPlayoff
-    ? `/${league.toUpperCase()}/${league.toUpperCase()}${isChampionship ? "Final" : "Playoff"}.webp`
-    : null;
 
   const scoreColor = (isWinner, isLoser) => {
     if (!isFinal) return "text-text-primary";
@@ -157,11 +152,6 @@ function GameCard({ game }) {
               <p className="text-xs text-text-tertiary text-center px-1 max-w-[80px]">
                 {game.status}
               </p>
-            )}
-            {isPlayoff && (
-              <div className="mt-1 flex items-center justify-center h-14 w-14">
-                <img src={playoffLogo} alt={game.game_label} className={`max-h-full max-w-full object-contain ${isChampionship ? "p-0.5" : ""}`} />
-              </div>
             )}
           </div>
 
