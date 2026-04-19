@@ -1,4 +1,5 @@
 import pool from "../../../../db/db.js";
+import { MINUTES_FILTER_SQL } from "../../../../utils/statFilters.js";
 
 export async function getTeamStats(league, teamId, season = null) {
   const statsSelect = {
@@ -35,9 +36,7 @@ export async function getTeamStats(league, teamId, season = null) {
        AND g.status ILIKE 'Final%'
        AND g.type IN ('regular', 'makeup')
        AND p.teamid = $3
-       AND (($1 = 'nba' AND s.minutes > 0)
-         OR ($1 = 'nhl' AND s.toi IS NOT NULL AND s.toi != '0:00')
-         OR ($1 = 'nfl' AND NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)))
+       AND ${MINUTES_FILTER_SQL}
      GROUP BY t.id, t.name, t.shortname, t.record`,
     [league, season, teamId]
   );

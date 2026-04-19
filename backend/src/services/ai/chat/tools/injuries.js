@@ -1,6 +1,7 @@
 import pool from "../../../../db/db.js";
 import { cached } from "../../../../cache/cache.js";
 import { getCurrentSeason } from "../../../../cache/seasons.js";
+import { MINUTES_FILTER_SQL } from "../../../../utils/statFilters.js";
 
 const STATUS_SEVERITY = {
   out: 1,
@@ -14,9 +15,12 @@ const STATUS_SEVERITY = {
 const VALID_STATUSES = Object.keys(STATUS_SEVERITY);
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
 
-const MINUTES_FILTER = `(($1 = 'nba' AND s.minutes > 0)
-  OR ($1 = 'nhl' AND s.toi IS NOT NULL AND s.toi != '0:00')
-  OR ($1 = 'nfl' AND NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)))`;
+const SEVERITY_CASE_SQL =
+  "CASE p.status " +
+  Object.entries(STATUS_SEVERITY)
+    .map(([k, v]) => `WHEN '${k}' THEN ${v}`)
+    .join(" ") +
+  " ELSE 99 END";
 
 function statsSelectFor(league) {
   if (league === "nba") {
@@ -110,7 +114,7 @@ export async function getTeamInjuries(league, teamId, season) {
           AND g.status ILIKE 'Final%'
           AND g.type IN ('regular', 'makeup')
           AND s.playerid = ANY($3::int[])
-          AND ${MINUTES_FILTER}
+          AND ${MINUTES_FILTER_SQL}
         GROUP BY s.playerid`,
       [league, resolvedSeason, playerIds],
     );
@@ -182,16 +186,7 @@ export async function getLeagueInjuries(
           AND p.status IS NOT NULL
           AND p.popularity >= $2
           AND ($3::text IS NULL OR p.status = $3)
-        ORDER BY p.popularity DESC,
-          CASE p.status
-            WHEN 'out' THEN 1
-            WHEN 'ir' THEN 2
-            WHEN 'doubtful' THEN 3
-            WHEN 'questionable' THEN 4
-            WHEN 'day-to-day' THEN 5
-            WHEN 'suspended' THEN 6
-            ELSE 99
-          END
+        ORDER BY p.popularity DESC, ${SEVERITY_CASE_SQL}
         LIMIT $4`,
       [league, safeMinPop, status || null, safeLimit],
     );

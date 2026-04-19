@@ -22,6 +22,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | PG date → string util              | `backend/src/utils/pgDateToString.js`                         |
 | Date parser util                   | `backend/src/utils/dateParser.js`                             |
 | Slug resolver util                 | `backend/src/utils/slugResolver.js`                           |
+| Stat filter SQL fragments (DNP)    | `backend/src/utils/statFilters.js`                            |
 
 ## Backend — Domain: Games
 

@@ -1,4 +1,5 @@
 import pool from "../../../../db/db.js";
+import { MINUTES_FILTER_SQL } from "../../../../utils/statFilters.js";
 
 // Map of league → stat name → exact DB column name.
 // Using a lookup map (not string interpolation) prevents SQL injection if the
@@ -41,9 +42,7 @@ export async function getStatLeaders(league, stat, season = null, limit = 10) {
        AND g.status ILIKE 'Final%'
        AND g.type IN ('regular', 'makeup')
        AND s.${safeColumn} IS NOT NULL
-       AND (($1 = 'nba' AND s.minutes > 0)
-         OR ($1 = 'nhl' AND s.toi IS NOT NULL AND s.toi != '0:00')
-         OR ($1 = 'nfl' AND NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)))
+       AND ${MINUTES_FILTER_SQL}
      GROUP BY p.id, p.name, p.position, t.id, t.shortname
      HAVING COUNT(*) >= 5
      ORDER BY avg_stat DESC

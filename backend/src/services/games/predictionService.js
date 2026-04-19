@@ -1,5 +1,6 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
+import { MINUTES_FILTER_BY_LEAGUE } from "../../utils/statFilters.js";
 
 const PREDICTION_TTL = 3600; // 1 hour — invalidated by status_updated_at in cache key
 
@@ -30,6 +31,15 @@ const AVAILABILITY = {
 const INJURY_OFF_WEIGHT = 0.25;
 const INJURY_DEF_WEIGHT = 0.18;
 
+// Per-player share ceiling — prevents a single star from consuming the team factor.
+const PLAYER_IMPACT_CAP = 0.4;
+// Team-total factor ceiling — keeps the sigmoid out of saturation even on catastrophic injury loads.
+const TEAM_IMPACT_CAP = 0.55;
+// Surface an "injury" keyFactor once a team's factor reaches this share of production.
+const INJURY_KEY_FACTOR_MIN = 0.1;
+// Drop overall confidence to "low" once either team crosses this factor.
+const LOW_CONFIDENCE_IMPACT = 0.25;
+
 const PRODUCTION_SELECT = {
   nba: `
     AVG(s.points) AS pts,
@@ -45,12 +55,6 @@ const PRODUCTION_SELECT = {
     SUM(s.g) AS g,
     SUM(s.a) AS a,
     AVG(s.shots) AS shots`,
-};
-
-const MINUTES_FILTER = {
-  nba: `s.minutes > 0`,
-  nhl: `s.toi IS NOT NULL AND s.toi != '0:00'`,
-  nfl: `NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)`,
 };
 
 const NFL_OL_ST_POSITIONS = new Set([
@@ -94,7 +98,7 @@ export function computePlayerImpactShare(player, teamWeighted, league) {
   if (!teamWeighted || teamWeighted <= 0) return 0;
   const share = raw / teamWeighted;
   if (!Number.isFinite(share) || share <= 0) return 0;
-  return Math.min(0.4, share);
+  return Math.min(PLAYER_IMPACT_CAP, share);
 }
 
 export function computeTeamImpactFactor(rosterRows, league) {
@@ -142,12 +146,12 @@ export function computeTeamImpactFactor(rosterRows, league) {
   // Sort most impactful first for display
   players.sort((a, b) => b.impactShare * b.availability - a.impactShare * a.availability);
 
-  return { factor: Math.min(0.55, factor), players };
+  return { factor: Math.min(TEAM_IMPACT_CAP, factor), players };
 }
 
 async function getRosterProduction(league, season, teamId) {
   const productionSelect = PRODUCTION_SELECT[league];
-  const minutesFilter = MINUTES_FILTER[league];
+  const minutesFilter = MINUTES_FILTER_BY_LEAGUE[league];
   if (!productionSelect || !minutesFilter) return [];
 
   const result = await pool.query(
@@ -252,12 +256,11 @@ function generateKeyFactors(
   factors.push({ text: `${courtTerm} advantage`, type: "home" });
 
   // 2. Injuries — at most one per team
-  const injuryThreshold = 0.1;
-  if (homeInjury.factor >= injuryThreshold) {
+  if (homeInjury.factor >= INJURY_KEY_FACTOR_MIN) {
     const pct = Math.round(homeInjury.factor * 100);
     factors.push({ text: `${h} missing key contributors (~${pct}% of production)`, type: "injury" });
   }
-  if (awayInjury.factor >= injuryThreshold) {
+  if (awayInjury.factor >= INJURY_KEY_FACTOR_MIN) {
     const pct = Math.round(awayInjury.factor * 100);
     factors.push({ text: `${a} missing key contributors (~${pct}% of production)`, type: "injury" });
   }
@@ -454,7 +457,9 @@ export async function getPrediction(league, gameId) {
           ? "low"
           : "normal";
       const confidence =
-        homeInjury.factor > 0.25 || awayInjury.factor > 0.25 ? "low" : baseConfidence;
+        homeInjury.factor > LOW_CONFIDENCE_IMPACT || awayInjury.factor > LOW_CONFIDENCE_IMPACT
+          ? "low"
+          : baseConfidence;
 
       const probs = computeWinProbabilities(
         homeStats, awayStats, homeRecent, awayRecent, h2h, league,
