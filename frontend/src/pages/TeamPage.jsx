@@ -34,7 +34,18 @@ export default function TeamPage() {
   useEffect(() => {
     if (!games?.length) return;
     const months = [...new Set(games.map((g) => String(g.date).slice(0, 7)))].sort();
-    setSelectedMonth(months[months.length - 1]);
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    if (months.includes(currentMonth)) {
+      setSelectedMonth(currentMonth);
+      return;
+    }
+    const pastMonths = months.filter((m) => m < currentMonth);
+    if (pastMonths.length) {
+      setSelectedMonth(pastMonths[pastMonths.length - 1]);
+      return;
+    }
+    setSelectedMonth(months[0]);
   }, [games]);
   const { session, openAuthModal } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("team", session ? team?.id : null);
