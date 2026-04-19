@@ -137,6 +137,20 @@ describe("favoritesService", () => {
       expect(result.players[0].recentStats).toEqual([]);
     });
 
+    it("selects player injury status columns", async () => {
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await getFavorites("user-1");
+
+      const [playersSql] = mockPool.query.mock.calls[0];
+      expect(playersSql).toContain("p.status");
+      expect(playersSql).toContain("p.status_description");
+    });
+
     it("passes userId to all queries", async () => {
       mockPool.query
         .mockResolvedValueOnce({ rows: [] })

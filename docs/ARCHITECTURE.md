@@ -183,7 +183,7 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `plays:{league}:{gameId}` | 30d | Final games only (stored plays) |
 | `winprob:{league}:{eventId}` | 30s live / 30d final | ESPN win probability proxy; `cacheIf` non-null |
 | `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
-| `prediction:{league}:{gameId}` | 1h | Pre-game predictions |
+| `prediction:{league}:{gameId}:{freshTs}` | 1h | Pre-game predictions; key includes `MAX(players.status_updated_at)` across both rosters so a new ESPN injury report invalidates the entry |
 | `h2h:{league}:{type}:{id1}:{id2}` | 30d | Head-to-head games (IDs sorted for consistency) |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.
@@ -359,6 +359,67 @@ Requires exactly 4 divisions per conference. Division winner = top-ranked team p
 
 #### Cleanup
 `cleanupClinchedPlayoffGames` runs only for NBA and NHL (both best-of-7). It is **not** called for NFL — single-elimination means there are no "if necessary" extra games to clean up.
+
+## Game prediction (`services/games/predictionService.js`)
+
+Pre-game win-probability model. `GET /:league/games/:gameId/prediction` — returns `null` for live/Final games.
+
+### Signal blend
+Per-team season ratings combined via sigmoid. The combined difference is:
+
+```
+0.5 * seasonDiff + 0.3 * splitDiff + formDiff + h2hBonus + homeBonus
+```
+
+- **seasonDiff (50%)**: home `(off_rating − def_rating)` minus away same — averaged from regular-season Final games
+- **splitDiff (30%)**: home team's *home* splits vs away team's *away* splits; falls back to seasonDiff when split data is missing
+- **formDiff (20%)**: last-5-games win-rate delta × `formScale`
+- **h2hBonus**: only when teams have ≥5 historical meetings; `(homeH2HPct − 0.5) × h2hScale`
+- **homeBonus**: flat additive constant per league
+
+Per-league constants in `LEAGUE_CONFIG`: NBA `scale: 0.12, homeBonus: 3, formScale: 5, h2hScale: 2`; NFL `scale: 0.15, homeBonus: 3`; NHL `scale: 0.5, homeBonus: 0.5`. The `scale` factor multiplies `combinedDiff` before `sigmoid()`.
+
+### Injury impact
+Per-team injury factor `F` reduces offensive rating and inflates defensive rating to model missing production.
+
+1. **Roster query** (`getRosterProduction`) — for each team, joins `players` × `stats` × `games` (regular/makeup, Final, with minutes/TOI filter), grouped by player. Returns season-average production per league:
+   - NBA: `pts, ast, reb, blk, stl, min`
+   - NFL: `SUM(yds), SUM(td)` (season totals, not averages)
+   - NHL: `SUM(g), SUM(a), AVG(shots)`
+   - Also returns `MAX(g.date) AS last_game_date` and `image_url`
+2. **Stale-team filter** — injured players whose `last_game_date` is older than `INJURY_STALENESS_DAYS = 21` are dropped. Filters out traded/released players whose `players.teamid` hasn't been refreshed by ESPN's feed (e.g. mid-season trades).
+3. **Per-player share** (`computePlayerImpactShare`) — weighted production:
+   - NBA: `pts + 0.6·ast + 0.4·reb + 0.3·blk + 0.2·stl`
+   - NFL: QB `yds + 20·td`; skill positions `yds + 10·td`; OL/ST positions get a fixed `0.02` floor
+   - NHL: `g + 0.6·a + 0.2·shots`
+   - Share = `playerWeighted / sum(teamWeighted)`, clamped to `[0, 0.40]`
+4. **Availability** map — `out/ir/suspended: 1.0`, `doubtful: 0.75`, `questionable: 0.5`, `day-to-day: 0.25`
+5. **Team factor** `F = min(0.55, Σ share_i × availability_i)`
+6. **Applied** in `computeWinProbabilities`:
+   ```js
+   off_adj = off * (1 − F * INJURY_OFF_WEIGHT)   // 0.25
+   def_adj = def * (1 + F * INJURY_DEF_WEIGHT)   // 0.18
+   ```
+   Same adjustment applied to home/away splits. Damping weights are tuned so a single star out (F≈0.20) shifts win prob ~17pts; a double star out (F≈0.45) shifts ~33pts. Without damping, NBA ratings (~110) saturate the sigmoid.
+
+### Confidence
+Returns `"low"` when either team has <5 games played OR either team's `impactFactor > 0.25`. Otherwise `"normal"`.
+
+### Response shape
+```
+{
+  homeTeam: { ..., injuries: { impactFactor, players: [{ id, name, position, imageUrl, status, statusDescription, statusUpdatedAt, impactShare, availability }] } },
+  awayTeam: { ..., injuries: {...} },
+  headToHead: { homeWins, awayWins, total },
+  keyFactors: [{ text, type }],   // type ∈ home|injury|h2h|form|offense|defense|record (max 5)
+  confidence: "normal" | "low"
+}
+```
+
+`keyFactors` includes one `injury` entry per team when `impactFactor ≥ 0.10`, e.g. `"BOS missing key contributors (~14% of production)"`.
+
+### Cache
+Key includes `MAX(status_updated_at)` across both rosters as a freshness suffix — entries auto-invalidate when ESPN pushes a new injury report; otherwise served from cache for 1h. The cache key prefetch + freshness query runs *before* `cached()`, so an injury update reliably busts the prediction without a TTL drop.
 
 ## Auth & users
 

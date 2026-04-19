@@ -1,4 +1,8 @@
+import { useState } from "react";
 import { m } from "framer-motion";
+import { Link } from "react-router-dom";
+import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
+import slugify from "../../utils/slugify.js";
 
 const DEFAULT_HOME_COLOR = "#e8863a";
 const DEFAULT_AWAY_COLOR = "#60A5FA";
@@ -86,7 +90,77 @@ function FactorIcon({ type }) {
       </svg>
     );
   }
+  if (type === "injury") {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 8h-3V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H5c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h3v3c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-3h3c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2z" />
+      </svg>
+    );
+  }
   return null;
+}
+
+function getInitials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function PlayerAvatar({ imageUrl, name }) {
+  const [errored, setErrored] = useState(false);
+  const showImage = imageUrl && !errored;
+  return (
+    <div className="w-7 h-7 rounded-full bg-surface-overlay ring-1 ring-white/[0.08] flex items-center justify-center overflow-hidden flex-shrink-0">
+      {showImage ? (
+        <img
+          src={imageUrl}
+          alt={name}
+          loading="lazy"
+          className="w-full h-full object-cover"
+          onError={() => setErrored(true)}
+        />
+      ) : (
+        <span className="text-[9px] font-semibold text-text-secondary tracking-wide">
+          {getInitials(name)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function InjuryList({ injuries, league }) {
+  if (!injuries?.players?.length) {
+    return <p className="text-[11px] text-text-tertiary italic">No injuries reported</p>;
+  }
+  const players = injuries.players.slice(0, 3);
+  const overflow = injuries.players.length - players.length;
+  return (
+    <div className="flex flex-col gap-1">
+      {players.map((p) => (
+        <Link
+          key={p.id}
+          to={`/${league}/players/${slugify(p.name)}`}
+          className="flex items-center gap-2 min-w-0 px-1.5 py-1 -mx-1.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
+        >
+          <PlayerAvatar imageUrl={p.imageUrl} name={p.name} />
+          <span className="text-xs font-medium text-text-primary truncate flex-1 min-w-0 group-hover:text-accent transition-colors">
+            {p.name}
+          </span>
+          <PlayerStatusBadge
+            status={p.status}
+            size="sm"
+            title={p.statusDescription || undefined}
+          />
+        </Link>
+      ))}
+      {overflow > 0 && (
+        <span className="text-[10px] text-text-tertiary px-1.5">
+          +{overflow} more
+        </span>
+      )}
+    </div>
+  );
 }
 
 function FormDots({ form, color }) {
@@ -320,6 +394,28 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
                   <div className="flex-1 h-full" style={{ background: awayColor, opacity: 0.7 }} />
                 </div>
               </div>
+
+              {/* ── Injuries ── */}
+              {((prediction.homeTeam.injuries?.players?.length ?? 0) > 0 ||
+                (prediction.awayTeam.injuries?.players?.length ?? 0) > 0) && (
+                <div className="border-t border-white/[0.06] pt-4 mb-4">
+                  <p className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2.5">Injuries</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold text-text-tertiary mb-1.5 truncate">
+                        {prediction.homeTeam.shortName}
+                      </p>
+                      <InjuryList injuries={prediction.homeTeam.injuries} league={league} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold text-text-tertiary mb-1.5 truncate">
+                        {prediction.awayTeam.shortName}
+                      </p>
+                      <InjuryList injuries={prediction.awayTeam.injuries} league={league} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ── Stats comparison ── */}
               {(prediction.homeTeam.offRating != null || prediction.homeTeam.defRating != null) && (

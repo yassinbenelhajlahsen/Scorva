@@ -20,7 +20,7 @@
 - `GET /:league/games/dates` — optional `?season=`; returns `[{ date: "YYYY-MM-DD", count: N }]` for all dates with games in the season (cached 5 min)
 - `GET /:league/games/:gameId`
 - `GET /:league/games/:gameId/plays` — returns `{ plays[], source }` where `source` is `"db"` (Final, cached 30d), `"espn"` (live, proxied), or `"none"` (scheduled/no eventid)
-- `GET /:league/games/:gameId/prediction` — pre-game only; 404 for live/final; returns win probabilities, key factors, confidence (`normal` | `low`); cached 1h
+- `GET /:league/games/:gameId/prediction` — pre-game only (returns `null` for live/final); response: `{ homeTeam, awayTeam, headToHead, keyFactors, confidence }`. Each team object includes ratings, records, recent form (last 5), and `injuries: { impactFactor, players[] }` where each player has `{ id, name, position, imageUrl, status, statusDescription, statusUpdatedAt, impactShare, availability }`. `keyFactors` types: `home | injury | h2h | form | offense | defense | record` (max 5). Confidence drops to `"low"` if either team has <5 games or `impactFactor > 0.25`. Cached 1h, key includes `MAX(players.status_updated_at)` so a new ESPN injury report invalidates. See [ARCHITECTURE.md § Game prediction](./ARCHITECTURE.md#game-prediction-servicesgamespredictionservicejs) for the full algorithm.
 - `GET /:league/games/:eventId/win-probability?final=true|false` — returns `{ winProbability[], scoreMargin[] }`; proxied from ESPN summary; cached 30s (live) / 30d (final, `cacheIf` non-null); key `winprob:v2:{league}:{eventId}`
 - `GET /:league/players`
 - `GET /:league/players/:slug`

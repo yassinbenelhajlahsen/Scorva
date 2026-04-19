@@ -1,34 +1,214 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 
-const PREDICTION_TTL = 3600; // 1 hour
+const PREDICTION_TTL = 3600; // 1 hour — invalidated by status_updated_at in cache key
 
 const LEAGUE_CONFIG = {
-  nba: { homeBonus: 3, scale: 0.1, formScale: 5, h2hScale: 2 },
+  nba: { homeBonus: 3, scale: 0.12, formScale: 5, h2hScale: 2 },
   nfl: { homeBonus: 3, scale: 0.15, formScale: 8, h2hScale: 3 },
   nhl: { homeBonus: 0.5, scale: 0.5, formScale: 3, h2hScale: 1 },
 };
+
+// Drop injured players who haven't logged a game with this team in N days —
+// filters out stale ESPN entries for traded/released players whose `players.teamid`
+// hasn't been refreshed yet.
+const INJURY_STALENESS_DAYS = 21;
+
+const AVAILABILITY = {
+  out: 1.0,
+  ir: 1.0,
+  suspended: 1.0,
+  doubtful: 0.75,
+  questionable: 0.5,
+  "day-to-day": 0.25,
+};
+
+// How much of the impact factor F translates into rating change.
+// Off/def ratings are large numbers (~110 NBA, ~22 NFL, ~3 NHL) — applying F directly
+// saturates the sigmoid. Tuned against Vegas/market lines for star-out scenarios:
+// Luka out alone (F≈0.20) → ~17pt swing; Luka + Reaves (F≈0.45) → ~33pt swing.
+const INJURY_OFF_WEIGHT = 0.25;
+const INJURY_DEF_WEIGHT = 0.18;
+
+const PRODUCTION_SELECT = {
+  nba: `
+    AVG(s.points) AS pts,
+    AVG(s.assists) AS ast,
+    AVG(s.rebounds) AS reb,
+    AVG(s.blocks) AS blk,
+    AVG(s.steals) AS stl,
+    AVG(s.minutes) AS min`,
+  nfl: `
+    SUM(s.yds) AS yds,
+    SUM(s.td) AS td`,
+  nhl: `
+    SUM(s.g) AS g,
+    SUM(s.a) AS a,
+    AVG(s.shots) AS shots`,
+};
+
+const MINUTES_FILTER = {
+  nba: `s.minutes > 0`,
+  nhl: `s.toi IS NOT NULL AND s.toi != '0:00'`,
+  nfl: `NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)`,
+};
+
+const NFL_OL_ST_POSITIONS = new Set([
+  "OL", "C", "G", "T", "OT", "OG", "LS", "P", "K", "PK",
+]);
 
 function sigmoid(x) {
   return 1 / (1 + Math.exp(-x));
 }
 
-function computeWinProbabilities(homeStats, awayStats, homeRecent, awayRecent, h2h, league) {
+function playerWeightedProduction(player, league) {
+  if (league === "nba") {
+    return (
+      Number(player.pts || 0) +
+      0.6 * Number(player.ast || 0) +
+      0.4 * Number(player.reb || 0) +
+      0.3 * Number(player.blk || 0) +
+      0.2 * Number(player.stl || 0)
+    );
+  }
+  if (league === "nhl") {
+    return (
+      Number(player.g || 0) +
+      0.6 * Number(player.a || 0) +
+      0.2 * Number(player.shots || 0)
+    );
+  }
+  if (league === "nfl") {
+    const pos = (player.position || "").toUpperCase();
+    if (pos === "QB") return Number(player.yds || 0) + 20 * Number(player.td || 0);
+    if (NFL_OL_ST_POSITIONS.has(pos)) return null; // signals fixed share
+    return Number(player.yds || 0) + 10 * Number(player.td || 0);
+  }
+  return 0;
+}
+
+export function computePlayerImpactShare(player, teamWeighted, league) {
+  const raw = playerWeightedProduction(player, league);
+  // NFL OL/ST get a fixed small share
+  if (raw === null) return 0.02;
+  if (!teamWeighted || teamWeighted <= 0) return 0;
+  const share = raw / teamWeighted;
+  if (!Number.isFinite(share) || share <= 0) return 0;
+  return Math.min(0.4, share);
+}
+
+export function computeTeamImpactFactor(rosterRows, league) {
+  if (!rosterRows?.length) return { factor: 0, players: [] };
+
+  // Team total = sum of all rostered/played players' weighted production
+  let teamWeighted = 0;
+  for (const r of rosterRows) {
+    const w = playerWeightedProduction(r, league);
+    if (typeof w === "number") teamWeighted += w;
+  }
+
+  const players = [];
+  let factor = 0;
+  const staleCutoffMs = Date.now() - INJURY_STALENESS_DAYS * 24 * 60 * 60 * 1000;
+  for (const r of rosterRows) {
+    const status = r.status;
+    if (!status || status === "active" || status === "available") continue;
+    const availability = AVAILABILITY[status];
+    if (availability == null) continue;
+    // Drop ghost injuries: player flagged out but no recent game with this team.
+    // Likely traded/released and ESPN's feed still surfaces them.
+    if (r.last_game_date != null) {
+      const lastGameMs = r.last_game_date instanceof Date
+        ? r.last_game_date.getTime()
+        : new Date(r.last_game_date).getTime();
+      if (Number.isFinite(lastGameMs) && lastGameMs < staleCutoffMs) continue;
+    }
+    const share = computePlayerImpactShare(r, teamWeighted, league);
+    if (share <= 0) continue;
+    factor += share * availability;
+    players.push({
+      id: r.id,
+      name: r.name,
+      position: r.position,
+      imageUrl: r.image_url,
+      status,
+      statusDescription: r.status_description,
+      statusUpdatedAt: r.status_updated_at,
+      impactShare: Math.round(share * 1000) / 1000,
+      availability,
+    });
+  }
+
+  // Sort most impactful first for display
+  players.sort((a, b) => b.impactShare * b.availability - a.impactShare * a.availability);
+
+  return { factor: Math.min(0.55, factor), players };
+}
+
+async function getRosterProduction(league, season, teamId) {
+  const productionSelect = PRODUCTION_SELECT[league];
+  const minutesFilter = MINUTES_FILTER[league];
+  if (!productionSelect || !minutesFilter) return [];
+
+  const result = await pool.query(
+    `SELECT
+       p.id, p.name, p.position, p.image_url, p.status, p.status_description, p.status_updated_at,
+       COUNT(DISTINCT s.gameid) AS games_played,
+       MAX(g.date) AS last_game_date,
+       ${productionSelect}
+     FROM players p
+     JOIN stats s ON s.playerid = p.id
+     JOIN games g ON g.id = s.gameid
+     WHERE p.teamid = $3
+       AND g.league = $1
+       AND g.season = $2
+       AND g.status ILIKE 'Final%'
+       AND g.type IN ('regular', 'makeup')
+       AND COALESCE(s.teamid, p.teamid) = $3
+       AND ${minutesFilter}
+     GROUP BY p.id, p.name, p.position, p.image_url, p.status, p.status_description, p.status_updated_at
+     HAVING COUNT(DISTINCT s.gameid) > 0`,
+    [league, season, teamId]
+  );
+  return result.rows;
+}
+
+function computeWinProbabilities(
+  homeStats,
+  awayStats,
+  homeRecent,
+  awayRecent,
+  h2h,
+  league,
+  homeImpact = 0,
+  awayImpact = 0
+) {
   const { homeBonus, scale, formScale, h2hScale } = LEAGUE_CONFIG[league] ?? LEAGUE_CONFIG.nba;
 
-  // Season avg signal (50%)
-  const seasonDiff =
-    (homeStats.off_rating - homeStats.def_rating) -
-    (awayStats.off_rating - awayStats.def_rating);
+  // Apply injury impact: scale offense down, defense (points allowed) up.
+  // F is dampened by INJURY_*_WEIGHT to avoid saturating the sigmoid.
+  const adj = (off, def, factor) => ({
+    off: Number(off) * (1 - factor * INJURY_OFF_WEIGHT),
+    def: Number(def) * (1 + factor * INJURY_DEF_WEIGHT),
+  });
 
-  // Home/away split signal (30%): home team's home performance vs away team's away performance
+  const homeAdj = adj(homeStats.off_rating, homeStats.def_rating, homeImpact);
+  const awayAdj = adj(awayStats.off_rating, awayStats.def_rating, awayImpact);
+
+  // Season avg signal (50%)
+  const seasonDiff = (homeAdj.off - homeAdj.def) - (awayAdj.off - awayAdj.def);
+
+  // Home/away split signal (30%)
   const homeHasHomeData = homeStats.home_off_rating != null && homeStats.home_def_rating != null;
   const awayHasAwayData = awayStats.away_off_rating != null && awayStats.away_def_rating != null;
-  const splitDiff =
-    homeHasHomeData && awayHasAwayData
-      ? (Number(homeStats.home_off_rating) - Number(homeStats.home_def_rating)) -
-        (Number(awayStats.away_off_rating) - Number(awayStats.away_def_rating))
-      : seasonDiff; // fall back to season diff if no split data
+  let splitDiff;
+  if (homeHasHomeData && awayHasAwayData) {
+    const homeSplit = adj(homeStats.home_off_rating, homeStats.home_def_rating, homeImpact);
+    const awaySplit = adj(awayStats.away_off_rating, awayStats.away_def_rating, awayImpact);
+    splitDiff = (homeSplit.off - homeSplit.def) - (awaySplit.off - awaySplit.def);
+  } else {
+    splitDiff = seasonDiff;
+  }
 
   // Recent form signal (20%): win rate delta scaled to points
   const homeFormRate = homeRecent.length > 0
@@ -52,7 +232,16 @@ function computeWinProbabilities(homeStats, awayStats, homeRecent, awayRecent, h
   return { home, away: 100 - home };
 }
 
-function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, league) {
+function generateKeyFactors(
+  homeStats,
+  awayStats,
+  homeRecent,
+  awayRecent,
+  h2h,
+  league,
+  homeInjury = { factor: 0, players: [] },
+  awayInjury = { factor: 0, players: [] }
+) {
   const factors = [];
   const h = homeStats.shortname;
   const a = awayStats.shortname;
@@ -62,7 +251,18 @@ function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, l
     league === "nhl" ? "Home ice" : league === "nfl" ? "Home field" : "Home court";
   factors.push({ text: `${courtTerm} advantage`, type: "home" });
 
-  // 2. H2H dominance — if one team has ≥60% of ≥5 meetings
+  // 2. Injuries — at most one per team
+  const injuryThreshold = 0.1;
+  if (homeInjury.factor >= injuryThreshold) {
+    const pct = Math.round(homeInjury.factor * 100);
+    factors.push({ text: `${h} missing key contributors (~${pct}% of production)`, type: "injury" });
+  }
+  if (awayInjury.factor >= injuryThreshold) {
+    const pct = Math.round(awayInjury.factor * 100);
+    factors.push({ text: `${a} missing key contributors (~${pct}% of production)`, type: "injury" });
+  }
+
+  // 3. H2H dominance — if one team has ≥60% of ≥5 meetings
   if (h2h.total >= 5) {
     const homeH2HPct = h2h.homeWins / h2h.total;
     if (homeH2HPct >= 0.6) {
@@ -72,7 +272,7 @@ function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, l
     }
   }
 
-  // 3. Recent form — if one team won 4+ of last 5 vs other's 2 or fewer
+  // 4. Recent form
   const homeFormWins = homeRecent.filter(Boolean).length;
   const awayFormWins = awayRecent.filter(Boolean).length;
   if (homeRecent.length >= 3 && awayRecent.length >= 3) {
@@ -87,7 +287,7 @@ function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, l
     }
   }
 
-  // 4. Home/away splits — use context-specific ratings if available
+  // 5. Home/away splits
   const homeOff = Number(homeStats.home_off_rating ?? homeStats.off_rating);
   const homeDef = Number(homeStats.home_def_rating ?? homeStats.def_rating);
   const awayOff = Number(awayStats.away_off_rating ?? awayStats.off_rating);
@@ -105,7 +305,7 @@ function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, l
     factors.push({ text: `${a} limiting opponents on the road (${awayDef.toFixed(1)} opp PPG)`, type: "defense" });
   }
 
-  // 5. Overall record — only if gap is >10%
+  // 6. Overall record — only if gap is >10%
   const homeGames = Number(homeStats.games_played);
   const awayGames = Number(awayStats.games_played);
   if (homeGames > 0 && awayGames > 0) {
@@ -121,31 +321,40 @@ function generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, l
 }
 
 export async function getPrediction(league, gameId) {
+  // Fetch game row + freshness signal first so the cache key can invalidate
+  // when ESPN pushes a new injury report.
+  const gameResult = await pool.query(
+    `SELECT hometeamid, awayteamid, season, status
+     FROM games WHERE id = $1 AND league = $2`,
+    [gameId, league]
+  );
+  if (gameResult.rows.length === 0) return null;
+
+  const game = gameResult.rows[0];
+  const { status, hometeamid, awayteamid, season } = game;
+
+  // Only predict for pre-game
+  const isLiveOrFinal =
+    status?.includes("Final") ||
+    status?.includes("In Progress") ||
+    status?.includes("Halftime") ||
+    status?.includes("End of Period");
+  if (isLiveOrFinal) return null;
+
+  const freshnessResult = await pool.query(
+    `SELECT MAX(status_updated_at) AS ts
+     FROM players
+     WHERE teamid = ANY($1) AND status_updated_at IS NOT NULL`,
+    [[hometeamid, awayteamid]]
+  );
+  const freshTs = freshnessResult.rows[0]?.ts;
+  const freshKey = freshTs instanceof Date ? freshTs.getTime() : (freshTs ?? "0");
+
   return cached(
-    `prediction:${league}:${gameId}`,
+    `prediction:${league}:${gameId}:${freshKey}`,
     PREDICTION_TTL,
     async () => {
-      // Fetch game row
-      const gameResult = await pool.query(
-        `SELECT hometeamid, awayteamid, season, status
-         FROM games WHERE id = $1 AND league = $2`,
-        [gameId, league]
-      );
-      if (gameResult.rows.length === 0) return null;
-
-      const game = gameResult.rows[0];
-      const { status, hometeamid, awayteamid, season } = game;
-
-      // Only predict for pre-game
-      const isLiveOrFinal =
-        status?.includes("Final") ||
-        status?.includes("In Progress") ||
-        status?.includes("Halftime") ||
-        status?.includes("End of Period");
-      if (isLiveOrFinal) return null;
-
       // Compute team ratings from finished regular-season games this season
-      // Includes home/away splits
       const ratingsResult = await pool.query(
         `SELECT
           t.id,
@@ -159,14 +368,12 @@ export async function getPrediction(league, gameId) {
             AND g.status IN ('Final/OT', 'Final/SO')) AS otl,
           AVG(CASE WHEN g.hometeamid = t.id THEN g.homescore ELSE g.awayscore END) AS off_rating,
           AVG(CASE WHEN g.hometeamid = t.id THEN g.awayscore ELSE g.homescore END) AS def_rating,
-          -- Home-only splits
           AVG(CASE WHEN g.hometeamid = t.id THEN g.homescore END) AS home_off_rating,
           AVG(CASE WHEN g.hometeamid = t.id THEN g.awayscore END) AS home_def_rating,
           COUNT(*) FILTER (WHERE g.hometeamid = t.id AND g.winnerid = t.id) AS home_wins,
           COUNT(*) FILTER (WHERE g.hometeamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id) AS home_losses,
           COUNT(*) FILTER (WHERE g.hometeamid = t.id AND g.winnerid IS NOT NULL AND g.winnerid != t.id
             AND g.status IN ('Final/OT', 'Final/SO')) AS home_otl,
-          -- Away-only splits
           AVG(CASE WHEN g.awayteamid = t.id THEN g.awayscore END) AS away_off_rating,
           AVG(CASE WHEN g.awayteamid = t.id THEN g.homescore END) AS away_def_rating,
           COUNT(*) FILTER (WHERE g.awayteamid = t.id AND g.winnerid = t.id) AS away_wins,
@@ -197,8 +404,7 @@ export async function getPrediction(league, gameId) {
         return null;
       }
 
-      // Fetch recent form — last 5 games per team this season
-      const [homeFormResult, awayFormResult] = await Promise.all([
+      const [homeFormResult, awayFormResult, h2hResult, homeRoster, awayRoster] = await Promise.all([
         pool.query(
           `SELECT winnerid FROM games
            WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
@@ -213,21 +419,23 @@ export async function getPrediction(league, gameId) {
            ORDER BY id DESC LIMIT 5`,
           [league, season, awayteamid]
         ),
+        pool.query(
+          `SELECT winnerid FROM games
+           WHERE league = $1 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
+             AND (
+               (hometeamid = $2 AND awayteamid = $3) OR
+               (hometeamid = $3 AND awayteamid = $2)
+             )
+           ORDER BY id DESC LIMIT 15`,
+          [league, hometeamid, awayteamid]
+        ),
+        getRosterProduction(league, season, hometeamid),
+        getRosterProduction(league, season, awayteamid),
       ]);
+
       const homeRecent = homeFormResult.rows.map((r) => r.winnerid === hometeamid);
       const awayRecent = awayFormResult.rows.map((r) => r.winnerid === awayteamid);
 
-      // Fetch head-to-head — last 15 meetings all time
-      const h2hResult = await pool.query(
-        `SELECT winnerid FROM games
-         WHERE league = $1 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
-           AND (
-             (hometeamid = $2 AND awayteamid = $3) OR
-             (hometeamid = $3 AND awayteamid = $2)
-           )
-         ORDER BY id DESC LIMIT 15`,
-        [league, hometeamid, awayteamid]
-      );
       const h2h = h2hResult.rows.reduce(
         (acc, r) => {
           acc.total++;
@@ -238,15 +446,27 @@ export async function getPrediction(league, gameId) {
         { homeWins: 0, awayWins: 0, total: 0 }
       );
 
-      const confidence =
+      const homeInjury = computeTeamImpactFactor(homeRoster, league);
+      const awayInjury = computeTeamImpactFactor(awayRoster, league);
+
+      const baseConfidence =
         Number(homeStats.games_played) < 5 || Number(awayStats.games_played) < 5
           ? "low"
           : "normal";
+      const confidence =
+        homeInjury.factor > 0.25 || awayInjury.factor > 0.25 ? "low" : baseConfidence;
 
-      const probs = computeWinProbabilities(homeStats, awayStats, homeRecent, awayRecent, h2h, league);
-      const keyFactors = generateKeyFactors(homeStats, awayStats, homeRecent, awayRecent, h2h, league);
+      const probs = computeWinProbabilities(
+        homeStats, awayStats, homeRecent, awayRecent, h2h, league,
+        homeInjury.factor, awayInjury.factor
+      );
+      const keyFactors = generateKeyFactors(
+        homeStats, awayStats, homeRecent, awayRecent, h2h, league,
+        homeInjury, awayInjury
+      );
 
       const toNum = (v) => (v != null ? Math.round(Number(v) * 10) / 10 : null);
+      const toFactor = (v) => Math.round(v * 1000) / 1000;
 
       return {
         homeTeam: {
@@ -267,7 +487,11 @@ export async function getPrediction(league, gameId) {
             losses: Number(homeStats.home_losses),
             otl: Number(homeStats.home_otl || 0),
           },
-          recentForm: homeRecent, // newest first, true = win
+          recentForm: homeRecent,
+          injuries: {
+            impactFactor: toFactor(homeInjury.factor),
+            players: homeInjury.players,
+          },
         },
         awayTeam: {
           id: awayStats.id,
@@ -288,6 +512,10 @@ export async function getPrediction(league, gameId) {
             otl: Number(awayStats.away_otl || 0),
           },
           recentForm: awayRecent,
+          injuries: {
+            impactFactor: toFactor(awayInjury.factor),
+            players: awayInjury.players,
+          },
         },
         headToHead: h2h,
         keyFactors,
