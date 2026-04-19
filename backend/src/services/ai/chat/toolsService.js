@@ -12,6 +12,7 @@ import { getTeamStats } from "./tools/teamStats.js";
 import { webSearch } from "./tools/webSearch.js";
 import { semanticSearch } from "./tools/semanticSearch.js";
 import { getPlaysForAgent } from "./tools/plays.js";
+import { getTeamInjuries, getLeagueInjuries, getPlayerStatus } from "./tools/injuries.js";
 import { getCurrentSeason } from "../../../cache/seasons.js";
 
 export { TOOL_DEFINITIONS } from "./toolDefinitions.js";
@@ -93,6 +94,19 @@ export async function executeTool(name, args) {
 
     case "get_plays":
       return getPlaysForAgent(args);
+
+    case "get_team_injuries":
+      return getTeamInjuries(args.league, args.teamId, args.season);
+
+    case "get_league_injuries":
+      return getLeagueInjuries(args.league, {
+        status: args.status,
+        minPopularity: args.minPopularity,
+        limit: args.limit,
+      });
+
+    case "get_player_status":
+      return getPlayerStatus(args.league, args.playerId);
 
     default:
       return { error: `Unknown tool: ${name}` };

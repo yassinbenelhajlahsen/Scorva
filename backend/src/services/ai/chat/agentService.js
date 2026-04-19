@@ -63,7 +63,7 @@ function buildSystemPrompt(pageContext, entity) {
     const { type, league } = pageContext;
     const leagueUpper = league?.toUpperCase();
     if (type === "player" && entity) {
-      contextBlock = `\n\nThe user is currently viewing **${entity.name}**'s ${leagueUpper} player page (player ID: ${entity.id}). When they use pronouns like "he", "him", "this player", or ask without naming anyone, they mean ${entity.name}. You already have the player ID — call get_player_detail directly with player ID ${entity.id}, do NOT search first.`;
+      contextBlock = `\n\nThe user is currently viewing **${entity.name}**'s ${leagueUpper} player page (player ID: ${entity.id}). When they use pronouns like "he", "him", "this player", or ask without naming anyone, they mean ${entity.name}. You already have the player ID — call get_player_detail directly with player ID ${entity.id}, do NOT search first. For availability questions like "is he playing tonight?" call get_player_status with player ID ${entity.id} instead of fetching the full profile.`;
     } else if (type === "team" && entity) {
       contextBlock = `\n\nThe user is currently viewing the **${entity.name}** ${leagueUpper} team page (team ID: ${entity.id}). When they say "this team", "them", or ask without naming a team, they mean ${entity.name}. You already have the team ID — call get_team_stats or get_games directly with team ID ${entity.id}, do NOT search first.`;
     } else if (type === "game" && entity) {
@@ -95,7 +95,8 @@ RESPONSE FORMAT:
 CRITICAL DATA RULES:
 - NEVER use your training data for statistics, team rosters, or player/team affiliations. All of it is outdated.
 - ALWAYS call tools before answering questions about current stats, which team a player is on, roster moves, or standings.
-- For injury/news questions: use \`web_search\`. Always check \`publishedDate\` on each result — prefer the most recent articles and discard anything clearly outdated. Never blend web results with your training data.
+- For injury or availability questions, prefer \`get_player_status\`, \`get_team_injuries\`, or \`get_league_injuries\` over \`web_search\`. Use \`web_search\` only for timelines, return dates, trade rumors, or reporter context the database doesn't store.
+- For news questions: use \`web_search\`. Always check \`publishedDate\` on each result — prefer the most recent articles and discard anything clearly outdated. Never blend web results with your training data.
 - If tools return no data, say so briefly. Never fill gaps with guesses.
 
 TOOL USAGE:
@@ -157,6 +158,9 @@ const TOOL_STATUS_LABELS = {
   get_teams: "Loading teams",
   semantic_search: "Searching knowledge base",
   get_plays: "Searching play-by-play",
+  get_team_injuries: "Checking team injury report",
+  get_league_injuries: "Checking league injury report",
+  get_player_status: "Checking player availability",
 };
 
 export async function runAgentLoop(history, pageContext, onDelta, { onStatus, conversationSummary, signal } = {}) {

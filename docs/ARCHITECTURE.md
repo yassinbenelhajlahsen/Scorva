@@ -515,10 +515,11 @@ All vectors are stored as `vector(14)` (NHL max); NBA and NFL are zero-padded. Q
 
 **Cache:** `similarPlayers:{league}:{playerId}:{season}` — 120s current season, 30 days past. Invalidated on each upsert cycle.
 
-### 14 chat tools
+### 17 chat tools
 `search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`,
 `get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,
-`web_search`, `get_seasons`, `get_teams`, `semantic_search`, `get_plays`
+`web_search`, `get_seasons`, `get_teams`, `semantic_search`, `get_plays`,
+`get_team_injuries`, `get_league_injuries`, `get_player_status`
 
 OpenAI function schemas defined in `chat/toolDefinitions.js`; execution dispatch in `chat/toolsService.js`; individual tool logic in `services/chat/tools/`.
 
@@ -529,3 +530,12 @@ Queries the `plays` table directly — no embeddings. Handles both single-game a
 - Cross-game: only searches Final games; includes `matchup` and `game_date` per row so the LLM can attribute plays to specific games.
 - NFL: conditionally adds `drive_number`, `drive_description`, `drive_result` columns to SELECT and result shape.
 - Returns `{ plays, total, capped }` so the LLM knows if results were truncated.
+
+### Injury tools
+`get_team_injuries`, `get_league_injuries`, `get_player_status` all read from the `players.status`, `players.status_description`, `players.status_updated_at` columns populated by `ingestion/syncInjuries.js` (ESPN league-wide feed). Source of truth is the DB — `web_search` is reserved for return timelines, trade rumors, and reporter context.
+
+- `get_team_injuries(league, teamId, season?)` — returns `{ team, season, asOf, count, players[] }`. Each player includes league-specific `seasonAverages` (NBA: points/rebounds/assists/minutes; NFL: yards/touchdowns/interceptions; NHL: goals/assists/shots) joined from `stats` → `games` with the standard `regular`/`makeup` + minutes/TOI filter. Sorted by severity (`out` < `ir` < `doubtful` < `questionable` < `day-to-day` < `suspended`). `asOf = MAX(status_updated_at)`.
+- `get_league_injuries(league, { status?, minPopularity?, limit? })` — cross-team view joined to `teams`, ordered by `popularity DESC` then severity. `limit` default 25, hard cap 50. Roster-level only (no stat join).
+- `get_player_status(league, playerId)` — single-player lookup. Returns `{ status: "active" }` when `status IS NULL`, `{ error: "Player not found" }` when the player doesn't exist.
+
+**Cache keys:** `injuries:team:{league}:{teamId}:{season}` 120s, `injuries:league:{league}:{status|all}:{minPop}:{limit}` 120s, `injuries:player:{league}:{playerId}` 60s.

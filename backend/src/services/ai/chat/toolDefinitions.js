@@ -275,6 +275,74 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "get_team_injuries",
+      description:
+        "Get currently injured players on a single team, with their season averages so you can reason about production impact. " +
+        "Use this for questions like 'who's hurt on the Celtics?' or 'is the Lakers' roster banged up?'.",
+      parameters: {
+        type: "object",
+        properties: {
+          league: { type: "string", enum: ["nba", "nfl", "nhl"] },
+          teamId: { type: "integer" },
+          season: {
+            type: "string",
+            description: "Season identifier. Omit for current season.",
+          },
+        },
+        required: ["league", "teamId"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_league_injuries",
+      description:
+        "Cross-team view of injured players in a league, sorted by popularity. " +
+        "Use for 'who's hurt in the NBA right now?' style questions. Returns up to 50.",
+      parameters: {
+        type: "object",
+        properties: {
+          league: { type: "string", enum: ["nba", "nfl", "nhl"] },
+          status: {
+            type: "string",
+            enum: ["out", "ir", "doubtful", "questionable", "day-to-day", "suspended"],
+            description: "Filter to a single status. Omit for all statuses.",
+          },
+          minPopularity: {
+            type: "integer",
+            description: "Minimum player popularity score (default 0). Raise to filter out bench warmers.",
+          },
+          limit: {
+            type: "integer",
+            description: "Max players to return (default 25, max 50).",
+          },
+        },
+        required: ["league"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_player_status",
+      description:
+        "Get the current injury/availability status for a single player. " +
+        "Cheap focused lookup — use for 'is he playing?' questions when you already have the player ID. " +
+        "Returns {status: 'active'} for healthy players.",
+      parameters: {
+        type: "object",
+        properties: {
+          league: { type: "string", enum: ["nba", "nfl", "nhl"] },
+          playerId: { type: "integer" },
+        },
+        required: ["league", "playerId"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "semantic_search",
       description:
         "Search game summaries using semantic similarity. Best for broad or narrative queries like " +

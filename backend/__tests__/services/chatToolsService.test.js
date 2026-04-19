@@ -78,6 +78,15 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/pl
   getPlaysForAgent: mockGetPlaysForAgent,
 }));
 
+const mockGetTeamInjuries = jest.fn();
+const mockGetLeagueInjuries = jest.fn();
+const mockGetPlayerStatus = jest.fn();
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/injuries.js"), () => ({
+  getTeamInjuries: mockGetTeamInjuries,
+  getLeagueInjuries: mockGetLeagueInjuries,
+  getPlayerStatus: mockGetPlayerStatus,
+}));
+
 const servicePath = resolve(__dirname, "../../src/services/ai/chat/toolsService.js");
 const { TOOL_DEFINITIONS, executeTool } = await import(servicePath);
 
@@ -90,7 +99,7 @@ describe("chatToolsService", () => {
   describe("TOOL_DEFINITIONS", () => {
     it("exports an array of tool definitions", () => {
       expect(Array.isArray(TOOL_DEFINITIONS)).toBe(true);
-      expect(TOOL_DEFINITIONS.length).toBe(14);
+      expect(TOOL_DEFINITIONS.length).toBe(17);
     });
 
     it("every definition has type 'function' and a function.name", () => {
@@ -117,6 +126,9 @@ describe("chatToolsService", () => {
       expect(names).toContain("get_teams");
       expect(names).toContain("semantic_search");
       expect(names).toContain("get_plays");
+      expect(names).toContain("get_team_injuries");
+      expect(names).toContain("get_league_injuries");
+      expect(names).toContain("get_player_status");
     });
 
     it("semantic_search definition has required 'query' property", () => {
@@ -330,6 +342,43 @@ describe("chatToolsService", () => {
 
       expect(mockGetPlaysForAgent).toHaveBeenCalledWith(args);
       expect(result).toEqual(mockResult);
+    });
+
+    it("delegates 'get_team_injuries' to getTeamInjuries()", async () => {
+      mockGetTeamInjuries.mockResolvedValueOnce({ count: 0, players: [] });
+
+      await executeTool("get_team_injuries", {
+        league: "nba",
+        teamId: 2,
+        season: "2025-26",
+      });
+
+      expect(mockGetTeamInjuries).toHaveBeenCalledWith("nba", 2, "2025-26");
+    });
+
+    it("delegates 'get_league_injuries' to getLeagueInjuries() with options", async () => {
+      mockGetLeagueInjuries.mockResolvedValueOnce({ count: 0, players: [] });
+
+      await executeTool("get_league_injuries", {
+        league: "nba",
+        status: "out",
+        minPopularity: 50,
+        limit: 20,
+      });
+
+      expect(mockGetLeagueInjuries).toHaveBeenCalledWith("nba", {
+        status: "out",
+        minPopularity: 50,
+        limit: 20,
+      });
+    });
+
+    it("delegates 'get_player_status' to getPlayerStatus()", async () => {
+      mockGetPlayerStatus.mockResolvedValueOnce({ status: "active" });
+
+      await executeTool("get_player_status", { league: "nba", playerId: 1234 });
+
+      expect(mockGetPlayerStatus).toHaveBeenCalledWith("nba", 1234);
     });
   });
 
