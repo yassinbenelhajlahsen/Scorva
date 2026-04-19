@@ -2,6 +2,7 @@ import { m } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import StatCard from "../cards/StatCard.jsx";
+import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
 import slugify from "../../utils/slugify.js";
 import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
@@ -60,7 +61,14 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
                   />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-text-primary truncate">{player.name}</p>
-                    <p className="text-xs text-text-tertiary mt-0.5">{player.position} · #{player.jerseynum}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <p className="text-xs text-text-tertiary">{player.position} · #{player.jerseynum}</p>
+                      <PlayerStatusBadge
+                        status={player.status}
+                        title={player.status_description || undefined}
+                        size="sm"
+                      />
+                    </div>
                     {!compact && <p className="text-xs text-text-secondary mt-1">{player.team_name}</p>}
                   </div>
                 </Link>

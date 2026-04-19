@@ -17,6 +17,7 @@ export async function getFavorites(userId) {
     await Promise.all([
       pool.query(
         `SELECT p.id, p.name, p.image_url, p.position, p.jerseynum, p.league,
+                p.status, p.status_description,
                 t.name AS team_name, t.shortname AS team_shortname, t.logo_url AS team_logo,
                 t.id AS team_id
          FROM user_favorite_players ufp
