@@ -7,7 +7,7 @@ const PREDICTION_TTL = 3600; // 1 hour — invalidated by status_updated_at in c
 const LEAGUE_CONFIG = {
   nba: { homeBonus: 3, scale: 0.12, formScale: 5, h2hScale: 2, seriesScale: 2 },
   nfl: { homeBonus: 3, scale: 0.15, formScale: 8, h2hScale: 3, seriesScale: 1.5 },
-  nhl: { homeBonus: 0.5, scale: 0.5, formScale: 3, h2hScale: 1, seriesScale: 0.4 },
+  nhl: { homeBonus: 0.5, scale: 0.15, formScale: 1, h2hScale: 1, seriesScale: 0.4 },
 };
 
 // Drop injured players who haven't logged a game with this team in N days —
