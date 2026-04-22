@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { ensureUserFromSupabase } from "../services/user/ensureUser.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -18,5 +19,6 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ error: "Invalid or expired token" });
 
   req.user = user;
+  await ensureUserFromSupabase(user);
   next();
 }

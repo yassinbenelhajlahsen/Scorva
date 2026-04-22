@@ -1,16 +1,7 @@
 import pool from "../../db/db.js";
+import { ensureUser } from "./ensureUser.js";
 
-export async function ensureUser(userId, { email, firstName, lastName } = {}) {
-  await pool.query(
-    `INSERT INTO users (id, email, first_name, last_name)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (id) DO UPDATE
-       SET email      = COALESCE(EXCLUDED.email,      users.email),
-           first_name = COALESCE(EXCLUDED.first_name, users.first_name),
-           last_name  = COALESCE(EXCLUDED.last_name,  users.last_name)`,
-    [userId, email ?? null, firstName ?? null, lastName ?? null]
-  );
-}
+export { ensureUser };
 
 export async function getFavorites(userId) {
   const [playersResult, playerStatsResult, teamsResult, teamGamesResult] =

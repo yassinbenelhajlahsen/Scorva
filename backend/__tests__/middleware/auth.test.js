@@ -6,12 +6,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const mockGetUser = jest.fn();
+const mockEnsureUserFromSupabase = jest.fn();
 
 jest.unstable_mockModule("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({
     auth: { getUser: mockGetUser },
   })),
 }));
+
+jest.unstable_mockModule(
+  resolve(__dirname, "../../src/services/user/ensureUser.js"),
+  () => ({
+    ensureUserFromSupabase: mockEnsureUserFromSupabase,
+  })
+);
 
 const { requireAuth } = await import(resolve(__dirname, "../../src/middleware/auth.js"));
 
@@ -31,6 +39,8 @@ describe("requireAuth middleware", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetUser.mockReset(); // clear unconsumed mockResolvedValueOnce queue between tests
+    mockEnsureUserFromSupabase.mockReset();
+    mockEnsureUserFromSupabase.mockResolvedValue(undefined);
     req = { headers: {} };
     res = makeResMock();
     next = jest.fn();
