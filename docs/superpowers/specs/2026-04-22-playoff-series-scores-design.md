@@ -60,8 +60,11 @@ Same lateral subquery added to the `FROM` clause (after the existing team joins)
 
 ```js
 // Returns null when series hasn't started (0-0), otherwise a leader-centric label.
+// Best-of-7: first to 4 wins. Winner's count always shown first in X-Y.
 function seriesLabel(h, a, homeName, awayName) {
   if (h + a === 0) return null;
+  if (h === 4) return `${homeName} win series ${h}-${a}`;
+  if (a === 4) return `${awayName} win series ${a}-${h}`;
   if (h === a) return `Tied ${h}-${a}`;
   return h > a ? `${homeName} lead ${h}-${a}` : `${awayName} lead ${a}-${h}`;
 }
@@ -78,11 +81,15 @@ Below the existing playoff round label `<p>` (currently line 241), add:
   const h = Number(game.home_series_wins ?? 0);
   const a = Number(game.away_series_wins ?? 0);
   if (h + a === 0) return null;
-  const label = h === a
-    ? `Tied ${h}-${a}`
-    : h > a
-      ? `${homeName} lead ${h}-${a}`
-      : `${awayName} lead ${a}-${h}`;
+  const label = h === 4
+    ? `${homeName} win series ${h}-${a}`
+    : a === 4
+      ? `${awayName} win series ${a}-${h}`
+      : h === a
+        ? `Tied ${h}-${a}`
+        : h > a
+          ? `${homeName} lead ${h}-${a}`
+          : `${awayName} lead ${a}-${h}`;
   return (
     <p className="text-[10px] text-text-tertiary text-center mt-0.5">
       {label}
@@ -101,11 +108,15 @@ Below the `game.gameLabel` span (currently line 82), inside the same `playoffLog
 {game.seriesScore && (() => {
   const { homeWins: h, awayWins: a } = game.seriesScore;
   if (h + a === 0) return null;
-  const label = h === a
-    ? `Tied ${h}-${a}`
-    : h > a
-      ? `${homeTeam.info.shortName} lead ${h}-${a}`
-      : `${awayTeam.info.shortName} lead ${a}-${h}`;
+  const label = h === 4
+    ? `${homeTeam.info.shortName} win series ${h}-${a}`
+    : a === 4
+      ? `${awayTeam.info.shortName} win series ${a}-${h}`
+      : h === a
+        ? `Tied ${h}-${a}`
+        : h > a
+          ? `${homeTeam.info.shortName} lead ${h}-${a}`
+          : `${awayTeam.info.shortName} lead ${a}-${h}`;
   return (
     <span className="text-xs text-text-tertiary text-center block mt-0.5">
       {label}
@@ -123,11 +134,13 @@ Below the `game.gameLabel` span (currently line 82), inside the same `playoffLog
 | Condition | Output |
 |---|---|
 | Both wins = 0 | Hidden (pre-series or non-qualifying) |
-| Equal wins | `Tied 2-2` |
-| Home leads | `BOS lead 3-1` |
-| Away leads | `NYK lead 2-1` |
+| Home wins series (4 wins) | `BOS win series 4-1` |
+| Away wins series (4 wins) | `NYK win series 4-2` |
+| Equal wins (in-series) | `Tied 2-2` |
+| Home leads (in-series) | `BOS lead 3-1` |
+| Away leads (in-series) | `NYK lead 2-1` |
 
-Leader name always appears first; X-Y always shows leader's wins first.
+Winner/leader name always appears first; X-Y always shows their wins first. The 4-win threshold is correct for both NBA and NHL (best-of-7).
 
 ---
 
