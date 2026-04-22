@@ -80,7 +80,7 @@ export default function GameMatchupHeader({
               />
             </div>
             {game.gameLabel && (
-              <span className="text-s font-medium text-text-secondary text-center">
+              <span className="text-sm font-medium text-text-secondary text-center">
                 {game.gameLabel}
               </span>
             )}
