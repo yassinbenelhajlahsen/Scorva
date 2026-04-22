@@ -5,9 +5,9 @@ import { MINUTES_FILTER_BY_LEAGUE } from "../../utils/statFilters.js";
 const PREDICTION_TTL = 3600; // 1 hour — invalidated by status_updated_at in cache key
 
 const LEAGUE_CONFIG = {
-  nba: { homeBonus: 3, scale: 0.12, formScale: 5, h2hScale: 2 },
-  nfl: { homeBonus: 3, scale: 0.15, formScale: 8, h2hScale: 3 },
-  nhl: { homeBonus: 0.5, scale: 0.5, formScale: 3, h2hScale: 1 },
+  nba: { homeBonus: 3, scale: 0.12, formScale: 5, h2hScale: 2, seriesScale: 2 },
+  nfl: { homeBonus: 3, scale: 0.15, formScale: 8, h2hScale: 3, seriesScale: 1.5 },
+  nhl: { homeBonus: 0.5, scale: 0.5, formScale: 3, h2hScale: 1, seriesScale: 0.4 },
 };
 
 // Drop injured players who haven't logged a game with this team in N days —
@@ -185,9 +185,10 @@ function computeWinProbabilities(
   h2h,
   league,
   homeImpact = 0,
-  awayImpact = 0
+  awayImpact = 0,
+  seriesLeadDiff = 0
 ) {
-  const { homeBonus, scale, formScale, h2hScale } = LEAGUE_CONFIG[league] ?? LEAGUE_CONFIG.nba;
+  const { homeBonus, scale, formScale, h2hScale, seriesScale = 0 } = LEAGUE_CONFIG[league] ?? LEAGUE_CONFIG.nba;
 
   // Apply injury impact: scale offense down, defense (points allowed) up.
   // F is dampened by INJURY_*_WEIGHT to avoid saturating the sigmoid.
@@ -230,7 +231,7 @@ function computeWinProbabilities(
     h2hBonus = (homeH2HPct - 0.5) * h2hScale;
   }
 
-  const combinedDiff = 0.5 * seasonDiff + 0.3 * splitDiff + formDiff + h2hBonus + homeBonus;
+  const combinedDiff = 0.5 * seasonDiff + 0.3 * splitDiff + formDiff + h2hBonus + homeBonus + seriesLeadDiff * seriesScale;
   const homeWinProb = sigmoid(combinedDiff * scale);
   const home = Math.round(homeWinProb * 100);
   return { home, away: 100 - home };
@@ -244,7 +245,8 @@ function generateKeyFactors(
   h2h,
   league,
   homeInjury = { factor: 0, players: [] },
-  awayInjury = { factor: 0, players: [] }
+  awayInjury = { factor: 0, players: [] },
+  series = null
 ) {
   const factors = [];
   const h = homeStats.shortname;
@@ -255,7 +257,18 @@ function generateKeyFactors(
     league === "nhl" ? "Home ice" : league === "nfl" ? "Home field" : "Home court";
   factors.push({ text: `${courtTerm} advantage`, type: "home" });
 
-  // 2. Injuries — at most one per team
+  // 2. Series lead — second for playoff games
+  if (series && (series.homeWins > 0 || series.awayWins > 0)) {
+    if (series.homeWins === series.awayWins) {
+      factors.push({ text: `Series tied ${series.homeWins}-${series.awayWins}`, type: "series" });
+    } else if (series.homeWins > series.awayWins) {
+      factors.push({ text: `${h} lead series ${series.homeWins}-${series.awayWins}`, type: "series" });
+    } else {
+      factors.push({ text: `${a} lead series ${series.awayWins}-${series.homeWins}`, type: "series" });
+    }
+  }
+
+  // 3. Injuries — at most one per team
   if (homeInjury.factor >= INJURY_KEY_FACTOR_MIN) {
     const pct = Math.round(homeInjury.factor * 100);
     factors.push({ text: `${h} missing key contributors (~${pct}% of production)`, type: "injury" });
@@ -265,7 +278,7 @@ function generateKeyFactors(
     factors.push({ text: `${a} missing key contributors (~${pct}% of production)`, type: "injury" });
   }
 
-  // 3. H2H dominance — if one team has ≥60% of ≥5 meetings
+  // 4. H2H dominance — if one team has ≥60% of ≥5 meetings
   if (h2h.total >= 5) {
     const homeH2HPct = h2h.homeWins / h2h.total;
     if (homeH2HPct >= 0.6) {
@@ -275,7 +288,7 @@ function generateKeyFactors(
     }
   }
 
-  // 4. Recent form
+  // 5. Recent form
   const homeFormWins = homeRecent.filter(Boolean).length;
   const awayFormWins = awayRecent.filter(Boolean).length;
   if (homeRecent.length >= 3 && awayRecent.length >= 3) {
@@ -290,7 +303,7 @@ function generateKeyFactors(
     }
   }
 
-  // 5. Home/away splits
+  // 6. Home/away splits
   const homeOff = Number(homeStats.home_off_rating ?? homeStats.off_rating);
   const homeDef = Number(homeStats.home_def_rating ?? homeStats.def_rating);
   const awayOff = Number(awayStats.away_off_rating ?? awayStats.off_rating);
@@ -308,7 +321,7 @@ function generateKeyFactors(
     factors.push({ text: `${a} limiting opponents on the road (${awayDef.toFixed(1)} opp PPG)`, type: "defense" });
   }
 
-  // 6. Overall record — only if gap is >10%
+  // 7. Overall record — only if gap is >10%
   const homeGames = Number(homeStats.games_played);
   const awayGames = Number(awayStats.games_played);
   if (homeGames > 0 && awayGames > 0) {
@@ -327,14 +340,14 @@ export async function getPrediction(league, gameId) {
   // Fetch game row + freshness signal first so the cache key can invalidate
   // when ESPN pushes a new injury report.
   const gameResult = await pool.query(
-    `SELECT hometeamid, awayteamid, season, status
+    `SELECT hometeamid, awayteamid, season, status, type
      FROM games WHERE id = $1 AND league = $2`,
     [gameId, league]
   );
   if (gameResult.rows.length === 0) return null;
 
   const game = gameResult.rows[0];
-  const { status, hometeamid, awayteamid, season } = game;
+  const { status, hometeamid, awayteamid, season, type } = game;
 
   // Only predict for pre-game
   const isLiveOrFinal =
@@ -353,8 +366,28 @@ export async function getPrediction(league, gameId) {
   const freshTs = freshnessResult.rows[0]?.ts;
   const freshKey = freshTs instanceof Date ? freshTs.getTime() : (freshTs ?? "0");
 
+  const isPlayoff = type === "playoff" || type === "final";
+  const series = { homeWins: 0, awayWins: 0 };
+  if (isPlayoff) {
+    const seriesResult = await pool.query(
+      `SELECT winnerid FROM games
+       WHERE league = $1 AND season = $2
+         AND type IN ('playoff', 'final')
+         AND status ILIKE 'Final%'
+         AND (
+           (hometeamid = $3 AND awayteamid = $4) OR
+           (hometeamid = $4 AND awayteamid = $3)
+         )`,
+      [league, season, hometeamid, awayteamid]
+    );
+    for (const row of seriesResult.rows) {
+      if (row.winnerid === hometeamid) series.homeWins++;
+      else if (row.winnerid === awayteamid) series.awayWins++;
+    }
+  }
+
   return cached(
-    `prediction:${league}:${gameId}:${freshKey}`,
+    `prediction:${league}:${gameId}:${freshKey}:${series.homeWins}-${series.awayWins}`,
     PREDICTION_TTL,
     async () => {
       // Compute team ratings from finished regular-season games this season
@@ -410,14 +443,14 @@ export async function getPrediction(league, gameId) {
       const [homeFormResult, awayFormResult, h2hResult, homeRoster, awayRoster] = await Promise.all([
         pool.query(
           `SELECT winnerid FROM games
-           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
+           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup', 'playoff', 'final')
              AND (hometeamid = $3 OR awayteamid = $3)
            ORDER BY id DESC LIMIT 5`,
           [league, season, hometeamid]
         ),
         pool.query(
           `SELECT winnerid FROM games
-           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup')
+           WHERE league = $1 AND season = $2 AND status ILIKE 'Final%' AND type IN ('regular', 'makeup', 'playoff', 'final')
              AND (hometeamid = $3 OR awayteamid = $3)
            ORDER BY id DESC LIMIT 5`,
           [league, season, awayteamid]
@@ -457,17 +490,19 @@ export async function getPrediction(league, gameId) {
           ? "low"
           : "normal";
       const confidence =
+        isPlayoff ||
         homeInjury.factor > LOW_CONFIDENCE_IMPACT || awayInjury.factor > LOW_CONFIDENCE_IMPACT
           ? "low"
           : baseConfidence;
 
+      const seriesLeadDiff = series.homeWins - series.awayWins;
       const probs = computeWinProbabilities(
         homeStats, awayStats, homeRecent, awayRecent, h2h, league,
-        homeInjury.factor, awayInjury.factor
+        homeInjury.factor, awayInjury.factor, seriesLeadDiff
       );
       const keyFactors = generateKeyFactors(
         homeStats, awayStats, homeRecent, awayRecent, h2h, league,
-        homeInjury, awayInjury
+        homeInjury, awayInjury, series
       );
 
       const toNum = (v) => (v != null ? Math.round(Number(v) * 10) / 10 : null);

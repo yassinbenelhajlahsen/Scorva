@@ -202,13 +202,13 @@ describe("getPrediction — cache key freshness", () => {
     setupQueryMocks({ freshTs: ts });
     await getPrediction("nba", 100);
     const cacheKey = mockCached.mock.calls[0][0];
-    expect(cacheKey).toBe(`prediction:nba:100:${ts.getTime()}`);
+    expect(cacheKey).toBe(`prediction:nba:100:${ts.getTime()}:0-0`);
   });
 
   it("uses 0 in key when no injury timestamps present", async () => {
     setupQueryMocks({ freshTs: null });
     await getPrediction("nba", 100);
     const cacheKey = mockCached.mock.calls[0][0];
-    expect(cacheKey).toBe("prediction:nba:100:0");
+    expect(cacheKey).toBe("prediction:nba:100:0:0-0");
   });
 });
