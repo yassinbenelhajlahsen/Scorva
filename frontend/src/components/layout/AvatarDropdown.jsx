@@ -1,6 +1,5 @@
 import { useRef, useEffect } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useSettings } from "../../context/SettingsContext.jsx";
 import { supabase } from "../../lib/supabase.js";
@@ -24,7 +23,6 @@ const UserIcon = () => (
 export default function AvatarDropdown() {
   const { session } = useAuth();
   const { isDropdownOpen, toggleDropdown, closeDropdown, openDrawer } = useSettings();
-  const navigate = useNavigate();
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -47,7 +45,6 @@ export default function AvatarDropdown() {
   async function handleSignOut() {
     closeDropdown();
     await supabase.auth.signOut();
-    navigate("/");
   }
 
   return (

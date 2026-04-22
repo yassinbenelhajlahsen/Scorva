@@ -2,12 +2,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-const mockNavigate = vi.fn();
-
-vi.mock("react-router-dom", () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 vi.mock("../../context/AuthContext.jsx", () => ({ useAuth: vi.fn() }));
 
 let mockUpdateUser;
@@ -220,7 +214,7 @@ describe("AccountTab — Delete Account flow", () => {
     expect(screen.queryByPlaceholderText("DELETE")).not.toBeInTheDocument();
   });
 
-  it("calls deleteAccount and navigates to / on confirmed delete", async () => {
+  it("calls deleteAccount and signOut on confirmed delete", async () => {
     useAuth.mockReturnValue({ session: emailSession });
     deleteAccount.mockResolvedValue({});
     mockSignOut.mockResolvedValue({});
@@ -234,7 +228,6 @@ describe("AccountTab — Delete Account flow", () => {
       expect.objectContaining({ token: "tok" })
     ));
     expect(mockSignOut).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith("/");
   });
 
   it("shows error message when delete fails", async () => {

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AnimatePresence, m } from "framer-motion";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { supabase } from "../../lib/supabase.js";
@@ -79,7 +78,6 @@ function Feedback({ message, type }) {
 
 export default function AccountTab() {
   const { session } = useAuth();
-  const navigate = useNavigate();
   const user = session?.user;
 
   // Derive initial name from user metadata (handles both email/password and Google OAuth)
@@ -143,7 +141,6 @@ export default function AccountTab() {
     try {
       await deleteAccount({ token: session.access_token });
       await supabase.auth.signOut();
-      navigate("/");
     } catch {
       setDeleteError("Failed to delete account. Please try again.");
       setDeleting(false);
