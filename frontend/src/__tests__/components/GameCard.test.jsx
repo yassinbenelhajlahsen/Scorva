@@ -170,13 +170,12 @@ describe("GameCard — playoff series label", () => {
     expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
   });
 
-  it("hides series label for play-in games (game_label contains play-in)", () => {
+  it("hides series label for play-in games even with non-zero wins", () => {
     render(<GameCard game={makePlayoffGame({
       game_label: "Play-In Game",
-      home_series_wins: 0,
+      home_series_wins: 1,
       away_series_wins: 0,
     })} />);
-    // game_label renders but no series score since 0-0
     expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
   });
 });

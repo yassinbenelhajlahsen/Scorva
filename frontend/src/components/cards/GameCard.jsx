@@ -246,7 +246,7 @@ function GameCard({ game }) {
         {isPlayoff && game.game_label && (() => {
           const h = Number(game.home_series_wins ?? 0);
           const a = Number(game.away_series_wins ?? 0);
-          if (h + a === 0) return null;
+          if (h + a === 0 || game.game_label.toLowerCase().includes('play-in')) return null;
           const label =
             h === 4
               ? `${homeName} win series ${h}-${a}`
@@ -297,5 +297,6 @@ export default memo(GameCard, (prev, next) => {
   const p = prev.game, n = next.game;
   return p.id === n.id && p.homescore === n.homescore && p.awayscore === n.awayscore &&
     p.status === n.status && p.clock === n.clock && p.current_period === n.current_period &&
-    p.winnerid === n.winnerid;
+    p.winnerid === n.winnerid &&
+    p.home_series_wins === n.home_series_wins && p.away_series_wins === n.away_series_wins;
 });
