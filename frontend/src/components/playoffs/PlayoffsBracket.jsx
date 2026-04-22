@@ -1,4 +1,5 @@
-import { m } from "framer-motion";
+import { useState } from "react";
+import { m, AnimatePresence } from "framer-motion";
 import SeriesCard from "./SeriesCard.jsx";
 import PlayInSection from "./PlayInSection.jsx";
 import { usePlayoffs } from "../../hooks/data/usePlayoffs.js";
@@ -82,8 +83,75 @@ function FinalsSection({ finals, league }) {
   );
 }
 
+function MobileConferenceTabs({ conferences, activeConf, onPick }) {
+  return (
+    <div className="flex justify-center mb-6">
+      <div className="flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+        {conferences.map((conf) => (
+          <button
+            key={conf.key}
+            onClick={() => onPick(conf.key)}
+            aria-pressed={activeConf === conf.key}
+            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
+              activeConf === conf.key
+                ? "bg-accent/15 border border-accent/25 text-accent"
+                : "text-text-secondary"
+            }`}
+          >
+            {conf.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileConferenceView({ block, labels, league, direction }) {
+  const columns = labels.bracketKeys
+    .map((k) => ({ key: k, title: labels.bracketTitles[k] ?? k, series: block[k] || [] }))
+    .filter((col) => col.series.length > 0);
+
+  return (
+    <m.div
+      custom={direction}
+      variants={{
+        initial: (dir) => ({ x: dir * 30, opacity: 0 }),
+        animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+        exit: (dir) => ({ x: dir * -30, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
+      }}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="flex flex-col gap-8"
+    >
+      {columns.map((col) => (
+        <div key={col.key}>
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary mb-3 text-center">
+            {col.title}
+          </div>
+          <div className="flex flex-col gap-3">
+            {col.series.map((s, i) => (
+              <SeriesCard key={i} series={s} league={league} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </m.div>
+  );
+}
+
 export default function PlayoffsBracket({ league, season }) {
   const { data, loading, error, retry } = usePlayoffs(league, season);
+  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
+  const [confA, confB] = labels.conferences;
+  const [activeMobileConf, setActiveMobileConf] = useState(confA.key);
+  const [mobileTabDirection, setMobileTabDirection] = useState(1);
+
+  function pickConf(key) {
+    const confKeys = labels.conferences.map((c) => c.key);
+    setMobileTabDirection(confKeys.indexOf(key) > confKeys.indexOf(activeMobileConf) ? 1 : -1);
+    setActiveMobileConf(key);
+  }
 
   if (loading) return <PlayoffsSkeleton season={season} league={league} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
@@ -97,9 +165,7 @@ export default function PlayoffsBracket({ league, season }) {
     );
   }
 
-  const labels = LEAGUE_LABELS[league] || LEAGUE_LABELS.nba;
   const { bracket, playIn } = data;
-  const [confA, confB] = labels.conferences;
   const blockA = bracket?.[confA.key];
   const blockB = bracket?.[confB.key];
   const finals = bracket?.[labels.finalsKey] || [];
@@ -111,6 +177,8 @@ export default function PlayoffsBracket({ league, season }) {
       </div>
     );
   }
+
+  const activeBlock = activeMobileConf === confA.key ? blockA : blockB;
 
   return (
     <div className="w-full">
@@ -124,13 +192,30 @@ export default function PlayoffsBracket({ league, season }) {
         </m.div>
       )}
 
-      {/* Finals/Super Bowl at top, centered */}
       <div className="mb-10">
         <FinalsSection finals={finals} league={league} />
       </div>
 
-      {/* Two conferences side-by-side on desktop, stacked on mobile */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6">
+      {/* Mobile: one conference at a time */}
+      <div className="lg:hidden" data-testid="mobile-bracket">
+        <MobileConferenceTabs
+          conferences={labels.conferences}
+          activeConf={activeMobileConf}
+          onPick={pickConf}
+        />
+        <AnimatePresence mode="wait" custom={mobileTabDirection} initial={false}>
+          <MobileConferenceView
+            key={activeMobileConf}
+            block={activeBlock}
+            labels={labels}
+            league={league}
+            direction={mobileTabDirection}
+          />
+        </AnimatePresence>
+      </div>
+
+      {/* Desktop: two conferences side-by-side */}
+      <div className="hidden lg:grid lg:grid-cols-2 gap-10 lg:gap-6">
         <ConferenceColumn
           confLabel={confA.label}
           rounds={blockA}
