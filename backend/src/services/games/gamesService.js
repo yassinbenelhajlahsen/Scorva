@@ -34,10 +34,30 @@ export async function getGames(league, { teamId, season, date, live } = {}) {
       th.logo_url AS home_logo,
       ta.name AS away_team_name,
       ta.shortname AS away_shortname,
-      ta.logo_url AS away_logo
+      ta.logo_url AS away_logo,
+      COALESCE(sc.home_series_wins, 0) AS home_series_wins,
+      COALESCE(sc.away_series_wins, 0) AS away_series_wins
     FROM games g
     JOIN teams th ON g.hometeamid = th.id
     JOIN teams ta ON g.awayteamid = ta.id
+    LEFT JOIN LATERAL (
+      SELECT
+        COUNT(*) FILTER (WHERE g2.winnerid = g.hometeamid) AS home_series_wins,
+        COUNT(*) FILTER (WHERE g2.winnerid = g.awayteamid) AS away_series_wins
+      FROM games g2
+      WHERE g.league IN ('nba', 'nhl')
+        AND g.type IN ('playoff', 'final')
+        AND (g.game_label IS NULL OR g.game_label NOT ILIKE '%play-in%')
+        AND g2.league = g.league
+        AND g2.season = g.season
+        AND g2.type IN ('playoff', 'final')
+        AND g2.status ILIKE 'Final%'
+        AND g2.id <= g.id
+        AND (
+          (g2.hometeamid = g.hometeamid AND g2.awayteamid = g.awayteamid) OR
+          (g2.hometeamid = g.awayteamid AND g2.awayteamid = g.hometeamid)
+        )
+    ) sc ON true
   `;
 
   const params = [league, season || null];

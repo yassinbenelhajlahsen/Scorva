@@ -306,4 +306,44 @@ describe("gamesService", () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe("getGames — series score columns", () => {
+    it("includes home_series_wins and away_series_wins in the SQL", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await getGames("nba", { teamId: 1 });
+
+      const [sql] = mockPool.query.mock.calls[0];
+      expect(sql).toContain("home_series_wins");
+      expect(sql).toContain("away_series_wins");
+    });
+
+    it("includes the lateral subquery guard for nba/nhl only", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await getGames("nba", { teamId: 1 });
+
+      const [sql] = mockPool.query.mock.calls[0];
+      expect(sql).toContain("'nba'");
+      expect(sql).toContain("'nhl'");
+      expect(sql).toContain("LEFT JOIN LATERAL");
+    });
+
+    it("passes series win fields through in returned rows", async () => {
+      const playoffGame = {
+        id: 42,
+        league: "nba",
+        type: "playoff",
+        status: "Final",
+        home_series_wins: 2,
+        away_series_wins: 1,
+      };
+      mockPool.query.mockResolvedValueOnce({ rows: [playoffGame] });
+
+      const result = await getGames("nba", { teamId: 1 });
+
+      expect(result[0].home_series_wins).toBe(2);
+      expect(result[0].away_series_wins).toBe(1);
+    });
+  });
 });
