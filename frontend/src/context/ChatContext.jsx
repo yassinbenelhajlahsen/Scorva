@@ -24,6 +24,14 @@ export function ChatProvider({ children }) {
   }, [session, openAuthModal]);
 
   useEffect(() => {
+    if (session === null) {
+      setIsOpen(false);
+      setMessages([]);
+      setConversationId(null);
+    }
+  }, [session]);
+
+  useEffect(() => {
     if (isDrawerOpen) setIsOpen(false);
   }, [isDrawerOpen]);
 
