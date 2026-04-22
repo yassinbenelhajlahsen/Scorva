@@ -237,12 +237,32 @@ function GameCard({ game }) {
           );
         })()}
 
-        {/* Playoff round label */}
+        {/* Playoff round label + series score */}
         {isPlayoff && game.game_label && (
           <p className="mt-2 pt-2 border-t border-white/[0.06] text-xs font-medium text-text-tertiary text-center tracking-wide">
             {game.game_label}
           </p>
         )}
+        {isPlayoff && game.game_label && (() => {
+          const h = Number(game.home_series_wins ?? 0);
+          const a = Number(game.away_series_wins ?? 0);
+          if (h + a === 0) return null;
+          const label =
+            h === 4
+              ? `${homeName} win series ${h}-${a}`
+              : a === 4
+                ? `${awayName} win series ${a}-${h}`
+                : h === a
+                  ? `Tied ${h}-${a}`
+                  : h > a
+                    ? `${homeName} lead ${h}-${a}`
+                    : `${awayName} lead ${a}-${h}`;
+          return (
+            <p className="text-[10px] text-text-tertiary text-center mt-0.5">
+              {label}
+            </p>
+          );
+        })()}
 
         {/* Mobile-only expand button — shown only on touch devices when there's a breakdown to reveal */}
         {(isFinal || inProgress) && (
