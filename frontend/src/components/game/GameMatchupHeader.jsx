@@ -84,6 +84,25 @@ export default function GameMatchupHeader({
                 {game.gameLabel}
               </span>
             )}
+            {game.seriesScore && (() => {
+              const { homeWins: h, awayWins: a } = game.seriesScore;
+              if (h + a === 0) return null;
+              const label =
+                h === 4
+                  ? `${homeTeam.info.shortName} win series ${h}-${a}`
+                  : a === 4
+                    ? `${awayTeam.info.shortName} win series ${a}-${h}`
+                    : h === a
+                      ? `Tied ${h}-${a}`
+                      : h > a
+                        ? `${homeTeam.info.shortName} lead ${h}-${a}`
+                        : `${awayTeam.info.shortName} lead ${a}-${h}`;
+              return (
+                <span className="text-xs text-text-tertiary text-center block mt-0.5">
+                  {label}
+                </span>
+              );
+            })()}
           </div>
         )}
         {inProgress && (
