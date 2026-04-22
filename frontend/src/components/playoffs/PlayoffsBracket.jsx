@@ -11,6 +11,12 @@ import { EASE_OUT_EXPO } from "../../utils/motion.js";
 const ROUND_STAGGER = 0.08;
 const ROUND_DURATION = 0.4;
 
+const confSlideVariants = {
+  initial: (dir) => ({ x: dir * 30, opacity: 0 }),
+  animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+  exit: (dir) => ({ x: dir * -30, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
+};
+
 function RoundColumn({ title, series, league, align = "left", delay = 0 }) {
   const alignClass = align === "right" ? "items-end" : "items-start";
   return (
@@ -114,11 +120,7 @@ function MobileConferenceView({ block, labels, league, direction }) {
   return (
     <m.div
       custom={direction}
-      variants={{
-        initial: (dir) => ({ x: dir * 30, opacity: 0 }),
-        animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
-        exit: (dir) => ({ x: dir * -30, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
-      }}
+      variants={confSlideVariants}
       initial="initial"
       animate="animate"
       exit="exit"
@@ -148,6 +150,7 @@ export default function PlayoffsBracket({ league, season }) {
   const [mobileTabDirection, setMobileTabDirection] = useState(1);
 
   function pickConf(key) {
+    if (key === activeMobileConf) return;
     const confKeys = labels.conferences.map((c) => c.key);
     setMobileTabDirection(confKeys.indexOf(key) > confKeys.indexOf(activeMobileConf) ? 1 : -1);
     setActiveMobileConf(key);
