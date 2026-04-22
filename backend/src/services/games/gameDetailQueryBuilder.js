@@ -87,7 +87,11 @@ SELECT json_build_object(
     'clock', g.clock,
     'startTime', g.start_time,
     'eventId', g.eventid,
-    'hasPlays', EXISTS(SELECT 1 FROM plays WHERE gameid = g.id)
+    'hasPlays', EXISTS(SELECT 1 FROM plays WHERE gameid = g.id),
+    'seriesScore', json_build_object(
+      'homeWins', COALESCE(sc.home_series_wins, 0),
+      'awayWins', COALESCE(sc.away_series_wins, 0)
+    )
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -123,5 +127,23 @@ SELECT json_build_object(
 FROM games g
 JOIN teams ht ON ht.id = g.hometeamid
 JOIN teams at ON at.id = g.awayteamid
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(*) FILTER (WHERE g2.winnerid = g.hometeamid) AS home_series_wins,
+    COUNT(*) FILTER (WHERE g2.winnerid = g.awayteamid) AS away_series_wins
+  FROM games g2
+  WHERE g.league IN ('nba', 'nhl')
+    AND g.type IN ('playoff', 'final')
+    AND (g.game_label IS NULL OR g.game_label NOT ILIKE '%play-in%')
+    AND g2.league = g.league
+    AND g2.season = g.season
+    AND g2.type IN ('playoff', 'final')
+    AND g2.status ILIKE 'Final%'
+    AND g2.id <= g.id
+    AND (
+      (g2.hometeamid = g.hometeamid AND g2.awayteamid = g.awayteamid) OR
+      (g2.hometeamid = g.awayteamid AND g2.awayteamid = g.hometeamid)
+    )
+) sc ON true
 WHERE g.id = $1 AND g.league = $2`;
 }
