@@ -214,7 +214,52 @@ export default function PlayoffsSkeleton({ league, season } = {}) {
           <SeriesSkeleton projected />
         </div>
       </m.div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6">
+      {/* Mobile: tab strip + single conference rounds */}
+      <div className="lg:hidden">
+        <div className="flex justify-center mb-6">
+          <div className="flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+            <span className="px-5 py-2 rounded-full text-sm font-medium bg-accent/15 border border-accent/25 text-accent">
+              {labels.conferences?.[0]?.label ?? "Eastern"}
+            </span>
+            <span className="px-5 py-2 rounded-full text-sm font-medium text-text-secondary">
+              {labels.conferences?.[1]?.label ?? "Western"}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-8">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary mb-3 text-center">
+              {labels.round1}
+            </div>
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: labels.round1SeriesCount ?? 4 }).map((_, i) => (
+                <SeriesSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary mb-3 text-center">
+              {labels.semis}
+            </div>
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <SeriesSkeleton key={i} projected />
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary mb-3 text-center">
+              {labels.confFinal}
+            </div>
+            <div className="flex flex-col gap-3">
+              <SeriesSkeleton projected />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: two conferences side-by-side */}
+      <div className="hidden lg:grid lg:grid-cols-2 gap-10 lg:gap-6">
         <ConferenceSkeleton label={labels.conferences?.[0]?.label ?? "Eastern"} labels={labels} />
         <ConferenceSkeleton label={labels.conferences?.[1]?.label ?? "Western"} labels={labels} mirrored />
       </div>
