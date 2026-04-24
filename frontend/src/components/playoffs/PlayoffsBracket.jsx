@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect, } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import SeriesCard from "./SeriesCard.jsx";
 import PlayInSection from "./PlayInSection.jsx";
@@ -90,19 +90,53 @@ function FinalsSection({ finals, league }) {
 }
 
 function MobileConferenceTabs({ conferences, activeConf, onPick }) {
+  const tabRefs = useRef([]);
+  const navRef = useRef(null);
+  const [pillBounds, setPillBounds] = useState(null);
+
+  useLayoutEffect(() => {
+    const idx = conferences.findIndex((c) => c.key === activeConf);
+    const btn = tabRefs.current[idx];
+    const nav = navRef.current;
+
+    if (btn && nav) {
+      const btnRect = btn.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+
+      setPillBounds({
+        left: btnRect.left - navRect.left,
+        width: btnRect.width,
+      });
+    }
+  }, [activeConf, conferences]);
+
   return (
     <div className="flex justify-center mb-6">
-      <div className="flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-        {conferences.map((conf) => (
+      <div
+        ref={navRef}
+        className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1"
+      >
+        {pillBounds && (
+          <m.div
+            className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
+            initial={{ left: pillBounds.left, width: pillBounds.width }}
+            animate={{ left: pillBounds.left, width: pillBounds.width }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+
+        {conferences.map((conf, i) => (
           <button
             key={conf.key}
+            ref={(el) => (tabRefs.current[i] = el)}
             onClick={() => onPick(conf.key)}
-            aria-pressed={activeConf === conf.key}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-              activeConf === conf.key
-                ? "bg-accent/15 border border-accent/25 text-accent"
-                : "text-text-secondary"
-            }`}
+            className="relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
+            style={{
+              color:
+                activeConf === conf.key
+                  ? "var(--color-accent)"
+                  : "var(--color-text-secondary)",
+            }}
           >
             {conf.label}
           </button>
