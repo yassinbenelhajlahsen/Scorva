@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useState, useEffect, useMemo, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useLayoutEffect, Fragment } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
 import { m, AnimatePresence } from "framer-motion";
@@ -18,6 +18,7 @@ import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
+import LeagueSlate from "../components/navigation/LeagueSlate.jsx";
 import { LEAGUE_LABELS } from "../constants/leagueLabels.js";
 
 // Returns the cutoff indices for each playoff tier per conference.
@@ -133,8 +134,8 @@ export default function LeaguePage() {
     );
   }
 
-  // Sidebar shows today's live/final/upcoming — only on games tab + current season
-  const showSidebar = activeTab === "games" && !selectedSeason;
+  // Today's-games strip — only on games tab + current season
+  const showSlate = activeTab === "games" && !selectedSeason;
 
   function renderStandingsRows(teams) {
     const tiers = getPlayoffTiers(league, selectedSeason);
@@ -228,7 +229,7 @@ export default function LeaguePage() {
     });
   }
 
-  // Playoffs bracket needs a wider container; sidebar needs room for the rail.
+  // Playoffs bracket needs a wider container than the header/date strip
   const contentMaxWidth =
     activeTab === "playoffs" ? "max-w-[1600px]" : "max-w-[1200px]";
 
@@ -299,6 +300,8 @@ export default function LeaguePage() {
           ))}
         </div>
       </div>
+
+      {showSlate && <LeagueSlate league={league} />}
 
       {activeTab === "games" && (
         <DateNavigation

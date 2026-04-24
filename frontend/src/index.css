@@ -136,4 +136,12 @@ input:-webkit-autofill:focus {
     scrollbar-width: thin;
     scrollbar-color: #2a2a32 #1a1a1f;
   }
+
+  /* Hidden scrollbar for horizontal strips */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
 }

@@ -2,6 +2,39 @@ import Skeleton from "../ui/Skeleton.jsx";
 import GameCardSkeleton from "./GameCardSkeleton.jsx";
 import PlayoffsSkeleton from "./PlayoffsSkeleton.jsx";
 
+function GamePillSkeleton() {
+  return (
+    <div className="flex-1 min-w-fit inline-flex items-center justify-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+      <div className="flex items-center gap-1.5 pr-3 border-r border-white/[0.08]">
+        <Skeleton className="h-2.5 w-8 rounded" />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-4 w-4 rounded-full" />
+        <Skeleton className="h-3 w-14 rounded" />
+        <Skeleton className="h-3 w-5 rounded" />
+      </div>
+      <span className="text-text-tertiary text-xs">·</span>
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-4 w-4 rounded-full" />
+        <Skeleton className="h-3 w-14 rounded" />
+        <Skeleton className="h-3 w-5 rounded" />
+      </div>
+    </div>
+  );
+}
+
+export function LeagueSlateSkeleton() {
+  return (
+    <div className="mb-5 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-2 pb-1">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <GamePillSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StandingsColumnSkeleton({ heading }) {
   return (
     <div>
