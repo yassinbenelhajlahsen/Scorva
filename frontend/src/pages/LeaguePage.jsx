@@ -20,6 +20,30 @@ import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
 import { LEAGUE_LABELS } from "../constants/leagueLabels.js";
 
+// Returns the cutoff indices for each playoff tier per conference.
+// `playoffs` = count of teams in the guaranteed-playoff tier (indices 0..playoffs-1).
+// `playIn` = exclusive upper bound for the play-in tier (indices playoffs..playIn-1).
+// Anything at index >= playIn is "out". Null season = current (latest rules).
+function getPlayoffTiers(league, season) {
+  const startYear = season ? parseInt(season.slice(0, 4), 10) : Infinity;
+  if (league === "nba") {
+    // Play-in tournament became permanent starting 2020-21 season.
+    return startYear >= 2020
+      ? { playoffs: 6, playIn: 10 }
+      : { playoffs: 8, playIn: 8 };
+  }
+  if (league === "nfl") {
+    // Expanded from 12 to 14 teams (6 → 7 per conference) starting 2020 season.
+    return startYear >= 2020
+      ? { playoffs: 7, playIn: 7 }
+      : { playoffs: 6, playIn: 6 };
+  }
+  if (league === "nhl") {
+    return { playoffs: 8, playIn: 8 };
+  }
+  return { playoffs: 0, playIn: 0 };
+}
+
 export default function LeaguePage() {
   const queryClient = useQueryClient();
   const { league } = useParams();
@@ -109,7 +133,102 @@ export default function LeaguePage() {
     );
   }
 
-  // Playoffs bracket needs a wider container than the header/date strip
+  // Sidebar shows today's live/final/upcoming — only on games tab + current season
+  const showSidebar = activeTab === "games" && !selectedSeason;
+
+  function renderStandingsRows(teams) {
+    const tiers = getPlayoffTiers(league, selectedSeason);
+    const tierFor = (i) =>
+      i < tiers.playoffs ? "playoffs" : i < tiers.playIn ? "playIn" : "out";
+    const TIER_LABEL = { playoffs: "Playoffs", playIn: "Play-In", out: "Out" };
+    // Tier styling — each set keyed by classes for spine, header tint, header border, and text color.
+    const TIER_STYLE = {
+      playoffs: {
+        spine: "bg-win",
+        tint: "bg-transparent",
+        border: "border-win/30",
+        text: "text-win",
+      },
+      playIn: {
+        spine: "bg-accent",
+        tint: "bg-transparent",
+        border: "border-accent/30",
+        text: "text-accent",
+      },
+      out: {
+        spine: "bg-transparent",
+        tint: "bg-transparent",
+        border: "border-white/[0.08]",
+        text: "text-text-tertiary",
+      },
+    };
+    return teams.map((team, index) => {
+      const tier = tierFor(index);
+      const style = TIER_STYLE[tier];
+      const showHeader = index === 0 || tierFor(index - 1) !== tier;
+      const isLast = index === teams.length - 1;
+      const nextStartsNewTier = !isLast && tierFor(index + 1) !== tier;
+      const showRowBorder = !isLast && !nextStartsNewTier;
+      return (
+        <Fragment key={team.id}>
+          {showHeader && (
+            <div
+              className={`flex items-center justify-between px-5 py-2.5 ${style.tint} ${
+                index === 0 ? "" : `border-t ${style.border}`
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`w-[3px] h-3.5 rounded-sm ${style.spine}`} />
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-[0.12em] ${style.text}`}
+                >
+                  {TIER_LABEL[tier]}
+                </span>
+              </div>
+            </div>
+          )}
+          <Link
+            to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
+            onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
+          >
+            <div
+              className={`relative flex justify-between items-center pl-6 pr-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
+                showRowBorder ? "border-b border-white/[0.04]" : ""
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute left-0 top-0 bottom-0 w-[3px] ${style.spine}`}
+              />
+              <div className="flex items-center gap-3">
+                <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
+                  {index + 1}
+                </span>
+                <img
+                  loading="lazy"
+                  src={team.logo_url}
+                  alt={`${team.name} logo`}
+                  className="w-6 h-6 object-contain"
+                />
+                <span className="text-sm font-medium text-text-primary">
+                  {team.name}
+                </span>
+              </div>
+              <span className="text-sm text-text-secondary tabular-nums">
+                {league === "nhl"
+                  ? `${team.wins}–${team.losses - (team.otl || 0)}–${team.otl || 0}`
+                  : league === "nfl" && (team.ties || 0) > 0
+                  ? `${team.wins}–${team.losses}–${team.ties}`
+                  : `${team.wins}–${team.losses}`}
+              </span>
+            </div>
+          </Link>
+        </Fragment>
+      );
+    });
+  }
+
+  // Playoffs bracket needs a wider container; sidebar needs room for the rail.
   const contentMaxWidth =
     activeTab === "playoffs" ? "max-w-[1600px]" : "max-w-[1200px]";
 
@@ -276,43 +395,7 @@ export default function LeaguePage() {
                       {league === "nfl" ? "AFC" : "Eastern Conference"}
                     </h3>
                     <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                      {standings.eastOrAFC.map((team, index) => (
-                        <Link
-                          to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
-                          key={team.id}
-                          onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
-                        >
-                          <div
-                            className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
-                              index < standings.eastOrAFC.length - 1
-                                ? "border-b border-white/[0.04]"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
-                                {index + 1}
-                              </span>
-                              <img
-                                loading="lazy"
-                                src={team.logo_url}
-                                alt={`${team.name} logo`}
-                                className="w-6 h-6 object-contain"
-                              />
-                              <span className="text-sm font-medium text-text-primary">
-                                {team.name}
-                              </span>
-                            </div>
-                            <span className="text-sm text-text-secondary tabular-nums">
-                              {league === "nhl"
-                                ? `${team.wins}–${team.losses - (team.otl || 0)}–${team.otl || 0}`
-                                : league === "nfl" && (team.ties || 0) > 0
-                                ? `${team.wins}–${team.losses}–${team.ties}`
-                                : `${team.wins}–${team.losses}`}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
+                      {renderStandingsRows(standings.eastOrAFC)}
                     </div>
                   </div>
 
@@ -322,43 +405,7 @@ export default function LeaguePage() {
                       {league === "nfl" ? "NFC" : "Western Conference"}
                     </h3>
                     <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                      {standings.westOrNFC.map((team, index) => (
-                        <Link
-                          to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
-                          key={team.id}
-                          onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
-                        >
-                          <div
-                            className={`flex justify-between items-center px-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
-                              index < standings.westOrNFC.length - 1
-                                ? "border-b border-white/[0.04]"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="w-5 text-right text-text-tertiary text-xs tabular-nums">
-                                {index + 1}
-                              </span>
-                              <img
-                                loading="lazy"
-                                src={team.logo_url}
-                                alt={`${team.name} logo`}
-                                className="w-6 h-6 object-contain"
-                              />
-                              <span className="text-sm font-medium text-text-primary">
-                                {team.name}
-                              </span>
-                            </div>
-                            <span className="text-sm text-text-secondary tabular-nums">
-                              {league === "nhl"
-                                ? `${team.wins}–${team.losses - (team.otl || 0)}–${team.otl || 0}`
-                                : league === "nfl" && (team.ties || 0) > 0
-                                ? `${team.wins}–${team.losses}–${team.ties}`
-                                : `${team.wins}–${team.losses}`}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
+                      {renderStandingsRows(standings.westOrNFC)}
                     </div>
                   </div>
                 </m.div>
