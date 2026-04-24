@@ -122,6 +122,33 @@ describe("computeTeamImpactFactor", () => {
     expect(qResult.factor).toBeCloseTo(outResult.factor * 0.5, 5);
   });
 
+  it("drops players whose status_updated_at is older than the staleness window", () => {
+    const stale = {
+      id: 1, name: "Ghost", position: "F", status: "out",
+      pts: 25, ast: 5, reb: 5,
+      status_description: "old report",
+      status_updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    };
+    const filler = { id: 99, name: "Filler", status: "active", pts: 75, ast: 0, reb: 0 };
+    const result = computeTeamImpactFactor([stale, filler], "nba");
+    expect(result.players).toHaveLength(0);
+    expect(result.factor).toBe(0);
+  });
+
+  it("keeps players with a recently updated status even if they haven't played in weeks", () => {
+    const luka = {
+      id: 1, name: "Luka", position: "G", status: "out",
+      pts: 33, ast: 8, reb: 8,
+      status_description: "hamstring",
+      status_updated_at: new Date(),
+    };
+    const filler = { id: 99, name: "Filler", status: "active", pts: 75, ast: 0, reb: 0 };
+    const result = computeTeamImpactFactor([luka, filler], "nba");
+    expect(result.players).toHaveLength(1);
+    expect(result.players[0].name).toBe("Luka");
+    expect(result.factor).toBeGreaterThan(0);
+  });
+
   it("caps total team impact factor at 0.55", () => {
     // Make 5 high-impact out players
     const players = Array.from({ length: 5 }, (_, i) => ({

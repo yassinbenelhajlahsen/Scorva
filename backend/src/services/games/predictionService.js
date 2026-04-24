@@ -10,10 +10,12 @@ const LEAGUE_CONFIG = {
   nhl: { homeBonus: 0.5, scale: 0.15, formScale: 1, h2hScale: 1, seriesScale: 0.4 },
 };
 
-// Drop injured players who haven't logged a game with this team in N days —
-// filters out stale ESPN entries for traded/released players whose `players.teamid`
-// hasn't been refreshed yet.
-const INJURY_STALENESS_DAYS = 21;
+// Drop injured players whose ESPN status hasn't been refreshed in N days —
+// a live injury entry gets re-touched on every ingestion, so a stale timestamp
+// signals an abandoned record (e.g. traded player whose old team's feed no longer updates).
+// `last_game_date` is not a reliable signal here: a legitimately shelved star can go weeks
+// without playing, especially across a regular-season → playoff gap.
+const INJURY_STALENESS_DAYS = 7;
 
 const AVAILABILITY = {
   out: 1.0,
@@ -119,13 +121,11 @@ export function computeTeamImpactFactor(rosterRows, league) {
     if (!status || status === "active" || status === "available") continue;
     const availability = AVAILABILITY[status];
     if (availability == null) continue;
-    // Drop ghost injuries: player flagged out but no recent game with this team.
-    // Likely traded/released and ESPN's feed still surfaces them.
-    if (r.last_game_date != null) {
-      const lastGameMs = r.last_game_date instanceof Date
-        ? r.last_game_date.getTime()
-        : new Date(r.last_game_date).getTime();
-      if (Number.isFinite(lastGameMs) && lastGameMs < staleCutoffMs) continue;
+    if (r.status_updated_at != null) {
+      const updatedMs = r.status_updated_at instanceof Date
+        ? r.status_updated_at.getTime()
+        : new Date(r.status_updated_at).getTime();
+      if (Number.isFinite(updatedMs) && updatedMs < staleCutoffMs) continue;
     }
     const share = computePlayerImpactShare(r, teamWeighted, league);
     if (share <= 0) continue;
@@ -158,7 +158,6 @@ async function getRosterProduction(league, season, teamId) {
     `SELECT
        p.id, p.name, p.position, p.image_url, p.status, p.status_description, p.status_updated_at,
        COUNT(DISTINCT s.gameid) AS games_played,
-       MAX(g.date) AS last_game_date,
        ${productionSelect}
      FROM players p
      JOIN stats s ON s.playerid = p.id
