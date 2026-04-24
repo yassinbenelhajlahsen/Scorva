@@ -44,13 +44,13 @@ function getSlateDateET() {
   return `${yy}-${mm}-${dd}`;
 }
 
-// Converts "7:30PM ET" → minutes since midnight for chronological sorting
+// Converts "7:30PM ET" or "7PM ET" → minutes since midnight for chronological sorting
 function parseStartTime(s) {
   if (!s) return 9999;
-  const m = s.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  const m = s.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i);
   if (!m) return 9999;
   let h = parseInt(m[1], 10);
-  const min = parseInt(m[2], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
   const pm = m[3].toUpperCase() === "PM";
   if (pm && h !== 12) h += 12;
   if (!pm && h === 12) h = 0;
@@ -196,7 +196,7 @@ export default function LeagueSlate({ league }) {
     scheduled.sort(
       (a, b) => parseStartTime(a.start_time) - parseStartTime(b.start_time)
     );
-    return [...live, ...final, ...scheduled];
+    return [...live, ...scheduled, ...final];
   }, [games]);
 
   if (loading) return <LeagueSlateSkeleton />;
