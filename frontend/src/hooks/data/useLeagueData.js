@@ -69,12 +69,24 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
 
   const { liveGames } = useLiveGames(sseLeague);
 
-  // Push SSE updates into the games query cache
+  // Push SSE updates into the games query cache.
+  // The live SSE endpoint serves the home/league default slate, which
+  // back-fills with future scheduled games to reach LIMIT 12. When the
+  // caller asked for a specific date (e.g. the LeagueSlate uses today's
+  // ET date), drop those future-date rows so the date-keyed cache stays
+  // restricted to that date.
   useEffect(() => {
     if (!liveGames || !sseLeague) return;
+    let payload = liveGames;
+    if (selectedDate) {
+      payload = liveGames.filter((g) => {
+        const d = typeof g.date === "string" ? g.date.slice(0, 10) : "";
+        return d === selectedDate;
+      });
+    }
     const updated = selectedDate
-      ? { games: liveGames, resolvedDate, resolvedSeason }
-      : liveGames;
+      ? { games: payload, resolvedDate, resolvedSeason }
+      : payload;
     queryClient.setQueryData(
       queryKeys.leagueGames(league, selectedSeason, selectedDate),
       updated
