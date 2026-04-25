@@ -190,6 +190,32 @@ describe("useLeagueData — SSE activation", () => {
   });
 });
 
+describe("useLeagueData — SSE payload filter", () => {
+  it("filters live SSE payload to selectedDate when set", async () => {
+    const todayET = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
+    getLeagueGames.mockResolvedValue({
+      games: [{ id: 1, status: "In Progress", date: `${todayET}T00:00:00.000Z` }],
+      resolvedDate: todayET,
+      resolvedSeason: "2025-26",
+    });
+    useLiveGames.mockReturnValue({
+      liveGames: [
+        { id: 1, status: "In Progress", date: `${todayET}T00:00:00.000Z` },
+        { id: 2, status: "Scheduled", date: "2099-12-31T00:00:00.000Z" },
+      ],
+    });
+
+    const { result } = renderHook(() => useLeagueData("nba", null, todayET), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.games.length).toBe(1));
+    expect(result.current.games[0].id).toBe(1);
+  });
+});
+
 describe("useLeagueData — error and retry", () => {
   it("sets error state when getLeagueGames rejects", async () => {
     getLeagueGames.mockRejectedValue(new Error("Network error"));
