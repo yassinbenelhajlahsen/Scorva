@@ -138,7 +138,7 @@ export default function AuthModal({ onClose, context }) {
 
   return (
     <m.div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 pt-[max(0.75rem,calc(0.75rem+env(safe-area-inset-top)))] pb-[max(0.75rem,calc(0.75rem+env(safe-area-inset-bottom)))]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
