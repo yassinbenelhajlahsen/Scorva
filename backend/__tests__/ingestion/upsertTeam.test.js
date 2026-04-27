@@ -43,6 +43,7 @@ describe("upsertTeam", () => {
         "15-5",
         "10-10",
         null,
+        null,
       ]
     );
   });
@@ -77,7 +78,7 @@ describe("upsertTeam", () => {
     expect(result).toBe(2);
     expect(mockClient.query).toHaveBeenCalledWith(
       expect.any(String),
-      [99, "nfl", "Test Team", null, null, null, "0-0", null, null, null]
+      [99, "nfl", "Test Team", null, null, null, "0-0", null, null, null, null]
     );
   });
 
@@ -108,5 +109,21 @@ describe("upsertTeam", () => {
     await expect(
       upsertTeam(mockClient, 1, "nba", { name: "Team", record: "0-0" })
     ).rejects.toThrow("Connection lost");
+  });
+
+  it("should uppercase abbreviation on insert", async () => {
+    mockClient.query.mockResolvedValue({ rows: [{ id: 3 }] });
+
+    const result = await upsertTeam(mockClient, 2, "nhl", {
+      name: "Toronto Maple Leafs",
+      record: "20-10",
+      abbreviation: "tor",
+    });
+
+    expect(result).toBe(3);
+    expect(mockClient.query).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining(["TOR"])
+    );
   });
 });
