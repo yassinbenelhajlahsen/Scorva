@@ -7,6 +7,7 @@ import { useHeadToHead } from "../hooks/data/useHeadToHead.js";
 import { useSearch } from "../hooks/data/useSearch.js";
 import { formatDateShort } from "../utils/formatDate.js";
 import slugify from "../utils/slugify.js";
+import teamUrl from "../utils/teamUrl.js";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
@@ -575,7 +576,7 @@ function PlayerHero({ player, league, season, onClear }) {
         </Link>
         <p className="text-xs text-text-tertiary">{player.position} {player.jerseyNumber ? `#${player.jerseyNumber}` : ""}</p>
         {player.team && (
-          <Link to={buildSeasonUrl(`/${league}/teams/${slugify(player.team.name)}`, season)} className="flex items-center justify-center gap-1.5 mt-1 hover:text-accent transition-colors duration-200">
+          <Link to={buildSeasonUrl(teamUrl(league, player.team), season)} className="flex items-center justify-center gap-1.5 mt-1 hover:text-accent transition-colors duration-200">
             {player.team.logoUrl && (
               <img src={player.team.logoUrl} alt={player.team.name} className="w-4 h-4 object-contain" />
             )}
@@ -601,7 +602,7 @@ function TeamHero({ team, league, season, onClear }) {
           </svg>
         </button>
       )}
-      <Link to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, season)}>
+      <Link to={buildSeasonUrl(teamUrl(league, team), season)}>
         {team.logo_url && (
           <img
             src={team.logo_url}
@@ -611,7 +612,7 @@ function TeamHero({ team, league, season, onClear }) {
         )}
       </Link>
       <div className="text-center">
-        <Link to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, season)} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
+        <Link to={buildSeasonUrl(teamUrl(league, team), season)} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
           {team.name}
         </Link>
         <p className="text-xs text-text-tertiary">{team.location}</p>

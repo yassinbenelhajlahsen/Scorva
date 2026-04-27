@@ -2,7 +2,7 @@ import { m } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import GameCard from "../cards/GameCard.jsx";
-import slugify from "../../utils/slugify.js";
+import teamUrl from "../../utils/teamUrl.js";
 import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
@@ -14,7 +14,8 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
       <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold mb-4">Favorite Teams</h2>
       <div className="flex flex-col gap-3">
         {teams.map((team) => {
-          const teamSlug = slugify(team.name);
+          const url = teamUrl(team.league, team);
+          const teamSlug = url.split("/").pop();
           const recentGames = compact ? team.recentGames.slice(0, 3) : team.recentGames;
 
           return (
@@ -25,7 +26,7 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
             >
               <div className={`flex items-center ${compact ? "gap-2" : ""}`}>
                 <Link
-                  to={`/${team.league}/teams/${teamSlug}`}
+                  to={url}
                   className={`flex items-center gap-${compact ? "3" : "4"} shrink-0 hover:opacity-80 transition-opacity ${compact ? "flex-1 min-w-0" : "w-full sm:w-52"}`}
                   onMouseEnter={() => {
                     if (window.matchMedia("(hover: hover)").matches) {

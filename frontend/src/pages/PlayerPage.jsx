@@ -15,6 +15,7 @@ import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
 import slugify from "../utils/slugify.js";
+import teamUrl from "../utils/teamUrl.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
@@ -236,11 +237,11 @@ export default function PlayerPage() {
               <span className="text-sm font-medium text-text-primary">{draftInfo}</span>
               <span className="text-sm text-text-tertiary">Team</span>
               <Link
-                to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
+                to={buildSeasonUrl(teamUrl(league, team), selectedSeason)}
                 className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
                 onMouseEnter={() => {
                   if (window.matchMedia("(hover: hover)").matches) {
-                    queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 });
+                    queryClient.prefetchQuery({ queryKey: queryKeys.team(league, teamUrl(league, team).split("/").pop()), queryFn: queryFns.team(league, teamUrl(league, team).split("/").pop()), staleTime: 10_000 });
                   }
                 }}
               >

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { m, AnimatePresence } from "framer-motion";
 import { scoreUpdateVariants } from "../../utils/motion.js";
-import slugify from "../../utils/slugify.js";
+import teamUrl from "../../utils/teamUrl.js";
 import { getPeriodLabel } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
@@ -40,11 +40,11 @@ export default function GameMatchupHeader({
             </span>
           ) : (
           <Link
-            to={`/${league}/teams/${slugify(homeTeam.info.name)}`}
+            to={teamUrl(league, homeTeam.info)}
             className="text-2xl sm:text-4xl font-bold tracking-tight text-text-primary hover:text-accent transition-colors duration-200"
             onMouseEnter={() => {
               if (window.matchMedia("(hover: hover)").matches) {
-                queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(homeTeam.info.name)), queryFn: queryFns.team(league, slugify(homeTeam.info.name)), staleTime: 10_000 });
+                queryClient.prefetchQuery({ queryKey: queryKeys.team(league, teamUrl(league, homeTeam.info).split("/").pop()), queryFn: queryFns.team(league, teamUrl(league, homeTeam.info).split("/").pop()), staleTime: 10_000 });
               }
             }}
           >
@@ -144,11 +144,11 @@ export default function GameMatchupHeader({
             </span>
           ) : (
           <Link
-            to={`/${league}/teams/${slugify(awayTeam.info.name)}`}
+            to={teamUrl(league, awayTeam.info)}
             className="text-2xl sm:text-4xl font-bold tracking-tight text-text-primary hover:text-accent transition-colors duration-200"
             onMouseEnter={() => {
               if (window.matchMedia("(hover: hover)").matches) {
-                queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(awayTeam.info.name)), queryFn: queryFns.team(league, slugify(awayTeam.info.name)), staleTime: 10_000 });
+                queryClient.prefetchQuery({ queryKey: queryKeys.team(league, teamUrl(league, awayTeam.info).split("/").pop()), queryFn: queryFns.team(league, teamUrl(league, awayTeam.info).split("/").pop()), staleTime: 10_000 });
               }
             }}
           >

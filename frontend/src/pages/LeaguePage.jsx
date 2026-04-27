@@ -6,7 +6,7 @@ import { m, AnimatePresence } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard.jsx";
 import leagueData from "../utils/leagueData";
-import slugify from "../utils/slugify.js";
+import teamUrl from "../utils/teamUrl.js";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import DateNavigation from "../components/ui/DateNavigation.jsx";
 import { useLeagueData } from "../hooks/data/useLeagueData.js";
@@ -197,8 +197,8 @@ export default function LeaguePage() {
             </div>
           )}
           <Link
-            to={buildSeasonUrl(`/${league}/teams/${slugify(team.name)}`, selectedSeason)}
-            onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, slugify(team.name)), queryFn: queryFns.team(league, slugify(team.name)), staleTime: 10_000 })}
+            to={buildSeasonUrl(teamUrl(league, team), selectedSeason)}
+            onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.team(league, teamUrl(league, team).split("/").pop()), queryFn: queryFns.team(league, teamUrl(league, team).split("/").pop()), staleTime: 10_000 })}
           >
             <div
               className={`relative flex justify-between items-center pl-6 pr-5 py-3 hover:bg-surface-overlay transition-colors duration-150 cursor-pointer ${
