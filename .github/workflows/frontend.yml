@@ -6,11 +6,6 @@ on:
     paths:
       - 'frontend/**'
       - '!frontend/**/*.md'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'frontend/**'
-      - '!frontend/**/*.md'
   workflow_dispatch:
 
 jobs:
