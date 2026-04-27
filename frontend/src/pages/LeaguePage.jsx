@@ -56,7 +56,6 @@ export default function LeaguePage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
   const [activeTab, setActiveTab] = useState("games");
-  const [tabDirection, setTabDirection] = useState(1);
   const tabRefs = useRef([]);
   const tabNavRef = useRef(null);
   const [pillBounds, setPillBounds] = useState(null);
@@ -92,7 +91,6 @@ export default function LeaguePage() {
   }, [activeTab, tabs]);
 
   function pickTab(tab) {
-    setTabDirection(tabs.indexOf(tab) > tabs.indexOf(activeTab) ? 1 : -1);
     setActiveTab(tab);
   }
 

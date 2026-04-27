@@ -3,7 +3,7 @@ import { usePrediction } from "./usePrediction.js";
 import { useWinProbability } from "./useWinProbability.js";
 
 export function useGamePageData(league, gameId) {
-  const { gameData, loading, error, retry } = useGame(league, gameId);
+  const { gameData, loading, error, retry, refetch } = useGame(league, gameId);
 
   const staleStatus = gameData?.json_build_object?.game?.status ?? "";
   const isFinalEarly = staleStatus.includes("Final");
@@ -32,6 +32,7 @@ export function useGamePageData(league, gameId) {
     loading,
     error,
     retry,
+    refetch,
     staleIsPreGame,
     prediction,
     predictionLoading,

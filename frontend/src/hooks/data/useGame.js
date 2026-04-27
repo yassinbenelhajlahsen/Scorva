@@ -43,5 +43,5 @@ export function useGame(league, gameId) {
     refetch();
   }, [refetch]);
 
-  return { gameData, loading, error, retry };
+  return { gameData, loading, error, retry, refetch };
 }
