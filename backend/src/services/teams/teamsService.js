@@ -28,6 +28,21 @@ export async function getTeamsByLeague(league) {
   });
 }
 
+function rosterSortMetricSql(league) {
+  if (league === "nba") {
+    return "SUM(COALESCE(s.minutes, 0))";
+  }
+  if (league === "nhl") {
+    return `SUM(CASE
+      WHEN s.toi LIKE '%:%'
+      THEN split_part(s.toi, ':', 1)::int * 60 + split_part(s.toi, ':', 2)::int
+      ELSE 0
+    END)`;
+  }
+  // nfl — no minutes/snaps in schema, fall back to games played
+  return "COUNT(*)";
+}
+
 function rosterAveragesSql(league) {
   if (league === "nba") {
     return `json_build_object(
@@ -75,7 +90,7 @@ export async function getTeamRoster(league, teamId, season) {
          SELECT
            s.playerid,
            COALESCE(s.teamid, p.teamid) AS team_id,
-           COUNT(*) OVER (PARTITION BY s.playerid) AS games_played,
+           ${rosterSortMetricSql(league)} OVER (PARTITION BY s.playerid) AS sort_metric,
            ROW_NUMBER() OVER (PARTITION BY s.playerid ORDER BY g.date DESC, g.id DESC) AS rn
          FROM stats s
          JOIN games g ON s.gameid = g.id
@@ -98,8 +113,8 @@ export async function getTeamRoster(league, teamId, season) {
         WHERE ps.team_id = $2
         GROUP BY p.id, p.name, p.position, p.jerseynum, p.image_url,
                  p.status, p.status_description, p.status_updated_at, p.espn_playerid,
-                 ps.games_played
-        ORDER BY ps.games_played DESC, p.position NULLS LAST, p.name`,
+                 ps.sort_metric
+        ORDER BY ps.sort_metric DESC NULLS LAST, p.position NULLS LAST, p.name`,
       [league, teamId, effectiveSeason]
     );
     return result.rows;
