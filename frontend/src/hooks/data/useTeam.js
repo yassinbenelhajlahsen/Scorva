@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { getTeams, getStandings, getTeamSeasons } from "../../api/teams.js";
 import { getTeamGames } from "../../api/games.js";
-import slugify from "../../utils/slugify.js";
+import resolveTeam from "../../utils/resolveTeam.js";
 import { queryKeys } from "../../lib/query.js";
 
 export function useTeam(league, teamId, selectedSeason) {
@@ -12,12 +12,7 @@ export function useTeam(league, teamId, selectedSeason) {
     enabled: !!league && !!teamId,
     queryFn: async ({ signal }) => {
       const teamList = await getTeams(league, { signal });
-      const param = (teamId || "").toLowerCase();
-      const found = teamList.find((t) =>
-        (t.abbreviation || "").toLowerCase() === param ||
-        slugify(t.name) === param ||
-        slugify(t.shortname || "") === param
-      );
+      const found = resolveTeam(teamList, teamId);
       if (!found) throw new Error("Team not found.");
       return found;
     },

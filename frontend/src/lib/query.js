@@ -4,7 +4,7 @@ import { getPlayer } from "../api/players.js";
 import { getTeams } from "../api/teams.js";
 import { getNews } from "../api/news.js";
 import { getHeadToHead } from "../api/compare.js";
-import slugify from "../utils/slugify.js";
+import resolveTeam from "../utils/resolveTeam.js";
 
 export const queryKeys = {
   seasons:        (league) => ["seasons", league],
@@ -38,11 +38,7 @@ export const queryFns = {
     getPlayer(league, slug, { season }).then((d) => d.player),
   team: (league, teamSlug) => () =>
     getTeams(league).then((teamList) => {
-      const found = teamList.find(
-        (t) =>
-          slugify(t.name) === teamSlug ||
-          slugify(t.shortname || "") === teamSlug
-      );
+      const found = resolveTeam(teamList, teamSlug);
       if (!found) throw new Error("Team not found.");
       return found;
     }),
