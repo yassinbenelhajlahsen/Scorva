@@ -91,13 +91,13 @@ describe("useTeam", () => {
     await waitFor(() => expect(result.current.team).toEqual(mockLakers));
   });
 
-  it("falls back to slug match when abbreviation does not match", async () => {
+  it("falls back to shortname slug when abbreviation and name slug do not match", async () => {
     getTeams.mockResolvedValue(mockTeamList);
     getTeamGames.mockResolvedValue(mockGames);
     getStandings.mockResolvedValue(mockStandings);
 
     const { result } = renderHook(
-      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      () => useTeam("nba", "lakers", "2024-25"),
       { wrapper: createWrapper() }
     );
 
