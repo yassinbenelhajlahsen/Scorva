@@ -35,5 +35,5 @@ export function usePlayer(league, slug, selectedSeason) {
     refetch();
   }, [refetch]);
 
-  return { playerData, loading, seasonLoading, error, retry };
+  return { playerData, loading, seasonLoading, error, retry, refetch };
 }
