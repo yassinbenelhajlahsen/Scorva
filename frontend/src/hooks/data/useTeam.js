@@ -100,6 +100,16 @@ export function useTeam(league, teamId, selectedSeason) {
     teamQuery.refetch();
   }, [teamQuery]);
 
+  const refetch = useCallback(
+    () =>
+      Promise.allSettled([
+        teamQuery.refetch(),
+        seasonsQuery.refetch(),
+        gamesQuery.refetch(),
+      ]),
+    [teamQuery, seasonsQuery, gamesQuery],
+  );
+
   return {
     team: teamQuery.data ?? null,
     games: gamesQuery.data?.games ?? [],
@@ -112,5 +122,6 @@ export function useTeam(league, teamId, selectedSeason) {
     seasonLoading,
     error,
     retry,
+    refetch,
   };
 }

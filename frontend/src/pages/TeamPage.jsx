@@ -19,6 +19,7 @@ import slugify from "../utils/slugify.js";
 import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
+import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 const TABS = ["schedule", "players"];
 
@@ -27,7 +28,11 @@ export default function TeamPage() {
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
-  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, recordsLoading, seasonLoading, error, retry } = useTeam(league, teamId, urlSeason);
+  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, recordsLoading, seasonLoading, error, retry, refetch } = useTeam(league, teamId, urlSeason);
+
+  const handleRefresh = async () => {
+    await refetch();
+  };
   const { seasons: leagueSeasons } = useSeasons(league);
   const [selectedSeason, setSelectedSeason] = useSeasonParam(availableSeasons.length > 0 ? availableSeasons : [], leagueSeasons[0] ?? null);
   const [selectedMonth, setSelectedMonth] = useState(null);
@@ -112,6 +117,7 @@ export default function TeamPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
       <Link
@@ -290,5 +296,6 @@ export default function TeamPage() {
         </AnimatePresence>
       </div>
     </div>
+    </PullToRefresh>
   );
 }
