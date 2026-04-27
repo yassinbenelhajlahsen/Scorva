@@ -17,10 +17,10 @@ const { getTeams, getStandings, getTeamSeasons } = await import("../../api/teams
 const { getTeamGames } = await import("../../api/games.js");
 const { useTeam } = await import("../../hooks/data/useTeam.js");
 
-const mockLakers = { id: 17, name: "Los Angeles Lakers", shortname: "Lakers" };
+const mockLakers = { id: 17, name: "Los Angeles Lakers", shortname: "Lakers", abbreviation: "LAL" };
 const mockTeamList = [
   mockLakers,
-  { id: 2, name: "Golden State Warriors", shortname: "Warriors" },
+  { id: 2, name: "Golden State Warriors", shortname: "Warriors", abbreviation: "GS" },
 ];
 
 const mockGames = [
@@ -63,6 +63,45 @@ describe("useTeam", () => {
 
     await waitFor(() => expect(result.current.team).toEqual(mockLakers));
     expect(result.current.loading).toBe(false);
+  });
+
+  it("resolves team from lowercase abbreviation match", async () => {
+    getTeams.mockResolvedValue(mockTeamList);
+    getTeamGames.mockResolvedValue(mockGames);
+    getStandings.mockResolvedValue(mockStandings);
+
+    const { result } = renderHook(
+      () => useTeam("nba", "lal", "2024-25"),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => expect(result.current.team).toEqual(mockLakers));
+  });
+
+  it("resolves team from uppercase abbreviation in URL (case-insensitive)", async () => {
+    getTeams.mockResolvedValue(mockTeamList);
+    getTeamGames.mockResolvedValue(mockGames);
+    getStandings.mockResolvedValue(mockStandings);
+
+    const { result } = renderHook(
+      () => useTeam("nba", "LAL", "2024-25"),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => expect(result.current.team).toEqual(mockLakers));
+  });
+
+  it("falls back to slug match when abbreviation does not match", async () => {
+    getTeams.mockResolvedValue(mockTeamList);
+    getTeamGames.mockResolvedValue(mockGames);
+    getStandings.mockResolvedValue(mockStandings);
+
+    const { result } = renderHook(
+      () => useTeam("nba", "los-angeles-lakers", "2024-25"),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => expect(result.current.team).toEqual(mockLakers));
   });
 
   it("sets error when team is not found", async () => {

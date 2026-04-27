@@ -12,8 +12,11 @@ export function useTeam(league, teamId, selectedSeason) {
     enabled: !!league && !!teamId,
     queryFn: async ({ signal }) => {
       const teamList = await getTeams(league, { signal });
-      const found = teamList.find(
-        (t) => slugify(t.name) === teamId || slugify(t.shortname || "") === teamId
+      const param = (teamId || "").toLowerCase();
+      const found = teamList.find((t) =>
+        (t.abbreviation || "").toLowerCase() === param ||
+        slugify(t.name) === param ||
+        slugify(t.shortname || "") === param
       );
       if (!found) throw new Error("Team not found.");
       return found;
