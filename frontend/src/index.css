@@ -47,11 +47,8 @@
   }
 
   html {
-    overscroll-behavior-y: contain;
-  }
-
-  body {
     touch-action: pan-y;
+    overscroll-behavior-y: contain;
     overscroll-behavior-x: none;
   }
 
