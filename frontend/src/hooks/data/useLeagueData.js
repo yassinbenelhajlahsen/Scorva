@@ -117,6 +117,11 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
     standingsQuery.refetch();
   }, [gamesQuery, standingsQuery]);
 
+  const refetch = useCallback(
+    () => Promise.allSettled([gamesQuery.refetch(), standingsQuery.refetch()]),
+    [gamesQuery, standingsQuery],
+  );
+
   return {
     games,
     standings: standingsQuery.data ?? { eastOrAFC: [], westOrNFC: [] },
@@ -126,6 +131,7 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
     error,
     displayData,
     retry,
+    refetch,
     resolvedDate,
     resolvedSeason,
   };
