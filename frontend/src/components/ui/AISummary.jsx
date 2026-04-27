@@ -64,7 +64,7 @@ export default function AISummary({ gameId }) {
             </div>
             <button
               onClick={() => openAuthModal("summary")}
-              className="mt-1 bg-accent hover:bg-accent-hover text-white text-[13px] font-semibold rounded-[8px] px-5 py-2 transition-colors duration-150"
+              className="touch-target mt-1 bg-accent hover:bg-accent-hover text-white text-[13px] font-semibold rounded-[8px] px-5 py-2 transition-colors duration-150"
             >
               Sign In
             </button>

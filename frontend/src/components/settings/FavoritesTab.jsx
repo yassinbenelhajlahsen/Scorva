@@ -182,7 +182,7 @@ function FavoriteRow({ item, type, onRemove }) {
       <button
         onClick={handleRemove}
         disabled={removing}
-        className="shrink-0 p-1.5 rounded-lg text-text-tertiary hover:text-loss hover:bg-loss/10 transition-all duration-150 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+        className="touch-target shrink-0 rounded-lg text-text-tertiary hover:text-loss hover:bg-loss/10 transition-all duration-150 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
         aria-label={`Remove ${item.name}`}
       >
         {removing ? (
@@ -239,7 +239,7 @@ export default function FavoritesTab() {
               <button
                 key={l.id}
                 onClick={() => saveDefaultLeague(l.id)}
-                className={`relative flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                className={`touch-target relative flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
                   active ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >

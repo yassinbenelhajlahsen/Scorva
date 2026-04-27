@@ -39,7 +39,7 @@ export default function GameTabBar({ tabs, activeTab, onTabChange, isPreGame, ha
             key={tab.id}
             ref={(el) => (tabRefs.current[i] = el)}
             onClick={() => onTabChange(tab.id)}
-            className={`relative px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${
+            className={`touch-target relative px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${
               isActive
                 ? "text-accent"
                 : "text-text-secondary hover:text-text-primary"

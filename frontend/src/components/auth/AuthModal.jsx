@@ -160,7 +160,7 @@ export default function AuthModal({ onClose, context }) {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-secondary transition-colors duration-150 z-10"
+          className="touch-target absolute top-4 right-4 rounded-full text-text-tertiary hover:text-text-secondary transition-colors duration-150 z-10"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -197,7 +197,7 @@ export default function AuthModal({ onClose, context }) {
               </div>
               <button
                 onClick={() => { setView("form"); setMode("signin"); setError(null); }}
-                className="w-full text-[14px] text-text-tertiary hover:text-text-secondary transition-colors duration-150 py-2"
+                className="touch-target w-full text-[14px] text-text-tertiary hover:text-text-secondary transition-colors duration-150 py-2"
               >
                 Back to sign in
               </button>
@@ -250,7 +250,7 @@ export default function AuthModal({ onClose, context }) {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-accent hover:bg-accent-hover text-white text-[15px] font-semibold rounded-[10px] py-[13px] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="touch-target w-full bg-accent hover:bg-accent-hover text-white text-[15px] font-semibold rounded-[10px] py-[13px] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {loading ? "Sending…" : "Send Reset Link"}
                       </button>
@@ -259,7 +259,7 @@ export default function AuthModal({ onClose, context }) {
                   <button
                     type="button"
                     onClick={goBack}
-                    className="w-full text-center text-[13px] text-text-tertiary hover:text-text-secondary transition-colors duration-150 mt-5"
+                    className="touch-target w-full text-center text-[13px] text-text-tertiary hover:text-text-secondary transition-colors duration-150 mt-5"
                   >
                     Back to sign in
                   </button>
@@ -299,7 +299,7 @@ export default function AuthModal({ onClose, context }) {
                     type="button"
                     onClick={handleGoogleSignIn}
                     disabled={googleLoading}
-                    className="w-full flex items-center justify-center gap-2.5 bg-white/[0.06] hover:bg-white/[0.10] ring-1 ring-white/[0.08] hover:ring-white/[0.14] rounded-[10px] px-4 py-[11px] text-[15px] font-medium text-text-primary transition-all duration-150 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="touch-target w-full gap-2.5 bg-white/[0.06] hover:bg-white/[0.10] ring-1 ring-white/[0.08] hover:ring-white/[0.14] rounded-[10px] px-4 py-[11px] text-[15px] font-medium text-text-primary transition-all duration-150 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -362,7 +362,7 @@ export default function AuthModal({ onClose, context }) {
                           <button
                             type="button"
                             onClick={goToReset}
-                            className="text-[12px] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+                            className="touch-target text-[12px] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
                           >
                             Forgot password?
                           </button>
@@ -435,7 +435,7 @@ export default function AuthModal({ onClose, context }) {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="relative w-full bg-accent hover:bg-accent-hover text-white text-[15px] font-semibold rounded-[10px] py-[13px] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden"
+                        className="touch-target relative w-full bg-accent hover:bg-accent-hover text-white text-[15px] font-semibold rounded-[10px] py-[13px] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden"
                       >
                         <AnimatePresence mode="wait" initial={false}>
                           <m.span
@@ -472,7 +472,7 @@ export default function AuthModal({ onClose, context }) {
                     <button
                       type="button"
                       onClick={switchMode}
-                      className="text-accent hover:text-accent-hover transition-colors duration-150"
+                      className="touch-target text-accent hover:text-accent-hover transition-colors duration-150"
                     >
                       {mode === "signin" ? "Sign up" : "Sign in"}
                     </button>

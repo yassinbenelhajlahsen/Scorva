@@ -224,7 +224,7 @@ export default function GameChart({
             <select
               value={viewMode}
               onChange={(e) => setViewMode(e.target.value)}
-              className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-xs font-semibold uppercase tracking-wider px-3 py-1.5 pr-7 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:ring-1 focus:ring-accent/50"
+              className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-xs font-semibold uppercase tracking-wider px-3 py-1.5 pr-7 min-h-[44px] cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:ring-1 focus:ring-accent/50"
             >
               <option
                 value="winProb"

@@ -59,7 +59,7 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
       {/* Prev */}
       <button
         onClick={() => setWindowStart((s) => addDays(s, -7))}
-        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200"
+        className="touch-target flex-shrink-0 rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200"
         aria-label="Previous week"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +148,7 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
       <button
         onClick={() => setWindowStart((s) => addDays(s, 7))}
         disabled={addDays(windowStart, 7) > maxDate}
-        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
+        className="touch-target flex-shrink-0 rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
         aria-label="Next week"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

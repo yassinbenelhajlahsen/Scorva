@@ -126,7 +126,7 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
             <button
               onClick={prevMonth}
               disabled={prevMonthBlocked}
-              className="w-7 h-7 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
+              className="touch-target rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
               aria-label="Previous month"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +139,7 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
             <button
               onClick={nextMonth}
               disabled={nextMonthBlocked}
-              className="w-7 h-7 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
+              className="touch-target rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
               aria-label="Next month"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
                     onClose();
                   }}
                   className={[
-                    "w-8 mx-auto flex flex-col items-center justify-center gap-0.5 py-1 rounded-xl text-xs font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    "w-8 min-h-[44px] mx-auto flex flex-col items-center justify-center gap-0.5 py-1 rounded-xl text-xs font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
                     isSelected
                       ? "bg-accent text-white cursor-pointer"
                       : !hasGames

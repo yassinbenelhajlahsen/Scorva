@@ -50,7 +50,7 @@ function FilterPill({ label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
+      className={`touch-target px-3 py-1 rounded-full text-xs font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
         active
           ? "bg-accent text-white"
           : "bg-surface-overlay text-text-secondary hover:text-text-primary hover:bg-white/[0.08]"
@@ -339,7 +339,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
           <p className="text-sm text-text-secondary">Could not load play-by-play data.</p>
           <button
             onClick={retry}
-            className="text-xs text-accent hover:text-accent-hover transition-colors duration-150"
+            className="touch-target text-xs text-accent hover:text-accent-hover transition-colors duration-150"
           >
             Try again
           </button>

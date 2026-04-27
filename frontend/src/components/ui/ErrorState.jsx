@@ -23,7 +23,7 @@ export default function ErrorState({
         {onRetry && (
           <button
             onClick={onRetry}
-            className="bg-surface-overlay text-text-primary text-sm font-medium px-5 py-2.5 rounded-full border border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+            className="touch-target bg-surface-overlay text-text-primary text-sm font-medium px-5 py-2.5 rounded-full border border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
           >
             Try Again
           </button>

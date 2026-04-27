@@ -45,7 +45,7 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
               onClick={() => { if (todayHasGames) onDateChange(todayForButton); }}
               disabled={isViewingDefault || !todayHasGames}
               className={[
-                "text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full transition-all duration-[220ms]",
+                "touch-target text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full transition-all duration-[220ms]",
                 isViewingDefault
                   ? "text-accent bg-accent/10 cursor-default border border-transparent"
                   : todayHasGames
@@ -62,7 +62,7 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
             <button
               onClick={() => setCalendarOpen((o) => !o)}
               className={[
-                "w-7 h-7 flex items-center justify-center rounded-full transition-all duration-[220ms]",
+                "touch-target rounded-full transition-all duration-[220ms]",
                 calendarOpen
                   ? "bg-accent text-white"
                   : "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06]",

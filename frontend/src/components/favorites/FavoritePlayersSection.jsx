@@ -76,7 +76,7 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
                   <button
                     onClick={() => onRemove(player.id)}
                     aria-label={`Remove ${player.name}`}
-                    className="w-6 h-6 rounded-md flex items-center justify-center text-text-tertiary hover:text-loss hover:bg-loss/10 transition-all duration-150 shrink-0"
+                    className="touch-target rounded-md text-text-tertiary hover:text-loss hover:bg-loss/10 transition-all duration-150 shrink-0"
                   >
                     <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <line x1="4" y1="4" x2="16" y2="16" />
