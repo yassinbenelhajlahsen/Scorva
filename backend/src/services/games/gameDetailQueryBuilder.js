@@ -97,6 +97,7 @@ SELECT json_build_object(
     'info', json_build_object(
       'id', ht.id,
       'name', ht.name,
+      'abbreviation', ht.abbreviation,
       'shortName', ht.shortname,
       'location', ht.location,
       'logoUrl', ht.logo_url,
@@ -112,6 +113,7 @@ SELECT json_build_object(
     'info', json_build_object(
       'id', at.id,
       'name', at.name,
+      'abbreviation', at.abbreviation,
       'shortName', at.shortname,
       'location', at.location,
       'logoUrl', at.logo_url,

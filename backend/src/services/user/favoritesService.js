@@ -43,7 +43,7 @@ export async function getFavorites(userId) {
         [userId]
       ),
       pool.query(
-        `SELECT t.id, t.name, t.shortname, t.location, t.logo_url, t.record, t.league
+        `SELECT t.id, t.name, t.abbreviation, t.shortname, t.location, t.logo_url, t.record, t.league
          FROM user_favorite_teams uft
          JOIN teams t ON uft.team_id = t.id
          WHERE uft.user_id = $1

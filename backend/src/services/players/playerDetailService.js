@@ -27,6 +27,7 @@ export async function getNbaPlayer(playerId, season) {
       'team', json_build_object(
         'id', t.id,
         'name', t.name,
+        'abbreviation', t.abbreviation,
         'shortName', t.shortname,
         'location', t.location,
         'logoUrl', t.logo_url
@@ -107,7 +108,7 @@ export async function getNbaPlayer(playerId, season) {
     LEFT JOIN stats s ON p.id = s.playerid AND s.minutes > 0
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type IN ('regular', 'makeup')
     WHERE p.league = $1 AND p.id = $2
-    GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
+    GROUP BY p.id, t.id, t.name, t.abbreviation, t.shortname, t.location, t.logo_url;
     `,
       ["nba", playerId, season, currentSeason]
     );
@@ -140,6 +141,7 @@ export async function getNflPlayer(playerId, season) {
       'team', json_build_object(
         'id', t.id,
         'name', t.name,
+        'abbreviation', t.abbreviation,
         'shortName', t.shortname,
         'location', t.location,
         'logoUrl', t.logo_url
@@ -200,7 +202,7 @@ export async function getNflPlayer(playerId, season) {
     LEFT JOIN stats s ON p.id = s.playerid AND NOT (s.yds IS NULL AND s.td IS NULL AND s.sacks IS NULL AND s.interceptions IS NULL AND s.cmpatt IS NULL)
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type IN ('regular', 'makeup')
     WHERE p.league = $1 AND p.id = $2
-    GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
+    GROUP BY p.id, t.id, t.name, t.abbreviation, t.shortname, t.location, t.logo_url;
     `,
       ["nfl", playerId, season, currentSeason]
     );
@@ -233,6 +235,7 @@ export async function getNhlPlayer(playerId, season) {
       'team', json_build_object(
         'id', t.id,
         'name', t.name,
+        'abbreviation', t.abbreviation,
         'shortName', t.shortname,
         'location', t.location,
         'logoUrl', t.logo_url
@@ -304,7 +307,7 @@ export async function getNhlPlayer(playerId, season) {
     LEFT JOIN stats s ON p.id = s.playerid AND s.toi IS NOT NULL AND s.toi != '0:00'
     LEFT JOIN games g2 ON s.gameid = g2.id AND g2.season = $3 AND g2.type IN ('regular', 'makeup')
     WHERE p.league = $1 AND p.id = $2
-    GROUP BY p.id, t.id, t.name, t.shortname, t.location, t.logo_url;
+    GROUP BY p.id, t.id, t.name, t.abbreviation, t.shortname, t.location, t.logo_url;
     `,
       ["nhl", playerId, season, currentSeason]
     );
