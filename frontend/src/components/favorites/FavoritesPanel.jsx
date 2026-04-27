@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useFavorites } from "../../hooks/user/useFavorites.js";
 import { removeFavoritePlayer, removeFavoriteTeam } from "../../api/favorites.js";
 import { queryKeys } from "../../lib/query.js";
+import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
 import FavoritePlayersSection from "./FavoritePlayersSection.jsx";
 import FavoriteTeamsSection from "./FavoriteTeamsSection.jsx";
 import Skeleton from "../ui/Skeleton.jsx";
@@ -14,6 +15,7 @@ export default function FavoritesPanel({ onClose }) {
   const { session } = useAuth();
   const { favorites, loading } = useFavorites();
   const queryClient = useQueryClient();
+  const dragProps = useSwipeToClose(onClose, { direction: "right" });
 
   const handleRemovePlayer = useCallback((playerId) => {
     queryClient.setQueryData(queryKeys.favorites(), (old) => {
@@ -96,6 +98,7 @@ export default function FavoritesPanel({ onClose }) {
       exit={{ opacity: 0, x: 48, scale: 0.97 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       ref={panelRef}
+      {...dragProps}
       className="fixed top-0 right-0 bottom-0 z-[70] w-full sm:w-[420px] bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Header */}
@@ -119,7 +122,7 @@ export default function FavoritesPanel({ onClose }) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4" style={{ touchAction: "pan-y" }}>
         {loading || !favorites ? (
           <div className="flex flex-col items-center gap-3 pt-12">
             <Skeleton className="w-8 h-8 rounded-full" />
