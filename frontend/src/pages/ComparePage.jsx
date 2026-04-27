@@ -423,7 +423,7 @@ function TeamCompare({
               entityA={{ id: a.id, name: a.name, teamId: a.id }}
               entityB={{ id: b.id, name: b.name, teamId: b.id }}
               league={league}
-              scopeNote="Only current and previous season"
+              scopeNote="Only current and previous two seasons"
             />
           </div>
         )}
