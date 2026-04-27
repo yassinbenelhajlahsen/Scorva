@@ -56,7 +56,7 @@ export default function TeamPage() {
       const navRect = nav.getBoundingClientRect();
       setPillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
     }
-  }, [activeTab]);
+  }, [activeTab, team]);
 
   function pickTab(tab) {
     setTabDirection(TABS.indexOf(tab) > TABS.indexOf(activeTab) ? 1 : -1);
