@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +16,8 @@ import { ChatProvider } from "./context/ChatContext.jsx";
 import { SettingsProvider } from "./context/SettingsContext.jsx";
 import { FavoritesPanelProvider } from "./context/FavoritesPanelContext.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
+import IOSInstallHint from "./components/pwa/IOSInstallHint.jsx";
+import { trackVisit } from "./lib/pwaVisitTracking.js";
 
 const About        = lazy(() => import("./pages/About.jsx"));
 const LeaguePage   = lazy(() => import("./pages/LeaguePage.jsx"));
@@ -25,6 +27,24 @@ const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
 const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
+
+function AppShellInner() {
+  useEffect(() => {
+    trackVisit();
+  }, []);
+
+  return (
+    <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
+      <Navbar />
+      <ScrollToTop />
+      <ErrorBoundary>
+        <AnimatedRoutes />
+      </ErrorBoundary>
+      <Footer />
+      <IOSInstallHint />
+    </div>
+  );
+}
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -125,14 +145,7 @@ export default function App() {
                 <SettingsProvider>
                   <ChatProvider>
                   <FavoritesPanelProvider>
-                    <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
-                      <Navbar />
-                      <ScrollToTop />
-                      <ErrorBoundary>
-                        <AnimatedRoutes />
-                      </ErrorBoundary>
-                      <Footer />
-                    </div>
+                    <AppShellInner />
                   </FavoritesPanelProvider>
                   </ChatProvider>
                 </SettingsProvider>
