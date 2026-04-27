@@ -31,34 +31,27 @@ export async function getTeamsByLeague(league) {
 export async function getTeamRoster(league, teamId, season) {
   const currentSeason = await getCurrentSeason(league);
   const effectiveSeason = season ?? currentSeason;
-  const isCurrent = effectiveSeason === currentSeason;
-  const ttl = isCurrent ? 300 : 30 * 86400;
+  const ttl = effectiveSeason === currentSeason ? 300 : 30 * 86400;
 
   return cached(`roster:${league}:${teamId}:${effectiveSeason}`, ttl, async () => {
-    if (isCurrent) {
-      const result = await pool.query(
-        `SELECT id, name, position, jerseynum, image_url,
-                status, status_description, status_updated_at, espn_playerid
-           FROM players
-          WHERE league = $1
-            AND teamid = $2
-          ORDER BY position NULLS LAST, name`,
-        [league, teamId]
-      );
-      return result.rows;
-    }
-
     const result = await pool.query(
-      `SELECT DISTINCT
-              p.id, p.name, p.position, p.jerseynum, p.image_url,
+      `WITH latest_team AS (
+         SELECT DISTINCT ON (s.playerid)
+                s.playerid,
+                COALESCE(s.teamid, p.teamid) AS team_id
+           FROM stats s
+           JOIN games g ON s.gameid = g.id
+           JOIN players p ON s.playerid = p.id
+          WHERE g.league = $1
+            AND g.season = $3
+            AND g.type IN ('regular', 'makeup', 'playoff', 'final')
+          ORDER BY s.playerid, g.date DESC, g.id DESC
+       )
+       SELECT p.id, p.name, p.position, p.jerseynum, p.image_url,
               p.status, p.status_description, p.status_updated_at, p.espn_playerid
          FROM players p
-         JOIN stats s ON s.playerid = p.id
-         JOIN games g ON s.gameid = g.id
-        WHERE g.league = $1
-          AND g.season = $3
-          AND g.type IN ('regular', 'makeup', 'playoff', 'final')
-          AND COALESCE(s.teamid, p.teamid) = $2
+         JOIN latest_team lt ON lt.playerid = p.id
+        WHERE lt.team_id = $2
         ORDER BY p.position NULLS LAST, p.name`,
       [league, teamId, effectiveSeason]
     );

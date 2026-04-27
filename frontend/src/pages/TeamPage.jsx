@@ -279,7 +279,12 @@ export default function TeamPage() {
             ) : rosterLoading ? (
               <RosterGridSkeleton />
             ) : (
-              <RosterGrid league={league} season={selectedSeason} players={roster} />
+              <RosterGrid
+                league={league}
+                season={selectedSeason}
+                players={roster}
+                showStatus={!selectedSeason || selectedSeason === leagueSeasons[0]}
+              />
             )}
           </m.div>
         </AnimatePresence>

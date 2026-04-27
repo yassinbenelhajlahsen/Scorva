@@ -13,11 +13,11 @@ function canHover() {
   return window.matchMedia("(hover: hover)").matches;
 }
 
-function RosterCard({ league, season, player }) {
+function RosterCard({ league, season, player, showStatus }) {
   const queryClient = useQueryClient();
   const slug = slugify(player.name);
   const href = buildSeasonUrl(`/${league}/players/${slug}`, season);
-  const showStatus = player.status && player.status !== "available";
+  const renderStatus = showStatus && player.status && player.status !== "available";
 
   function handleHover() {
     if (!canHover()) return;
@@ -52,7 +52,7 @@ function RosterCard({ league, season, player }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-base font-semibold text-text-primary truncate">{player.name}</h3>
-            {showStatus && (
+            {renderStatus && (
               <PlayerStatusBadge
                 status={player.status}
                 title={player.status_description ?? undefined}
@@ -71,7 +71,7 @@ function RosterCard({ league, season, player }) {
   );
 }
 
-export default function RosterGrid({ league, season, players }) {
+export default function RosterGrid({ league, season, players, showStatus = true }) {
   if (!players || players.length === 0) {
     return (
       <p className="text-center text-text-tertiary text-sm py-12">
@@ -89,7 +89,7 @@ export default function RosterGrid({ league, season, players }) {
     >
       {players.map((player) => (
         <m.div key={player.id} variants={itemVariants} className="w-full">
-          <RosterCard league={league} season={season} player={player} />
+          <RosterCard league={league} season={season} player={player} showStatus={showStatus} />
         </m.div>
       ))}
     </m.div>
