@@ -18,8 +18,8 @@ export function PullToRefresh({ onRefresh, children, className = "" }) {
           aria-hidden="true"
           className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2 rounded-full bg-surface-elevated p-2 shadow-[0_4px_20px_rgba(0,0,0,0.35)]"
           style={{
-            top: `${Math.max(0, pullDistance - 28)}px`,
-            opacity: progress,
+            top: isRefreshing ? "32px" : `${Math.max(0, pullDistance - 28)}px`,
+            opacity: isRefreshing ? 1 : progress,
           }}
           animate={{ scale: isReady || isRefreshing ? 1.05 : 0.8 + progress * 0.2 }}
         >
@@ -35,7 +35,7 @@ export function PullToRefresh({ onRefresh, children, className = "" }) {
         </m.div>
       )}
       <m.div
-        animate={{ y: isRefreshing ? THRESHOLD * 0.6 : pullDistance }}
+        animate={{ y: pullDistance }}
         transition={{ type: "spring", stiffness: 400, damping: 35 }}
       >
         {children}

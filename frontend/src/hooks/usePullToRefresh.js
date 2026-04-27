@@ -53,11 +53,17 @@ export function usePullToRefresh(onRefresh, { threshold = 60 } = {}) {
       const distance = distanceRef.current;
       if (distance >= threshold && !isRefreshingRef.current) {
         setIsRefreshing(true);
+        // Park content at a stable visible position while refreshing so the
+        // spinner doesn't jump or pop off-screen between pull and refetch.
+        distanceRef.current = threshold * 0.6;
+        setPullDistance(threshold * 0.6);
+        const minDuration = new Promise((r) => setTimeout(r, 600));
         try {
-          await onRefreshRef.current();
+          await Promise.all([onRefreshRef.current(), minDuration]);
         } catch (err) {
           // Surface for debugging but don't block UI snap-back
           console.error("PullToRefresh: refresh failed", err);
+          await minDuration;
         } finally {
           setIsRefreshing(false);
           distanceRef.current = 0;
