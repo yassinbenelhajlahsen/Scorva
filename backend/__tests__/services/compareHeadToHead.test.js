@@ -65,7 +65,7 @@ describe("headToHeadService (compare)", () => {
       const [sql] = mockPool.query.mock.calls[0];
       expect(sql).toContain("g.season IN");
       expect(sql).toContain("ORDER BY season DESC");
-      expect(sql).toContain("LIMIT 2");
+      expect(sql).toContain("LIMIT 3");
     });
 
     it("orders by date DESC", async () => {
