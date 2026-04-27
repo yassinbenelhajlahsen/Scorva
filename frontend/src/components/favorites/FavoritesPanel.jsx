@@ -102,7 +102,7 @@ export default function FavoritesPanel({ onClose }) {
       className="fixed top-0 right-0 bottom-0 z-[70] w-full sm:w-[420px] bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0">
+      <div className="flex items-center justify-between px-5 pb-3.5 pt-[max(0.875rem,calc(0.875rem+env(safe-area-inset-top)))] border-b border-white/[0.06] flex-shrink-0">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
@@ -122,7 +122,7 @@ export default function FavoritesPanel({ onClose }) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-4" style={{ touchAction: "pan-y" }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom)))]" style={{ touchAction: "pan-y" }}>
         {loading || !favorites ? (
           <div className="flex flex-col items-center gap-3 pt-12">
             <Skeleton className="w-8 h-8 rounded-full" />

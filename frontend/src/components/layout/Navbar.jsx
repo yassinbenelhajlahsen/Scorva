@@ -47,7 +47,7 @@ export default function Navbar() {
   return (
     <nav ref={navRef} className="sticky top-0 z-50 bg-[#0a0a0c] sm:bg-[rgba(10,10,12,0.88)] sm:backdrop-blur-2xl border-b border-white/[0.06]">
       {/* Main row */}
-      <div className="relative flex items-center px-5 py-3">
+      <div className="relative flex items-center px-5 pb-3 pt-[max(0.75rem,calc(0.75rem+env(safe-area-inset-top)))]">
         {/* Left: Brand */}
         <Link
           to="/"
