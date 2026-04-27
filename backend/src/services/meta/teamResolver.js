@@ -2,7 +2,7 @@ import pool from "../../db/db.js";
 
 const ABBR_MAX_LEN = 4;
 const SUBSTRING_MIN_LEN = 3;
-const FUZZY_THRESHOLD = 0.4;
+const FUZZY_THRESHOLD = 0.3;
 
 function buildLeagueClause(league, paramIndex) {
   return league

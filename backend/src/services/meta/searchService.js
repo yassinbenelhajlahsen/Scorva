@@ -161,7 +161,7 @@ function compareRows(a, b) {
 }
 
 function stripInternalFields(rows) {
-  return rows.map(({ score, popularity, sim, ...rest }) => rest);
+  return rows.map(({ score: _score, popularity: _popularity, sim: _sim, ...rest }) => rest);
 }
 
 async function queryTeamEntities(ids) {
