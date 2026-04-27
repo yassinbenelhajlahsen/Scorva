@@ -133,6 +133,7 @@ model teams {
   homerecord                    String?
   awayrecord                    String?
   primary_color                 String?  @db.VarChar(7)
+  abbreviation                  String?  @db.VarChar(5)
   conf                          String?
   division                      String?
   games_games_awayteamidToteams games[]              @relation("games_awayteamidToteams")
