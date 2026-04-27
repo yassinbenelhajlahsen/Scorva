@@ -1,11 +1,14 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useState, useMemo, useEffect } from "react";
-import { m } from "framer-motion";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
+import { m, AnimatePresence } from "framer-motion";
 
 import GameCard from "../components/cards/GameCard";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
+import RosterGrid from "../components/team/RosterGrid.jsx";
+import RosterGridSkeleton from "../components/skeletons/RosterGridSkeleton.jsx";
 import { useTeam } from "../hooks/data/useTeam.js";
+import { useTeamRoster } from "../hooks/data/useTeamRoster.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import { useSeasons } from "../hooks/data/useSeasons.js";
 import buildSeasonUrl from "../utils/buildSeasonUrl.js";
@@ -17,6 +20,8 @@ import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 
+const TABS = ["schedule", "roster"];
+
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
@@ -26,6 +31,37 @@ export default function TeamPage() {
   const { seasons: leagueSeasons } = useSeasons(league);
   const [selectedSeason, setSelectedSeason] = useSeasonParam(availableSeasons.length > 0 ? availableSeasons : [], leagueSeasons[0] ?? null);
   const [selectedMonth, setSelectedMonth] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("schedule");
+  const [tabDirection, setTabDirection] = useState(1);
+  const tabRefs = useRef([]);
+  const tabNavRef = useRef(null);
+  const [pillBounds, setPillBounds] = useState(null);
+
+  const {
+    roster,
+    loading: rosterLoading,
+    error: rosterError,
+    retry: rosterRetry,
+  } = useTeamRoster(league, team?.id ?? null, selectedSeason, {
+    enabled: activeTab === "roster",
+  });
+
+  useLayoutEffect(() => {
+    const idx = TABS.indexOf(activeTab);
+    const btn = tabRefs.current[idx];
+    const nav = tabNavRef.current;
+    if (btn && nav) {
+      const btnRect = btn.getBoundingClientRect();
+      const navRect = nav.getBoundingClientRect();
+      setPillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
+    }
+  }, [activeTab]);
+
+  function pickTab(tab) {
+    setTabDirection(TABS.indexOf(tab) > TABS.indexOf(activeTab) ? 1 : -1);
+    setActiveTab(tab);
+  }
 
   useEffect(() => {
     setSelectedMonth(null);
@@ -47,6 +83,7 @@ export default function TeamPage() {
     }
     setSelectedMonth(months[0]);
   }, [games]);
+
   const { session, openAuthModal } = useAuth();
   const { isFavorited, toggle } = useFavoriteToggle("team", session ? team?.id : null);
 
@@ -139,7 +176,6 @@ export default function TeamPage() {
         {/* Stats card */}
         <div className="flex-1 flex flex-col">
           <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-4">
-            {/* Location */}
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider text-text-tertiary">Location</span>
               <span className="text-sm font-medium text-text-primary">{team.location}</span>
@@ -147,7 +183,6 @@ export default function TeamPage() {
 
             <div className="border-t border-white/[0.06]" />
 
-            {/* Record stats */}
             <div
               className="grid grid-cols-3 divide-x divide-white/[0.06]"
               style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
@@ -170,37 +205,84 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Games */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
-          {selectedSeason ? `${selectedSeason} Schedule` : "Season Schedule"}
-        </h2>
-        <MonthNavigation
-          games={games}
-          selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
-        />
-        <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
-          {filteredGames.length > 0 ? (
+      {/* Tab pills */}
+      <div className="flex justify-center mb-8">
+        <div ref={tabNavRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
+          {pillBounds && (
             <m.div
-              key={selectedSeason}
-              className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {filteredGames.map((game) => (
-                <m.div key={game.id} variants={itemVariants} className="w-full">
-                  <GameCard game={game} />
-                </m.div>
-              ))}
-            </m.div>
-          ) : (
-            <p className="text-center text-text-tertiary text-sm mt-8">
-              {games.length > 0 ? "No games this month." : "No recent games to show."}
-            </p>
+              className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
+              initial={{ left: pillBounds.left, width: pillBounds.width }}
+              animate={{ left: pillBounds.left, width: pillBounds.width }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
           )}
+          {TABS.map((tab, i) => (
+            <button
+              key={tab}
+              ref={(el) => (tabRefs.current[i] = el)}
+              onClick={() => pickTab(tab)}
+              className="relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
+              style={{ color: activeTab === tab ? "var(--color-accent)" : "var(--color-text-secondary)" }}
+            >
+              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Tab content */}
+      <div className="overflow-x-clip">
+        <AnimatePresence mode="wait" custom={tabDirection} initial={false}>
+          <m.div
+            key={activeTab}
+            custom={tabDirection}
+            variants={{
+              initial: (dir) => ({ x: dir * 40, opacity: 0 }),
+              animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+              exit: (dir) => ({ x: dir * -40, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
+            }}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {activeTab === "schedule" ? (
+              <>
+                <MonthNavigation
+                  games={games}
+                  selectedMonth={selectedMonth}
+                  onMonthChange={setSelectedMonth}
+                />
+                <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
+                  {filteredGames.length > 0 ? (
+                    <m.div
+                      key={selectedSeason}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      {filteredGames.map((game) => (
+                        <m.div key={game.id} variants={itemVariants} className="w-full">
+                          <GameCard game={game} />
+                        </m.div>
+                      ))}
+                    </m.div>
+                  ) : (
+                    <p className="text-center text-text-tertiary text-sm mt-8">
+                      {games.length > 0 ? "No games this month." : "No recent games to show."}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : rosterError ? (
+              <ErrorState message={rosterError} onRetry={rosterRetry} />
+            ) : rosterLoading ? (
+              <RosterGridSkeleton />
+            ) : (
+              <RosterGrid league={league} season={selectedSeason} players={roster} />
+            )}
+          </m.div>
+        </AnimatePresence>
       </div>
     </div>
   );
