@@ -163,12 +163,19 @@ input:-webkit-autofill:focus {
     }
   }
 
-  /* Minimum 44x44 touch target — wrap small icon buttons */
+  /* Touch target — baseline 28x28 keeps icon buttons sized on desktop;
+     bumps to 44x44 on touch devices for accessibility */
   .touch-target {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 28px;
+    min-height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
   }
 }
