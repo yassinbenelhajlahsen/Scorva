@@ -11,3 +11,7 @@ export function getTeamSeasons(league, teamId, { signal } = {}) {
 export function getStandings(league, { season, signal } = {}) {
   return apiFetch(`/api/${league}/standings`, { signal, params: { season } });
 }
+
+export function getTeamRoster(league, teamId, { season, signal } = {}) {
+  return apiFetch(`/api/${league}/teams/${teamId}/roster`, { signal, params: { season } });
+}
