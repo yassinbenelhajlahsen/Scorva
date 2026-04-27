@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useSettings } from "../../context/SettingsContext.jsx";
+import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
 import FavoritesTab from "./FavoritesTab.jsx";
 import AccountTab from "./AccountTab.jsx";
 
@@ -22,6 +23,7 @@ export default function SettingsDrawer({ onClose }) {
   const [direction, setDirection] = useState(0);
   const prevTabIndex = useRef(TABS.findIndex((t) => t.id === activeTab));
   const panelRef = useRef(null);
+  const dragProps = useSwipeToClose(onClose, { direction: "right" });
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -105,6 +107,7 @@ export default function SettingsDrawer({ onClose }) {
       exit={{ opacity: 0, x: 48, scale: 0.97 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       ref={panelRef}
+      {...dragProps}
       className="fixed top-0 right-0 bottom-0 z-[80] w-full max-w-md bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Header */}
@@ -151,7 +154,7 @@ export default function SettingsDrawer({ onClose }) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto px-5 py-5">
+      <div className="flex-1 overflow-y-auto px-5 py-5" style={{ touchAction: "pan-y" }}>
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <m.div
             key={activeTab}
