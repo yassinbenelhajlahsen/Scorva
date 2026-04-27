@@ -62,6 +62,32 @@ const TOP_SEASONS_CTE = `
   )
 `;
 
+const MATCHUP_GAMES_QUERY = `
+  ${TOP_SEASONS_CTE}
+  SELECT g.id,
+         CONCAT(ht.shortname, ' vs ', at.shortname) AS name,
+         g.league,
+         NULL AS "imageUrl",
+         NULL AS shortname,
+         g.date,
+         'game' AS type,
+         NULL AS position,
+         NULL AS team_name
+  FROM games g
+  JOIN teams ht ON g.hometeamid = ht.id
+  JOIN teams at ON g.awayteamid = at.id
+  WHERE g.season IN (SELECT season FROM top_seasons WHERE league = g.league)
+    AND ht.conf IS NOT NULL AND at.conf IS NOT NULL
+    AND (
+      (g.hometeamid = ANY($1::int[]) AND g.awayteamid = ANY($2::int[]))
+      OR
+      (g.hometeamid = ANY($2::int[]) AND g.awayteamid = ANY($1::int[]))
+    )
+    AND ($3::date IS NULL OR g.date = $3::date)
+  ORDER BY g.date DESC
+  LIMIT 15
+`;
+
 const PER_TEAM_GAMES_QUERY = `
   ${TOP_SEASONS_CTE}
   SELECT g.id,
@@ -159,10 +185,42 @@ async function queryPlayers(token) {
   return fuzzy.rows;
 }
 
+async function queryMatchupGames(lhsIds, rhsIds, dateFilter) {
+  const res = await pool.query(MATCHUP_GAMES_QUERY, [lhsIds, rhsIds, dateFilter]);
+  return res.rows;
+}
+
 async function queryPerTeamGames(teamIds) {
   if (!teamIds.length) return [];
   const res = await pool.query(PER_TEAM_GAMES_QUERY, [teamIds]);
   return res.rows;
+}
+
+async function searchMatchup(parsed, rawTerm) {
+  const [lhs, rhs] = await Promise.all([
+    resolveTeams(parsed.lhs),
+    resolveTeams(parsed.rhs),
+  ]);
+  if (lhs.length === 0 || rhs.length === 0) return null;
+
+  const lhsIds = lhs.map((t) => t.id);
+  const rhsIds = rhs.map((t) => t.id);
+  const date = tryParseDate(rawTerm);
+
+  const [teamRows, gameRows] = await Promise.all([
+    queryTeamEntities([...lhsIds, ...rhsIds]),
+    queryMatchupGames(lhsIds, rhsIds, date),
+  ]);
+
+  const teamScored = teamRows.map((row) => {
+    const match = [...lhs, ...rhs].find((r) => r.id === row.id);
+    return { ...row, score: match?.score ?? 99 };
+  });
+  const gameScored = gameRows.map((row) => ({ ...row, score: 10 }));
+
+  const merged = dedupeByTypeId([...teamScored, ...gameScored]);
+  merged.sort(compareRows);
+  return stripInternalFields(merged.slice(0, RESULT_LIMIT));
 }
 
 async function searchSingle(parsed) {
@@ -190,9 +248,12 @@ async function searchSingle(parsed) {
 export async function search(term) {
   const parsed = parseSearchTerm(term);
   if (parsed.kind === "empty") return [];
+
   if (parsed.kind === "matchup") {
-    // Matchup branch lands in the next task; until then, fall back to single.
-    return searchSingle({ kind: "single", token: parsed.lhs });
+    const matchupResult = await searchMatchup(parsed, term);
+    if (matchupResult !== null) return matchupResult;
+    return searchSingle({ kind: "single", token: term.trim() });
   }
+
   return searchSingle(parsed);
 }
