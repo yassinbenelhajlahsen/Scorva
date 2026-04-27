@@ -62,7 +62,7 @@ export function FloatingInput({
           appearance: "none",
           color: "var(--app-text-primary)",
           WebkitTextFillColor: "var(--app-text-primary)",
-          fontSize: '15px',
+          fontSize: '16px',
           boxShadow: isFocused
             ? `0 0 0 3px color-mix(in srgb, ${focusColor} 12%, transparent)`
             : undefined,

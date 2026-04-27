@@ -38,7 +38,7 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search players, teams, games, dates..."
-          className="w-full px-4 py-2 pr-10 rounded-full bg-surface-elevated text-text-primary placeholder-text-tertiary border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/30 transition-all duration-200 text-sm"
+          className="w-full px-4 py-2 pr-10 rounded-full bg-surface-elevated text-text-primary placeholder-text-tertiary border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/30 transition-all duration-200 text-base"
           autoComplete="off"
         />
         {loading && (
