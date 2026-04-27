@@ -52,9 +52,11 @@ export default function AvatarDropdown() {
       <button
         onClick={toggleDropdown}
         aria-label="Account menu"
-        className="w-8 h-8 rounded-full bg-surface-elevated border border-white/[0.08] flex items-center justify-center text-text-secondary hover:text-text-primary hover:border-white/[0.14] hover:bg-surface-overlay transition-all duration-200"
+        className="touch-target rounded-full text-text-secondary hover:text-text-primary transition-all duration-200"
       >
-        <UserIcon />
+        <span className="w-8 h-8 rounded-full bg-surface-elevated border border-white/[0.08] flex items-center justify-center hover:border-white/[0.14] hover:bg-surface-overlay transition-all duration-200">
+          <UserIcon />
+        </span>
       </button>
 
       <AnimatePresence>

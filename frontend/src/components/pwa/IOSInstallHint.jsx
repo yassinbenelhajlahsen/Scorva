@@ -68,7 +68,7 @@ export default function IOSInstallHint() {
             type="button"
             onClick={handleDismiss}
             aria-label="Dismiss"
-            className="shrink-0 w-8 h-8 flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors"
+            className="touch-target shrink-0 text-text-tertiary hover:text-text-primary transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="3" y1="3" x2="13" y2="13" />

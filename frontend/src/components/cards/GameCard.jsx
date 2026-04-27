@@ -277,7 +277,7 @@ function GameCard({ game }) {
               });
             }}
             aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
-            className="[@media(hover:hover)]:hidden [@media(hover:hover)]:mt-0 mt-3 mx-auto flex items-center gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
+            className="touch-target [@media(hover:hover)]:hidden [@media(hover:hover)]:mt-0 mt-3 mx-auto gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
           >
             <svg
               className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}

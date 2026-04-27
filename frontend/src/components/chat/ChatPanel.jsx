@@ -104,7 +104,7 @@ export default function ChatPanel({ onClose }) {
             disabled={isStreaming}
             title="New conversation"
             aria-label="New conversation"
-            className={`w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-35 disabled:cursor-not-allowed ${messages.length === 0 ? "invisible" : ""}`}
+            className={`touch-target rounded-lg text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-35 disabled:cursor-not-allowed ${messages.length === 0 ? "invisible" : ""}`}
           >
             <m.svg
               animate={restartControls}
@@ -125,7 +125,7 @@ export default function ChatPanel({ onClose }) {
           <button
             onClick={onClose}
             aria-label="Close chat"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200"
+            className="touch-target rounded-lg text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200"
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="4" y1="4" x2="16" y2="16" />
