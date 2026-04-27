@@ -3,7 +3,7 @@ import { getGameDates } from "../../api/games.js";
 import { queryKeys } from "../../lib/query.js";
 
 export function useGameDates(league, season) {
-  const { data, isLoading: loading } = useQuery({
+  const { data, isLoading: loading, refetch } = useQuery({
     queryKey: queryKeys.gameDates(league, season),
     queryFn: ({ signal }) =>
       getGameDates(league, { season: season || undefined, signal }),
@@ -17,5 +17,6 @@ export function useGameDates(league, season) {
     dates: data?.dates ?? [],
     gameCounts: data?.gameCounts ?? new Map(),
     loading,
+    refetch,
   };
 }

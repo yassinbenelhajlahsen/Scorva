@@ -20,6 +20,8 @@ import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
 import LeagueSlate from "../components/navigation/LeagueSlate.jsx";
 import { LEAGUE_LABELS } from "../constants/leagueLabels.js";
+import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
+import { SwipeableTabs } from "../components/ui/SwipeableTabs.jsx";
 
 // Returns the cutoff indices for each playoff tier per conference.
 // `playoffs` = count of teams in the guaranteed-playoff tier (indices 0..playoffs-1).
@@ -49,7 +51,7 @@ export default function LeaguePage() {
   const queryClient = useQueryClient();
   const { league } = useParams();
   const data = leagueData[league?.toLowerCase()];
-  const { seasons } = useSeasons(league);
+  const { seasons, refetch: refetchSeasons } = useSeasons(league);
   const [selectedSeason, setSelectedSeason] = useSeasonParam(seasons);
   const [selectedDate, setSelectedDate] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
@@ -59,9 +61,17 @@ export default function LeaguePage() {
   const tabNavRef = useRef(null);
   const [pillBounds, setPillBounds] = useState(null);
 
-  const { games, standings, standingsFetching, error, displayData, retry, resolvedDate, resolvedSeason } =
+  const { games, standings, standingsFetching, error, displayData, retry, refetch: refetchLeague, resolvedDate, resolvedSeason } =
     useLeagueData(league, selectedSeason, selectedDate);
-  const { dates: gameDates, gameCounts, loading: datesLoading } = useGameDates(league, selectedSeason);
+  const { dates: gameDates, gameCounts, loading: datesLoading, refetch: refetchGameDates } = useGameDates(league, selectedSeason);
+
+  const handleRefresh = async () => {
+    await Promise.allSettled([
+      refetchLeague?.(),
+      refetchGameDates?.(),
+      refetchSeasons?.(),
+    ]);
+  };
 
   const tabs = useMemo(
     () => LEAGUE_LABELS[league]?.playoffsSupported
@@ -233,7 +243,95 @@ export default function LeaguePage() {
   const contentMaxWidth =
     activeTab === "playoffs" ? "max-w-[1600px]" : "max-w-[1200px]";
 
+  const playoffsContent = (
+    <PlayoffsBracket key={selectedSeason} league={league} season={selectedSeason} />
+  );
+
+  const gamesContent = (
+    <AnimatePresence mode="wait">
+      {games.length === 0 ? (
+        <m.div
+          key={`empty-${selectedDate}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: { duration: 0.2 } }}
+          exit={{ opacity: 0, transition: { duration: 0.1 } }}
+          className="flex flex-col items-center justify-center py-20 text-text-tertiary"
+        >
+          <svg
+            className="w-10 h-10 mb-4 opacity-40"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-sm">No games scheduled for this date.</p>
+        </m.div>
+      ) : (
+        <m.div
+          key={selectedDate}
+          className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
+          variants={containerVariants}
+          initial={animateCards ? "hidden" : false}
+          animate="visible"
+          exit={{ opacity: 0, transition: { duration: 0.12 } }}
+        >
+          {games.map((game) => (
+            <m.div
+              key={game.id}
+              variants={itemVariants}
+              className="w-full"
+            >
+              <GameCard game={game} />
+            </m.div>
+          ))}
+        </m.div>
+      )}
+    </AnimatePresence>
+  );
+
+  const standingsContent = (
+    <m.div
+      className="grid grid-cols-1 md:grid-cols-2 gap-8"
+      animate={{ opacity: standingsFetching ? 0.5 : 1 }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+    >
+      {/* East / AFC */}
+      <div>
+        <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
+          {league === "nfl" ? "AFC" : "Eastern Conference"}
+        </h3>
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          {renderStandingsRows(standings.eastOrAFC)}
+        </div>
+      </div>
+
+      {/* West / NFC */}
+      <div>
+        <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
+          {league === "nfl" ? "NFC" : "Western Conference"}
+        </h3>
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          {renderStandingsRows(standings.westOrNFC)}
+        </div>
+      </div>
+    </m.div>
+  );
+
+  const tabContents = {
+    games: gamesContent,
+    standings: standingsContent,
+    playoffs: playoffsContent,
+  };
+  const swipeableTabs = tabs.map((id) => ({ id, content: tabContents[id] }));
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="px-5 sm:px-8 py-8">
       <div className="max-w-[1200px] mx-auto">
       {/* Back link */}
@@ -322,102 +420,14 @@ export default function LeaguePage() {
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : (
-        <div className="overflow-x-clip">
-          <AnimatePresence mode="wait" custom={tabDirection} initial={false}>
-            <m.div
-              key={activeTab}
-              custom={tabDirection}
-              variants={{
-                initial: (dir) => ({ x: dir * 40, opacity: 0 }),
-                animate: { x: 0, opacity: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
-                exit: (dir) => ({ x: dir * -40, opacity: 0, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] } }),
-              }}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-            >
-              {activeTab === "playoffs" ? (
-                <PlayoffsBracket key={selectedSeason} league={league} season={selectedSeason} />
-              ) : activeTab === "games" ? (
-                <>
-                  <AnimatePresence mode="wait">
-                    {games.length === 0 ? (
-                      <m.div
-                        key={`empty-${selectedDate}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { duration: 0.2 } }}
-                        exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                        className="flex flex-col items-center justify-center py-20 text-text-tertiary"
-                      >
-                        <svg
-                          className="w-10 h-10 mb-4 opacity-40"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <p className="text-sm">No games scheduled for this date.</p>
-                      </m.div>
-                    ) : (
-                      <m.div
-                        key={selectedDate}
-                        className="grid grid-cols-1 md:grid-cols-3 gap-5 justify-items-center items-start"
-                        variants={containerVariants}
-                        initial={animateCards ? "hidden" : false}
-                        animate="visible"
-                        exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                      >
-                        {games.map((game) => (
-                          <m.div
-                            key={game.id}
-                            variants={itemVariants}
-                            className="w-full"
-                          >
-                            <GameCard game={game} />
-                          </m.div>
-                        ))}
-                      </m.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <m.div
-                  className="grid grid-cols-1 md:grid-cols-2 gap-8"
-                  animate={{ opacity: standingsFetching ? 0.5 : 1 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
-                >
-                  {/* East / AFC */}
-                  <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
-                      {league === "nfl" ? "AFC" : "Eastern Conference"}
-                    </h3>
-                    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                      {renderStandingsRows(standings.eastOrAFC)}
-                    </div>
-                  </div>
-
-                  {/* West / NFC */}
-                  <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
-                      {league === "nfl" ? "NFC" : "Western Conference"}
-                    </h3>
-                    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                      {renderStandingsRows(standings.westOrNFC)}
-                    </div>
-                  </div>
-                </m.div>
-              )}
-            </m.div>
-          </AnimatePresence>
-        </div>
+        <SwipeableTabs
+          activeId={activeTab}
+          onChange={pickTab}
+          tabs={swipeableTabs}
+        />
       )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }
