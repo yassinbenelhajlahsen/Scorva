@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 
 export function useSwipeableTabs({
+  containerRef,
   currentIndex,
   totalTabs,
   onChange,
@@ -12,7 +13,8 @@ export function useSwipeableTabs({
 
   const handleDragEnd = useCallback(
     (event, info) => {
-      const width = event.target.getBoundingClientRect().width || 1;
+      const el = containerRef?.current ?? event.currentTarget;
+      const width = el.getBoundingClientRect().width || 1;
       const offset = info.offset.x;
       const velocity = info.velocity.x;
 
@@ -28,6 +30,7 @@ export function useSwipeableTabs({
       }
     },
     [
+      containerRef,
       currentIndex,
       onChange,
       thresholdRatio,

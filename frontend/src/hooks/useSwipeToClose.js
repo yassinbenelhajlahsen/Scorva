@@ -2,13 +2,19 @@ import { useCallback } from "react";
 
 export function useSwipeToClose(
   onClose,
-  { direction = "right", threshold = 0.25, velocityThreshold = 500 } = {},
+  {
+    containerRef,
+    direction = "right",
+    threshold = 0.25,
+    velocityThreshold = 500,
+  } = {},
 ) {
   const isVertical = direction === "down";
 
   const handleDragEnd = useCallback(
     (event, info) => {
-      const rect = event.target.getBoundingClientRect();
+      const el = containerRef?.current ?? event.currentTarget;
+      const rect = el.getBoundingClientRect();
       const offset = isVertical ? info.offset.y : info.offset.x;
       const velocity = isVertical ? info.velocity.y : info.velocity.x;
       const dimension = isVertical ? rect.height : rect.width;
@@ -20,7 +26,7 @@ export function useSwipeToClose(
         onClose();
       }
     },
-    [onClose, isVertical, threshold, velocityThreshold],
+    [containerRef, onClose, isVertical, threshold, velocityThreshold],
   );
 
   return {

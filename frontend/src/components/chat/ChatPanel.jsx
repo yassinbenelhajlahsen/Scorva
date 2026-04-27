@@ -11,7 +11,7 @@ export default function ChatPanel({ onClose }) {
   const { sendMessage } = useChatActions();
   const restartControls = useAnimation();
   const panelRef = useRef(null);
-  const dragProps = useSwipeToClose(onClose, { direction: "right" });
+  const dragProps = useSwipeToClose(onClose, { containerRef: panelRef, direction: "right" });
 
   useEffect(() => {
     function handleKeyDown(e) {

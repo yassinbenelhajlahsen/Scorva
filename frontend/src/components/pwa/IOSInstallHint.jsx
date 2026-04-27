@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useStandalone } from "../../hooks/useStandalone.js";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
@@ -13,6 +13,7 @@ export default function IOSInstallHint() {
     () => typeof localStorage !== "undefined" && localStorage.getItem(DISMISS_KEY) === "1"
   );
   const [show, setShow] = useState(false);
+  const hintRef = useRef(null);
 
   useEffect(() => {
     if (!isIOS || !isSafari || isStandalone || dismissed) {
@@ -33,7 +34,7 @@ export default function IOSInstallHint() {
     setDismissed(true);
   }
 
-  const dragProps = useSwipeToClose(handleDismiss, { direction: "down", threshold: 0.5 });
+  const dragProps = useSwipeToClose(handleDismiss, { containerRef: hintRef, direction: "down", threshold: 0.5 });
 
   if (!isIOS || !isSafari || isStandalone || dismissed) return null;
 
@@ -41,6 +42,7 @@ export default function IOSInstallHint() {
     <AnimatePresence>
       {show && (
         <m.div
+          ref={hintRef}
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}

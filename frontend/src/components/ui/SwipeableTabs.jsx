@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useRef } from "react";
 import { useSwipeableTabs } from "../../hooks/useSwipeableTabs.js";
 
@@ -15,6 +15,7 @@ const variants = {
  */
 export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
   const directionRef = useRef(0);
+  const tabRef = useRef(null);
   const currentIndex = Math.max(
     0,
     tabs.findIndex((t) => t.id === activeId),
@@ -26,6 +27,7 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
   };
 
   const dragProps = useSwipeableTabs({
+    containerRef: tabRef,
     currentIndex,
     totalTabs: tabs.length,
     onChange: handleChange,
@@ -43,8 +45,9 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
         initial={false}
         mode="wait"
       >
-        <motion.div
+        <m.div
           key={activeTab.id}
+          ref={tabRef}
           custom={directionRef.current}
           variants={variants}
           initial="enter"
@@ -57,7 +60,7 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
           {...dragProps}
         >
           {activeTab.content}
-        </motion.div>
+        </m.div>
       </AnimatePresence>
     </div>
   );

@@ -15,7 +15,7 @@ export default function FavoritesPanel({ onClose }) {
   const { session } = useAuth();
   const { favorites, loading } = useFavorites();
   const queryClient = useQueryClient();
-  const dragProps = useSwipeToClose(onClose, { direction: "right" });
+  const dragProps = useSwipeToClose(onClose, { containerRef: panelRef, direction: "right" });
 
   const handleRemovePlayer = useCallback((playerId) => {
     queryClient.setQueryData(queryKeys.favorites(), (old) => {
