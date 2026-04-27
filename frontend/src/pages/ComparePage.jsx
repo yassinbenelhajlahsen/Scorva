@@ -8,6 +8,7 @@ import { useSearch } from "../hooks/data/useSearch.js";
 import { formatDateShort } from "../utils/formatDate.js";
 import slugify from "../utils/slugify.js";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
+import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 const playerAvgConfigs = {
   nba: [
@@ -143,7 +144,16 @@ function PlayerCompare({
   const avgConfig = playerAvgConfigs[league] || [];
   const gameStatConfig = playerGameStatConfigs[league] || [];
 
+  const handleRefresh = async () => {
+    await Promise.allSettled([
+      p1.refetch?.(),
+      p2.refetch?.(),
+      h2h.refetch?.(),
+    ]);
+  };
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-8">
       <Link
         to={league ? `/${league}` : "/"}
@@ -288,6 +298,7 @@ function PlayerCompare({
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }
 
@@ -315,7 +326,16 @@ function TeamCompare({
   const a = t1.team;
   const b = t2.team;
 
+  const handleRefresh = async () => {
+    await Promise.allSettled([
+      t1.refetch?.(),
+      t2.refetch?.(),
+      h2h.refetch?.(),
+    ]);
+  };
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-8">
       <Link
         to={`/${league}`}
@@ -409,6 +429,7 @@ function TeamCompare({
         )}
       </div>
     </div>
+    </PullToRefresh>
   );
 }
 
