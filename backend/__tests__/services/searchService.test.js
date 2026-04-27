@@ -3,11 +3,12 @@ import { createMockPool } from "../helpers/testHelpers.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const mockPool = createMockPool();
 const mockTryParseDate = jest.fn();
+const mockResolveTeams = jest.fn();
+const mockParseSearchTerm = jest.fn();
 
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
@@ -17,7 +18,19 @@ jest.unstable_mockModule(dateParserPath, () => ({
   tryParseDate: mockTryParseDate,
 }));
 
-const { search } = await import(resolve(__dirname, "../../src/services/meta/searchService.js"));
+const resolverPath = resolve(__dirname, "../../src/services/meta/teamResolver.js");
+jest.unstable_mockModule(resolverPath, () => ({
+  resolveTeams: mockResolveTeams,
+}));
+
+const parserPath = resolve(__dirname, "../../src/services/meta/searchParser.js");
+jest.unstable_mockModule(parserPath, () => ({
+  parseSearchTerm: mockParseSearchTerm,
+}));
+
+const { search } = await import(
+  resolve(__dirname, "../../src/services/meta/searchService.js")
+);
 
 describe("searchService", () => {
   beforeEach(() => {
@@ -25,169 +38,113 @@ describe("searchService", () => {
     mockTryParseDate.mockReturnValue(null);
   });
 
-  describe("input validation", () => {
-    it("returns empty array for empty string", async () => {
-      expect(await search("")).toEqual([]);
-      expect(mockPool.query).not.toHaveBeenCalled();
-    });
+  describe("empty branch", () => {
+    it("returns [] without DB calls when parser says empty", async () => {
+      mockParseSearchTerm.mockReturnValue({ kind: "empty" });
 
-    it("returns empty array for whitespace-only string", async () => {
-      expect(await search("   ")).toEqual([]);
-      expect(mockPool.query).not.toHaveBeenCalled();
-    });
-
-    it("returns empty array for term longer than 200 characters", async () => {
-      const longTerm = "a".repeat(201);
-      expect(await search(longTerm)).toEqual([]);
-      expect(mockPool.query).not.toHaveBeenCalled();
-    });
-
-    it("accepts term exactly 200 characters", async () => {
-      const term = "a".repeat(200);
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      await search(term);
-      expect(mockPool.query).toHaveBeenCalled();
-    });
-  });
-
-  describe("Stage 1 — ILIKE search", () => {
-    it("passes %term% as first param for ILIKE matching", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 1, name: "Lakers", type: "team" }] });
-
-      await search("Lakers");
-
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.any(String),
-        ["%Lakers%", "Lakers", null]
-      );
-    });
-
-    it("passes raw (unescaped) term as second param for ranking", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 1, name: "LeBron James", type: "player" }] });
-
-      await search("LeBron");
-
-      const [, params] = mockPool.query.mock.calls[0];
-      expect(params[1]).toBe("LeBron");
-    });
-
-    it("passes tryParseDate result as third param", async () => {
-      mockTryParseDate.mockReturnValue("2025-01-15");
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-      await search("Jan 15");
-
-      expect(mockTryParseDate).toHaveBeenCalledWith("Jan 15");
-      expect(mockPool.query).toHaveBeenNthCalledWith(
-        1,
-        expect.any(String),
-        ["%Jan 15%", "Jan 15", "2025-01-15"]
-      );
-    });
-
-    it("passes null as third param when tryParseDate returns null", async () => {
-      mockTryParseDate.mockReturnValue(null);
-      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 1, name: "Team", type: "team" }] });
-
-      await search("Team");
-
-      const [, params] = mockPool.query.mock.calls[0];
-      expect(params[2]).toBeNull();
-    });
-
-    it("returns results from Stage 1 when rows found", async () => {
-      const mockResults = [
-        { id: 1, name: "Boston Celtics", type: "team", league: "nba" },
-      ];
-      mockPool.query.mockResolvedValueOnce({ rows: mockResults });
-
-      const result = await search("Celtics");
-
-      expect(result).toEqual(mockResults);
-      expect(mockPool.query).toHaveBeenCalledTimes(1);
-    });
-
-    it("escapes % in the search term for ILIKE safety", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-      await search("100%");
-
-      const [, params] = mockPool.query.mock.calls[0];
-      expect(params[0]).toBe("%100\\%%");
-    });
-
-    it("escapes _ in the search term for ILIKE safety", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-      await search("a_b");
-
-      const [, params] = mockPool.query.mock.calls[0];
-      expect(params[0]).toBe("%a\\_b%");
-    });
-
-    it("SQL contains ILIKE and UNION ALL", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 1, type: "team", name: "T" }] });
-
-      await search("test");
-
-      const [sql] = mockPool.query.mock.calls[0];
-      expect(sql).toContain("ILIKE");
-      expect(sql).toContain("UNION ALL");
-    });
-  });
-
-  describe("Stage 2 — fuzzy fallback", () => {
-    it("fires Stage 2 when Stage 1 returns no results", async () => {
-      const fuzzyResults = [{ id: 2, name: "LeBron James", type: "player" }];
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: fuzzyResults });
-
-      const result = await search("lebron");
-
-      expect(mockPool.query).toHaveBeenCalledTimes(2);
-      expect(result).toEqual(fuzzyResults);
-    });
-
-    it("passes raw sanitized term (not wrapped in %) to Stage 2", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-      await search("  Lakers  ");
-
-      const [, fuzzyParams] = mockPool.query.mock.calls[1];
-      expect(fuzzyParams[0]).toBe("Lakers");
-      expect(fuzzyParams[0]).not.toContain("%");
-    });
-
-    it("does NOT fire Stage 2 when Stage 1 has results", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 1, type: "team", name: "Lakers" }] });
-
-      await search("Lakers");
-
-      expect(mockPool.query).toHaveBeenCalledTimes(1);
-    });
-
-    it("Stage 2 SQL contains similarity", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-      await search("typo");
-
-      const [sql] = mockPool.query.mock.calls[1];
-      expect(sql).toContain("similarity");
-    });
-
-    it("returns empty array when both stages return no results", async () => {
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-      const result = await search("xyzxyz");
+      const result = await search("");
 
       expect(result).toEqual([]);
+      expect(mockPool.query).not.toHaveBeenCalled();
+      expect(mockResolveTeams).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("single branch", () => {
+    beforeEach(() => {
+      mockParseSearchTerm.mockReturnValue({ kind: "single", token: "lakers" });
+    });
+
+    it("calls resolveTeams once with the token", async () => {
+      mockResolveTeams.mockResolvedValueOnce([]);
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      await search("lakers");
+
+      expect(mockResolveTeams).toHaveBeenCalledTimes(1);
+      expect(mockResolveTeams).toHaveBeenCalledWith("lakers");
+    });
+
+    it("queries team entities for resolved IDs", async () => {
+      mockResolveTeams.mockResolvedValueOnce([
+        { id: 527, league: "nba", score: 2 },
+      ]);
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      await search("lakers");
+
+      const teamCall = mockPool.query.mock.calls.find(
+        (c) => c[0].includes("FROM teams") && Array.isArray(c[1]) && c[1].some((p) => Array.isArray(p) && p.includes(527))
+      );
+      expect(teamCall).toBeDefined();
+    });
+
+    it("queries players for the token", async () => {
+      mockResolveTeams.mockResolvedValueOnce([]);
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      await search("lakers");
+
+      const playerCall = mockPool.query.mock.calls.find((c) =>
+        c[0].includes("FROM players")
+      );
+      expect(playerCall).toBeDefined();
+    });
+
+    it("returns the team entity ranked first when score=2 hit", async () => {
+      mockResolveTeams.mockResolvedValueOnce([
+        { id: 527, league: "nba", score: 2 },
+      ]);
+      mockPool.query.mockImplementation((sql) => {
+        if (sql.includes("FROM teams")) {
+          return Promise.resolve({
+            rows: [
+              {
+                id: 527,
+                name: "Los Angeles Lakers",
+                league: "nba",
+                imageUrl: "lal.png",
+                shortname: "Lakers",
+                date: null,
+                type: "team",
+                position: null,
+                team_name: null,
+              },
+            ],
+          });
+        }
+        return Promise.resolve({ rows: [] });
+      });
+
+      const result = await search("lakers");
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].type).toBe("team");
+      expect(result[0].id).toBe(527);
+    });
+
+    it("respects the LIMIT 15 result cap", async () => {
+      mockResolveTeams.mockResolvedValueOnce([{ id: 1, league: "nba", score: 4 }]);
+      const manyTeams = Array.from({ length: 50 }, (_, i) => ({
+        id: i + 1,
+        name: `Team ${i}`,
+        league: "nba",
+        imageUrl: null,
+        shortname: null,
+        date: null,
+        type: "team",
+        position: null,
+        team_name: null,
+      }));
+      mockPool.query.mockImplementation((sql) =>
+        sql.includes("FROM teams")
+          ? Promise.resolve({ rows: manyTeams })
+          : Promise.resolve({ rows: [] })
+      );
+
+      const result = await search("anything");
+
+      expect(result.length).toBeLessThanOrEqual(15);
     });
   });
 });
