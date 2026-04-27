@@ -57,6 +57,7 @@ export async function getTeamRoster(league, teamId, season) {
          JOIN games g ON s.gameid = g.id
         WHERE g.league = $1
           AND g.season = $3
+          AND g.type IN ('regular', 'makeup', 'playoff', 'final')
           AND COALESCE(s.teamid, p.teamid) = $2
         ORDER BY p.position NULLS LAST, p.name`,
       [league, teamId, effectiveSeason]

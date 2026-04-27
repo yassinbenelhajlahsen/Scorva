@@ -78,6 +78,19 @@ describe("getTeamRoster", () => {
     expect(params).toEqual(["nba", 17, "2022-23"]);
   });
 
+  it("filters historical games to regular, makeup, playoff, and final", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nba", 17, "2022-23");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("g.type IN");
+    expect(sql).toContain("'regular'");
+    expect(sql).toContain("'makeup'");
+    expect(sql).toContain("'playoff'");
+    expect(sql).toContain("'final'");
+  });
+
   it("orders results by position NULLS LAST then name", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
