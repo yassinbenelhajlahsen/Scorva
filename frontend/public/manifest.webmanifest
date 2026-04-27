@@ -1,0 +1,26 @@
+{
+  "name": "Scorva",
+  "short_name": "Scorva",
+  "description": "Live scores, standings, and player stats for NBA, NFL, and NHL. Track your favorite teams and players with Scorva.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#0a0a0c",
+  "background_color": "#0a0a0c",
+  "lang": "en",
+  "categories": ["sports"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
