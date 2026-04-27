@@ -102,14 +102,34 @@ describe("getTeamRoster", () => {
     expect(sql).toMatch(/g2\.type IN \('regular', 'makeup'\)/);
   });
 
-  it("sorts by games played descending, then position, then name", async () => {
+  it("sorts NBA by total minutes descending, then position, then name", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     await getTeamRoster("nba", 17, "2025-26");
 
     const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("SUM(COALESCE(s.minutes, 0)) OVER (PARTITION BY s.playerid)");
+    expect(sql).toContain("ORDER BY ps.sort_metric DESC NULLS LAST, p.position NULLS LAST, p.name");
+  });
+
+  it("sorts NHL by total TOI seconds descending", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nhl", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("split_part(s.toi, ':', 1)::int * 60 + split_part(s.toi, ':', 2)::int");
+    expect(sql).toContain("ORDER BY ps.sort_metric DESC NULLS LAST");
+  });
+
+  it("sorts NFL by games played (no minutes column)", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nfl", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
     expect(sql).toContain("COUNT(*) OVER (PARTITION BY s.playerid)");
-    expect(sql).toContain("ORDER BY ps.games_played DESC, p.position NULLS LAST, p.name");
+    expect(sql).toContain("ORDER BY ps.sort_metric DESC NULLS LAST");
   });
 
   it("falls back to the current season when no season is passed", async () => {
