@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSwipeableTabs } from "../../hooks/useSwipeableTabs.js";
 
 const variants = {
@@ -21,8 +21,17 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
     tabs.findIndex((t) => t.id === activeId),
   );
 
+  // Track direction from prev-vs-current index so tab-bar clicks (driven by
+  // parent state, not handleChange) animate in the correct direction.
+  const prevIndexRef = useRef(currentIndex);
+  useEffect(() => {
+    if (prevIndexRef.current !== currentIndex) {
+      directionRef.current = currentIndex > prevIndexRef.current ? 1 : -1;
+      prevIndexRef.current = currentIndex;
+    }
+  }, [currentIndex]);
+
   const handleChange = (newIndex) => {
-    directionRef.current = newIndex > currentIndex ? 1 : -1;
     onChange(tabs[newIndex].id);
   };
 
@@ -43,7 +52,7 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
       <AnimatePresence
         custom={directionRef.current}
         initial={false}
-        mode="wait"
+        mode="popLayout"
       >
         <m.div
           key={activeTab.id}
@@ -54,8 +63,8 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
           animate="center"
           exit="exit"
           transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.2 },
+            x: { type: "spring", stiffness: 350, damping: 32 },
+            opacity: { duration: 0.18 },
           }}
           {...dragProps}
         >
