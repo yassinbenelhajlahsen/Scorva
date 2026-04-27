@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useStandalone } from "../../hooks/useStandalone.js";
+import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
 import { getVisitCount } from "../../lib/pwaVisitTracking.js";
 
 const DISMISS_KEY = "scorva:ios-install-dismissed";
@@ -32,6 +33,8 @@ export default function IOSInstallHint() {
     setDismissed(true);
   }
 
+  const dragProps = useSwipeToClose(handleDismiss, { direction: "down", threshold: 0.5 });
+
   if (!isIOS || !isSafari || isStandalone || dismissed) return null;
 
   return (
@@ -42,6 +45,7 @@ export default function IOSInstallHint() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          {...dragProps}
           className="fixed left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-[360px] bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-4 flex items-center gap-3"
           style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
           role="dialog"
