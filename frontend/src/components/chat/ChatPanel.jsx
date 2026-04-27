@@ -4,12 +4,14 @@ import { useChat } from "../../context/ChatContext.jsx";
 import ChatMessages from "./ChatMessages.jsx";
 import ChatInput from "./ChatInput.jsx";
 import { useChatActions } from "../../hooks/ai/useChatActions.js";
+import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
 
 export default function ChatPanel({ onClose }) {
   const { resetConversation, isStreaming, messages } = useChat();
   const { sendMessage } = useChatActions();
   const restartControls = useAnimation();
   const panelRef = useRef(null);
+  const dragProps = useSwipeToClose(onClose, { direction: "right" });
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -78,6 +80,7 @@ export default function ChatPanel({ onClose }) {
       exit={{ opacity: 0, x: 48, scale: 0.97 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       ref={panelRef}
+      {...dragProps}
       className="fixed top-0 right-0 bottom-0 z-[90] w-full sm:w-[380px] bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Atmospheric gradient overlay */}
