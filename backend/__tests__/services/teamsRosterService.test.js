@@ -42,43 +42,40 @@ describe("getTeamRoster", () => {
     mockGetCurrentSeason.mockResolvedValue("2025-26");
   });
 
-  it("uses the players-table query for the current season", async () => {
+  it("derives the roster from each player's most recent game team", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [mockPlayer] });
 
     const result = await getTeamRoster("nba", 17, "2025-26");
 
     expect(result).toEqual([mockPlayer]);
     const [sql, params] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("FROM players");
-    expect(sql).not.toContain("FROM stats");
-    expect(params).toEqual(["nba", 17]);
+    expect(sql).toContain("WITH latest_team AS");
+    expect(sql).toContain("DISTINCT ON (s.playerid)");
+    expect(sql).toContain("ORDER BY s.playerid, g.date DESC");
+    expect(sql).toContain("COALESCE(s.teamid, p.teamid)");
+    expect(sql).toContain("WHERE lt.team_id = $2");
+    expect(params).toEqual(["nba", 17, "2025-26"]);
   });
 
-  it("uses the players-table query when no season is passed", async () => {
+  it("falls back to the current season when no season is passed", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     await getTeamRoster("nba", 17, null);
 
-    const [sql] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("FROM players");
-    expect(sql).not.toContain("FROM stats");
+    const [, params] = mockPool.query.mock.calls[0];
+    expect(params).toEqual(["nba", 17, "2025-26"]);
   });
 
-  it("uses the stats-join query for historical seasons", async () => {
+  it("passes through historical season as-is", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [mockPlayer] });
 
-    const result = await getTeamRoster("nba", 17, "2022-23");
+    await getTeamRoster("nba", 17, "2022-23");
 
-    expect(result).toEqual([mockPlayer]);
-    const [sql, params] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("FROM players p");
-    expect(sql).toContain("JOIN stats s");
-    expect(sql).toContain("JOIN games g");
-    expect(sql).toContain("COALESCE(s.teamid, p.teamid)");
+    const [, params] = mockPool.query.mock.calls[0];
     expect(params).toEqual(["nba", 17, "2022-23"]);
   });
 
-  it("filters historical games to regular, makeup, playoff, and final", async () => {
+  it("filters games to regular, makeup, playoff, and final types", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     await getTeamRoster("nba", 17, "2022-23");

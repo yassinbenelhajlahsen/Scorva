@@ -19,10 +19,28 @@ Add a Roster tab to `TeamPage.jsx`, alongside the existing schedule view, using 
 
 ## Data approach
 
-Two queries depending on whether the requested season is the current season:
+Single query for both current and historical seasons — derive the roster from `stats` joined with `games`, with the `COALESCE(s.teamid, p.teamid)` fallback used elsewhere in the codebase.
 
-- **Current / null season** → `SELECT … FROM players WHERE league = $1 AND teamid = $2`. This returns the active roster, including depth/IR/rookies who haven't appeared in a game yet. Players traded mid-season are correctly excluded (their `players.teamid` updates on transaction ingestion).
-- **Historical season** → `SELECT DISTINCT players.* FROM stats s JOIN games g ON s.gameid = g.id JOIN players p ON s.playerid = p.id WHERE g.league = $1 AND g.season = $3 AND COALESCE(s.teamid, p.teamid) = $2`. Matches the `COALESCE` pattern already used in `gameDetailService.js` and `playerDetailService.js`. Falls back to `p.teamid` for the ~2,000 NULL-eventid stats rows that can't be backfilled (acknowledged limitation, consistent with rest of codebase).
+```sql
+SELECT DISTINCT p.id, p.name, p.position, p.jerseynum, p.image_url,
+       p.status, p.status_description, p.status_updated_at, p.espn_playerid
+  FROM players p
+  JOIN stats s ON s.playerid = p.id
+  JOIN games g ON s.gameid = g.id
+ WHERE g.league = $1
+   AND g.season = $3
+   AND g.type IN ('regular', 'makeup', 'playoff', 'final')
+   AND COALESCE(s.teamid, p.teamid) = $2
+ ORDER BY p.position NULLS LAST, p.name
+```
+
+When `season` is null, falls back to `getCurrentSeason(league)`.
+
+**Why not `players.teamid` for the current season?** The `players` table is not reliably updated when players retire or are traded — historical Lakers, Cavs, etc. still have `teamid` set to that team in the live data. Stats rows are authoritative because they tie a player to a team via a specific game appearance.
+
+**Trade-off:** A player on IR or recently signed who hasn't appeared in any game this season won't show up. By the time anyone visits a team page mid-season this is a small set; the alternative (showing retired players in the current roster) is worse.
+
+The `COALESCE` falls back to `p.teamid` for the ~2,000 NULL-eventid stats rows that can't be backfilled — same acknowledged limitation as `gameDetailService.js` and `playerDetailService.js`.
 
 Returned shape per player (snake_case to match other team/players responses):
 ```

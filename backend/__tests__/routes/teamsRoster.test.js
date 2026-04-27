@@ -42,20 +42,17 @@ describe("Teams Route - GET /:league/teams/:teamId/roster", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(players);
-    const [sql] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("FROM players");
-    expect(sql).not.toContain("FROM stats");
+    const [, params] = mockPool.query.mock.calls[0];
+    expect(params).toEqual(["nba", 17, "2025-26"]);
   });
 
-  it("uses historical query path when season query param is set and not current", async () => {
+  it("passes season query param through to the service", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app).get("/api/nba/teams/17/roster?season=2022-23");
 
     expect(res.status).toBe(200);
-    const [sql, params] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("FROM players p");
-    expect(sql).toContain("JOIN stats s");
+    const [, params] = mockPool.query.mock.calls[0];
     expect(params).toEqual(["nba", 17, "2022-23"]);
   });
 

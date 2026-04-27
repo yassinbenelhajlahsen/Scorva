@@ -86,6 +86,12 @@ describe("RosterGrid", () => {
     expect(screen.getByText("Out")).toBeInTheDocument();
   });
 
+  it("hides the status badge when showStatus is false", () => {
+    render(<RosterGrid league="nba" season="2022-23" players={[out]} showStatus={false} />);
+    expect(screen.queryByText("Out")).not.toBeInTheDocument();
+    expect(screen.getByText("Anthony Davis")).toBeInTheDocument();
+  });
+
   it("shows an empty-state message when players is empty", () => {
     render(<RosterGrid league="nba" season={null} players={[]} />);
     expect(screen.getByText(/No roster data/i)).toBeInTheDocument();
