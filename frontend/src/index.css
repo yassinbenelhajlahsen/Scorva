@@ -41,9 +41,18 @@
 
 @layer base {
   html, body {
-    @apply bg-surface-primary text-text-primary font-sans;
+    @apply bg-surface-base text-text-primary font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
   }
 
   ::selection {
@@ -143,5 +152,14 @@ input:-webkit-autofill:focus {
   }
   .scrollbar-none {
     scrollbar-width: none;
+  }
+
+  /* Minimum 44x44 touch target — wrap small icon buttons */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
