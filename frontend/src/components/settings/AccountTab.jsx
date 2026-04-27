@@ -49,7 +49,7 @@ function InputField({ label, id, value, onChange, type = "text", readOnly = fals
         onChange={onChange}
         readOnly={readOnly}
         placeholder={placeholder}
-        className={`w-full px-3.5 py-2.5 rounded-xl text-sm border transition-all duration-200 focus:outline-none ${
+        className={`w-full px-3.5 py-2.5 rounded-xl text-base border transition-all duration-200 focus:outline-none ${
           readOnly
             ? "bg-surface-primary/60 border-white/[0.06] text-text-tertiary cursor-not-allowed"
             : "bg-surface-primary border-white/[0.08] text-text-primary focus:ring-1 focus:ring-accent/40 focus:border-accent/30"
@@ -337,7 +337,7 @@ export default function AccountTab() {
                 value={deleteConfirm}
                 onChange={(e) => setDeleteConfirm(e.target.value)}
                 placeholder="DELETE"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-surface-primary border border-white/[0.08] text-text-primary focus:outline-none focus:ring-1 focus:ring-loss/40 focus:border-loss/30 transition-all duration-200"
+                className="w-full px-3.5 py-2.5 rounded-xl text-base bg-surface-primary border border-white/[0.08] text-text-primary focus:outline-none focus:ring-1 focus:ring-loss/40 focus:border-loss/30 transition-all duration-200"
               />
             </div>
             {deleteError && <p className="text-xs text-loss">{deleteError}</p>}
