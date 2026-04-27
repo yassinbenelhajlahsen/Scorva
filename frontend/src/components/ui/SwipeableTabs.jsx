@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useSwipeableTabs } from "../../hooks/useSwipeableTabs.js";
 
 const variants = {
@@ -21,15 +21,14 @@ export function SwipeableTabs({ tabs, activeId, onChange, className = "" }) {
     tabs.findIndex((t) => t.id === activeId),
   );
 
-  // Track direction from prev-vs-current index so tab-bar clicks (driven by
-  // parent state, not handleChange) animate in the correct direction.
+  // Compute direction synchronously during render — useEffect runs AFTER the
+  // render, but AnimatePresence reads `custom` during render to pick variants.
+  // Using useEffect here means the animation always uses stale direction.
   const prevIndexRef = useRef(currentIndex);
-  useEffect(() => {
-    if (prevIndexRef.current !== currentIndex) {
-      directionRef.current = currentIndex > prevIndexRef.current ? 1 : -1;
-      prevIndexRef.current = currentIndex;
-    }
-  }, [currentIndex]);
+  if (prevIndexRef.current !== currentIndex) {
+    directionRef.current = currentIndex > prevIndexRef.current ? 1 : -1;
+    prevIndexRef.current = currentIndex;
+  }
 
   const handleChange = (newIndex) => {
     onChange(tabs[newIndex].id);

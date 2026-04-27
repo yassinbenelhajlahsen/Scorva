@@ -1,7 +1,7 @@
 import { m } from "framer-motion";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh.js";
 
-const THRESHOLD = 60;
+const THRESHOLD = 40;
 
 export function PullToRefresh({ onRefresh, children, className = "" }) {
   const { containerRef, pullDistance, isRefreshing, isReady } =

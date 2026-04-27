@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-const RESISTANCE = 0.5;
+const RESISTANCE = 0.7;
 
-export function usePullToRefresh(onRefresh, { threshold = 60 } = {}) {
+export function usePullToRefresh(onRefresh, { threshold = 40 } = {}) {
   const containerRef = useRef(null);
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
