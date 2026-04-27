@@ -99,6 +99,7 @@ export default function FavoritesPanel({ onClose }) {
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       ref={panelRef}
       {...dragProps}
+      style={{ touchAction: "none" }}
       className="fixed top-0 right-0 bottom-0 z-[70] w-full sm:w-[420px] bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Header */}
