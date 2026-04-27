@@ -204,7 +204,18 @@ describe("searchService", () => {
       await search("rockets vs zzzzzz");
 
       expect(mockResolveTeams.mock.calls.length).toBeGreaterThanOrEqual(3);
-      expect(mockResolveTeams.mock.calls[2][0]).toBe("rockets vs zzzzzz");
+      expect(mockResolveTeams.mock.calls[2][0]).toBe("rockets");
+    });
+
+    it("returns [] when both sides resolve empty", async () => {
+      mockResolveTeams
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await search("foo vs bar");
+      expect(result).toEqual([]);
+      expect(mockResolveTeams).toHaveBeenCalledTimes(2);
     });
 
     it("includes date filter when tryParseDate returns a date", async () => {

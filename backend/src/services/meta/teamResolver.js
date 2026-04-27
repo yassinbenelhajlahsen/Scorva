@@ -1,5 +1,9 @@
 import pool from "../../db/db.js";
 
+function escapeLike(s) {
+  return s.replace(/[%_\\]/g, "\\$&");
+}
+
 const ABBR_MAX_LEN = 4;
 const SUBSTRING_MIN_LEN = 3;
 const FUZZY_THRESHOLD = 0.3;
@@ -18,6 +22,7 @@ async function runTier(sql, params) {
 export async function resolveTeams(token, { league } = {}) {
   if (typeof token !== "string" || !token.trim()) return [];
   const trimmed = token.trim();
+  const escaped = escapeLike(trimmed);
 
   // Tier 1: abbreviation (only short tokens)
   if (trimmed.length <= ABBR_MAX_LEN) {
@@ -54,7 +59,7 @@ export async function resolveTeams(token, { league } = {}) {
       WHERE (LOWER(shortname) LIKE LOWER($1) || '%' OR LOWER(name) LIKE LOWER($1) || '%')
         AND conf IS NOT NULL${lc.sql}
     `;
-    const rows = await runTier(sql, [trimmed, ...lc.params]);
+    const rows = await runTier(sql, [escaped, ...lc.params]);
     if (rows.length > 0) return rows.map((r) => ({ ...r, score: 3 }));
   }
 
@@ -67,7 +72,7 @@ export async function resolveTeams(token, { league } = {}) {
       WHERE (LOWER(shortname) LIKE '%' || LOWER($1) || '%' OR LOWER(name) LIKE '%' || LOWER($1) || '%')
         AND conf IS NOT NULL${lc.sql}
     `;
-    const rows = await runTier(sql, [trimmed, ...lc.params]);
+    const rows = await runTier(sql, [escaped, ...lc.params]);
     if (rows.length > 0) return rows.map((r) => ({ ...r, score: 4 }));
   }
 

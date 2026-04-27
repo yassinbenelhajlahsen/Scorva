@@ -201,7 +201,16 @@ async function searchMatchup(parsed, rawTerm) {
     resolveTeams(parsed.lhs),
     resolveTeams(parsed.rhs),
   ]);
-  if (lhs.length === 0 || rhs.length === 0) return null;
+
+  if (lhs.length === 0 && rhs.length === 0) {
+    return { result: null, fallbackToken: null };
+  }
+  if (lhs.length === 0) {
+    return { result: null, fallbackToken: parsed.rhs };
+  }
+  if (rhs.length === 0) {
+    return { result: null, fallbackToken: parsed.lhs };
+  }
 
   const lhsIds = lhs.map((t) => t.id);
   const rhsIds = rhs.map((t) => t.id);
@@ -220,7 +229,7 @@ async function searchMatchup(parsed, rawTerm) {
 
   const merged = dedupeByTypeId([...teamScored, ...gameScored]);
   merged.sort(compareRows);
-  return stripInternalFields(merged.slice(0, RESULT_LIMIT));
+  return { result: stripInternalFields(merged.slice(0, RESULT_LIMIT)), fallbackToken: null };
 }
 
 async function searchSingle(parsed) {
@@ -250,9 +259,12 @@ export async function search(term) {
   if (parsed.kind === "empty") return [];
 
   if (parsed.kind === "matchup") {
-    const matchupResult = await searchMatchup(parsed, term);
-    if (matchupResult !== null) return matchupResult;
-    return searchSingle({ kind: "single", token: term.trim() });
+    const matchup = await searchMatchup(parsed, term);
+    if (matchup.result !== null) return matchup.result;
+    if (matchup.fallbackToken !== null) {
+      return searchSingle({ kind: "single", token: matchup.fallbackToken });
+    }
+    return [];
   }
 
   return searchSingle(parsed);
