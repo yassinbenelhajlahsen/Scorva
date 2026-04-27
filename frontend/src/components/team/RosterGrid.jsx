@@ -5,8 +5,7 @@ import { m } from "framer-motion";
 import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
 import slugify from "../../utils/slugify.js";
 import buildSeasonUrl from "../../utils/buildSeasonUrl.js";
-import { queryKeys } from "../../lib/query.js";
-import { getPlayer } from "../../api/players.js";
+import { queryKeys, queryFns } from "../../lib/query.js";
 import { containerVariants, itemVariants } from "../../utils/motion.js";
 
 function canHover() {
@@ -24,7 +23,7 @@ function RosterCard({ league, season, player }) {
     if (!canHover()) return;
     queryClient.prefetchQuery({
       queryKey: queryKeys.player(league, slug, season),
-      queryFn: () => getPlayer(league, slug, { season }).then((d) => d.player),
+      queryFn: queryFns.player(league, slug, season),
       staleTime: 10_000,
     });
   }
