@@ -54,26 +54,32 @@ const out = {
 describe("RosterGrid", () => {
   it("renders one card per player", () => {
     render(<RosterGrid league="nba" season="2025-26" players={[lebron, out]} />);
-    expect(screen.getByText("LeBron James")).toBeInTheDocument();
-    expect(screen.getByText("Anthony Davis")).toBeInTheDocument();
+    expect(screen.getByText("James")).toBeInTheDocument();
+    expect(screen.getByText("Davis")).toBeInTheDocument();
   });
 
   it("links each card to the player page with season query param", () => {
     render(<RosterGrid league="nba" season="2025-26" players={[lebron]} />);
-    const link = screen.getByText("LeBron James").closest("a");
+    const link = screen.getByText("James").closest("a");
     expect(link).toHaveAttribute("href", "/nba/players/lebron-james?season=2025-26");
   });
 
   it("omits the season query param when season is null", () => {
     render(<RosterGrid league="nba" season={null} players={[lebron]} />);
-    const link = screen.getByText("LeBron James").closest("a");
+    const link = screen.getByText("James").closest("a");
     expect(link).toHaveAttribute("href", "/nba/players/lebron-james");
   });
 
-  it("renders jersey and position", () => {
+  it("renders jersey number and position", () => {
     render(<RosterGrid league="nba" season={null} players={[lebron]} />);
-    expect(screen.getByText(/#23/)).toBeInTheDocument();
-    expect(screen.getByText(/F/)).toBeInTheDocument();
+    expect(screen.getByText("23")).toBeInTheDocument();
+    expect(screen.getByText("F")).toBeInTheDocument();
+  });
+
+  it("splits the name into first and last lines", () => {
+    render(<RosterGrid league="nba" season={null} players={[lebron]} />);
+    expect(screen.getByText("LeBron")).toBeInTheDocument();
+    expect(screen.getByText("James")).toBeInTheDocument();
   });
 
   it("does not render the status badge when status is null", () => {
@@ -89,7 +95,7 @@ describe("RosterGrid", () => {
   it("hides the status badge when showStatus is false", () => {
     render(<RosterGrid league="nba" season="2022-23" players={[out]} showStatus={false} />);
     expect(screen.queryByText("Out")).not.toBeInTheDocument();
-    expect(screen.getByText("Anthony Davis")).toBeInTheDocument();
+    expect(screen.getByText("Davis")).toBeInTheDocument();
   });
 
   it("shows an empty-state message when players is empty", () => {

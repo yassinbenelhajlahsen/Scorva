@@ -49,12 +49,21 @@ describe("getTeamRoster", () => {
 
     expect(result).toEqual([mockPlayer]);
     const [sql, params] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("WITH latest_team AS");
-    expect(sql).toContain("DISTINCT ON (s.playerid)");
-    expect(sql).toContain("ORDER BY s.playerid, g.date DESC");
+    expect(sql).toContain("WITH player_seasons AS");
+    expect(sql).toContain("ROW_NUMBER() OVER (PARTITION BY s.playerid ORDER BY g.date DESC");
     expect(sql).toContain("COALESCE(s.teamid, p.teamid)");
-    expect(sql).toContain("WHERE lt.team_id = $2");
+    expect(sql).toContain("WHERE ps.team_id = $2");
     expect(params).toEqual(["nba", 17, "2025-26"]);
+  });
+
+  it("sorts by games played descending, then position, then name", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nba", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("COUNT(*) OVER (PARTITION BY s.playerid)");
+    expect(sql).toContain("ORDER BY ps.games_played DESC, p.position NULLS LAST, p.name");
   });
 
   it("falls back to the current season when no season is passed", async () => {
