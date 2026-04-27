@@ -83,7 +83,7 @@ export default function Navbar() {
                 key={to}
                 to={to}
                 onMouseEnter={() => prefetchLeague(to)}
-                className={`text-sm font-medium transition-colors duration-200 ${
+                className={`touch-target text-sm font-medium transition-colors duration-200 ${
                   isActive
                     ? "text-accent"
                     : "text-text-secondary hover:text-text-primary"
@@ -101,7 +101,7 @@ export default function Navbar() {
                   <button
                     onClick={toggleFavorites}
                     aria-label="Toggle favorites"
-                    className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/[0.06] transition-all duration-200"
+                    className="touch-target rounded-full hover:bg-white/[0.06] transition-all duration-200"
                   >
                     {favorites && (favorites.players.length > 0 || favorites.teams.length > 0) ? (
                       <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
@@ -118,7 +118,7 @@ export default function Navbar() {
               ) : (
                 <button
                   onClick={openAuthModal}
-                  className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200"
+                  className="touch-target text-sm font-medium text-text-secondary hover:text-text-primary transition-colors duration-200"
                 >
                   Sign In
                 </button>
