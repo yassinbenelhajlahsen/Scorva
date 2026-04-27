@@ -123,8 +123,8 @@ frontend/
 
 **`<PullToRefresh onRefresh>` component:**
 - Wraps page content. Uses the hook.
-- Renders a fixed-position indicator (small spinner using existing accent color) above content, translated and rotated based on `pullDistance`.
-- Adds `top: env(safe-area-inset-top)` so indicator sits below the notch.
+- Renders an absolutely-positioned indicator (small spinner using existing accent color) above content, translated and rotated based on `pullDistance`.
+- The wrapper is rendered below the Navbar (which handles the top safe-area itself in Feature 8), so the indicator doesn't need its own safe-area-inset-top.
 
 **Page integration:**
 - Each data page (Homepage, LeaguePage, PlayerPage, TeamPage, GamePage, ComparePage) wraps its top-level container.
