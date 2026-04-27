@@ -23,7 +23,7 @@ export default function SettingsDrawer({ onClose }) {
   const [direction, setDirection] = useState(0);
   const prevTabIndex = useRef(TABS.findIndex((t) => t.id === activeTab));
   const panelRef = useRef(null);
-  const dragProps = useSwipeToClose(onClose, { direction: "right" });
+  const dragProps = useSwipeToClose(onClose, { containerRef: panelRef, direction: "right" });
 
   useEffect(() => {
     function handleKeyDown(e) {

@@ -3,10 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
 
-function fakeEvent(width, height) {
-  return {
-    target: { getBoundingClientRect: () => ({ width, height }) },
-  };
+function makeContainer(width, height) {
+  return { current: { getBoundingClientRect: () => ({ width, height }) } };
 }
 
 describe("useSwipeToClose", () => {
@@ -25,8 +23,11 @@ describe("useSwipeToClose", () => {
 
   it("calls onClose when offset > threshold * width (right)", () => {
     const onClose = vi.fn();
-    const { result } = renderHook(() => useSwipeToClose(onClose, { direction: "right", threshold: 0.25 }));
-    result.current.onDragEnd(fakeEvent(400, 600), {
+    const containerRef = makeContainer(400, 600);
+    const { result } = renderHook(() =>
+      useSwipeToClose(onClose, { containerRef, direction: "right", threshold: 0.25 }),
+    );
+    result.current.onDragEnd({}, {
       offset: { x: 150, y: 0 },
       velocity: { x: 0, y: 0 },
     });
@@ -35,8 +36,11 @@ describe("useSwipeToClose", () => {
 
   it("calls onClose when velocity > velocityThreshold (right)", () => {
     const onClose = vi.fn();
-    const { result } = renderHook(() => useSwipeToClose(onClose, { direction: "right" }));
-    result.current.onDragEnd(fakeEvent(400, 600), {
+    const containerRef = makeContainer(400, 600);
+    const { result } = renderHook(() =>
+      useSwipeToClose(onClose, { containerRef, direction: "right" }),
+    );
+    result.current.onDragEnd({}, {
       offset: { x: 10, y: 0 },
       velocity: { x: 800, y: 0 },
     });
@@ -45,8 +49,11 @@ describe("useSwipeToClose", () => {
 
   it("does not call onClose for small offset and low velocity", () => {
     const onClose = vi.fn();
-    const { result } = renderHook(() => useSwipeToClose(onClose));
-    result.current.onDragEnd(fakeEvent(400, 600), {
+    const containerRef = makeContainer(400, 600);
+    const { result } = renderHook(() =>
+      useSwipeToClose(onClose, { containerRef }),
+    );
+    result.current.onDragEnd({}, {
       offset: { x: 30, y: 0 },
       velocity: { x: 100, y: 0 },
     });
@@ -55,8 +62,11 @@ describe("useSwipeToClose", () => {
 
   it("uses height for direction=down threshold", () => {
     const onClose = vi.fn();
-    const { result } = renderHook(() => useSwipeToClose(onClose, { direction: "down", threshold: 0.5 }));
-    result.current.onDragEnd(fakeEvent(400, 200), {
+    const containerRef = makeContainer(400, 200);
+    const { result } = renderHook(() =>
+      useSwipeToClose(onClose, { containerRef, direction: "down", threshold: 0.5 }),
+    );
+    result.current.onDragEnd({}, {
       offset: { x: 0, y: 120 },
       velocity: { x: 0, y: 100 },
     });

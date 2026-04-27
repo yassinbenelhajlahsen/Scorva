@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh.js";
 
 const THRESHOLD = 60;
@@ -14,7 +14,7 @@ export function PullToRefresh({ onRefresh, children, className = "" }) {
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {indicatorVisible && (
-        <motion.div
+        <m.div
           aria-hidden="true"
           className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2 rounded-full bg-surface-elevated p-2 shadow-[0_4px_20px_rgba(0,0,0,0.35)]"
           style={{
@@ -23,7 +23,7 @@ export function PullToRefresh({ onRefresh, children, className = "" }) {
           }}
           animate={{ scale: isReady || isRefreshing ? 1.05 : 0.8 + progress * 0.2 }}
         >
-          <motion.div
+          <m.div
             className="h-5 w-5 rounded-full border-2 border-accent border-t-transparent"
             animate={isRefreshing ? { rotate: 360 } : { rotate: progress * 270 }}
             transition={
@@ -32,14 +32,14 @@ export function PullToRefresh({ onRefresh, children, className = "" }) {
                 : { duration: 0 }
             }
           />
-        </motion.div>
+        </m.div>
       )}
-      <motion.div
+      <m.div
         animate={{ y: isRefreshing ? THRESHOLD * 0.6 : pullDistance }}
         transition={{ type: "spring", stiffness: 400, damping: 35 }}
       >
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }
