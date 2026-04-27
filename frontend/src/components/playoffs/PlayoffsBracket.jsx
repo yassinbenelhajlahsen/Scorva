@@ -130,7 +130,7 @@ function MobileConferenceTabs({ conferences, activeConf, onPick }) {
             key={conf.key}
             ref={(el) => (tabRefs.current[i] = el)}
             onClick={() => onPick(conf.key)}
-            className="relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
+            className="touch-target relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
             style={{
               color:
                 activeConf === conf.key

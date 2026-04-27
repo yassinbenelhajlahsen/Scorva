@@ -46,7 +46,7 @@ export default function NewsPreviewModal({ article, onClose }) {
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 backdrop-blur text-white/70 hover:text-white transition-colors"
+              className="touch-target absolute top-3 right-3 z-10 rounded-full bg-black/40 backdrop-blur text-white/70 hover:text-white transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

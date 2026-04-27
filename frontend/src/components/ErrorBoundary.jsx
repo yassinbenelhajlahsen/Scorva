@@ -23,7 +23,7 @@ export default class ErrorBoundary extends Component {
             <p className="text-text-secondary text-sm mb-6">An unexpected error occurred on this page.</p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold rounded-full px-6 py-2 transition-colors duration-150"
+              className="touch-target bg-accent hover:bg-accent-hover text-white text-sm font-semibold rounded-full px-6 py-2 transition-colors duration-150"
             >
               Reload page
             </button>

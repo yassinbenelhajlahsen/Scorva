@@ -218,7 +218,7 @@ export default function AccountTab() {
             <button
               onClick={saveProfile}
               disabled={profileSaving}
-              className="ml-auto shrink-0 px-5 py-2 rounded-full bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-all duration-200 hover:shadow-[0_0_20px_rgba(232,134,58,0.25)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="touch-target ml-auto shrink-0 px-5 py-2 rounded-full bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-all duration-200 hover:shadow-[0_0_20px_rgba(232,134,58,0.25)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {profileSaving ? "Saving..." : "Save Changes"}
             </button>
@@ -296,7 +296,7 @@ export default function AccountTab() {
               <button
                 onClick={changePassword}
                 disabled={pwSaving}
-                className="ml-auto shrink-0 px-5 py-2 rounded-full bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-all duration-200 hover:shadow-[0_0_20px_rgba(232,134,58,0.25)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="touch-target ml-auto shrink-0 px-5 py-2 rounded-full bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-all duration-200 hover:shadow-[0_0_20px_rgba(232,134,58,0.25)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {pwSaving ? "Updating..." : "Update Password"}
               </button>
@@ -314,7 +314,7 @@ export default function AccountTab() {
             <p className="text-sm text-text-secondary">Permanently delete your account and all data.</p>
             <button
               onClick={() => setDeleteExpanded(true)}
-              className="shrink-0 px-5 py-2 rounded-full border border-loss/30 text-loss hover:bg-loss/10 text-sm font-medium transition-all duration-200"
+              className="touch-target shrink-0 px-5 py-2 rounded-full border border-loss/30 text-loss hover:bg-loss/10 text-sm font-medium transition-all duration-200"
             >
               Delete Account
             </button>
@@ -344,14 +344,14 @@ export default function AccountTab() {
             <div className="flex gap-2">
               <button
                 onClick={() => { setDeleteExpanded(false); setDeleteConfirm(""); setDeleteError(null); }}
-                className="flex-1 py-2 rounded-full border border-white/[0.12] text-text-secondary hover:text-text-primary text-sm font-medium transition-all duration-200"
+                className="touch-target flex-1 py-2 rounded-full border border-white/[0.12] text-text-secondary hover:text-text-primary text-sm font-medium transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleteConfirm !== "DELETE" || deleting}
-                className="flex-1 py-2 rounded-full bg-loss/90 hover:bg-loss text-white text-sm font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="touch-target flex-1 py-2 rounded-full bg-loss/90 hover:bg-loss text-white text-sm font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {deleting ? "Deleting…" : "Confirm Delete"}
               </button>

@@ -31,7 +31,7 @@ export default function MonthNavigation({ games, selectedMonth, onMonthChange })
   const canNext = idx < months.length - 1;
 
   const btnClass =
-    "flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none";
+    "touch-target flex-shrink-0 rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none";
 
   return (
     <div className="flex items-center justify-center gap-3 mb-6">

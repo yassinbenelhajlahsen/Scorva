@@ -202,7 +202,7 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
         {sortKey && (
           <button
             onClick={resetSort}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors duration-150"
+            className="touch-target flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors duration-150"
           >
             <span>
               {sortKey === "__name__" ? "Player" : sortKey}
