@@ -13,11 +13,16 @@ import { useUserPrefs } from "../hooks/user/useUserPrefs.js";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import NewsSection from "../components/news/NewsSection.jsx";
+import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 export default function Homepage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { games, loading, error, retry } = useHomeGames();
+  const { games, loading, error, retry, refetch } = useHomeGames();
+
+  const handleRefresh = async () => {
+    await refetch();
+  };
   const { session } = useAuth();
   const { prefs, loading: prefsLoading } = useUserPrefs();
 
@@ -68,6 +73,7 @@ export default function Homepage() {
   }));
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="flex flex-col w-full max-w-[1200px] mx-auto px-5 sm:px-8 py-12">
 
       {/* Hero — always real, no data dependency */}
@@ -186,5 +192,6 @@ export default function Homepage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

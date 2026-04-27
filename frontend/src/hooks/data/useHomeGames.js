@@ -47,5 +47,5 @@ export function useHomeGames() {
     refetch();
   }, [refetch]);
 
-  return { games, loading, error, retry };
+  return { games, loading, error, retry, refetch };
 }
