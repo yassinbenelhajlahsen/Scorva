@@ -28,10 +28,45 @@ const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
 
+function useBlockEdgeSwipe() {
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+    let edgeArmed = false;
+
+    const onTouchStart = (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      // Arm if the touch starts within 30px of either screen edge — that's
+      // the band iOS uses for its history-swipe gesture recognizer.
+      edgeArmed = startX < 30 || startX > window.innerWidth - 30;
+    };
+
+    const onTouchMove = (e) => {
+      if (!edgeArmed) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      // If the gesture is dominantly horizontal, block it before iOS
+      // recognizes it as edge-swipe-back.
+      if (Math.abs(dx) > 8 && Math.abs(dx) > dy) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+}
+
 function AppShellInner() {
   useEffect(() => {
     trackVisit();
   }, []);
+  useBlockEdgeSwipe();
 
   return (
     <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
