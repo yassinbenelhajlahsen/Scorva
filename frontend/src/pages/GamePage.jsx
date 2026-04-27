@@ -1,6 +1,5 @@
 import { Link, useParams, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { m, AnimatePresence } from "framer-motion";
 
 import { useGamePageData } from "../hooks/data/useGamePageData.js";
 import slugify from "../utils/slugify.js";
@@ -13,19 +12,14 @@ import GameTabBar from "../components/game/GameTabBar.jsx";
 import OverviewTab from "../components/game/OverviewTab.jsx";
 import AnalysisTab from "../components/game/AnalysisTab.jsx";
 import PlaysTab from "../components/game/PlaysTab.jsx";
+import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
+import { SwipeableTabs } from "../components/ui/SwipeableTabs.jsx";
 
 const GAME_TABS = [
   { id: "overview", label: "Overview" },
   { id: "analysis", label: "Analysis" },
   { id: "plays", label: "Plays" },
 ];
-
-const slideVariants = {
-  enter: (d) => ({ x: d * 60, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (d) => ({ x: d * -60, opacity: 0 }),
-};
-const slideTrans = { duration: 0.15, ease: [0.22, 1, 0.36, 1] };
 
 export default function GamePage() {
   const location = useLocation();
@@ -35,6 +29,7 @@ export default function GamePage() {
     loading,
     error,
     retry,
+    refetch,
     staleIsPreGame,
     prediction,
     predictionLoading,
@@ -42,12 +37,14 @@ export default function GamePage() {
     scoreMargin,
   } = useGamePageData(league, gameId);
 
+  const handleRefresh = async () => {
+    await Promise.allSettled([refetch?.()]);
+  };
+
   const initialTab = new URLSearchParams(location.search).get("tab");
   const [activeTab, setActiveTab] = useState(
     GAME_TABS.some((t) => t.id === initialTab) ? initialTab : "overview",
   );
-  const [direction, setDirection] = useState(0);
-  const prevTabIndex = useRef(0);
   const hashScrolledRef = useRef(false);
 
   useEffect(() => {
@@ -55,10 +52,6 @@ export default function GamePage() {
   }, [location.hash]);
 
   function handleTabChange(tabId) {
-    const newIndex = GAME_TABS.findIndex((t) => t.id === tabId);
-    const d = newIndex > prevTabIndex.current ? 1 : -1;
-    prevTabIndex.current = newIndex;
-    setDirection(d);
     setActiveTab(tabId);
   }
 
@@ -171,7 +164,60 @@ export default function GamePage() {
     return "text-text-tertiary";
   };
 
+  const swipeableTabs = [
+    {
+      id: "overview",
+      content: (
+        <OverviewTab
+          game={game}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          league={league}
+          season={game.season}
+          quarterKeys={quarterKeys}
+          isFinal={isFinal}
+          inProgress={inProgress}
+          isPreGame={isPreGame}
+          homeWon={homeWon}
+          awayWon={awayWon}
+          scoreColor={scoreColor}
+          prediction={prediction}
+          predictionLoading={predictionLoading}
+          topPlayers={topPlayers}
+          winProbData={winProbData}
+          scoreMargin={scoreMargin}
+        />
+      ),
+    },
+    {
+      id: "analysis",
+      content: (
+        <AnalysisTab
+          gameId={gameId}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          league={league}
+          season={game.season}
+          isFinal={isFinal}
+          inProgress={inProgress}
+        />
+      ),
+    },
+    {
+      id: "plays",
+      content: (
+        <PlaysTab
+          league={league}
+          gameId={gameId}
+          isFinal={isFinal}
+          inProgress={inProgress}
+        />
+      ),
+    },
+  ];
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
       <Link
@@ -223,60 +269,12 @@ export default function GamePage() {
         hasPlays={!!gameObj?.game?.hasPlays}
       />
 
-      <AnimatePresence mode="wait" initial={false} custom={direction}>
-        <m.div
-          key={activeTab}
-          custom={direction}
-          variants={slideVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={slideTrans}
-        >
-          {activeTab === "overview" && (
-            <OverviewTab
-              game={game}
-              homeTeam={homeTeam}
-              awayTeam={awayTeam}
-              league={league}
-              season={game.season}
-              quarterKeys={quarterKeys}
-              isFinal={isFinal}
-              inProgress={inProgress}
-              isPreGame={isPreGame}
-              homeWon={homeWon}
-              awayWon={awayWon}
-              scoreColor={scoreColor}
-              prediction={prediction}
-              predictionLoading={predictionLoading}
-              topPlayers={topPlayers}
-              winProbData={winProbData}
-              scoreMargin={scoreMargin}
-            />
-          )}
-
-          {activeTab === "analysis" && (
-            <AnalysisTab
-              gameId={gameId}
-              homeTeam={homeTeam}
-              awayTeam={awayTeam}
-              league={league}
-              season={game.season}
-              isFinal={isFinal}
-              inProgress={inProgress}
-            />
-          )}
-
-          {activeTab === "plays" && (
-            <PlaysTab
-              league={league}
-              gameId={gameId}
-              isFinal={isFinal}
-              inProgress={inProgress}
-            />
-          )}
-        </m.div>
-      </AnimatePresence>
+      <SwipeableTabs
+        activeId={activeTab}
+        onChange={handleTabChange}
+        tabs={swipeableTabs}
+      />
     </div>
+    </PullToRefresh>
   );
 }
