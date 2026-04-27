@@ -13,3 +13,9 @@ createRoot(document.getElementById('root')).render(
         <Analytics />
   </StrictMode>
 )
+
+const appShell = document.getElementById("app-shell");
+if (appShell) {
+  appShell.classList.add("hidden");
+  appShell.addEventListener("transitionend", () => appShell.remove(), { once: true });
+}
