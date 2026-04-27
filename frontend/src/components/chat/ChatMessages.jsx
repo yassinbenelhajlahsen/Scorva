@@ -35,7 +35,7 @@ export default function ChatMessages({ onSuggest }) {
   }, [messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-y-contain scrollbar-thin px-4 py-4 flex flex-col">
+    <div className="flex-1 overflow-y-auto overscroll-y-contain scrollbar-thin px-4 py-4 flex flex-col" style={{ touchAction: "pan-y" }}>
       <AnimatePresence>
         {messages.length === 0 && (
           <m.div
