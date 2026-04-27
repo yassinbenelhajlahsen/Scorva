@@ -35,24 +35,25 @@ export async function getTeamRoster(league, teamId, season) {
 
   return cached(`roster:${league}:${teamId}:${effectiveSeason}`, ttl, async () => {
     const result = await pool.query(
-      `WITH latest_team AS (
-         SELECT DISTINCT ON (s.playerid)
-                s.playerid,
-                COALESCE(s.teamid, p.teamid) AS team_id
-           FROM stats s
-           JOIN games g ON s.gameid = g.id
-           JOIN players p ON s.playerid = p.id
-          WHERE g.league = $1
-            AND g.season = $3
-            AND g.type IN ('regular', 'makeup', 'playoff', 'final')
-          ORDER BY s.playerid, g.date DESC, g.id DESC
+      `WITH player_seasons AS (
+         SELECT
+           s.playerid,
+           COALESCE(s.teamid, p.teamid) AS team_id,
+           COUNT(*) OVER (PARTITION BY s.playerid) AS games_played,
+           ROW_NUMBER() OVER (PARTITION BY s.playerid ORDER BY g.date DESC, g.id DESC) AS rn
+         FROM stats s
+         JOIN games g ON s.gameid = g.id
+         JOIN players p ON s.playerid = p.id
+         WHERE g.league = $1
+           AND g.season = $3
+           AND g.type IN ('regular', 'makeup', 'playoff', 'final')
        )
        SELECT p.id, p.name, p.position, p.jerseynum, p.image_url,
               p.status, p.status_description, p.status_updated_at, p.espn_playerid
          FROM players p
-         JOIN latest_team lt ON lt.playerid = p.id
-        WHERE lt.team_id = $2
-        ORDER BY p.position NULLS LAST, p.name`,
+         JOIN player_seasons ps ON ps.playerid = p.id AND ps.rn = 1
+        WHERE ps.team_id = $2
+        ORDER BY ps.games_played DESC, p.position NULLS LAST, p.name`,
       [league, teamId, effectiveSeason]
     );
     return result.rows;

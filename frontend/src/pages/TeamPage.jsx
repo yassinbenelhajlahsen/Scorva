@@ -20,7 +20,7 @@ import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 
-const TABS = ["schedule", "roster"];
+const TABS = ["schedule", "players"];
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
@@ -44,7 +44,7 @@ export default function TeamPage() {
     error: rosterError,
     retry: rosterRetry,
   } = useTeamRoster(league, team?.id ?? null, selectedSeason, {
-    enabled: activeTab === "roster",
+    enabled: activeTab === "players",
   });
 
   useLayoutEffect(() => {
