@@ -151,6 +151,18 @@ input:-webkit-autofill:focus {
     scrollbar-width: none;
   }
 
+  /* Hide page scrollbar in mobile PWA (standalone) mode */
+  @media (display-mode: standalone) {
+    html,
+    body {
+      scrollbar-width: none;
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
   /* Minimum 44x44 touch target — wrap small icon buttons */
   .touch-target {
     min-width: 44px;
