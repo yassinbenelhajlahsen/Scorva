@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 function fontPreloadPlugin() {
   return {
@@ -22,7 +23,31 @@ function fontPreloadPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), react(), fontPreloadPlugin()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    fontPreloadPlugin(),
+    VitePWA({
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      manifest: false,
+      includeAssets: [
+        "favicon.webp",
+        "apple-touch-icon.png",
+        "icons/*.png",
+        "manifest.webmanifest",
+      ],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//],
+        maximumFileSizeToCacheInBytes: 3_500_000,
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
   test: {
     environment: "node",
     globals: true,
