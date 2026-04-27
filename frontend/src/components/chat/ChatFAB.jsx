@@ -5,7 +5,7 @@ export default function ChatFAB({ onClick, isOpen }) {
     <m.button
       onClick={onClick}
       aria-label={isOpen ? "Close AI chat" : "Open AI chat"}
-      className={`fixed bottom-6 right-6 z-[90] w-14 h-14 rounded-full bg-accent hover:bg-accent-hover text-white shadow-[0_4px_20px_rgba(232,134,58,0.4)] hover:shadow-[0_6px_32px_rgba(232,134,58,0.6)] transition-[background-color,box-shadow] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] flex items-center justify-center${isOpen ? " hidden sm:flex" : ""}`}
+      className={`fixed bottom-[max(1.5rem,calc(1.5rem+env(safe-area-inset-bottom)))] right-6 z-[90] w-14 h-14 rounded-full bg-accent hover:bg-accent-hover text-white shadow-[0_4px_20px_rgba(232,134,58,0.4)] hover:shadow-[0_6px_32px_rgba(232,134,58,0.6)] transition-[background-color,box-shadow] duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] flex items-center justify-center${isOpen ? " hidden sm:flex" : ""}`}
       whileHover={{ scale: 1.06 }}
       whileTap={{ scale: 0.93 }}
     >

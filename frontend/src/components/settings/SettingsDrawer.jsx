@@ -111,7 +111,7 @@ export default function SettingsDrawer({ onClose }) {
       className="fixed top-0 right-0 bottom-0 z-[80] w-full max-w-md bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0">
+      <div className="flex items-center justify-between px-5 pb-3.5 pt-[max(0.875rem,calc(0.875rem+env(safe-area-inset-top)))] border-b border-white/[0.06] flex-shrink-0">
         <span className="text-base font-semibold text-text-primary tracking-tight">Settings</span>
         <button
           onClick={onClose}
@@ -171,7 +171,7 @@ export default function SettingsDrawer({ onClose }) {
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 px-5 pb-4 pt-2 text-center">
+      <div className="flex-shrink-0 px-5 pt-2 pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom)))] text-center">
         <Link
           to="/privacy"
           onClick={onClose}
