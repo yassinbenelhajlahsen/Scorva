@@ -17,7 +17,7 @@ if (process.env.REDIS_URL) {
 
 // Bump when cached data shapes change to auto-invalidate stale entries on deploy.
 // Old keys expire naturally via their TTL.
-export const CACHE_VERSION = 3;
+export const CACHE_VERSION = 4;
 
 function prefixKey(key) {
   return `v${CACHE_VERSION}:${key}`;

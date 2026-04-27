@@ -13,6 +13,30 @@ function canHover() {
   return window.matchMedia("(hover: hover)").matches;
 }
 
+function statsForLeague(league, averages) {
+  if (!averages) return [];
+  if (league === "nba") {
+    return [
+      { label: "PTS", value: averages.points },
+      { label: "REB", value: averages.rebounds },
+      { label: "AST", value: averages.assists },
+      { label: "FG%", value: averages.fgPct, suffix: "%" },
+    ];
+  }
+  if (league === "nfl") {
+    return [
+      { label: "YDS", value: averages.yards },
+      { label: "TD", value: averages.td },
+      { label: "INT", value: averages.interceptions },
+    ];
+  }
+  return [
+    { label: "G", value: averages.goals },
+    { label: "A", value: averages.assists },
+    { label: "SV", value: averages.saves },
+  ];
+}
+
 function RosterCard({ league, season, player, showStatus }) {
   const queryClient = useQueryClient();
   const slug = slugify(player.name);
@@ -20,6 +44,8 @@ function RosterCard({ league, season, player, showStatus }) {
   const renderStatus = showStatus && player.status && player.status !== "available";
   const [firstName, ...rest] = player.name.split(" ");
   const lastName = rest.join(" ");
+  const stats = statsForLeague(league, player.averages);
+  const hasStats = stats.some((s) => s.value != null && s.value !== 0);
 
   function handleHover() {
     if (!canHover()) return;
@@ -46,49 +72,67 @@ function RosterCard({ league, season, player, showStatus }) {
         </span>
       )}
 
-      <div className="relative flex items-center gap-4 p-5">
-        {player.image_url ? (
-          <div className="relative shrink-0">
-            <img
-              src={player.image_url}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.style.display = "none";
-              }}
-              alt={player.name}
-              loading="lazy"
-              className="w-20 h-20 rounded-full object-cover bg-surface-overlay ring-1 ring-white/[0.06] group-hover:ring-white/[0.18] transition-all duration-[300ms]"
-            />
-          </div>
-        ) : (
-          <div className="w-20 h-20 rounded-full bg-surface-overlay ring-1 ring-white/[0.06] shrink-0" aria-hidden="true" />
-        )}
-
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-col leading-tight">
-            <span className="text-[13px] font-medium text-text-tertiary tracking-wide truncate">
-              {firstName}
-            </span>
-            <h3 className="text-[17px] font-semibold text-text-primary tracking-tight truncate">
-              {lastName || firstName}
-            </h3>
-          </div>
-
-          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-            {player.position && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.06] text-text-secondary text-[10px] font-semibold uppercase tracking-[0.08em]">
-                {player.position}
-              </span>
-            )}
-            {renderStatus && (
-              <PlayerStatusBadge
-                status={player.status}
-                title={player.status_description ?? undefined}
-                size="sm"
+      <div className="relative flex flex-col gap-4 p-5">
+        <div className="flex items-center gap-4">
+          {player.image_url ? (
+            <div className="relative shrink-0">
+              <img
+                src={player.image_url}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.style.display = "none";
+                }}
+                alt={player.name}
+                loading="lazy"
+                className="w-20 h-20 rounded-full object-cover bg-surface-overlay ring-1 ring-white/[0.06] group-hover:ring-white/[0.18] transition-all duration-[300ms]"
               />
-            )}
+            </div>
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-surface-overlay ring-1 ring-white/[0.06] shrink-0" aria-hidden="true" />
+          )}
+
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col leading-tight">
+              <span className="text-[13px] font-medium text-text-tertiary tracking-wide truncate">
+                {firstName}
+              </span>
+              <h3 className="text-[17px] font-semibold text-text-primary tracking-tight truncate">
+                {lastName || firstName}
+              </h3>
+            </div>
+
+            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+              {player.position && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.06] text-text-secondary text-[10px] font-semibold uppercase tracking-[0.08em]">
+                  {player.position}
+                </span>
+              )}
+              {renderStatus && (
+                <PlayerStatusBadge
+                  status={player.status}
+                  title={player.status_description ?? undefined}
+                  size="sm"
+                />
+              )}
+            </div>
           </div>
         </div>
+
+        {hasStats && (
+          <div className="flex justify-around gap-2 pt-3 border-t border-white/[0.05]">
+            {stats.map((s) => (
+              <div key={s.label} className="flex flex-col items-center min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-text-tertiary">
+                  {s.label}
+                </span>
+                <span className="mt-0.5 text-[15px] font-bold tabular-nums text-text-primary">
+                  {s.value ?? "—"}
+                  {s.value != null && s.suffix}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );

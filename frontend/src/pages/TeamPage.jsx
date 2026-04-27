@@ -277,7 +277,7 @@ export default function TeamPage() {
             ) : rosterError ? (
               <ErrorState message={rosterError} onRetry={rosterRetry} />
             ) : rosterLoading ? (
-              <RosterGridSkeleton />
+              <RosterGridSkeleton statCount={league === "nba" ? 4 : 3} />
             ) : (
               <RosterGrid
                 league={league}

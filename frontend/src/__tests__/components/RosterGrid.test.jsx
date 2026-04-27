@@ -38,6 +38,7 @@ const lebron = {
   status: null,
   status_description: null,
   espn_playerid: 1966,
+  averages: { points: 24.3, rebounds: 7.5, assists: 8.1, fgPct: 51.2 },
 };
 
 const out = {
@@ -49,6 +50,7 @@ const out = {
   status: "out",
   status_description: "left calf strain",
   espn_playerid: 6583,
+  averages: { points: 0, rebounds: 0, assists: 0, fgPct: 0 },
 };
 
 describe("RosterGrid", () => {
@@ -101,5 +103,65 @@ describe("RosterGrid", () => {
   it("shows an empty-state message when players is empty", () => {
     render(<RosterGrid league="nba" season={null} players={[]} />);
     expect(screen.getByText(/No roster data/i)).toBeInTheDocument();
+  });
+
+  it("renders NBA averages with PTS/REB/AST/FG% labels", () => {
+    render(<RosterGrid league="nba" season={null} players={[lebron]} />);
+    expect(screen.getByText("PTS")).toBeInTheDocument();
+    expect(screen.getByText("24.3")).toBeInTheDocument();
+    expect(screen.getByText("FG%")).toBeInTheDocument();
+    expect(screen.getByText(/51\.2/)).toBeInTheDocument();
+  });
+
+  it("renders NFL averages with YDS/TD/INT labels", () => {
+    const qb = {
+      id: 3,
+      name: "Patrick Mahomes",
+      position: "QB",
+      jerseynum: 15,
+      image_url: null,
+      status: null,
+      espn_playerid: 1,
+      averages: { yards: 280.5, td: 2.1, interceptions: 0.7 },
+    };
+    render(<RosterGrid league="nfl" season={null} players={[qb]} />);
+    expect(screen.getByText("YDS")).toBeInTheDocument();
+    expect(screen.getByText("280.5")).toBeInTheDocument();
+    expect(screen.getByText("TD")).toBeInTheDocument();
+    expect(screen.getByText("INT")).toBeInTheDocument();
+  });
+
+  it("renders NHL averages with G/A/SV labels", () => {
+    const skater = {
+      id: 4,
+      name: "Connor McDavid",
+      position: "C",
+      jerseynum: 97,
+      image_url: null,
+      status: null,
+      espn_playerid: 2,
+      averages: { goals: 1.2, assists: 1.8, saves: 0 },
+    };
+    render(<RosterGrid league="nhl" season={null} players={[skater]} />);
+    expect(screen.getByText("G")).toBeInTheDocument();
+    expect(screen.getByText("A")).toBeInTheDocument();
+    expect(screen.getByText("SV")).toBeInTheDocument();
+    expect(screen.getByText("1.2")).toBeInTheDocument();
+  });
+
+  it("hides the stats row when all averages are zero or missing", () => {
+    const inactive = {
+      id: 5,
+      name: "Bench Warmer",
+      position: "G",
+      jerseynum: 99,
+      image_url: null,
+      status: null,
+      espn_playerid: 3,
+      averages: { points: 0, rebounds: 0, assists: 0, fgPct: 0 },
+    };
+    render(<RosterGrid league="nba" season={null} players={[inactive]} />);
+    expect(screen.queryByText("PTS")).not.toBeInTheDocument();
+    expect(screen.getByText("Warmer")).toBeInTheDocument();
   });
 });
