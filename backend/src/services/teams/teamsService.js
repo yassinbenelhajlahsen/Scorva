@@ -28,6 +28,42 @@ export async function getTeamsByLeague(league) {
   });
 }
 
+function rosterAveragesSql(league) {
+  if (league === "nba") {
+    return `json_build_object(
+      'points', COALESCE(ROUND(AVG(s2.points) FILTER (WHERE g2.id IS NOT NULL AND s2.minutes > 0), 1), 0),
+      'rebounds', COALESCE(ROUND(AVG(s2.rebounds) FILTER (WHERE g2.id IS NOT NULL AND s2.minutes > 0), 1), 0),
+      'assists', COALESCE(ROUND(AVG(s2.assists) FILTER (WHERE g2.id IS NOT NULL AND s2.minutes > 0), 1), 0),
+      'fgPct', COALESCE(
+        ROUND(
+          100.0 *
+          COALESCE(SUM((split_part(s2.fg, '-', 1))::NUMERIC) FILTER (WHERE g2.id IS NOT NULL AND s2.minutes > 0), 0)
+          /
+          NULLIF(
+            COALESCE(SUM((split_part(s2.fg, '-', 2))::NUMERIC) FILTER (WHERE g2.id IS NOT NULL AND s2.minutes > 0), 0),
+            0
+          ),
+          1
+        ),
+        0
+      )
+    )`;
+  }
+  if (league === "nfl") {
+    return `json_build_object(
+      'yards', COALESCE(ROUND(AVG(s2.yds) FILTER (WHERE g2.id IS NOT NULL), 1), 0),
+      'td', COALESCE(ROUND(AVG(s2.td) FILTER (WHERE g2.id IS NOT NULL), 1), 0),
+      'interceptions', COALESCE(ROUND(AVG(s2.interceptions) FILTER (WHERE g2.id IS NOT NULL), 1), 0)
+    )`;
+  }
+  // nhl
+  return `json_build_object(
+    'goals', COALESCE(ROUND(AVG(s2.g) FILTER (WHERE g2.id IS NOT NULL AND s2.toi IS NOT NULL AND s2.toi != '0:00'), 1), 0),
+    'assists', COALESCE(ROUND(AVG(s2.a) FILTER (WHERE g2.id IS NOT NULL AND s2.toi IS NOT NULL AND s2.toi != '0:00'), 1), 0),
+    'saves', COALESCE(ROUND(AVG(s2.saves) FILTER (WHERE g2.id IS NOT NULL AND s2.toi IS NOT NULL AND s2.toi != '0:00'), 1), 0)
+  )`;
+}
+
 export async function getTeamRoster(league, teamId, season) {
   const currentSeason = await getCurrentSeason(league);
   const effectiveSeason = season ?? currentSeason;
@@ -49,10 +85,20 @@ export async function getTeamRoster(league, teamId, season) {
            AND g.type IN ('regular', 'makeup', 'playoff', 'final')
        )
        SELECT p.id, p.name, p.position, p.jerseynum, p.image_url,
-              p.status, p.status_description, p.status_updated_at, p.espn_playerid
+              p.status, p.status_description, p.status_updated_at, p.espn_playerid,
+              ${rosterAveragesSql(league)} AS averages
          FROM players p
          JOIN player_seasons ps ON ps.playerid = p.id AND ps.rn = 1
+         LEFT JOIN stats s2 ON s2.playerid = p.id
+         LEFT JOIN games g2 ON s2.gameid = g2.id
+           AND g2.league = $1
+           AND g2.season = $3
+           AND g2.type IN ('regular', 'makeup')
+           AND COALESCE(s2.teamid, p.teamid) = $2
         WHERE ps.team_id = $2
+        GROUP BY p.id, p.name, p.position, p.jerseynum, p.image_url,
+                 p.status, p.status_description, p.status_updated_at, p.espn_playerid,
+                 ps.games_played
         ORDER BY ps.games_played DESC, p.position NULLS LAST, p.name`,
       [league, teamId, effectiveSeason]
     );

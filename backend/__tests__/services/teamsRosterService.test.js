@@ -56,6 +56,52 @@ describe("getTeamRoster", () => {
     expect(params).toEqual(["nba", 17, "2025-26"]);
   });
 
+  it("includes NBA averages (points, rebounds, assists, fgPct)", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nba", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("'points'");
+    expect(sql).toContain("AVG(s2.points)");
+    expect(sql).toContain("'rebounds'");
+    expect(sql).toContain("'assists'");
+    expect(sql).toContain("'fgPct'");
+  });
+
+  it("includes NFL averages (yards, td, interceptions)", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nfl", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("'yards'");
+    expect(sql).toContain("AVG(s2.yds)");
+    expect(sql).toContain("'td'");
+    expect(sql).toContain("'interceptions'");
+  });
+
+  it("includes NHL averages (goals, assists, saves)", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nhl", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("'goals'");
+    expect(sql).toContain("AVG(s2.g)");
+    expect(sql).toContain("'saves'");
+  });
+
+  it("filters averages to regular and makeup games only", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamRoster("nba", 17, "2025-26");
+
+    const [sql] = mockPool.query.mock.calls[0];
+    // averages join filters to regular-season scope (no playoff/final)
+    expect(sql).toMatch(/g2\.type IN \('regular', 'makeup'\)/);
+  });
+
   it("sorts by games played descending, then position, then name", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
 
