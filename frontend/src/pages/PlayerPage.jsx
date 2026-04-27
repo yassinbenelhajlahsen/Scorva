@@ -9,6 +9,7 @@ import { queryKeys, queryFns } from "../lib/query.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
+import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
@@ -84,7 +85,11 @@ export default function PlayerPage() {
   const urlSeason = searchParams.get("season") || null;
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(null);
-  const { playerData, loading, seasonLoading, error, retry } = usePlayer(league, slug, urlSeason);
+  const { playerData, loading, seasonLoading, error, retry, refetch } = usePlayer(league, slug, urlSeason);
+
+  const handleRefresh = async () => {
+    await refetch();
+  };
   const { seasons: leagueSeasons } = useSeasons(league);
   const [selectedSeason, setSelectedSeason] = useSeasonParam(playerData?.availableSeasons ?? [], leagueSeasons[0] ?? null);
 
@@ -140,6 +145,7 @@ export default function PlayerPage() {
   const viewingCurrentSeason = (selectedSeason || apiSeason) === currentSeason;
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-[1500px] mx-auto px-5 sm:px-8 py-8">
       {/* Back link */}
       <Link
@@ -316,5 +322,6 @@ export default function PlayerPage() {
         </div>
       </div>
     </div>
+    </PullToRefresh>
   );
 }
