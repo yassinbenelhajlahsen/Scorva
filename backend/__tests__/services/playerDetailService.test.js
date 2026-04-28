@@ -103,5 +103,17 @@ describe("playerDetailService", () => {
 
       expect(mockGetCurrentSeason).toHaveBeenCalledWith(league);
     });
+
+    it("SQL includes the awards subquery", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await fn()(1, "2025-26");
+
+      const [sql] = mockPool.query.mock.calls[0];
+      expect(sql).toContain("'awards'");
+      expect(sql).toContain("FROM player_awards pa");
+      expect(sql).toContain("pa.player_id = p.id");
+      expect(sql).toContain("pa.league = $1");
+    });
   });
 });

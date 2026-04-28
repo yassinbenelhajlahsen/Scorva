@@ -69,6 +69,7 @@ model players {
   user_favorite_players    user_favorite_players[]
   aliases                  player_aliases[]
   player_stat_embeddings   player_stat_embeddings[]
+  awards                   player_awards[]
 
   @@unique([espn_playerid, league], map: "players_espnid_league_unique")
   @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_players_name_trgm", type: Gin)
@@ -234,6 +235,21 @@ model user_favorite_teams {
   teams      teams    @relation(fields: [team_id], references: [id], onDelete: Cascade)
 
   @@id([user_id, team_id])
+}
+
+model player_awards {
+  id         Int      @id @default(autoincrement())
+  player_id  Int
+  league     String   @db.VarChar(10)
+  season     String   @db.VarChar(10)
+  award_type String   @db.VarChar(50)
+  award_name String   @db.VarChar(100)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  players    players  @relation(fields: [player_id], references: [id], onDelete: Cascade)
+
+  @@unique([player_id, league, season, award_type], map: "player_awards_unique")
+  @@index([player_id], map: "player_awards_player_idx")
+  @@index([league, season], map: "player_awards_league_season_idx")
 }
 
 model plays {

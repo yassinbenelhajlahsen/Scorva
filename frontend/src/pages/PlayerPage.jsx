@@ -1,17 +1,18 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { m } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { usePlayer } from "../hooks/data/usePlayer.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import buildSeasonUrl from "../utils/buildSeasonUrl.js";
 import { queryKeys, queryFns } from "../lib/query.js";
-import { containerVariants, itemVariants } from "../utils/motion.js";
+import { monthSlideVariants, monthSlideItemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
+import PlayerAwardsCard from "../components/cards/PlayerAwardsCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
 import slugify from "../utils/slugify.js";
@@ -86,7 +87,13 @@ export default function PlayerPage() {
   const urlSeason = searchParams.get("season") || null;
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [monthDirection, setMonthDirection] = useState(0);
   const { playerData, loading, seasonLoading, error, retry, refetch } = usePlayer(league, slug, urlSeason);
+
+  const handleMonthChange = (newMonth) => {
+    setMonthDirection(newMonth > selectedMonth ? 1 : -1);
+    setSelectedMonth(newMonth);
+  };
 
   const handleRefresh = async () => {
     await refetch();
@@ -95,6 +102,7 @@ export default function PlayerPage() {
   const [selectedSeason, setSelectedSeason] = useSeasonParam(playerData?.availableSeasons ?? [], leagueSeasons[0] ?? null);
 
   useEffect(() => {
+    setMonthDirection(0);
     setSelectedMonth(null);
   }, [selectedSeason]);
 
@@ -111,6 +119,7 @@ export default function PlayerPage() {
   useEffect(() => {
     if (!playerData?.games?.length) return;
     const months = [...new Set(playerData.games.map((g) => String(g.date).slice(0, 7)))].sort();
+    setMonthDirection(0);
     setSelectedMonth(months[months.length - 1]);
   }, [playerData?.games]);
   const { session, openAuthModal } = useAuth();
@@ -260,6 +269,9 @@ export default function PlayerPage() {
         <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
       </div>
 
+      {/* Career Honors */}
+      <PlayerAwardsCard awards={playerData.awards} />
+
       {/* Recent Performances */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-text-primary mb-6">
@@ -268,16 +280,19 @@ export default function PlayerPage() {
         <MonthNavigation
           games={playerData?.games}
           selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
+          onMonthChange={handleMonthChange}
         />
         <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
+        <AnimatePresence mode="wait" custom={monthDirection} initial={false}>
         {filteredGames.length > 0 ? (
           <m.div
-            key={selectedSeason || apiSeason}
+            key={`${selectedSeason || apiSeason}-${selectedMonth || "all"}`}
+            custom={monthDirection}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            variants={monthSlideVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
           >
             {filteredGames.map((game, i) => {
               const key = league?.toLowerCase();
@@ -294,7 +309,7 @@ export default function PlayerPage() {
                 value: game[statKey] ?? "0",
               }));
               return (
-                <m.div key={i} variants={itemVariants}>
+                <m.div key={i} variants={monthSlideItemVariants}>
                   <StatCard
                     league={league}
                     stats={statsProps}
@@ -314,12 +329,21 @@ export default function PlayerPage() {
             })}
           </m.div>
         ) : (
-          <p className="text-center text-text-tertiary text-sm mt-8">
+          <m.p
+            key={`empty-${selectedSeason || apiSeason}-${selectedMonth || "all"}`}
+            custom={monthDirection}
+            variants={monthSlideVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="text-center text-text-tertiary text-sm mt-8"
+          >
             {playerData?.games?.length > 0
               ? "No games this month."
               : "No recent performances to show."}
-          </p>
+          </m.p>
         )}
+        </AnimatePresence>
         </div>
       </div>
     </div>

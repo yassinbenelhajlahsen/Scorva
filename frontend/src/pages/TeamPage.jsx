@@ -12,7 +12,7 @@ import { useTeamRoster } from "../hooks/data/useTeamRoster.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import { useSeasons } from "../hooks/data/useSeasons.js";
 import buildSeasonUrl from "../utils/buildSeasonUrl.js";
-import { containerVariants, itemVariants } from "../utils/motion.js";
+import { monthSlideVariants, monthSlideItemVariants } from "../utils/motion.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useFavoriteToggle } from "../hooks/user/useFavoriteToggle.js";
 import slugify from "../utils/slugify.js";
@@ -36,6 +36,12 @@ export default function TeamPage() {
   const { seasons: leagueSeasons } = useSeasons(league);
   const [selectedSeason, setSelectedSeason] = useSeasonParam(availableSeasons.length > 0 ? availableSeasons : [], leagueSeasons[0] ?? null);
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [monthDirection, setMonthDirection] = useState(0);
+
+  const handleMonthChange = (newMonth) => {
+    setMonthDirection(newMonth > selectedMonth ? 1 : -1);
+    setSelectedMonth(newMonth);
+  };
 
   const [activeTab, setActiveTab] = useState("schedule");
   const [tabDirection, setTabDirection] = useState(1);
@@ -69,6 +75,7 @@ export default function TeamPage() {
   }
 
   useEffect(() => {
+    setMonthDirection(0);
     setSelectedMonth(null);
   }, [selectedSeason]);
 
@@ -77,6 +84,7 @@ export default function TeamPage() {
     const months = [...new Set(games.map((g) => String(g.date).slice(0, 7)))].sort();
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    setMonthDirection(0);
     if (months.includes(currentMonth)) {
       setSelectedMonth(currentMonth);
       return;
@@ -256,28 +264,40 @@ export default function TeamPage() {
                 <MonthNavigation
                   games={games}
                   selectedMonth={selectedMonth}
-                  onMonthChange={setSelectedMonth}
+                  onMonthChange={handleMonthChange}
                 />
                 <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
-                  {filteredGames.length > 0 ? (
-                    <m.div
-                      key={selectedSeason}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
-                      variants={containerVariants}
-                      initial="hidden"
-                      animate="visible"
-                    >
-                      {filteredGames.map((game) => (
-                        <m.div key={game.id} variants={itemVariants} className="w-full">
-                          <GameCard game={game} />
-                        </m.div>
-                      ))}
-                    </m.div>
-                  ) : (
-                    <p className="text-center text-text-tertiary text-sm mt-8">
-                      {games.length > 0 ? "No games this month." : "No recent games to show."}
-                    </p>
-                  )}
+                  <AnimatePresence mode="wait" custom={monthDirection} initial={false}>
+                    {filteredGames.length > 0 ? (
+                      <m.div
+                        key={`${selectedSeason || "default"}-${selectedMonth || "all"}`}
+                        custom={monthDirection}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-5 justify-items-center items-start"
+                        variants={monthSlideVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                      >
+                        {filteredGames.map((game) => (
+                          <m.div key={game.id} variants={monthSlideItemVariants} className="w-full">
+                            <GameCard game={game} />
+                          </m.div>
+                        ))}
+                      </m.div>
+                    ) : (
+                      <m.p
+                        key={`empty-${selectedSeason || "default"}-${selectedMonth || "all"}`}
+                        custom={monthDirection}
+                        variants={monthSlideVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className="text-center text-text-tertiary text-sm mt-8"
+                      >
+                        {games.length > 0 ? "No games this month." : "No recent games to show."}
+                      </m.p>
+                    )}
+                  </AnimatePresence>
                 </div>
               </>
             ) : rosterError ? (

@@ -114,6 +114,16 @@ export default function PlayerPageSkeleton({ slug, league }) {
         </div>
       </div>
 
+      {/* Career Honors */}
+      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-12">
+        <Skeleton className="h-3 w-28 rounded mb-5" />
+        <div className="flex flex-wrap gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[78px] w-[100px] rounded-xl" />
+          ))}
+        </div>
+      </div>
+
       {/* Recent Performances */}
       <div>
         <Skeleton className="h-7 w-52 rounded-xl mb-6" />

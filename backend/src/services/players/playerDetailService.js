@@ -93,6 +93,24 @@ export async function getNbaPlayer(playerId, season) {
         FROM stats s_s
         JOIN games g_s ON s_s.gameid = g_s.id
         WHERE s_s.playerid = p.id
+      ), '[]'::json),
+      'awards', COALESCE((
+        SELECT json_agg(json_build_object(
+          'type', type,
+          'label', label,
+          'count', count,
+          'seasons', seasons
+        ) ORDER BY count DESC, type)
+        FROM (
+          SELECT
+            pa.award_type AS type,
+            MAX(pa.award_name) AS label,
+            COUNT(*)::INT AS count,
+            json_agg(pa.season ORDER BY pa.season DESC) AS seasons
+          FROM player_awards pa
+          WHERE pa.player_id = p.id AND pa.league = $1
+          GROUP BY pa.award_type
+        ) AS award_groups
       ), '[]'::json)
     ) AS player
     FROM players p
@@ -187,6 +205,24 @@ export async function getNflPlayer(playerId, season) {
         FROM stats s_s
         JOIN games g_s ON s_s.gameid = g_s.id
         WHERE s_s.playerid = p.id
+      ), '[]'::json),
+      'awards', COALESCE((
+        SELECT json_agg(json_build_object(
+          'type', type,
+          'label', label,
+          'count', count,
+          'seasons', seasons
+        ) ORDER BY count DESC, type)
+        FROM (
+          SELECT
+            pa.award_type AS type,
+            MAX(pa.award_name) AS label,
+            COUNT(*)::INT AS count,
+            json_agg(pa.season ORDER BY pa.season DESC) AS seasons
+          FROM player_awards pa
+          WHERE pa.player_id = p.id AND pa.league = $1
+          GROUP BY pa.award_type
+        ) AS award_groups
       ), '[]'::json)
     ) AS player
     FROM players p
@@ -292,6 +328,24 @@ export async function getNhlPlayer(playerId, season) {
         FROM stats s_s
         JOIN games g_s ON s_s.gameid = g_s.id
         WHERE s_s.playerid = p.id
+      ), '[]'::json),
+      'awards', COALESCE((
+        SELECT json_agg(json_build_object(
+          'type', type,
+          'label', label,
+          'count', count,
+          'seasons', seasons
+        ) ORDER BY count DESC, type)
+        FROM (
+          SELECT
+            pa.award_type AS type,
+            MAX(pa.award_name) AS label,
+            COUNT(*)::INT AS count,
+            json_agg(pa.season ORDER BY pa.season DESC) AS seasons
+          FROM player_awards pa
+          WHERE pa.player_id = p.id AND pa.league = $1
+          GROUP BY pa.award_type
+        ) AS award_groups
       ), '[]'::json)
     ) AS player
     FROM players p
