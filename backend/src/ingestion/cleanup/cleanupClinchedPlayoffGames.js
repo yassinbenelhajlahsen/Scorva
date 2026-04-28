@@ -50,8 +50,8 @@ export async function cleanupClinchedPlayoffGames(pool, league) {
       AND g.type IN ('playoff', 'final')
       AND g.status = 'Scheduled'
       AND g.winnerid IS NULL
-      AND g.homescore IS NULL
-      AND g.awayscore IS NULL
+      AND COALESCE(g.homescore, 0) = 0
+      AND COALESCE(g.awayscore, 0) = 0
     RETURNING g.id, g.league, g.season
     `,
     [league]

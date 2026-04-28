@@ -78,8 +78,10 @@ describe("cleanupClinchedPlayoffGames", () => {
     const [sql] = mockPool.query.mock.calls[0];
     expect(sql).toContain("g.status = 'Scheduled'");
     expect(sql).toContain("g.winnerid IS NULL");
-    expect(sql).toContain("g.homescore IS NULL");
-    expect(sql).toContain("g.awayscore IS NULL");
+    // ESPN scheduled games are stored as 0/0 (parseInt("0") === 0), not NULL.
+    // Match either to cover both encodings.
+    expect(sql).toContain("COALESCE(g.homescore, 0) = 0");
+    expect(sql).toContain("COALESCE(g.awayscore, 0) = 0");
   });
 
   it("joins clinched series to candidate games on unordered team pair", async () => {
