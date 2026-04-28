@@ -422,6 +422,7 @@ export default function LeaguePage() {
           activeId={activeTab}
           onChange={pickTab}
           tabs={swipeableTabs}
+          className="py-1"
         />
       )}
       </div>
