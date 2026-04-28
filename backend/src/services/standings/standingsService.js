@@ -35,7 +35,7 @@ export async function getStandings(league, season) {
   return cached(`standings:${league}:${resolvedSeason}`, ttl, async () => {
     const [standingsResult, h2hGames] = await Promise.all([
       pool.query(
-        `SELECT t.id, t.name, t.shortname, t.location, t.conf, t.division, t.logo_url,
+        `SELECT t.id, t.name, t.abbreviation, t.shortname, t.location, t.conf, t.division, t.logo_url,
               t.primary_color,
             COUNT(*) FILTER (WHERE g.winnerid = t.id) AS wins,
             COUNT(*) FILTER (WHERE g.winnerid IS NOT NULL AND g.winnerid != t.id) AS losses,
@@ -55,7 +55,7 @@ export async function getStandings(league, season) {
             AND g.type IN ('regular', 'makeup')
             AND (g.game_label IS NULL OR g.game_label NOT ILIKE '%play-in%')
           WHERE t.league = $1
-          GROUP BY t.id, t.name, t.shortname, t.location, t.conf, t.division, t.logo_url,
+          GROUP BY t.id, t.name, t.abbreviation, t.shortname, t.location, t.conf, t.division, t.logo_url,
                    t.primary_color`,
         [league, season || null]
       ),
