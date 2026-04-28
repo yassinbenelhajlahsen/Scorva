@@ -19,7 +19,7 @@ vi.mock("../../utils/slugify.js", () => ({
 const SearchBar = (await import("../../components/ui/SearchBar.jsx")).default;
 
 const mockPlayer = { type: "player", id: 1, name: "LeBron James", league: "nba", imageUrl: null, position: "F", team_name: "Lakers" };
-const mockTeam   = { type: "team",   id: 2, name: "Golden State Warriors", league: "nba", imageUrl: "/logo.webp" };
+const mockTeam   = { type: "team",   id: 2, name: "Golden State Warriors", league: "nba", imageUrl: "/logo.webp", abbreviation: "GS" };
 const mockGame   = { type: "game",   id: 3, name: "Lakers vs Warriors", league: "nba", date: "2025-01-15T00:00:00Z", imageUrl: null };
 
 beforeEach(() => {
@@ -77,7 +77,7 @@ describe("SearchBar", () => {
   it("navigates to team page on team click", () => {
     render(<SearchBar allItems={[mockTeam]} query="war" setQuery={vi.fn()} loading={false} />);
     fireEvent.click(screen.getByText("Golden State Warriors").closest("li"));
-    expect(mockNavigate).toHaveBeenCalledWith("/nba/teams/golden-state-warriors");
+    expect(mockNavigate).toHaveBeenCalledWith("/nba/teams/gs");
   });
 
   it("navigates to game page on game click", () => {

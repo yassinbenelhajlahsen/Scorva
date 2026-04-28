@@ -10,7 +10,7 @@ const FUZZY_PLAYER_THRESHOLD = 0.3;
 const TYPE_RANK = { team: 1, player: 2, game: 3 };
 
 const TEAM_ENTITY_QUERY = `
-  SELECT id, name, league, logo_url AS "imageUrl", shortname,
+  SELECT id, name, league, logo_url AS "imageUrl", shortname, abbreviation,
          NULL::date AS date, 'team' AS type,
          NULL AS position, NULL AS team_name
   FROM teams

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import slugify from "../../utils/slugify.js";
+import teamUrl from "../../utils/teamUrl.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
 export default function SearchBar({ allItems, query, setQuery, loading }) {
@@ -14,16 +15,20 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
       const slug = slugify(item.name);
       queryClient.prefetchQuery({ queryKey: queryKeys.player(item.league, slug, null), queryFn: queryFns.player(item.league, slug, null), staleTime: 10_000 });
     } else if (item.type === "team") {
-      const slug = slugify(item.name);
+      const slug = teamUrl(item.league, item).split("/").pop();
       queryClient.prefetchQuery({ queryKey: queryKeys.team(item.league, slug), queryFn: queryFns.team(item.league, slug), staleTime: 10_000 });
     }
   }
 
   function handleSelect(item) {
-    const base =
-      item.type === "game"
-        ? `/${item.league}/games/${item.id}`
-        : `/${item.league}/${item.type}s/${slugify(item.name)}`;
+    let base;
+    if (item.type === "game") {
+      base = `/${item.league}/games/${item.id}`;
+    } else if (item.type === "team") {
+      base = teamUrl(item.league, item);
+    } else {
+      base = `/${item.league}/${item.type}s/${slugify(item.name)}`;
+    }
     navigate(base);
     setQuery("");
   }
