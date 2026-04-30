@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useMemo, useRef, useLayoutEffect, Fragment } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../lib/query.js";
@@ -55,7 +55,7 @@ export default function LeaguePage() {
   const [selectedSeason, setSelectedSeason] = useSeasonParam(seasons);
   const [selectedDate, setSelectedDate] = useState(null);
   const [animateCards, setAnimateCards] = useState(false);
-  const [activeTab, setActiveTab] = useState("games");
+  const [searchParams, setSearchParams] = useSearchParams();
   const tabRefs = useRef([]);
   const tabNavRef = useRef(null);
   const [pillBounds, setPillBounds] = useState(null);
@@ -79,6 +79,9 @@ export default function LeaguePage() {
     [league]
   );
 
+  const tabParam = searchParams.get("tab");
+  const activeTab = tabs.includes(tabParam) ? tabParam : "games";
+
   useLayoutEffect(() => {
     const idx = tabs.indexOf(activeTab);
     const btn = tabRefs.current[idx];
@@ -91,7 +94,17 @@ export default function LeaguePage() {
   }, [activeTab, tabs]);
 
   function pickTab(tab) {
-    setActiveTab(tab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (!tab || tab === "games") {
+          next.delete("tab");
+        } else {
+          next.set("tab", tab);
+        }
+        return next;
+      },
+    );
   }
 
   // Sync date strip when backend resolved a nearest-date redirect.

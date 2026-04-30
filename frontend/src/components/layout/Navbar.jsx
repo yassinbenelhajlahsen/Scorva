@@ -78,10 +78,14 @@ export default function Navbar() {
         <div className="ml-auto flex items-center gap-5 shrink-0">
           {navLinks.map(({ to, label }) => {
             const isActive = location.pathname.startsWith(to);
+            const currentTab = new URLSearchParams(location.search).get("tab");
+            const linkTo = currentTab && leagueSlugs.has(location.pathname.slice(1))
+              ? `${to}?tab=${encodeURIComponent(currentTab)}`
+              : to;
             return (
               <Link
                 key={to}
-                to={to}
+                to={linkTo}
                 onMouseEnter={() => prefetchLeague(to)}
                 className={`touch-target text-sm font-medium transition-colors duration-200 ${
                   isActive
