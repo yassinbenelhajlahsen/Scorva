@@ -107,6 +107,13 @@ describe("extractPlayerNames", () => {
     );
     expect(out[0]).toMatchObject({ name: "A.J. Lawson" });
   });
+
+  it("returns [] for null / empty inputs", () => {
+    const map = new Map([["john doe", { id: 1, name: "John Doe" }]]);
+    expect(extractPlayerNames(null, map)).toEqual([]);
+    expect(extractPlayerNames("", map)).toEqual([]);
+    expect(extractPlayerNames("Signed F John Doe", null)).toEqual([]);
+  });
 });
 
 describe("parseMove", () => {
@@ -164,6 +171,21 @@ describe("parseMove", () => {
       fromTeam: team,
       toTeam: null,
       player: { id: 5008, name: "Tyreke Key" },
+    }]);
+  });
+
+  it("for a trade: fromTeam=announcing team, toTeam=null (v1 fallback)", () => {
+    // V1 trades default toTeam=null because parsing the destination
+    // out of "to TEAM"/"for TEAM" is deferred. fromTeam is the announcing team.
+    const out = parseMove({
+      description: "Traded F Trevon Scott to the Lakers for cash considerations.",
+      team, players,
+    });
+    expect(out).toEqual([{
+      action: "trade",
+      fromTeam: team,
+      toTeam: null,
+      player: { id: 4234, name: "Trevon Scott" },
     }]);
   });
 
