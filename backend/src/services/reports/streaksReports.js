@@ -27,6 +27,7 @@ const NBA_QUERY = `
            (s.points >= 10 AND s.rebounds >= 10) AS dd,
            (s.points >= 10 AND s.rebounds >= 10 AND s.assists >= 10) AS td,
            (s.points >= 30) AS pts30,
+           (s.points >= 20) AS pts20,
            (s.rebounds >= 10) AS reb10,
            (s.assists >= 10) AS ast10
     FROM stats s
@@ -52,6 +53,11 @@ const NBA_QUERY = `
       LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT pts30) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(pts30) FILTER (WHERE rn = 1)
+    FROM recent GROUP BY playerid
+    UNION ALL SELECT playerid, '20+ point',
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT pts20) - 1, COUNT(*)), COUNT(*))::int,
+      MAX(date) FILTER (WHERE rn = 1),
+      BOOL_AND(pts20) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '10+ rebound',
       LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT reb10) - 1, COUNT(*)), COUNT(*))::int,
