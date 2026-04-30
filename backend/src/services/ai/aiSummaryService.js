@@ -3,30 +3,7 @@ import pool from "../../db/db.js";
 import logger from "../../logger.js";
 import { embedGameSummary } from "./embeddingService.js";
 import { getPlays } from "../games/playsService.js";
-
-function parseClockToSeconds(clock) {
-  if (!clock) return null;
-  // Sub-minute format: "5.4" or "0.4" (seconds only, no colon)
-  if (!clock.includes(":")) {
-    const secs = parseFloat(clock);
-    return Number.isNaN(secs) ? null : secs;
-  }
-  const parts = clock.split(":");
-  if (parts.length !== 2) return null;
-  const mins = parseInt(parts[0], 10);
-  const secs = parseFloat(parts[1]);
-  if (Number.isNaN(mins) || Number.isNaN(secs)) return null;
-  return mins * 60 + secs;
-}
-
-// NHL stores elapsed time per period; convert to time remaining
-function nhlClockToRemaining(clock, period) {
-  const elapsed = parseClockToSeconds(clock);
-  if (elapsed === null) return null;
-  // Playoff OT is 20 min; regular-season OT is 5 min — heuristic: elapsed > 300 means 20-min period
-  const periodLen = period > 3 && elapsed <= 300 ? 300 : 1200;
-  return Math.max(0, periodLen - elapsed);
-}
+import { parseClockToSeconds, nhlClockToRemaining } from "../../utils/clock.js";
 
 function periodLabel(period, league) {
   const isHockey = league === "NHL";
