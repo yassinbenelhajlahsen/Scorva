@@ -18,6 +18,7 @@ import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
+import ReportsTab from "../components/reports/ReportsTab.jsx";
 import LeagueSlate from "../components/navigation/LeagueSlate.jsx";
 import { LEAGUE_LABELS } from "../constants/leagueLabels.js";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
@@ -73,9 +74,12 @@ export default function LeaguePage() {
   };
 
   const tabs = useMemo(
-    () => LEAGUE_LABELS[league]?.playoffsSupported
-      ? ["games", "standings", "playoffs"]
-      : ["games", "standings"],
+    () => {
+      const base = LEAGUE_LABELS[league]?.playoffsSupported
+        ? ["games", "standings", "playoffs"]
+        : ["games", "standings"];
+      return [...base, "reports"];
+    },
     [league]
   );
 
@@ -338,6 +342,7 @@ export default function LeaguePage() {
     games: gamesContent,
     standings: standingsContent,
     playoffs: playoffsContent,
+    reports: <ReportsTab league={league} />,
   };
   const swipeableTabs = tabs.map((id) => ({ id, content: tabContents[id] }));
 
