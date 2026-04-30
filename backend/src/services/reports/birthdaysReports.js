@@ -30,8 +30,31 @@ const QUERY = `
   with_date AS (
     SELECT
       id, name, image_url, dob, dob_date,
-      MAKE_DATE(y::int, m::int, d::int)                                     AS bday_date,
-      EXTRACT(YEAR FROM AGE(MAKE_DATE(y::int, m::int, d::int), dob_date))::int AS age
+      MAKE_DATE(
+        y::int,
+        m::int,
+        -- Map Feb 29 -> Feb 28 in non-leap years so MAKE_DATE doesn't throw.
+        -- Players born on leap day get their birthday on Feb 28 in non-leap years.
+        CASE
+          WHEN m::int = 2 AND d::int = 29 AND NOT (
+            (y::int % 4 = 0 AND y::int % 100 <> 0) OR (y::int % 400 = 0)
+          ) THEN 28
+          ELSE d::int
+        END
+      ) AS bday_date,
+      EXTRACT(YEAR FROM AGE(
+        MAKE_DATE(
+          y::int,
+          m::int,
+          CASE
+            WHEN m::int = 2 AND d::int = 29 AND NOT (
+              (y::int % 4 = 0 AND y::int % 100 <> 0) OR (y::int % 400 = 0)
+            ) THEN 28
+            ELSE d::int
+          END
+        ),
+        dob_date
+      ))::int AS age
     FROM parsed
   )
   SELECT

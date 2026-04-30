@@ -60,4 +60,25 @@ describe("getBirthdaysForLeague", () => {
     const out = await getBirthdaysForLeague("nba");
     expect(out).toEqual([]);
   });
+
+  it("maps a Feb 29 player birthday to Feb 28 in non-leap years", async () => {
+    // The SQL adjusts Feb 29 -> Feb 28 in the current non-leap year.
+    // The service trusts the SQL's bday_date and just ISO-formats it.
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [{
+        player_id: 9999,
+        player_name: "Leap Day Player",
+        player_image: null,
+        dob: "29/2/2000",
+        bday_date: new Date("2026-02-28T00:00:00Z"),
+        age: 26,
+      }],
+    });
+
+    const out = await getBirthdaysForLeague("nba");
+
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("birthday-9999-2026-02-28");
+    expect(out[0].age).toBe(26);
+  });
 });
