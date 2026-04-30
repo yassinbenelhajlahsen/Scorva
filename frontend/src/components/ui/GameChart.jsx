@@ -10,12 +10,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const PERIOD_COUNT = { nba: 4, nfl: 4, nhl: 3 };
-const PERIOD_LABELS = {
-  nba: ["Q1", "Q2", "Q3", "Q4"],
-  nfl: ["Q1", "Q2", "Q3", "Q4"],
-  nhl: ["P1", "P2", "P3"],
-};
+const REGULATION_COUNT = 4;
+const PERIOD_LABELS = ["Q1", "Q2", "Q3", "Q4"];
 
 const DEFAULT_HOME_COLOR = "#e8863a";
 const DEFAULT_AWAY_COLOR = "#60A5FA";
@@ -68,31 +64,85 @@ function downsample(raw, target = 60) {
   return Array.from({ length: target }, (_, i) => raw[Math.round(i * step)]);
 }
 
+function periodLabel(periodNum) {
+  if (periodNum >= 1 && periodNum <= PERIOD_LABELS.length) {
+    return PERIOD_LABELS[periodNum - 1];
+  }
+  const otIndex = periodNum - PERIOD_LABELS.length;
+  return otIndex === 1 ? "OT" : `OT${otIndex}`;
+}
+
+// Each period's length is the largest clock value observed in that period
+// (the clock counts down, so the first play of a period has the max).
+function computePeriodLengths(sampled) {
+  const lengths = new Map();
+  for (const dp of sampled) {
+    if (dp.period == null || dp.clock == null) continue;
+    const cur = lengths.get(dp.period) ?? 0;
+    if (dp.clock > cur) lengths.set(dp.period, dp.clock);
+  }
+  return lengths;
+}
+
+function hasTimeInfo(sampled) {
+  return sampled.some((dp) => dp.period != null && dp.clock != null);
+}
+
+// xPos = (period - 1) + elapsedFraction. End of period 4 = 4.0.
+function computeXPos(dp, periodLengths) {
+  const len = periodLengths.get(dp.period);
+  if (!len || len <= 0) return dp.period - 1;
+  const elapsedFraction = (len - dp.clock) / len;
+  return (dp.period - 1) + elapsedFraction;
+}
+
+function buildPositioned(sampled) {
+  const useTime = hasTimeInfo(sampled);
+  const periodLengths = useTime ? computePeriodLengths(sampled) : null;
+  const xPositions = sampled.map((dp, i) =>
+    useTime && dp.period != null && dp.clock != null
+      ? computeXPos(dp, periodLengths)
+      : i,
+  );
+  const maxPeriod = useTime
+    ? Math.max(0, ...sampled.map((dp) => dp.period ?? 0))
+    : 0;
+  return { useTime, xPositions, maxPeriod };
+}
+
 function buildChartData(raw) {
   const sampled = downsample(raw);
-  return sampled.map((dp, i) => ({
-    idx: i,
+  const { useTime, xPositions, maxPeriod } = buildPositioned(sampled);
+  const points = sampled.map((dp, i) => ({
+    xPos: xPositions[i],
     home: Math.round(dp.homeWinPercentage * 100),
     away: Math.round((1 - dp.homeWinPercentage) * 100),
   }));
+  return { points, useTime, maxPeriod };
 }
 
 function buildMarginData(raw) {
   const sampled = downsample(raw);
-  return sampled.map((dp, i) => ({ idx: i, margin: dp.margin }));
+  const { useTime, xPositions, maxPeriod } = buildPositioned(sampled);
+  const points = sampled.map((dp, i) => ({
+    xPos: xPositions[i],
+    margin: dp.margin,
+  }));
+  return { points, useTime, maxPeriod };
 }
 
-function buildPeriodTicks(league, total, currentPeriod, isFinal) {
-  const labels = PERIOD_LABELS[league] ?? PERIOD_LABELS.nba;
-  const count = PERIOD_COUNT[league] ?? 4;
-  let visibleCount = count;
-
-  if (!isFinal && currentPeriod) {
-    visibleCount = Math.min(currentPeriod, count);
+function buildPeriodTicks(series) {
+  if (series.useTime) {
+    const totalPeriods = Math.max(REGULATION_COUNT, series.maxPeriod);
+    return Array.from({ length: totalPeriods }, (_, i) => ({
+      value: i,
+      label: periodLabel(i + 1),
+    }));
   }
-
-  return labels.slice(0, visibleCount).map((label, i) => ({
-    value: Math.round((i / visibleCount) * (total - 1)),
+  // Legacy fallback (no period/clock info): evenly distribute across data.
+  const total = series.points.length;
+  return PERIOD_LABELS.map((label, i) => ({
+    value: Math.round((i / REGULATION_COUNT) * (total - 1)),
     label,
   }));
 }
@@ -183,21 +233,24 @@ export default function GameChart({
   scoreMargin,
   homeTeam,
   awayTeam,
-  league,
-  currentPeriod,
-  isFinal,
 }) {
   const [viewMode, setViewMode] = useState("winProb");
 
   if (!data || data.length === 0) return null;
 
-  const chartData = buildChartData(data);
-  const marginData =
+  const chart = buildChartData(data);
+  const margin =
     scoreMargin?.length > 0 ? buildMarginData(scoreMargin) : null;
-  const activeData =
-    viewMode === "margin" && marginData ? marginData : chartData;
-  const periodTicks = buildPeriodTicks(league, activeData.length, currentPeriod, isFinal);
+  const isMarginMode = viewMode === "margin" && margin;
+  const active = isMarginMode ? margin : chart;
+  const periodTicks = buildPeriodTicks(active);
   const tickValues = periodTicks.map((t) => t.value);
+
+  // X-axis domain: time-based games span [0, totalPeriods]; legacy spans [0, len-1].
+  // The line stops at the last data point's xPos — that's the live-game truncation.
+  const xDomain = active.useTime
+    ? [0, Math.max(REGULATION_COUNT, active.maxPeriod)]
+    : [0, active.points.length - 1];
 
   const homeShortName = homeTeam?.info?.shortName ?? "Home";
   const awayShortName = awayTeam?.info?.shortName ?? "Away";
@@ -208,8 +261,11 @@ export default function GameChart({
 
   // Y-axis config per view
   let yDomain, yTicks, yFormatter;
-  if (viewMode === "margin" && marginData) {
-    const maxAbs = Math.max(...marginData.map((d) => Math.abs(d.margin)), 5);
+  if (isMarginMode) {
+    const maxAbs = Math.max(
+      ...margin.points.map((d) => Math.abs(d.margin)),
+      5,
+    );
     const paddedMax = Math.ceil(maxAbs / 5) * 5;
     yDomain = [-paddedMax, paddedMax];
     const half = Math.round(paddedMax / 2);
@@ -221,13 +277,11 @@ export default function GameChart({
     yFormatter = (v) => `${v}%`;
   }
 
-  const isMarginMode = viewMode === "margin" && marginData;
-
   return (
     <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        {marginData ? (
+        {margin ? (
           <div className="relative inline-flex items-center">
             <select
               value={viewMode}
@@ -294,7 +348,7 @@ export default function GameChart({
       <div className="relative">
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart
-            data={activeData}
+            data={active.points}
             margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
           >
             <defs>
@@ -341,15 +395,16 @@ export default function GameChart({
             )}
 
             <XAxis
-              dataKey="idx"
+              dataKey="xPos"
               type="number"
-              domain={[0, activeData.length - 1]}
+              domain={xDomain}
               ticks={tickValues}
               tick={(props) => (
                 <PeriodTick {...props} periodTicks={periodTicks} />
               )}
               axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
               tickLine={false}
+              allowDataOverflow={false}
             />
 
             <YAxis

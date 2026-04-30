@@ -33,9 +33,9 @@ const { getWinProbability } = await import(
 );
 
 const SAMPLE_PLAYS = [
-  { id: "p1", homeScore: 0, awayScore: 0 },
-  { id: "p2", homeScore: 5, awayScore: 3 },
-  { id: "p3", homeScore: 10, awayScore: 8 },
+  { id: "p1", homeScore: 0, awayScore: 0, period: { number: 1 }, clock: { displayValue: "12:00" } },
+  { id: "p2", homeScore: 5, awayScore: 3, period: { number: 1 }, clock: { displayValue: "6:00" } },
+  { id: "p3", homeScore: 10, awayScore: 8, period: { number: 2 }, clock: { displayValue: "9:00" } },
 ];
 
 const SAMPLE_WIN_PROB = [
@@ -107,13 +107,11 @@ describe("getWinProbability — ESPN URL construction", () => {
     );
   });
 
-  it("builds the correct URL for NHL", async () => {
-    mockAxiosGet.mockResolvedValue({ data: SAMPLE_ESPN_RESPONSE });
-    await getWinProbability("nhl", "401559800", true);
-    expect(mockAxiosGet).toHaveBeenCalledWith(
-      "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/summary?event=401559800",
-      expect.any(Object)
-    );
+  it("does not call ESPN for NHL (unsupported)", async () => {
+    const result = await getWinProbability("nhl", "401559800", true);
+    expect(result).toBeNull();
+    expect(mockAxiosGet).not.toHaveBeenCalled();
+    expect(mockCached).not.toHaveBeenCalled();
   });
 });
 
@@ -123,14 +121,14 @@ describe("getWinProbability — data transformation", () => {
     const result = await getWinProbability("nba", "401585757", true);
     expect(result).toEqual({
       winProbability: [
-        { homeWinPercentage: 0.65, playId: "p1" },
-        { homeWinPercentage: 0.55, playId: "p2" },
-        { homeWinPercentage: 0.82, playId: "p3" },
+        { homeWinPercentage: 0.65, playId: "p1", period: 1, clock: 720 },
+        { homeWinPercentage: 0.55, playId: "p2", period: 1, clock: 360 },
+        { homeWinPercentage: 0.82, playId: "p3", period: 2, clock: 540 },
       ],
       scoreMargin: [
-        { playId: "p1", margin: 0 },
-        { playId: "p2", margin: 2 },
-        { playId: "p3", margin: 2 },
+        { playId: "p1", margin: 0, period: 1, clock: 720 },
+        { playId: "p2", margin: 2, period: 1, clock: 360 },
+        { playId: "p3", margin: 2, period: 2, clock: 540 },
       ],
     });
   });
@@ -148,9 +146,9 @@ describe("getWinProbability — data transformation", () => {
     mockAxiosGet.mockResolvedValue({ data: nflResponse });
     const result = await getWinProbability("nfl", "401671773", true);
     expect(result.scoreMargin).toEqual([
-      { playId: "p1", margin: 0 },
-      { playId: "p2", margin: 2 },
-      { playId: "p3", margin: 2 },
+      { playId: "p1", margin: 0, period: 1, clock: 720 },
+      { playId: "p2", margin: 2, period: 1, clock: 360 },
+      { playId: "p3", margin: 2, period: 2, clock: 540 },
     ]);
   });
 
@@ -159,9 +157,9 @@ describe("getWinProbability — data transformation", () => {
     const result = await getWinProbability("nba", "401585757", true);
     expect(result).toEqual({
       winProbability: [
-        { homeWinPercentage: 0.65, playId: "p1" },
-        { homeWinPercentage: 0.55, playId: "p2" },
-        { homeWinPercentage: 0.82, playId: "p3" },
+        { homeWinPercentage: 0.65, playId: "p1", period: null, clock: null },
+        { homeWinPercentage: 0.55, playId: "p2", period: null, clock: null },
+        { homeWinPercentage: 0.82, playId: "p3", period: null, clock: null },
       ],
       scoreMargin: null,
     });
@@ -183,6 +181,29 @@ describe("getWinProbability — data transformation", () => {
     mockAxiosGet.mockResolvedValue({ data: { winprobability: [] } });
     const result = await getWinProbability("nba", "401585757", true);
     expect(result).toBeNull();
+  });
+
+  it("drops re-emitted plays whose clock jumps backward in time", async () => {
+    // ESPN sometimes inserts stat-correction entries later in the array but
+    // pointing back to an earlier game time. Mirrors the pattern observed in
+    // event 401869380 (Cavaliers vs Raptors).
+    const plays = [
+      { id: "p1", homeScore: 0, awayScore: 0, period: { number: 1 }, clock: { displayValue: "12:00" } },
+      { id: "p2", homeScore: 2, awayScore: 0, period: { number: 1 }, clock: { displayValue: "4:30" } },
+      // Re-emit: playId is later but the clock points to 11:02 (earlier in Q1).
+      { id: "p3", homeScore: 2, awayScore: 0, period: { number: 1 }, clock: { displayValue: "11:02" } },
+      { id: "p4", homeScore: 4, awayScore: 0, period: { number: 1 }, clock: { displayValue: "4:15" } },
+    ];
+    const winProb = [
+      { homeWinPercentage: 0.5, playId: "p1" },
+      { homeWinPercentage: 0.6, playId: "p2" },
+      { homeWinPercentage: 0.55, playId: "p3" },
+      { homeWinPercentage: 0.7, playId: "p4" },
+    ];
+    mockAxiosGet.mockResolvedValue({ data: { winprobability: winProb, plays } });
+    const result = await getWinProbability("nba", "401869380", true);
+    expect(result.winProbability.map((p) => p.playId)).toEqual(["p1", "p2", "p4"]);
+    expect(result.scoreMargin.map((p) => p.playId)).toEqual(["p1", "p2", "p4"]);
   });
 });
 

@@ -156,9 +156,6 @@ export default function OverviewTab({
           scoreMargin={scoreMargin}
           homeTeam={homeTeam}
           awayTeam={awayTeam}
-          league={league}
-          currentPeriod={game.current_period}
-          isFinal={isFinal}
         />
       )}
     </>

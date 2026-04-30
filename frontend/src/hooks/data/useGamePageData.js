@@ -20,7 +20,9 @@ export function useGamePageData(league, gameId) {
   );
 
   const eventId = gameData?.json_build_object?.game?.eventId;
-  const showWinProb = (isFinalEarly || inProgressEarly) && !!eventId;
+  // ESPN doesn't provide win-probability data for NHL — skip the API call.
+  const showWinProb =
+    (isFinalEarly || inProgressEarly) && !!eventId && league !== "nhl";
   const { data: winProbData, scoreMargin } = useWinProbability(
     showWinProb ? league : null,
     showWinProb ? eventId : null,
