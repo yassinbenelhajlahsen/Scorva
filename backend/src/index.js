@@ -33,6 +33,7 @@ import predictionRoute from "./routes/games/prediction.js";
 import playsRoute from "./routes/games/plays.js";
 import newsRoute from "./routes/meta/news.js";
 import headToHeadRoute from "./routes/meta/headToHead.js";
+import reportsRoute from "./routes/reports/reports.js";
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use("/api", similarPlayersRoute);
 app.use("/api", searchRoute);
 app.use("/api", seasonsRoute);
 app.use("/api", newsRoute);
+app.use("/api", reportsRoute);
 app.use("/api", headToHeadRoute);
 app.use("/api", favoritesRoute);
 app.use("/api", userRoute);
