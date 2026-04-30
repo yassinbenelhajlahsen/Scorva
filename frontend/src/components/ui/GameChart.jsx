@@ -82,11 +82,17 @@ function buildMarginData(raw) {
   return sampled.map((dp, i) => ({ idx: i, margin: dp.margin }));
 }
 
-function buildPeriodTicks(league, total) {
+function buildPeriodTicks(league, total, currentPeriod, isFinal) {
   const labels = PERIOD_LABELS[league] ?? PERIOD_LABELS.nba;
   const count = PERIOD_COUNT[league] ?? 4;
-  return labels.map((label, i) => ({
-    value: Math.round((i / count) * (total - 1)),
+  let visibleCount = count;
+
+  if (!isFinal && currentPeriod) {
+    visibleCount = Math.min(currentPeriod, count);
+  }
+
+  return labels.slice(0, visibleCount).map((label, i) => ({
+    value: Math.round((i / visibleCount) * (total - 1)),
     label,
   }));
 }
@@ -178,6 +184,8 @@ export default function GameChart({
   homeTeam,
   awayTeam,
   league,
+  currentPeriod,
+  isFinal,
 }) {
   const [viewMode, setViewMode] = useState("winProb");
 
@@ -188,7 +196,7 @@ export default function GameChart({
     scoreMargin?.length > 0 ? buildMarginData(scoreMargin) : null;
   const activeData =
     viewMode === "margin" && marginData ? marginData : chartData;
-  const periodTicks = buildPeriodTicks(league, activeData.length);
+  const periodTicks = buildPeriodTicks(league, activeData.length, currentPeriod, isFinal);
   const tickValues = periodTicks.map((t) => t.value);
 
   const homeShortName = homeTeam?.info?.shortName ?? "Home";
