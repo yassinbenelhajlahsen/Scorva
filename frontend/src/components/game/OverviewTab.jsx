@@ -157,6 +157,8 @@ export default function OverviewTab({
           homeTeam={homeTeam}
           awayTeam={awayTeam}
           league={league}
+          currentPeriod={game.current_period}
+          isFinal={isFinal}
         />
       )}
     </>
