@@ -1,0 +1,12 @@
+{
+  "name": "scorva",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,magenta --kill-others-on-fail \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "verify": "npm --prefix backend run verify && npm --prefix frontend run verify"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
