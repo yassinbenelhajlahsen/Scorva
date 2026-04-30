@@ -3,6 +3,7 @@ import { getGameById, getLeagueGames, getGameDates, getAllLeagueGames } from "..
 import { getPlayer, getDuplicatePlayerSlugs } from "../api/players.js";
 import { getTeams } from "../api/teams.js";
 import { getNews } from "../api/news.js";
+import { getReports } from "../api/reports.js";
 import { getHeadToHead } from "../api/compare.js";
 import resolveTeam from "../utils/resolveTeam.js";
 
@@ -28,6 +29,7 @@ export const queryKeys = {
   homeGames:      () => ["homeGames"],
   favoriteCheck:  (type, id) => ["favoriteCheck", type, id],
   news:           () => ["news"],
+  reports:        (league, type, limit, offset) => ["reports", league ?? "all", type ?? "all", limit ?? 20, offset ?? 0],
   headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
   playoffs:       (league, season) => ["playoffs", league, season],
   duplicatePlayerSlugs: (league) => ["duplicatePlayerSlugs", league],
@@ -48,6 +50,8 @@ export const queryFns = {
   gameDates: (league, season) => () => getGameDates(league, { season }),
   homeGames: () => () => getAllLeagueGames(),
   news: () => () => getNews(),
+  reports: (league, type, limit, offset) => ({ signal }) =>
+    getReports({ league, type, limit, offset, signal }),
   headToHead: (league, type, ids) => () =>
     getHeadToHead(league, type, ids).then((d) => d.games),
   duplicatePlayerSlugs: (league) => ({ signal }) => getDuplicatePlayerSlugs(league, { signal }),
