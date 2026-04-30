@@ -13,6 +13,8 @@ import { refreshPopularity } from "../refreshPopularity.js";
 import { computeAllEmbeddings } from "../computePlayerEmbeddings.js";
 import { cleanupClinchedPlayoffGames } from "../cleanup/cleanupClinchedPlayoffGames.js";
 import { syncInjuriesForLeague } from "../syncInjuries.js";
+import { runSeed as runSeedAwards } from "../scripts/seedAwards.js";
+import { getCurrentSeason } from "../../cache/seasons.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DateTime } from "luxon";
@@ -58,6 +60,14 @@ export async function runUpsert(pool) {
           await syncInjuriesForLeague(pool, league);
         } catch (err) {
           log.error({ err, league }, "failed syncing injuries");
+        }
+        try {
+          const season = await getCurrentSeason(league);
+          if (season) {
+            await runSeedAwards({ pool, args: { league, season } });
+          }
+        } catch (err) {
+          log.error({ err, league }, "failed seeding awards");
         }
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
