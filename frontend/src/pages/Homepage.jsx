@@ -13,6 +13,7 @@ import { useUserPrefs } from "../hooks/user/useUserPrefs.js";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import NewsSection from "../components/news/NewsSection.jsx";
+import ReportsSection from "../components/reports/ReportsSection.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 export default function Homepage() {
@@ -88,6 +89,9 @@ export default function Homepage() {
 
       {/* News Headlines */}
       <NewsSection />
+
+      {/* Reports */}
+      <ReportsSection />
 
       {/* League tabs + Games */}
       {error ? (
