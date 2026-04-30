@@ -94,6 +94,22 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
       const entries = byTeam.get(String(team.espnid)) || [];
       const injuredEspnIds = [];
 
+      // Batch-load prior (status, status_description) for every espn_playerid in this
+      // team's entries — avoids ~N round-trips per team in favor of a single query.
+      const candidateEspnIds = entries
+        .map((e) => extractEspnPlayerId(e?.athlete))
+        .filter(Number.isFinite);
+
+      const priorMap = new Map();
+      if (candidateEspnIds.length > 0) {
+        const priors = await client.query(
+          `SELECT id, espn_playerid, status, status_description FROM players
+            WHERE espn_playerid = ANY($1::int[]) AND league = $2`,
+          [candidateEspnIds, leagueSlug],
+        );
+        for (const row of priors.rows) priorMap.set(row.espn_playerid, row);
+      }
+
       for (const entry of entries) {
         const espnPlayerId = extractEspnPlayerId(entry?.athlete);
         if (!Number.isFinite(espnPlayerId)) continue;
@@ -106,13 +122,7 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
           entry?.details?.type ||
           null;
 
-        // Read prior (status, description) so we can detect a real change
-        const prior = await client.query(
-          `SELECT id, status, status_description FROM players
-            WHERE espn_playerid = $1 AND league = $2`,
-          [espnPlayerId, leagueSlug],
-        );
-        const prev = prior.rows[0];
+        const prev = priorMap.get(espnPlayerId);
         if (!prev) continue;
 
         const changed = prev.status !== status || prev.status_description !== description;

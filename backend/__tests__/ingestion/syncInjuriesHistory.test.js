@@ -47,7 +47,7 @@ describe("syncInjuries history insertion", () => {
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      [/SELECT id, status, status_description FROM players/, { rows: [{ id: 4234, status: "out", status_description: "knee" }] }],
+      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
       [/INSERT INTO player_status_history/, { rowCount: 1 }],
       [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
     ]);
@@ -86,7 +86,7 @@ describe("syncInjuries history insertion", () => {
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      [/SELECT id, status, status_description FROM players/, { rows: [{ id: 4234, status: "out", status_description: "knee" }] }],
+      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
       [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
     ]);
 
@@ -119,6 +119,33 @@ describe("syncInjuries history insertion", () => {
     expect(insertCall).toBeDefined();
     expect(insertCall[1]).toEqual(
       expect.arrayContaining([4234, "nba", "out", "ankle", null, null])
+    );
+  });
+
+  it("inserts a history row for stale-cleared players", async () => {
+    // Empty injuries response so per-entry path doesn't fire
+    mockAxiosGet.mockResolvedValueOnce({ data: { injuries: [{ id: 1, injuries: [] }] } });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      // Per-team clear sweep returns no rows
+      [/SELECT id, league, status, status_description FROM players[\s\S]*WHERE teamid/, { rows: [] }],
+      // Stale sweep finds one stale row
+      [/SELECT id, league, status, status_description FROM players[\s\S]*status_updated_at\s*<\s*NOW/, {
+        rows: [{ id: 5000, league: "nba", status: "out", status_description: "recovery" }],
+      }],
+      [/INSERT INTO player_status_history/, { rowCount: 1 }],
+      [/UPDATE players[\s\S]*SET status[\s\S]*= NULL[\s\S]*status_updated_at\s*<\s*NOW/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const insertCall = pool.queryHandler.mock.calls.find(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCall).toBeDefined();
+    expect(insertCall[1]).toEqual(
+      expect.arrayContaining([5000, "nba", "out", "recovery", null, null])
     );
   });
 });
