@@ -23,12 +23,15 @@ export default function InjuryReportRow({ report }) {
   const playerHref = `/${player.league}/players/${player.slug}`;
 
   return (
-    <div className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200">
-      <Link to={playerHref}><PlayerAvatar player={player} /></Link>
+    <Link
+      to={playerHref}
+      className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200"
+    >
+      <PlayerAvatar player={player} />
       <div className="flex-1 min-w-0">
-        <Link to={playerHref} className="text-sm font-semibold text-text-primary hover:text-accent">
+        <div className="text-sm font-semibold text-text-primary">
           {player.name}
-        </Link>
+        </div>
         <div className="text-[13px] text-text-secondary mt-0.5">
           <StatusPill status={prevStatus} /> <span className="text-text-tertiary mx-1">→</span> <StatusPill status={newStatus} />
           {newStatusDescription && (
@@ -37,6 +40,6 @@ export default function InjuryReportRow({ report }) {
         </div>
       </div>
       <span className="text-xs text-text-tertiary shrink-0">{relativeTime(date)}</span>
-    </div>
+    </Link>
   );
 }
