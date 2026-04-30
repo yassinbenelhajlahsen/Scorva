@@ -70,11 +70,28 @@ model players {
   aliases                  player_aliases[]
   player_stat_embeddings   player_stat_embeddings[]
   awards                   player_awards[]
+  status_history           player_status_history[]
 
   @@unique([espn_playerid, league], map: "players_espnid_league_unique")
   @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_players_name_trgm", type: Gin)
   @@index([teamid])
   @@index([popularity(sort: Desc)], map: "idx_players_popularity")
+}
+
+model player_status_history {
+  id                      BigInt    @id @default(autoincrement())
+  player_id               Int
+  league                  String    @db.VarChar(10)
+  prev_status             String?   @db.VarChar(20)
+  prev_status_description String?
+  new_status              String?   @db.VarChar(20)
+  new_status_description  String?
+  changed_at              DateTime  @default(now()) @db.Timestamptz(6)
+  player                  players   @relation(fields: [player_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([changed_at(sort: Desc)], map: "idx_psh_changed_at")
+  @@index([league, changed_at(sort: Desc)], map: "idx_psh_league_changed")
+  @@index([player_id], map: "idx_psh_player")
 }
 
 model stats {
