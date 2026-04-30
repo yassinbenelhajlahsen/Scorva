@@ -1,5 +1,6 @@
 import pool from "../../db/db.js";
 import logger from "../../logger.js";
+import { getCurrentSeason } from "../../cache/seasons.js";
 
 const log = logger.child({ module: "birthdaysReports" });
 
@@ -10,6 +11,7 @@ function slugForName(name) {
 // dob is stored as "DD/M/YYYY" (e.g. "14/9/1989"). We parse with TO_DATE using
 // the 'DD/MM/YYYY' mask (works for both single- and double-digit months/days).
 // The backward 30-day window excludes future dates and spans one rolling month.
+// $1 = league, $2 = currentSeason — active players only (at least one stat in the current season).
 const QUERY = `
   WITH parsed AS (
     SELECT
@@ -21,11 +23,15 @@ const QUERY = `
       EXTRACT(MONTH FROM TO_DATE(dob, 'DD/MM/YYYY')) AS m,
       EXTRACT(DAY   FROM TO_DATE(dob, 'DD/MM/YYYY')) AS d,
       EXTRACT(YEAR  FROM CURRENT_DATE)   AS y
-    FROM players
-    WHERE league = $1
-      AND popularity > 0
-      AND dob IS NOT NULL
-      AND dob ~ '^\\d'
+    FROM players p
+    WHERE p.league = $1
+      AND p.dob IS NOT NULL
+      AND p.dob ~ '^\\d'
+      AND EXISTS (
+        SELECT 1 FROM stats s
+        JOIN games g ON g.id = s.gameid
+        WHERE s.playerid = p.id AND g.season = $2
+      )
   ),
   with_date AS (
     SELECT
@@ -33,8 +39,6 @@ const QUERY = `
       MAKE_DATE(
         y::int,
         m::int,
-        -- Map Feb 29 -> Feb 28 in non-leap years so MAKE_DATE doesn't throw.
-        -- Players born on leap day get their birthday on Feb 28 in non-leap years.
         CASE
           WHEN m::int = 2 AND d::int = 29 AND NOT (
             (y::int % 4 = 0 AND y::int % 100 <> 0) OR (y::int % 400 = 0)
@@ -73,7 +77,9 @@ const QUERY = `
 
 export async function getBirthdaysForLeague(league) {
   try {
-    const result = await pool.query(QUERY, [league]);
+    const currentSeason = await getCurrentSeason(league);
+    if (!currentSeason) return [];
+    const result = await pool.query(QUERY, [league, currentSeason]);
     return result.rows.map((r) => {
       const iso = new Date(r.bday_date).toISOString();
       return {

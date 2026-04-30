@@ -10,6 +10,11 @@ jest.unstable_mockModule(resolve(__dirname, "../../../src/db/db.js"), () => ({
   default: { query: mockPoolQuery },
 }));
 
+const mockGetCurrentSeason = jest.fn().mockResolvedValue("2025-26");
+jest.unstable_mockModule(resolve(__dirname, "../../../src/cache/seasons.js"), () => ({
+  getCurrentSeason: mockGetCurrentSeason,
+}));
+
 const { getBirthdaysForLeague } = await import(
   resolve(__dirname, "../../../src/services/reports/birthdaysReports.js")
 );
@@ -47,12 +52,12 @@ describe("getBirthdaysForLeague", () => {
     });
   });
 
-  it("filters to popularity > 0 and last 30 days via SQL", async () => {
+  it("filters to active players (current-season stats) and last 30 days via SQL", async () => {
     mockPoolQuery.mockResolvedValueOnce({ rows: [] });
     await getBirthdaysForLeague("nba");
     const [sql, params] = mockPoolQuery.mock.calls[0];
-    expect(sql).toMatch(/popularity\s*>\s*0/);
-    expect(params).toEqual(["nba"]);
+    expect(sql).toMatch(/EXISTS[\s\S]*g\.season = \$2/i);
+    expect(params).toEqual(["nba", "2025-26"]);
   });
 
   it("returns [] on DB error", async () => {
