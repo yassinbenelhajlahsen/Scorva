@@ -39,27 +39,27 @@ const NBA_QUERY = `
   prefix AS (
     SELECT playerid,
       'double-double' AS stat_label,
-      COALESCE(MIN(rn) FILTER (WHERE NOT dd), 99) - 1 AS streak_length,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT dd) - 1, COUNT(*)), COUNT(*))::int AS streak_length,
       MAX(date) FILTER (WHERE rn = 1) AS last_game_date,
       BOOL_AND(dd) FILTER (WHERE rn = 1) AS most_recent_ok
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, 'triple-double',
-      COALESCE(MIN(rn) FILTER (WHERE NOT td), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT td) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(td) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '30+ point',
-      COALESCE(MIN(rn) FILTER (WHERE NOT pts30), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT pts30) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(pts30) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '10+ rebound',
-      COALESCE(MIN(rn) FILTER (WHERE NOT reb10), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT reb10) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(reb10) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '10+ assist',
-      COALESCE(MIN(rn) FILTER (WHERE NOT ast10), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT ast10) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(ast10) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
@@ -94,22 +94,22 @@ const NFL_QUERY = `
   ),
   prefix AS (
     SELECT playerid, '100+ yard' AS stat_label,
-      COALESCE(MIN(rn) FILTER (WHERE NOT skill100), 99) - 1 AS streak_length,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT skill100) - 1, COUNT(*)), COUNT(*))::int AS streak_length,
       MAX(date) FILTER (WHERE rn = 1) AS last_game_date,
       BOOL_AND(skill100) FILTER (WHERE rn = 1) AS most_recent_ok
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '2+ TD',
-      COALESCE(MIN(rn) FILTER (WHERE NOT skill2td), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT skill2td) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(skill2td) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '250+ pass yard',
-      COALESCE(MIN(rn) FILTER (WHERE NOT qb250), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT qb250) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(qb250) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, '2+ pass TD',
-      COALESCE(MIN(rn) FILTER (WHERE NOT qb2td), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT qb2td) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(qb2td) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
@@ -137,12 +137,12 @@ const NHL_QUERY = `
   ),
   prefix AS (
     SELECT playerid, 'multi-point' AS stat_label,
-      COALESCE(MIN(rn) FILTER (WHERE NOT multipoint), 99) - 1 AS streak_length,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT multipoint) - 1, COUNT(*)), COUNT(*))::int AS streak_length,
       MAX(date) FILTER (WHERE rn = 1) AS last_game_date,
       BOOL_AND(multipoint) FILTER (WHERE rn = 1) AS most_recent_ok
     FROM recent GROUP BY playerid
     UNION ALL SELECT playerid, 'goal',
-      COALESCE(MIN(rn) FILTER (WHERE NOT goal_game), 99) - 1,
+      LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT goal_game) - 1, COUNT(*)), COUNT(*))::int,
       MAX(date) FILTER (WHERE rn = 1),
       BOOL_AND(goal_game) FILTER (WHERE rn = 1)
     FROM recent GROUP BY playerid
