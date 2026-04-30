@@ -27,6 +27,7 @@ const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
 const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
+const ReportsPage  = lazy(() => import("./pages/ReportsPage.jsx"));
 
 function useBlockEdgeSwipe() {
   useEffect(() => {
@@ -117,6 +118,14 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <ComparePage />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <PageWrapper>
+              <ReportsPage />
             </PageWrapper>
           }
         />
