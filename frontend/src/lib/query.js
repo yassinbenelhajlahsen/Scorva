@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { getGameById, getLeagueGames, getGameDates, getAllLeagueGames } from "../api/games.js";
-import { getPlayer } from "../api/players.js";
+import { getPlayer, getDuplicatePlayerSlugs } from "../api/players.js";
 import { getTeams } from "../api/teams.js";
 import { getNews } from "../api/news.js";
 import { getHeadToHead } from "../api/compare.js";
@@ -30,6 +30,7 @@ export const queryKeys = {
   news:           () => ["news"],
   headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
   playoffs:       (league, season) => ["playoffs", league, season],
+  duplicatePlayerSlugs: (league) => ["duplicatePlayerSlugs", league],
 };
 
 export const queryFns = {
@@ -49,6 +50,7 @@ export const queryFns = {
   news: () => () => getNews(),
   headToHead: (league, type, ids) => () =>
     getHeadToHead(league, type, ids).then((d) => d.games),
+  duplicatePlayerSlugs: (league) => ({ signal }) => getDuplicatePlayerSlugs(league, { signal }),
 };
 
 export function useDebouncedValue(value, delay = 200) {

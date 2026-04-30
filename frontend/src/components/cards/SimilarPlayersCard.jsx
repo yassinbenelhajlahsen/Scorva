@@ -3,7 +3,8 @@ import { m, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import { useSimilarPlayers } from "../../hooks/data/useSimilarPlayers.js";
-import slugify from "../../utils/slugify.js";
+import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
+import { playerSlug } from "../../utils/playerUrl.js";
 import buildSeasonUrl from "../../utils/buildSeasonUrl.js";
 import Skeleton from "../ui/Skeleton.jsx";
 
@@ -24,6 +25,7 @@ export default function SimilarPlayersCard({ league, slug, season }) {
   const [searchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
   const { players, loading } = useSimilarPlayers(league, slug, season);
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
   const show = loading || players.length > 0;
 
   return (
@@ -44,35 +46,38 @@ export default function SimilarPlayersCard({ league, slug, season }) {
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <SimilarPlayerSkeleton key={i} />
                   ))
-                : players.map((player) => (
-                    <Link
-                      key={player.id}
-                      to={buildSeasonUrl(`/${league}/players/${slugify(player.name)}`, urlSeason)}
-                      onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slugify(player.name), urlSeason), queryFn: queryFns.player(league, slugify(player.name), urlSeason), staleTime: 10_000 })}
-                      className="flex items-center gap-3 group transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:translate-x-0.5"
-                    >
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-overlay border border-white/[0.08] shrink-0">
-                        {player.imageUrl ? (
-                          <img
-                            src={player.imageUrl}
-                            alt={player.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.style.display = "none"; }}
-                          />
-                        ) : (
-                          <div className="w-full h-full" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text-primary text-sm font-semibold leading-tight truncate group-hover:text-accent transition-colors duration-150">
-                          {player.name}
-                        </p>
-                        <p className="text-text-tertiary text-xs mt-0.5 truncate">
-                          {[player.position, player.teamShortName].filter(Boolean).join(" · ")}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
+                : players.map((player) => {
+                    const slug = playerSlug(player, dupeSlugs);
+                    return (
+                      <Link
+                        key={player.id}
+                        to={buildSeasonUrl(`/${league}/players/${slug}`, urlSeason)}
+                        onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slug, urlSeason), queryFn: queryFns.player(league, slug, urlSeason), staleTime: 10_000 })}
+                        className="flex items-center gap-3 group transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:translate-x-0.5"
+                      >
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-overlay border border-white/[0.08] shrink-0">
+                          {player.imageUrl ? (
+                            <img
+                              src={player.imageUrl}
+                              alt={player.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          ) : (
+                            <div className="w-full h-full" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-text-primary text-sm font-semibold leading-tight truncate group-hover:text-accent transition-colors duration-150">
+                            {player.name}
+                          </p>
+                          <p className="text-text-tertiary text-xs mt-0.5 truncate">
+                            {[player.position, player.teamShortName].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
             </div>
           </div>
         </m.div>

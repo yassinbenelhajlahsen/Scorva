@@ -238,6 +238,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Relative time util             | `frontend/src/utils/relativeTime.js`                        |
 | Season URL param hook          | `frontend/src/hooks/useSeasonParam.js`                      |
 | Season URL builder util        | `frontend/src/utils/buildSeasonUrl.js`                      |
+| Player URL / slug helper       | `frontend/src/utils/playerUrl.js` (`playerSlug(player, dupeMap)`) |
+| Duplicate-slug hook            | `frontend/src/hooks/data/useDuplicatePlayerSlugs.js` (`useDuplicatePlayerSlugs(league)`, `useDuplicatePlayerSlugsAll({ enabled })`) |
 
 ## Frontend — Tests
 

@@ -2,17 +2,20 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import slugify from "../../utils/slugify.js";
 import teamUrl from "../../utils/teamUrl.js";
+import { playerSlug } from "../../utils/playerUrl.js";
+import { useDuplicatePlayerSlugsAll } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
 export default function SearchBar({ allItems, query, setQuery, loading }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const dupeSlugsByLeague = useDuplicatePlayerSlugsAll({ enabled: query.trim().length > 0 });
 
   function prefetchItem(item) {
     if (item.type === "game") {
       queryClient.prefetchQuery({ queryKey: queryKeys.game(item.league, item.id), queryFn: queryFns.game(item.league, item.id), staleTime: 10_000 });
     } else if (item.type === "player") {
-      const slug = slugify(item.name);
+      const slug = playerSlug(item, dupeSlugsByLeague[item.league]);
       queryClient.prefetchQuery({ queryKey: queryKeys.player(item.league, slug, null), queryFn: queryFns.player(item.league, slug, null), staleTime: 10_000 });
     } else if (item.type === "team") {
       const slug = teamUrl(item.league, item).split("/").pop();
@@ -26,6 +29,8 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
       base = `/${item.league}/games/${item.id}`;
     } else if (item.type === "team") {
       base = teamUrl(item.league, item);
+    } else if (item.type === "player") {
+      base = `/${item.league}/players/${playerSlug(item, dupeSlugsByLeague[item.league])}`;
     } else {
       base = `/${item.league}/${item.type}s/${slugify(item.name)}`;
     }

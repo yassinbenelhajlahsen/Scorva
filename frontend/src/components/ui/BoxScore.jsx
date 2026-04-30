@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import slugify from "../../utils/slugify.js";
+import { playerSlug } from "../../utils/playerUrl.js";
+import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
 // ---------------------------------------------------------------------------
@@ -138,6 +139,7 @@ function SortArrow({ active, dir }) {
 
 export default function BoxScore({ league, homeTeam, awayTeam, season }) {
   const queryClient = useQueryClient();
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
   // null sortKey = use league default sort
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState("desc");
@@ -255,19 +257,21 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
           </thead>
 
           <tbody className="divide-y divide-white/[0.04]">
-            {players.map((p) => (
+            {players.map((p) => {
+              const slug = playerSlug(p, dupeSlugs);
+              return (
               <tr
-                id={slugify(p.name)}
+                id={slug}
                 key={p.id}
                 className="hover:bg-surface-overlay/60 transition-colors duration-150"
               >
                 <td className="py-2.5 px-5 font-medium whitespace-nowrap">
                   <Link
-                    to={`/${league}/players/${slugify(p.name)}${season ? `?season=${season}` : ""}`}
+                    to={`/${league}/players/${slug}${season ? `?season=${season}` : ""}`}
                     className="text-accent hover:text-accent-hover transition-colors duration-200 text-sm"
                     onMouseEnter={() => {
                       if (window.matchMedia("(hover: hover)").matches) {
-                        queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slugify(p.name), season || null), queryFn: queryFns.player(league, slugify(p.name), season || null), staleTime: 10_000 });
+                        queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slug, season || null), queryFn: queryFns.player(league, slug, season || null), staleTime: 10_000 });
                       }
                     }}
                   >
@@ -288,7 +292,8 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

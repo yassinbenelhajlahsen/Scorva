@@ -8,6 +8,11 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ prefetchQuery: vi.fn() }),
 }));
 
+vi.mock("../../hooks/data/useDuplicatePlayerSlugs.js", () => ({
+  useDuplicatePlayerSlugs: () => ({}),
+  useDuplicatePlayerSlugsAll: () => ({ nba: {}, nfl: {}, nhl: {} }),
+}));
+
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));

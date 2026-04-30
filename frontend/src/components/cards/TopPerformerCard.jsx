@@ -1,7 +1,8 @@
 import { memo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import slugify from "../../utils/slugify.js";
+import { playerSlug } from "../../utils/playerUrl.js";
+import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import buildSeasonUrl from "../../utils/buildSeasonUrl.js";
 
@@ -40,11 +41,12 @@ const statFormatMap = {
 function TopPerformerCard({ player, title = "Top Performer", league, season: seasonProp }) {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
   const season = seasonProp || searchParams.get("season") || null;
   if (!player) return null;
 
   const { name, position, imageUrl, stats } = player;
-  const slug = slugify(name);
+  const slug = playerSlug(player, dupeSlugs);
   const path = buildSeasonUrl(`/${league}/players/${slug}`, season);
   const formattedStats = statFormatMap[league]?.(stats) || [];
   const color = colorMap[title] ?? "#e8863a";

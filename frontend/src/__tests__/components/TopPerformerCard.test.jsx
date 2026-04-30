@@ -6,6 +6,10 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ prefetchQuery: vi.fn() }),
 }));
 
+vi.mock("../../hooks/data/useDuplicatePlayerSlugs.js", () => ({
+  useDuplicatePlayerSlugs: () => ({}),
+}));
+
 vi.mock("react-router-dom", () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
   useSearchParams: () => [new URLSearchParams()],

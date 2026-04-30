@@ -15,7 +15,6 @@ import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import PlayerAwardsCard from "../components/cards/PlayerAwardsCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
-import slugify from "../utils/slugify.js";
 import teamUrl from "../utils/teamUrl.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
@@ -207,7 +206,7 @@ export default function PlayerPage() {
             <div className="flex gap-2 ml-auto">
               <Link
                 to={`/compare`}
-                state={{ league, type: "players", id1: slugify(name) }}
+                state={{ league, type: "players", id1: slug }}
                 className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
                 aria-label="Compare player"
               >

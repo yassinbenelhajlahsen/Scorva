@@ -90,6 +90,7 @@ export default function computeTopPlayers(_game, stats, league) {
   const players = stats
     .filter(p => p.stats && typeof p.stats === "object")
     .map(p => ({
+      id:       p.id,
       name:     p.name,
       position: p.position,
       imageUrl:  p.imageUrl,

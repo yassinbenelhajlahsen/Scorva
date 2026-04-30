@@ -5,8 +5,10 @@ import { usePlayer } from "../hooks/data/usePlayer.js";
 import { useTeam } from "../hooks/data/useTeam.js";
 import { useHeadToHead } from "../hooks/data/useHeadToHead.js";
 import { useSearch } from "../hooks/data/useSearch.js";
+import { useDuplicatePlayerSlugs, useDuplicatePlayerSlugsAll } from "../hooks/data/useDuplicatePlayerSlugs.js";
 import { formatDateShort } from "../utils/formatDate.js";
 import slugify from "../utils/slugify.js";
+import { playerSlug } from "../utils/playerUrl.js";
 import teamUrl from "../utils/teamUrl.js";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
@@ -58,9 +60,12 @@ export default function ComparePage() {
   const [slug2, setSlug2] = useState(navState?.id2 || null);
   const [selectedSeason1, setSelectedSeason1] = useState(null);
   const [selectedSeason2, setSelectedSeason2] = useState(null);
+  const dupeSlugsByLeague = useDuplicatePlayerSlugsAll();
 
   const handleSelect = (side, item) => {
-    const slug = slugify(item.name);
+    const slug = item.type === "player"
+      ? playerSlug(item, dupeSlugsByLeague[item.league])
+      : slugify(item.name);
     const itemType = item.type === "player" ? "players" : "teams";
     if (!type) setType(itemType);
     if (!league) setLeague(item.league);
@@ -550,6 +555,8 @@ function SectionHeader({ title }) {
 }
 
 function PlayerHero({ player, league, season, onClear }) {
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
+  const slug = playerSlug(player, dupeSlugs);
   return (
     <div className="relative flex flex-col items-center gap-3">
       {onClear && (
@@ -563,7 +570,7 @@ function PlayerHero({ player, league, season, onClear }) {
           </svg>
         </button>
       )}
-      <Link to={buildSeasonUrl(`/${league}/players/${slugify(player.name)}`, season)}>
+      <Link to={buildSeasonUrl(`/${league}/players/${slug}`, season)}>
         <img
           src={player.imageUrl || "/images/placeholder.png"}
           alt={player.name}
@@ -571,7 +578,7 @@ function PlayerHero({ player, league, season, onClear }) {
         />
       </Link>
       <div className="text-center">
-        <Link to={buildSeasonUrl(`/${league}/players/${slugify(player.name)}`, season)} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
+        <Link to={buildSeasonUrl(`/${league}/players/${slug}`, season)} className="text-base sm:text-lg font-bold text-text-primary hover:text-accent transition-colors duration-200">
           {player.name}
         </Link>
         <p className="text-xs text-text-tertiary">{player.position} {player.jerseyNumber ? `#${player.jerseyNumber}` : ""}</p>
@@ -660,7 +667,9 @@ function RecordRow({ label, a, b }) {
 }
 
 function RecentGamesColumn({ player, stats, league }) {
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
   const games = (player.games || []).slice(0, 10);
+  const slug = playerSlug(player, dupeSlugs);
 
   return (
     <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
@@ -697,7 +706,7 @@ function RecentGamesColumn({ player, stats, league }) {
               return (
                 <Link
                   key={g.gameid}
-                  to={`/${league}/games/${g.gameid}?tab=analysis#${slugify(player.name)}`}
+                  to={`/${league}/games/${g.gameid}?tab=analysis#${slug}`}
                   className="grid items-center py-1.5 px-2 rounded-lg hover:bg-white/[0.04] transition-colors duration-200 gap-x-2"
                   style={{ gridTemplateColumns: `3.5rem 1.25rem 1rem 1fr ${stats.map(() => "2.5rem").join(" ")}` }}
                 >

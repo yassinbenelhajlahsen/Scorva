@@ -2,7 +2,8 @@ import { useState } from "react";
 import { m } from "framer-motion";
 import { Link } from "react-router-dom";
 import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
-import slugify from "../../utils/slugify.js";
+import { playerSlug } from "../../utils/playerUrl.js";
+import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 
 const DEFAULT_HOME_COLOR = "#e8863a";
 const DEFAULT_AWAY_COLOR = "#60A5FA";
@@ -137,6 +138,7 @@ function PlayerAvatar({ imageUrl, name }) {
 }
 
 function InjuryList({ injuries, league }) {
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
   if (!injuries?.players?.length) {
     return <p className="text-[11px] text-text-tertiary italic">No injuries reported</p>;
   }
@@ -147,7 +149,7 @@ function InjuryList({ injuries, league }) {
       {players.map((p) => (
         <Link
           key={p.id}
-          to={`/${league}/players/${slugify(p.name)}`}
+          to={`/${league}/players/${playerSlug(p, dupeSlugs)}`}
           className="flex items-center gap-2 min-w-0 px-1.5 py-1 -mx-1.5 rounded-lg hover:bg-white/[0.04] transition-colors group"
         >
           <PlayerAvatar imageUrl={p.imageUrl} name={p.name} />

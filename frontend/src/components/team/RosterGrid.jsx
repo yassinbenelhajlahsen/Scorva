@@ -3,7 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
 
 import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
-import slugify from "../../utils/slugify.js";
+import { playerSlug } from "../../utils/playerUrl.js";
+import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import buildSeasonUrl from "../../utils/buildSeasonUrl.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import { containerVariants, itemVariants } from "../../utils/motion.js";
@@ -37,9 +38,9 @@ function statsForLeague(league, averages) {
   ];
 }
 
-function RosterCard({ league, season, player, showStatus }) {
+function RosterCard({ league, season, player, showStatus, dupeSlugs }) {
   const queryClient = useQueryClient();
-  const slug = slugify(player.name);
+  const slug = playerSlug(player, dupeSlugs);
   const href = buildSeasonUrl(`/${league}/players/${slug}`, season);
   const renderStatus = showStatus && player.status && player.status !== "available";
   const [firstName, ...rest] = player.name.split(" ");
@@ -139,6 +140,8 @@ function RosterCard({ league, season, player, showStatus }) {
 }
 
 export default function RosterGrid({ league, season, players, showStatus = true }) {
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
+
   if (!players || players.length === 0) {
     return (
       <p className="text-center text-text-tertiary text-sm py-12">
@@ -156,7 +159,7 @@ export default function RosterGrid({ league, season, players, showStatus = true 
     >
       {players.map((player) => (
         <m.div key={player.id} variants={itemVariants} className="w-full">
-          <RosterCard league={league} season={season} player={player} showStatus={showStatus} />
+          <RosterCard league={league} season={season} player={player} showStatus={showStatus} dupeSlugs={dupeSlugs} />
         </m.div>
       ))}
     </m.div>

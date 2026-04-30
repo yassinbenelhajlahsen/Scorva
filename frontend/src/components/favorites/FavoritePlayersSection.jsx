@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import StatCard from "../cards/StatCard.jsx";
 import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
-import slugify from "../../utils/slugify.js";
+import { playerSlug } from "../../utils/playerUrl.js";
+import { useDuplicatePlayerSlugsAll } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
@@ -28,13 +29,14 @@ const statKeysForLeague = {
 
 export default function FavoritePlayersSection({ players, compact = false, onRemove }) {
   const queryClient = useQueryClient();
+  const dupeSlugsByLeague = useDuplicatePlayerSlugsAll();
   return (
     <div>
       <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold mb-4">Favorite Players</h2>
       <div className="flex flex-col gap-3">
         {players.map((player) => {
           const statKeys = statKeysForLeague[player.league] || statKeysForLeague.nba;
-          const playerSlug = slugify(player.name);
+          const slug = playerSlug(player, dupeSlugsByLeague[player.league]);
           const recentStats = compact ? player.recentStats.slice(0, 3) : player.recentStats;
 
           return (
@@ -45,11 +47,11 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
             >
               <div className={`flex items-center ${compact ? "gap-2" : ""}`}>
                 <Link
-                  to={`/${player.league}/players/${playerSlug}`}
+                  to={`/${player.league}/players/${slug}`}
                   className={`flex items-center gap-${compact ? "3" : "4"} shrink-0 hover:opacity-80 transition-opacity ${compact ? "flex-1 min-w-0" : "w-full sm:w-52"}`}
                   onMouseEnter={() => {
                     if (window.matchMedia("(hover: hover)").matches) {
-                      queryClient.prefetchQuery({ queryKey: queryKeys.player(player.league, playerSlug, null), queryFn: queryFns.player(player.league, playerSlug, null), staleTime: 10_000 });
+                      queryClient.prefetchQuery({ queryKey: queryKeys.player(player.league, slug, null), queryFn: queryFns.player(player.league, slug, null), staleTime: 10_000 });
                     }
                   }}
                 >
@@ -107,7 +109,7 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
                       return (
                         <Link
                           key={stat.game_id}
-                          to={`/${player.league}/games/${stat.game_id}?tab=analysis#${playerSlug}`}
+                          to={`/${player.league}/games/${stat.game_id}?tab=analysis#${slug}`}
                           className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
                         >
                           {result && (
