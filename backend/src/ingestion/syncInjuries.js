@@ -106,6 +106,26 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
           entry?.details?.type ||
           null;
 
+        // Read prior (status, description) so we can detect a real change
+        const prior = await client.query(
+          `SELECT id, status, status_description FROM players
+            WHERE espn_playerid = $1 AND league = $2`,
+          [espnPlayerId, leagueSlug],
+        );
+        const prev = prior.rows[0];
+        if (!prev) continue;
+
+        const changed = prev.status !== status || prev.status_description !== description;
+
+        if (changed) {
+          await client.query(
+            `INSERT INTO player_status_history
+              (player_id, league, prev_status, prev_status_description, new_status, new_status_description)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [prev.id, leagueSlug, prev.status, prev.status_description, status, description],
+          );
+        }
+
         const res = await client.query(
           `UPDATE players
               SET status = $1,
@@ -120,7 +140,25 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
         }
       }
 
-      // Clear any player on this team whose ESPN id wasn't in the injury feed
+      // Per-team clear sweep — rewritten to capture pre-state for history
+      const toClear = await client.query(
+        `SELECT id, league, status, status_description FROM players
+          WHERE teamid = $1
+            AND league = $2
+            AND status IS NOT NULL
+            AND NOT (espn_playerid = ANY($3::int[]))`,
+        [team.id, leagueSlug, injuredEspnIds],
+      );
+
+      for (const row of toClear.rows) {
+        await client.query(
+          `INSERT INTO player_status_history
+            (player_id, league, prev_status, prev_status_description, new_status, new_status_description)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [row.id, row.league, row.status, row.status_description, null, null],
+        );
+      }
+
       const clearRes = await client.query(
         `UPDATE players
             SET status = NULL,
@@ -138,6 +176,23 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
     // Stale sweep — catches players (traded, cut, retired, team-less) whose
     // injury rows never got refreshed above because they aren't on any active
     // team's injury feed. Anything older than the threshold is cleared.
+    const staleRows = await client.query(
+      `SELECT id, league, status, status_description FROM players
+         WHERE league = $1
+           AND status IS NOT NULL
+           AND status_updated_at < NOW() - ($2 || ' days')::INTERVAL`,
+      [leagueSlug, String(STALE_CLEAR_DAYS)],
+    );
+
+    for (const row of staleRows.rows) {
+      await client.query(
+        `INSERT INTO player_status_history
+          (player_id, league, prev_status, prev_status_description, new_status, new_status_description)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [row.id, row.league, row.status, row.status_description, null, null],
+      );
+    }
+
     const staleRes = await client.query(
       `UPDATE players
           SET status = NULL,
