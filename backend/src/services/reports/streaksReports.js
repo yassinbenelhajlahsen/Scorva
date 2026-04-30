@@ -32,7 +32,7 @@ const NBA_QUERY = `
     FROM stats s
     JOIN games g ON g.id = s.gameid
     JOIN players p ON p.id = s.playerid
-    WHERE p.league = 'nba' AND g.type IN ('regular', 'makeup')
+    WHERE p.league = 'nba' AND g.type IN ('regular', 'makeup', 'playoff')
       AND g.date > CURRENT_DATE - INTERVAL '60 days'
   ),
   -- For each (player, stat) compute the prefix length where rn < first failure.
@@ -72,7 +72,7 @@ const NBA_QUERY = `
          pr.last_game_date
   FROM prefix pr
   JOIN players p ON p.id = pr.playerid
-  WHERE pr.streak_length >= 5 AND pr.most_recent_ok = TRUE
+  WHERE pr.streak_length >= 4 AND pr.most_recent_ok = TRUE
   ORDER BY pr.last_game_date DESC, pr.streak_length DESC
   LIMIT 50
 `;
@@ -89,7 +89,7 @@ const NFL_QUERY = `
     FROM stats s
     JOIN games g ON g.id = s.gameid
     JOIN players p ON p.id = s.playerid
-    WHERE p.league = 'nfl' AND g.type IN ('regular', 'makeup')
+    WHERE p.league = 'nfl' AND g.type IN ('regular', 'makeup', 'playoff')
       AND g.date > CURRENT_DATE - INTERVAL '180 days'
   ),
   prefix AS (
@@ -132,7 +132,7 @@ const NHL_QUERY = `
     FROM stats s
     JOIN games g ON g.id = s.gameid
     JOIN players p ON p.id = s.playerid
-    WHERE p.league = 'nhl' AND g.type IN ('regular', 'makeup')
+    WHERE p.league = 'nhl' AND g.type IN ('regular', 'makeup', 'playoff')
       AND g.date > CURRENT_DATE - INTERVAL '60 days'
   ),
   prefix AS (
@@ -150,7 +150,7 @@ const NHL_QUERY = `
   SELECT pr.playerid AS player_id, p.name AS player_name, p.image_url AS player_image,
          pr.stat_label, pr.streak_length, pr.last_game_date
   FROM prefix pr JOIN players p ON p.id = pr.playerid
-  WHERE pr.streak_length >= 5 AND pr.most_recent_ok = TRUE
+  WHERE pr.streak_length >= 3 AND pr.most_recent_ok = TRUE
   ORDER BY pr.last_game_date DESC, pr.streak_length DESC
   LIMIT 50
 `;
