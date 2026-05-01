@@ -64,6 +64,7 @@ model players {
   status               String?                @db.VarChar(20)
   status_description   String?
   status_updated_at    DateTime?              @db.Timestamptz(6)
+  status_changed_at    DateTime?              @db.Timestamptz(6)
   teams                    teams?                    @relation(fields: [teamid], references: [id], onUpdate: NoAction)
   stats                    stats[]
   user_favorite_players    user_favorite_players[]

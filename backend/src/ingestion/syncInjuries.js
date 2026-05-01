@@ -32,6 +32,19 @@ function cleanDesc(raw) {
   return t === "" ? null : t;
 }
 
+function parseEntryDate(raw) {
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function toMs(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v.getTime();
+  const d = new Date(v);
+  return Number.isFinite(d.getTime()) ? d.getTime() : null;
+}
+
 // The per-team endpoint (`/teams/{id}/injuries`) returns `{}` — use the
 // league-wide feed instead. Shape: { injuries: [{id, displayName, injuries: [...]}] }
 async function fetchLeagueInjuries(leagueSlug) {
@@ -109,7 +122,7 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
       const priorMap = new Map();
       if (candidateEspnIds.length > 0) {
         const priors = await client.query(
-          `SELECT id, espn_playerid, status, status_description FROM players
+          `SELECT id, espn_playerid, status, status_description, status_changed_at FROM players
             WHERE espn_playerid = ANY($1::int[]) AND league = $2`,
           [candidateEspnIds, leagueSlug],
         );
@@ -125,22 +138,27 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
         const description = cleanDesc(
           entry?.shortComment || entry?.longComment || entry?.details?.type,
         );
+        const entryDate = parseEntryDate(entry?.date);
 
         const prev = priorMap.get(espnPlayerId);
         if (!prev) continue;
 
-        // ESPN intermittently omits the comment fields. Treat a missing
-        // description as "no signal" so we don't bump changed_at every cycle.
-        const descChanged =
-          description !== null && description !== prev.status_description;
-        const changed = prev.status !== status || descChanged;
+        // ESPN's `entry.date` is the canonical "this injury report was filed/edited
+        // at" timestamp — stable across sync cycles when nothing material changes,
+        // and bumped by ESPN when status or report content actually moves. Use it
+        // as the change-detection key so news-copy churn (shortComment edits) and
+        // missing/whitespace fields don't manufacture history rows every cycle.
+        const prevDateMs = toMs(prev.status_changed_at);
+        const entryDateMs = entryDate ? entryDate.getTime() : null;
+        const dateChanged = entryDateMs !== null && entryDateMs !== prevDateMs;
+        const changed = prev.status !== status || dateChanged;
 
         if (changed) {
           await client.query(
             `INSERT INTO player_status_history
-              (player_id, league, prev_status, prev_status_description, new_status, new_status_description)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [prev.id, leagueSlug, prev.status, prev.status_description, status, description],
+              (player_id, league, prev_status, prev_status_description, new_status, new_status_description, changed_at)
+             VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::timestamptz, NOW()))`,
+            [prev.id, leagueSlug, prev.status, prev.status_description, status, description, entryDate],
           );
         }
 
@@ -148,9 +166,10 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
           `UPDATE players
               SET status = $1,
                   status_description = COALESCE($2, status_description),
-                  status_updated_at = NOW()
+                  status_updated_at = NOW(),
+                  status_changed_at = COALESCE($5::timestamptz, status_changed_at)
             WHERE espn_playerid = $3 AND league = $4`,
-          [status, description, espnPlayerId, leagueSlug],
+          [status, description, espnPlayerId, leagueSlug, entryDate],
         );
         if (res.rowCount > 0) {
           updated += res.rowCount;
@@ -181,7 +200,8 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
         `UPDATE players
             SET status = NULL,
                 status_description = NULL,
-                status_updated_at = NOW()
+                status_updated_at = NOW(),
+                status_changed_at = NULL
           WHERE teamid = $1
             AND league = $2
             AND status IS NOT NULL
@@ -215,7 +235,8 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
       `UPDATE players
           SET status = NULL,
               status_description = NULL,
-              status_updated_at = NOW()
+              status_updated_at = NOW(),
+              status_changed_at = NULL
         WHERE league = $1
           AND status IS NOT NULL
           AND status_updated_at < NOW() - ($2 || ' days')::INTERVAL`,

@@ -47,7 +47,7 @@ describe("syncInjuries history insertion", () => {
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: null }] }],
       [/INSERT INTO player_status_history/, { rowCount: 1 }],
       [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
     ]);
@@ -86,7 +86,7 @@ describe("syncInjuries history insertion", () => {
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: null }] }],
       [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
     ]);
 
@@ -116,7 +116,7 @@ describe("syncInjuries history insertion", () => {
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: null }] }],
       [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
     ]);
 
@@ -144,7 +144,7 @@ describe("syncInjuries history insertion", () => {
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: null }] }],
       [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
     ]);
 
@@ -154,6 +154,111 @@ describe("syncInjuries history insertion", () => {
       /INSERT INTO player_status_history/.test(sql)
     );
     expect(insertCalls).toHaveLength(0);
+  });
+
+  it("does NOT insert when entry.date matches stored status_changed_at", async () => {
+    // ESPN's entry.date is the canonical "this report was filed at" timestamp.
+    // If it matches what we last saved, the report is the same — no history row,
+    // even if shortComment text drifted.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "knee — updated news copy",
+            date: "2025-09-05T21:43Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: new Date("2025-09-05T21:43Z") }] }],
+      [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const insertCalls = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCalls).toHaveLength(0);
+  });
+
+  it("inserts when entry.date advances even if status unchanged", async () => {
+    // ESPN bumped the injury report (e.g. severity update) — we want a new
+    // history row keyed at ESPN's date, not NOW().
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "knee — re-evaluated",
+            date: "2026-04-22T21:37Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: new Date("2025-09-05T21:43Z") }] }],
+      [/INSERT INTO player_status_history/, { rowCount: 1 }],
+      [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const insertCall = pool.queryHandler.mock.calls.find(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCall).toBeDefined();
+    // entry.date passed as last param (parameterized changed_at)
+    const params = insertCall[1];
+    const entryDateParam = params[params.length - 1];
+    expect(entryDateParam).toBeInstanceOf(Date);
+    expect(entryDateParam.toISOString()).toBe("2026-04-22T21:37:00.000Z");
+  });
+
+  it("backfills status_changed_at on first sync of a known-injured player", async () => {
+    // Existing player with status set but status_changed_at NULL (deploy state).
+    // First sync should create exactly one history row with changed_at = entry.date
+    // and update players.status_changed_at.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "torn ACL",
+            date: "2025-09-05T21:43Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "torn ACL", status_changed_at: null }] }],
+      [/INSERT INTO player_status_history/, { rowCount: 1 }],
+      [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const insertCalls = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCalls).toHaveLength(1);
+    const params = insertCalls[0][1];
+    expect(params[params.length - 1]).toBeInstanceOf(Date);
+    expect(params[params.length - 1].toISOString()).toBe("2025-09-05T21:43:00.000Z");
   });
 
   it("inserts a history row when clearing status (active player no longer injured)", async () => {
