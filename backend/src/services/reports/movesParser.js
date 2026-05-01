@@ -5,7 +5,6 @@
 const SIGN_RE = /^\s*(?:re-?signed|signed|converted)/i;
 const WAIVE_RE = /^\s*(?:waived(?:\/injured)?|released)/i;
 const TRADE_RE = /^\s*(?:traded|acquired)/i;
-const TRADED_RE = /^\s*traded\b/i;
 const ACQUIRED_RE = /^\s*acquired\b/i;
 const COACH_RE = /^\s*(?:announced the resignation|fired|hired|named)/i;
 
