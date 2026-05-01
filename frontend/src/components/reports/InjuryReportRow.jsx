@@ -14,7 +14,7 @@ const STATUS_CLASS = {
 
 function StatusPill({ status, label }) {
   if (!status) return <span className="text-text-tertiary">Active</span>;
-  const cls = STATUS_CLASS[status] ?? "text-text-secondary";
+  const cls = `${STATUS_CLASS[status] ?? "text-text-secondary"} capitalize`;
   return <span className={cls}>{label || status}</span>;
 }
 
