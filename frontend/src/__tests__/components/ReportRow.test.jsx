@@ -52,6 +52,47 @@ describe("ReportRow", () => {
     expect(screen.getByText(/5-game double-double streak/)).toBeInTheDocument();
   });
 
+  it("renders a team win streak with logo and league-team link", () => {
+    const team = {
+      id: 13, name: "Nuggets", location: "Denver", shortname: "DEN",
+      abbreviation: "DEN", logoUrl: "https://espn.com/den.png", league: "nba",
+    };
+    const r = {
+      id: "streak-team-13-win-2026-04-20",
+      type: "streak",
+      date: "2026-04-29T22:00:00Z",
+      league: "nba",
+      team,
+      streakLength: 5,
+      statLabel: "win",
+      emoji: "🔥",
+    };
+    render(inRouter(<ReportRow report={r} />));
+    expect(screen.getByText(/5-game win streak/)).toBeInTheDocument();
+    expect(screen.getByAltText("Nuggets")).toBeInTheDocument();
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toMatch(/\/nba\/teams\/DEN/i);
+  });
+
+  it("renders a team loss streak with snowflake emoji", () => {
+    const team = {
+      id: 7, name: "Wizards", location: "Washington", shortname: "WAS",
+      abbreviation: "WAS", logoUrl: null, league: "nba",
+    };
+    const r = {
+      id: "streak-team-7-loss-2026-04-22",
+      type: "streak",
+      date: "2026-04-29T22:00:00Z",
+      league: "nba",
+      team,
+      streakLength: 4,
+      statLabel: "loss",
+      emoji: "❄️",
+    };
+    render(inRouter(<ReportRow report={r} />));
+    expect(screen.getByText(/4-game loss streak/)).toBeInTheDocument();
+  });
+
   it("falls back to initials when imageUrl is null", () => {
     const r = {
       id: "i1", type: "injury", date: "2026-04-30T18:00:00Z", league: "nba", player,
