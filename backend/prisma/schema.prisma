@@ -294,3 +294,20 @@ model plays {
   @@index([gameid, scoring_play])
 }
 
+model streak_events {
+  id              Int      @id @default(autoincrement())
+  league          String   @db.VarChar(10)
+  subject_type    String   @db.VarChar(10)
+  subject_id      Int
+  stat_label      String   @db.VarChar(40)
+  length          Int
+  start_game_date DateTime @db.Date
+  last_game_date  DateTime @db.Date
+  is_active       Boolean  @default(true)
+  detected_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([subject_type, subject_id, stat_label, start_game_date], map: "streak_events_unique")
+  @@index([league, last_game_date(sort: Desc)], map: "streak_events_feed_idx")
+}
+
