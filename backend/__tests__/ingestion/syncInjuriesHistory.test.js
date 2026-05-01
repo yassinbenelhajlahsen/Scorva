@@ -261,6 +261,80 @@ describe("syncInjuries history insertion", () => {
     expect(params[params.length - 1].toISOString()).toBe("2025-09-05T21:43:00.000Z");
   });
 
+  it("does NOT process ESPN entries with status=Active (roster news, not injuries)", async () => {
+    // ESPN's NFL injury feed includes contract signings / trade news / returns
+    // tagged status="Active" with roster-news shortComment text. We must skip
+    // these — they aren't injuries, and processing them would pollute history.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nfl/player/_/id/4234/test" }] },
+            status: "Active",
+            shortComment: "Player agreed to a three-year, $25M contract on Monday.",
+            date: "2026-05-01T18:00Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      // Player has no prior status — should remain untouched
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: null, status_description: null, status_changed_at: null }] }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nfl");
+
+    const insertCalls = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    const updateCalls = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /UPDATE players[\s\S]*SET status\s*=\s*\$1/.test(sql)
+    );
+    expect(insertCalls).toHaveLength(0);
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it("clears a previously-injured player when ESPN now lists them as Active", async () => {
+    // Player was 'out' in DB; ESPN now lists them as Active (recovered/returned).
+    // We skip the entry, but the per-team clear sweep should fire and transition
+    // them out → null with NOW() as changed_at (legitimate clear).
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nfl/player/_/id/4234/test" }] },
+            status: "Active",
+            shortComment: "Player has been activated from injured reserve.",
+            date: "2026-05-01T18:00Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "ankle", status_changed_at: new Date("2026-04-01T00:00Z") }] }],
+      // Per-team clear sweep finds this player (status set, espn id NOT in injuredEspnIds since we skipped Active)
+      [/SELECT id, league, status, status_description FROM players[\s\S]*WHERE teamid/, { rows: [{ id: 4234, league: "nfl", status: "out", status_description: "ankle" }] }],
+      [/INSERT INTO player_status_history/, { rowCount: 1 }],
+      [/UPDATE players[\s\S]*SET status[\s\S]*= NULL/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nfl");
+
+    const insertCall = pool.queryHandler.mock.calls.find(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCall).toBeDefined();
+    expect(insertCall[1]).toEqual(
+      expect.arrayContaining([4234, "nfl", "out", "ankle", null, null])
+    );
+  });
+
   it("inserts a history row when clearing status (active player no longer injured)", async () => {
     mockAxiosGet.mockResolvedValueOnce({ data: { injuries: [{ id: 1, injuries: [] }] } });
 

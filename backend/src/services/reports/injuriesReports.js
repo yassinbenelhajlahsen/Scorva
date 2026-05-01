@@ -23,6 +23,9 @@ export async function getInjuriesForLeague(league) {
        JOIN players p ON p.id = h.player_id
        WHERE h.league = $1
          AND h.changed_at > NOW() - INTERVAL '30 days'
+         AND h.prev_status IS DISTINCT FROM h.new_status
+         AND COALESCE(h.prev_status, '') <> 'active'
+         AND COALESCE(h.new_status, '') <> 'active'
        ORDER BY h.changed_at DESC
        LIMIT 200`,
       [league]

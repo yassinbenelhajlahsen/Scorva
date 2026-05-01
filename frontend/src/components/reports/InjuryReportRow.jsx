@@ -12,10 +12,16 @@ const STATUS_CLASS = {
   "day-to-day": "text-accent",
 };
 
+const STATUS_LABEL = {
+  ir: "Injured Reserve",
+};
+
 function StatusPill({ status, label }) {
-  if (!status) return <span className="text-text-tertiary">Active</span>;
-  const cls = `${STATUS_CLASS[status] ?? "text-text-secondary"} capitalize`;
-  return <span className={cls}>{label || status}</span>;
+  if (!status) return <span className="text-win">Active</span>;
+  const display = label || STATUS_LABEL[status] || status;
+  const baseCls = STATUS_CLASS[status] ?? "text-text-secondary";
+  const cls = STATUS_LABEL[status] ? baseCls : `${baseCls} capitalize`;
+  return <span className={cls}>{display}</span>;
 }
 
 export default function InjuryReportRow({ report }) {
@@ -33,7 +39,13 @@ export default function InjuryReportRow({ report }) {
           {player.name}
         </div>
         <div className="text-[13px] text-text-secondary mt-0.5">
-          <StatusPill status={prevStatus} /> <span className="text-text-tertiary mx-1">→</span> <StatusPill status={newStatus} />
+          {prevStatus === newStatus ? (
+            <StatusPill status={newStatus} />
+          ) : (
+            <>
+              <StatusPill status={prevStatus} /> <span className="text-text-tertiary mx-1">→</span> <StatusPill status={newStatus} />
+            </>
+          )}
           {newStatusDescription && (
             <span className="text-text-tertiary"> · {newStatusDescription}</span>
           )}
