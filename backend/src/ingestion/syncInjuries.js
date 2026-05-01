@@ -4,8 +4,15 @@ import { getSportPath, withRetry } from "./espn/espnAPIClient.js";
 
 const log = logger.child({ worker: "syncInjuries" });
 
+// "active" is intentionally absent — ESPN's NFL injury feed tags contract
+// signings, trade announcements, and return-from-injury notes with
+// status="Active" plus roster-news shortComment text. Mapping it as a status
+// would pollute players.status + player_status_history with non-injury events
+// (and on subsequent syncs they'd cycle active->null via the clear sweep).
+// A genuinely-recovered player is still handled correctly: they fall through
+// the change-detection (no entry is processed for them this cycle), so the
+// per-team clear sweep transitions them from their prior status to null.
 const ESPN_STATUS_MAP = {
-  active: "active",
   "day-to-day": "day-to-day",
   "day to day": "day-to-day",
   questionable: "questionable",

@@ -245,7 +245,7 @@ Top-level league-agnostic feed of injuries, moves, birthdays, and active streaks
 - Controller: `backend/src/controllers/reports/reportsController.js`
 - Service: `backend/src/services/reports/reportsService.js` — orchestrates 4 per-type queries, sorts by date DESC then type priority (injury→move→streak→birthday) then id, slices by `(limit, offset)`. Cached 30 min per `(league, type)` combo (`reports:list:{league|all}:{type|all}`).
 - Per-type modules:
-  - `injuriesReports.js` — reads `players.status`/`status_description`/`status_updated_at`
+  - `injuriesReports.js` — reads `player_status_history` joined with `players`; filters out no-op transitions (`prev_status IS DISTINCT FROM new_status`) and any row touching `'active'` (which represents ESPN roster news, not injuries — see syncInjuries below)
   - `movesReports.js` + `movesParser.js` — parses ESPN transaction strings (TRADED / SIGNED / WAIVED / etc.) and resolves player/team references
   - `birthdaysReports.js` — current-season-active players whose DOB matches today
   - `streaksReports.js` — joins `streak_events` (active, current-season window) with `players` and `teams`
@@ -263,6 +263,8 @@ After every `runUpsert` cycle, `pipeline/upsert.js` invalidates `reports:list:{l
 Polls the ESPN league-wide injuries feed and writes `players.status`, `players.status_description`, `players.status_updated_at`, `players.status_changed_at`. Source of truth for `get_team_injuries` / `get_league_injuries` / `get_player_status` chat tools and the prediction injury impact model.
 
 **Change detection** is keyed on ESPN's `entry.date` (the canonical "this injury report was filed/edited at" timestamp), persisted in `players.status_changed_at` (migration `20260501000000_add_player_status_changed_at`). A new `player_status_history` row is inserted only when (a) `status` changed, or (b) `entry.date` differs from the stored `status_changed_at`. This stops `shortComment` text drift and intermittently-missing description fields from manufacturing history rows / churning timestamps every sync cycle. The history row's `changed_at` column is `COALESCE(entry.date, NOW())`. When an injury clears (player drops off the feed or staleness sweep fires), `status_changed_at` is reset to `NULL`.
+
+**Status="Active" entries are skipped.** ESPN's NFL injury feed bundles non-injury news — contract signings, trade announcements, return-from-injury notes — into the same feed with `status: "Active"` and roster-news `shortComment` text. `ESPN_STATUS_MAP` deliberately omits `active`, so `normalizeStatus` returns `null` for those entries and the per-entry loop skips them via the `if (!status) continue;` guard. A genuinely-recovered player (e.g. moving from `out` to `Active`) is still cleared correctly: by skipping their entry we don't push their espn id into `injuredEspnIds`, so the per-team clear sweep transitions them from their prior status to `null`. The reports query layers a defensive `COALESCE(prev_status, '') <> 'active' AND COALESCE(new_status, '') <> 'active'` filter as belt-and-suspenders against any historical rows pre-dating this change.
 
 ## cleanupNonScoringPlays (`ingestion/cleanup/cleanupPlays.js`)
 After a game finalizes, this helper deletes non-scoring rows from `plays` for that game, keeping only scoring plays needed for AI summaries / clutch-play context / GamePage timelines. Called from the upsert pipeline post-game-processing. Reduces row count for old games without affecting any feature.
