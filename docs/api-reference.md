@@ -21,13 +21,16 @@
 - `GET /:league/games/:gameId`
 - `GET /:league/games/:gameId/plays` — returns `{ plays[], source }` where `source` is `"db"` (Final, cached 30d), `"espn"` (live, proxied), or `"none"` (scheduled/no eventid)
 - `GET /:league/games/:gameId/prediction` — pre-game only (returns `null` for live/final); response: `{ homeTeam, awayTeam, headToHead, keyFactors, confidence }`. Each team object includes ratings, records, recent form (last 5), and `injuries: { impactFactor, players[] }` where each player has `{ id, name, position, imageUrl, status, statusDescription, statusUpdatedAt, impactShare, availability }`. `keyFactors` types: `home | injury | h2h | form | offense | defense | record` (max 5). Confidence drops to `"low"` if either team has <5 games or `impactFactor > 0.25`. Cached 1h, key includes `MAX(players.status_updated_at)` so a new ESPN injury report invalidates. See [ARCHITECTURE.md § Game prediction](./ARCHITECTURE.md#game-prediction-servicesgamespredictionservicejs) for the full algorithm.
-- `GET /:league/games/:eventId/win-probability?final=true|false` — returns `{ winProbability[], scoreMargin[] }`; proxied from ESPN summary; cached 30s (live) / 30d (final, `cacheIf` non-null); key `winprob:v2:{league}:{eventId}`
+- `GET /:league/games/:eventId/win-probability?final=true|false` — returns `{ winProbability[], scoreMargin[] }`; proxied from ESPN summary; cached 30s (live) / 30d (final, `cacheIf` non-null); key `winprob:{league}:{espnEventId}`
 - `GET /:league/players`
 - `GET /:league/players/:slug` — `:slug` is `lower(name)` with punctuation stripped and whitespace collapsed to dashes; for shared names the lowest-id player owns the bare slug, others use `slug-{id}` (e.g. `chris-paul-3144`). `getPlayerIdBySlug` resolves both forms.
 - `GET /:league/players/duplicate-slugs` — returns `{ [slug]: canonicalId }` for slugs shared by 2+ players in the league; cached 24h. Used by the frontend to render `slug-{id}` links for non-canonical duplicates.
 - `GET /:league/players/:slug/similar` — returns `{ players: [...] }` (up to 5); position-filtered for NFL/NHL; requires embeddings to be computed; returns `{ players: [] }` if player has < 5 games (< 2 for NFL)
 - `GET /:league/head-to-head` — query params `type` (`players` or `teams`) and `ids` (comma-separated, exactly 2 numeric IDs); returns `{ games: [...] }` with up to 20 recent Final games where the entities faced each other; for players, finds games where both appeared in stats; cached 30d
 - `GET /:league/seasons`
+- `GET /:league/players/:slug/streak` — returns `{ streak: { length, statLabel, subjectType: "player" } | null }` for the player's currently active stat streak (or null if none); cached 60s
+- `GET /:league/teams/:teamId/streak` — returns `{ streak: { length, statLabel: "win"|"loss", subjectType: "team" } | null }` for the team's current W/L streak; cached 60s
+- `GET /reports` — query params `?league=nba|nfl|nhl` (optional; omit for all-leagues), `?type=injury|move|birthday|streak` (optional), `?limit=` (default 20, max 50), `?offset=` (default 0). Returns `{ reports[], total, hasMore }`. Streaks are sourced from the `streak_events` table (active rows in current season); birthdays filter to current-season-active players; moves are parsed from ESPN transactions via `movesParser.js`. Cached 30 min per `(league, type)` combo. Cache is warmed post-upsert and prefetched on `/reports` nav-link hover.
 - `GET /news` — optional `?limit=` (default 4, max 10); returns `{ articles: [{ headline, description, url, imageUrl, published, league }] }`; merged from all 3 leagues sorted by date with at least 1 per league; cached 5 min; filters out roundup/tracker articles
 - `GET /search`
 - `GET /live/:league/games` — SSE stream; heartbeat `: ping` every 15s; `event: done` when no live games
@@ -55,4 +58,5 @@
 - `/:league/games/:gameId` → GamePage
 - `/auth/callback` → AuthCallback (OAuth popup handler — no layout shell)
 - `/:league/compare` → ComparePage (lazy-loaded; query params `type=players|teams` and `ids=slug1,slug2`)
+- `/reports` → ReportsPage (lazy-loaded; top-level — not nested under a league. Filters: league tabs + type select)
 - `*` → ErrorPage (404 catch-all, lazy-loaded)

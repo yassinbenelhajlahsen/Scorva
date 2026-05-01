@@ -15,7 +15,7 @@ For system architecture see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 - **Auth middleware** (`requireAuth`) — calls `supabase.auth.getUser(token)` using `SUPABASE_SECRET_KEY` + `SUPABASE_URL`
 
 ## Validation rules
-- **League validation** — all 8 league-param controllers (teams, standings, games, gameDetail, players, playerDetail, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid); playoffs controller additionally accepts only `nba` and `nhl`
+- **League validation** — all 8 league-param controllers (teams, standings, games, gameDetail, players, playerDetail, seasons, live) validate against `["nba","nfl","nhl"]` (400 if invalid); playoffs controller accepts `nba`, `nhl`, and `nfl` (400 for others)
 - **Tiebreaker cascades** — league-specific logic lives in `backend/src/utils/tiebreaker.js`; `resolveGroup` branches on `league === "nhl"` (NHL: regWins → H2H points → goal diff → goals for) vs NBA/NFL (H2H → division-leader bonus → conf% → point diff); `teams.division` must be populated for the division-leader bonus to take effect
 - **Favorites** — controller validates numeric `playerId`/`teamId` (400 for non-numeric); `checkFavorites` uses `Number.isInteger(n) && n > 0` and caps at 50 IDs per array; service uses `ROW_NUMBER()` for 3 most recent per favorite
 - **Search input** — term capped at 200 chars; LIKE metacharacters (`%`, `_`, `\`) escaped before building the ILIKE pattern to prevent full-table scans
