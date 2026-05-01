@@ -136,6 +136,7 @@ Components call `queryClient.prefetchQuery()` on `mouseenter` with `staleTime: 1
 | `GameMatchupHeader` team names | `team` (home + away) |
 | `BoxScore` player names | `player` |
 | `PlayerPage` team link | `team` |
+| `Navbar` reports link | `reports` (infinite query — first page only) |
 
 `useGame` has `staleTime: 0` — prefetched data serves immediately on navigation while a background refetch runs in parallel. All other hooks use the global 2 min staleTime, so prefetched data stays hot for any click within that window.
 
@@ -185,15 +186,86 @@ Seasons helper: `backend/src/cache/seasons.js` — `getCurrentSeason(league)` (1
 | `similarPlayers:{league}:{playerId}:{season}` | 120s current / 30d past | Player similarity vectors |
 | `prediction:{league}:{gameId}:{freshTs}` | 1h | Pre-game predictions; key includes `MAX(players.status_updated_at)` across both rosters so a new ESPN injury report invalidates the entry |
 | `h2h:{league}:{type}:{id1}:{id2}` | 30d | Head-to-head games (IDs sorted for consistency) |
+| `streak:{league}:{subjectType}:{subjectId}` | 60s | Active player/team streak |
+| `reports:list:{league\|all}:{type\|all}` | 30 min | Reports feed; warmed post-upsert |
 
 **NOT cached**: favorites, user, search, AI summary, SSE live endpoints.
 
 ### Invalidation
 - `upsertGame.js` — deletes `gameDetail` + `games:*:default:*` on every write
 - `liveSync.js` — deletes today default on scoreboard update; standings on finalize; also invalidates `playoffs:{league}:*` (`playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*`) when games in that league finalize; `closeCache()` on shutdown
-- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch; also invalidates `playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*` per league
+- `upsert.js` — `invalidatePattern('games:*')`, `invalidatePattern('standings:*')`, and `invalidatePattern('gameDates:*')` per league after batch; also invalidates `playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*` per league; invalidates `streak:{league}:*` after `updateStreakEvents`; invalidates `reports:list:{league}:*` then warms it via `getReportsForLeague(league)`
 
 `REDIS_URL` must be set on all three Railway services (API, liveSync, upsert).
+
+## Streaks (`streak_events` table)
+
+Active player and team stat streaks are precomputed by an ingestion worker and exposed via dedicated endpoints + a frontend badge.
+
+### Schema (migration `20260430100000_add_streak_events`)
+```
+streak_events(
+  id SERIAL PK,
+  league VARCHAR(10),
+  subject_type VARCHAR(10) CHECK IN ('player','team'),
+  subject_id INT,
+  stat_label VARCHAR(40),       -- e.g. "triple-double", "30+ point", "win", "loss"
+  length INT,
+  start_game_date DATE,
+  last_game_date DATE,
+  is_active BOOLEAN DEFAULT TRUE,
+  detected_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (subject_type, subject_id, stat_label, start_game_date),
+  INDEX (league, last_game_date DESC)
+)
+```
+
+### Ingestion (`ingestion/streakEvents.js`)
+- `updateStreakEvents(pool, league)` is wired into `runUpsert` per league; runs after game/injury processing.
+- `scanPlayerStreaks` finds active player stat streaks via window functions (`ROW_NUMBER`, `BOOL_AND`); thresholds NBA=4, NFL=3, NHL=3 games. NBA also tracks 20+ point streaks. Includes playoff games.
+- `scanTeamStreaks` finds team W/L streaks (threshold 3 games across all leagues), filtered to the current season.
+- Backfill (one-time): `node backend/src/ingestion/scripts/backfillStreaks.js --league nba --season 2025-26` — same scan logic but season-wide.
+- Stat-tier ranking: `services/streaks/streakTiers.js` exports `PLAYER_TIER` (per-league prioritization, e.g. NBA: triple-double > 30+ point > double-double) and `tierCaseSql()` which builds an ordered `CASE` for queries that should surface the most prestigious active streak.
+
+### Service & endpoints
+- `services/streaks/streaksService.js::getActiveStreak(league, subjectType, subjectId)` — cached query (60s TTL) returning `{ length, statLabel, subjectType }` or null. For players, ordered by `tierCaseSql` so the highest-tier streak wins when multiple are active.
+- Routes: `GET /api/:league/players/:slug/streak`, `GET /api/:league/teams/:teamId/streak`. Cache key `streak:{league}:{subjectType}:{subjectId}`; invalidated `streak:{league}:*` after each upsert pass.
+
+### Frontend
+- API: `frontend/src/api/streaks.js`; hook: `frontend/src/hooks/data/useStreak.js` (30s staleTime); query key `queryKeys.streak(league, subjectType, subjectId)`.
+- `StreakBadge` (`frontend/src/components/ui/StreakBadge.jsx`) — renders on PlayerPage and TeamPage (current-season view only). Props: `streak` object, `size: "md"|"sm"`. Loss streaks (team L-streaks) use a blue/ice tone; all others use orange/fire tone with animated pulsing dot.
+
+## Reports (`/reports` page)
+
+Top-level league-agnostic feed of injuries, moves, birthdays, and active streaks. Backed by a single cached service that aggregates from existing tables.
+
+### Backend
+- Route: `backend/src/routes/reports/reports.js` — `GET /api/reports`
+- Controller: `backend/src/controllers/reports/reportsController.js`
+- Service: `backend/src/services/reports/reportsService.js` — orchestrates 4 per-type queries, sorts by date DESC then type priority (injury→move→streak→birthday) then id, slices by `(limit, offset)`. Cached 30 min per `(league, type)` combo (`reports:list:{league|all}:{type|all}`).
+- Per-type modules:
+  - `injuriesReports.js` — reads `players.status`/`status_description`/`status_updated_at`
+  - `movesReports.js` + `movesParser.js` — parses ESPN transaction strings (TRADED / SIGNED / WAIVED / etc.) and resolves player/team references
+  - `birthdaysReports.js` — current-season-active players whose DOB matches today
+  - `streaksReports.js` — joins `streak_events` (active, current-season window) with `players` and `teams`
+
+### Cache warming
+After every `runUpsert` cycle, `pipeline/upsert.js` invalidates `reports:list:{league}:*` then calls `getReportsForLeague(league)` to repopulate the cache. The Navbar `/reports` link prefetches `["reports", "all", "all"]` on `mouseenter`, so first navigation is hot.
+
+### Frontend
+- Page: `frontend/src/pages/ReportsPage.jsx` — league tabs (with team-color logos) + type filter + infinite scroll. Loading state shows 20 skeleton rows.
+- Components in `frontend/src/components/reports/`: `ReportsList`, `ReportRow` (dispatcher), `InjuryReportRow`, `MoveReportRow`, `BirthdayReportRow`, `StreakReportRow`, `NRBadge`. Skeleton: `frontend/src/components/skeletons/ReportRowSkeleton.jsx`.
+- API: `frontend/src/api/reports.js`; hook: `frontend/src/hooks/data/useReports.js` (TQ infinite query). Query key: `queryKeys.reports(league, type, limit, offset)`.
+- Streak rows reuse `teamUrl` helper for team links; full row is clickable through to the player page.
+
+## syncInjuries (`ingestion/syncInjuries.js`)
+Polls the ESPN league-wide injuries feed and writes `players.status`, `players.status_description`, `players.status_updated_at`, `players.status_changed_at`. Source of truth for `get_team_injuries` / `get_league_injuries` / `get_player_status` chat tools and the prediction injury impact model.
+
+**Change detection** is keyed on ESPN's `entry.date` (the canonical "this injury report was filed/edited at" timestamp), persisted in `players.status_changed_at` (migration `20260501000000_add_player_status_changed_at`). A new `player_status_history` row is inserted only when (a) `status` changed, or (b) `entry.date` differs from the stored `status_changed_at`. This stops `shortComment` text drift and intermittently-missing description fields from manufacturing history rows / churning timestamps every sync cycle. The history row's `changed_at` column is `COALESCE(entry.date, NOW())`. When an injury clears (player drops off the feed or staleness sweep fires), `status_changed_at` is reset to `NULL`.
+
+## cleanupNonScoringPlays (`ingestion/cleanup/cleanupPlays.js`)
+After a game finalizes, this helper deletes non-scoring rows from `plays` for that game, keeping only scoring plays needed for AI summaries / clutch-play context / GamePage timelines. Called from the upsert pipeline post-game-processing. Reduces row count for old games without affecting any feature.
 
 ## News headlines
 

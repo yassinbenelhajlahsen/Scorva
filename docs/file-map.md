@@ -92,6 +92,27 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat injury tools                 | `backend/src/services/ai/chat/tools/injuries.js`           |
 | Chat history                      | `backend/src/services/ai/chat/historyService.js`           |
 
+## Backend — Domain: Reports & Streaks
+
+| What                              | Where                                                       |
+| --------------------------------- | ----------------------------------------------------------- |
+| Reports route                     | `backend/src/routes/reports/reports.js`                     |
+| Reports controller                | `backend/src/controllers/reports/reportsController.js`      |
+| Reports service (orchestrator)    | `backend/src/services/reports/reportsService.js`            |
+| Injuries report query             | `backend/src/services/reports/injuriesReports.js`           |
+| Moves report query                | `backend/src/services/reports/movesReports.js`              |
+| Moves parser (ESPN transactions)  | `backend/src/services/reports/movesParser.js`               |
+| Birthdays report query            | `backend/src/services/reports/birthdaysReports.js`          |
+| Streaks report query              | `backend/src/services/reports/streaksReports.js`            |
+| Streak routes                     | `backend/src/routes/streaks/streaks.js`                     |
+| Streak controller                 | `backend/src/controllers/streaks/streaksController.js`      |
+| Active-streak service             | `backend/src/services/streaks/streaksService.js`            |
+| Streak tier ranking helpers       | `backend/src/services/streaks/streakTiers.js`               |
+| Streak events ingestion worker    | `backend/src/ingestion/streakEvents.js`                     |
+| Streak backfill (one-time)        | `backend/src/ingestion/scripts/backfillStreaks.js`          |
+| Non-scoring plays cleanup         | `backend/src/ingestion/cleanup/cleanupPlays.js`             |
+| Injury status sync (ESPN)         | `backend/src/ingestion/syncInjuries.js`                     |
+
 ## Backend — Domain: Meta (News, Search, Seasons, H2H, Webhooks)
 
 | What                  | Where                                                             |
@@ -216,6 +237,21 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat context            | `frontend/src/context/ChatContext.jsx`                         |
 | Chat actions hook       | `frontend/src/hooks/ai/useChatActions.js`                      |
 | Chat components         | `frontend/src/components/chat/`                                |
+
+## Frontend — Reports & Streaks
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Reports page            | `frontend/src/pages/ReportsPage.jsx`                           |
+| Reports API             | `frontend/src/api/reports.js`                                  |
+| Reports hook            | `frontend/src/hooks/data/useReports.js`                        |
+| Reports components      | `frontend/src/components/reports/` (ReportsList, ReportRow, InjuryReportRow, MoveReportRow, BirthdayReportRow, StreakReportRow, NRBadge) |
+| Report row skeleton     | `frontend/src/components/skeletons/ReportRowSkeleton.jsx`      |
+| Streak API              | `frontend/src/api/streaks.js`                                  |
+| Streak hook             | `frontend/src/hooks/data/useStreak.js`                         |
+| StreakBadge component   | `frontend/src/components/ui/StreakBadge.jsx`                   |
+| PlayerStatusBadge       | `frontend/src/components/player/PlayerStatusBadge.jsx`         |
+| TeamComparison          | `frontend/src/components/game/TeamComparison.jsx` (rendered in AnalysisTab on GamePage) |
 
 ## Frontend — News
 

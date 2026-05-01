@@ -91,5 +91,13 @@ Navbar shows avatar with dropdown menu when logged in; "Sign In" pill when logge
 - GameCard clock: `text-live/70` (red)
 - "Live" badge: `text-live` in both
 
+## Badge tone pattern
+
+`PlayerStatusBadge` and `StreakBadge` share a `TONES` map convention: each tone (e.g. `green`, `amber`, `red`, `fire`, `ice`) defines a coordinated set of variants — `bar`, `label`, `ring`, `bg`, `glow`, `dot` — applied per visual element. Add new tones by extending the map; never hand-code one-off colour classes on the badge wrappers.
+
+- `PlayerStatusBadge` (`frontend/src/components/player/PlayerStatusBadge.jsx`) — props: `status`, `description`, `size?: "md"|"sm"`. Status text is capitalized consistently. `sm` variant: `px-2 py-0.5 text-[10px]` (used in favorites panel and report rows).
+- `StreakBadge` (`frontend/src/components/ui/StreakBadge.jsx`) — props: `streak`, `size?: "md"|"sm"`. Animated pulsing dot. Loss streaks use the `ice` tone; all others use `fire`. Renders on PlayerPage / TeamPage current-season views.
+- `NRBadge` (`frontend/src/components/reports/NRBadge.jsx`) — small "NEW" / report-type indicator used in `ReportRow` variants.
+
 ## Game type logos
 `/NBA/NBAPlayoff.png`, `/NBA/NBAFinal.png`, `/NFL/NFLPlayoff.png`, `/NFL/NFLFinal.png`, `/NHL/NHLPlayoff.png`, `/NHL/NHLFinal.png`
