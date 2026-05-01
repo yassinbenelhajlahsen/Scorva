@@ -1,4 +1,5 @@
 import logger from "../logger.js";
+import { getCurrentSeason } from "../cache/seasons.js";
 
 const log = logger.child({ worker: "streakEvents" });
 
@@ -26,8 +27,6 @@ const PLAYER_STATS_BY_LEAGUE = {
 const PLAYER_THRESHOLD = { nba: 4, nfl: 3, nhl: 3 };
 const TEAM_THRESHOLD = { nba: 3, nfl: 3, nhl: 3 };
 
-const RECENT_WINDOW_DAYS = 60;
-
 function buildPlayerScanSQL(statExpr, label) {
   return `
     -- streak label: ${label}
@@ -40,8 +39,8 @@ function buildPlayerScanSQL(statExpr, label) {
       JOIN games g ON g.id = s.gameid
       JOIN players p ON p.id = s.playerid
       WHERE p.league = $1
+        AND g.season = $2
         AND g.type IN ('regular','makeup','playoff')
-        AND g.date > CURRENT_DATE - INTERVAL '${RECENT_WINDOW_DAYS} days'
     ),
     streaks AS (
       SELECT subject_id,
@@ -57,19 +56,19 @@ function buildPlayerScanSQL(statExpr, label) {
            s.last_game_date
     FROM streaks s
     JOIN recent r ON r.subject_id = s.subject_id AND r.rn = s.length
-    WHERE s.length >= $2
+    WHERE s.length >= $3
       AND s.most_recent_ok = TRUE
   `;
 }
 
-async function scanPlayerStreaks(client, league) {
+async function scanPlayerStreaks(client, league, season) {
   const stats = PLAYER_STATS_BY_LEAGUE[league] || [];
   const threshold = PLAYER_THRESHOLD[league];
   if (!threshold) return [];
   const out = [];
   for (const { label, expr } of stats) {
     const sql = buildPlayerScanSQL(expr, label);
-    const { rows } = await client.query(sql, [league, threshold]);
+    const { rows } = await client.query(sql, [league, season, threshold]);
     for (const row of rows) {
       out.push({
         subject_type: "player",
@@ -95,8 +94,8 @@ function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
       FROM games g
       JOIN teams t ON t.id = g.hometeamid
       WHERE t.league = $1
+        AND g.season = $2
         AND g.type IN ('regular','makeup','playoff')
-        AND g.date > CURRENT_DATE - INTERVAL '${RECENT_WINDOW_DAYS} days'
         AND g.homescore IS NOT NULL AND g.awayscore IS NOT NULL
         AND g.homescore <> g.awayscore
       UNION ALL
@@ -106,8 +105,8 @@ function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
       FROM games g
       JOIN teams t ON t.id = g.awayteamid
       WHERE t.league = $1
+        AND g.season = $2
         AND g.type IN ('regular','makeup','playoff')
-        AND g.date > CURRENT_DATE - INTERVAL '${RECENT_WINDOW_DAYS} days'
         AND g.homescore IS NOT NULL AND g.awayscore IS NOT NULL
         AND g.homescore <> g.awayscore
     ),
@@ -130,17 +129,17 @@ function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
            s.last_game_date
     FROM streaks s
     JOIN ranked r ON r.team_id = s.team_id AND r.rn = s.length
-    WHERE s.length >= $2 AND s.most_recent_ok = TRUE
+    WHERE s.length >= $3 AND s.most_recent_ok = TRUE
   `;
 }
 
-async function scanTeamStreaks(client, league) {
+async function scanTeamStreaks(client, league, season) {
   const threshold = TEAM_THRESHOLD[league];
   if (!threshold) return [];
   const out = [];
   for (const [outcomeCol, label] of [["won", "win"], ["lost", "loss"]]) {
     const sql = buildTeamScanSQL(outcomeCol);
-    const { rows } = await client.query(sql, [league, threshold]);
+    const { rows } = await client.query(sql, [league, season, threshold]);
     for (const row of rows) {
       out.push({
         subject_type: "team",
@@ -225,17 +224,22 @@ async function deactivateMissing(client, league, active) {
   );
 }
 
-export async function updateStreakEvents(pool, league) {
+export async function updateStreakEvents(pool, league, { season } = {}) {
+  const effectiveSeason = season ?? (await getCurrentSeason(league));
+  if (!effectiveSeason) {
+    log.warn({ league }, "no current season resolved; skipping streak update");
+    return;
+  }
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const players = await scanPlayerStreaks(client, league);
-    const teams   = await scanTeamStreaks(client, league);
+    const players = await scanPlayerStreaks(client, league, effectiveSeason);
+    const teams   = await scanTeamStreaks(client, league, effectiveSeason);
     const active  = [...players, ...teams];
     await upsertActiveRows(client, league, active);
     await deactivateMissing(client, league, active);
     await client.query("COMMIT");
-    log.info({ league, active: active.length }, "streak events updated");
+    log.info({ league, season: effectiveSeason, active: active.length }, "streak events updated");
   } catch (err) {
     try { await client.query("ROLLBACK"); } catch { /* ignore */ }
     throw err;

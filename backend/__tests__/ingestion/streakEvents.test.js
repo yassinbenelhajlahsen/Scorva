@@ -6,6 +6,11 @@ import { dirname, resolve } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const seasonsPath = resolve(__dirname, "../../src/cache/seasons.js");
+jest.unstable_mockModule(seasonsPath, () => ({
+  getCurrentSeason: jest.fn().mockResolvedValue("2025-26"),
+}));
+
 const { updateStreakEvents } = await import(
   resolve(__dirname, "../../src/ingestion/streakEvents.js"),
 );
@@ -117,7 +122,8 @@ describe("updateStreakEvents — player streaks", () => {
       (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
     );
     for (const [, params] of scanCalls) {
-      expect(params[1]).toBe(4);
+      expect(params[1]).toBe("2025-26");
+      expect(params[2]).toBe(4);
     }
   });
 
@@ -130,7 +136,8 @@ describe("updateStreakEvents — player streaks", () => {
       (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
     );
     for (const [, params] of scanCalls) {
-      expect(params[1]).toBe(3);
+      expect(params[1]).toBe("2025-26");
+      expect(params[2]).toBe(3);
     }
   });
 
@@ -143,7 +150,36 @@ describe("updateStreakEvents — player streaks", () => {
       (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
     );
     for (const [, params] of scanCalls) {
-      expect(params[1]).toBe(3);
+      expect(params[1]).toBe("2025-26");
+      expect(params[2]).toBe(3);
+    }
+  });
+
+  it("filters games by season instead of a recent-day window", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
+    );
+    expect(scanCalls.length).toBeGreaterThan(0);
+    for (const [sql] of scanCalls) {
+      expect(sql).toMatch(/g\.season\s*=\s*\$2/);
+      expect(sql).not.toMatch(/INTERVAL/i);
+    }
+  });
+
+  it("threads an explicit season override into queries", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba", { season: "2024-25" });
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
+    );
+    for (const [, params] of scanCalls) {
+      expect(params[1]).toBe("2024-25");
     }
   });
 });
@@ -185,7 +221,8 @@ describe("updateStreakEvents — team streaks", () => {
       (c) => typeof c[0] === "string" && /FROM games/i.test(c[0]),
     );
     for (const [, params] of scanCalls) {
-      expect(params[1]).toBe(3);
+      expect(params[1]).toBe("2025-26");
+      expect(params[2]).toBe(3);
     }
   });
 
