@@ -163,7 +163,7 @@ export default function ReportsPage() {
         reports={reports}
         groupByDate={true}
         loading={isLoading && reports.length === 0}
-        skeletonCount={6}
+        skeletonCount={20}
       />
 
       {!isLoading && hasNextPage && (
