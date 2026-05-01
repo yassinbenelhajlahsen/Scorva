@@ -14,6 +14,7 @@ import { computeAllEmbeddings } from "../computePlayerEmbeddings.js";
 import { cleanupClinchedPlayoffGames } from "../cleanup/cleanupClinchedPlayoffGames.js";
 import { syncInjuriesForLeague } from "../syncInjuries.js";
 import { runSeed as runSeedAwards } from "../scripts/seedAwards.js";
+import { updateStreakEvents } from "../streakEvents.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -69,10 +70,16 @@ export async function runUpsert(pool) {
         } catch (err) {
           log.error({ err, league }, "failed seeding awards");
         }
+        try {
+          await updateStreakEvents(pool, league);
+        } catch (err) {
+          log.error({ err, league }, "failed updating streak events");
+        }
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
         await invalidatePattern(`gameDates:${league}:*`);
         await invalidatePattern(`playerDetail:${league}:*`);
+        await invalidatePattern(`reports:list:${league}`);
         if (league === "nba") await invalidatePattern("playoffs:nba:*");
         if (league === "nhl") await invalidatePattern("playoffs:nhl:*");
         if (league === "nfl") await invalidatePattern("playoffs:nfl:*");

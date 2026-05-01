@@ -76,6 +76,12 @@ jest.unstable_mockModule(
   }),
 );
 
+const mockUpdateStreakEvents = jest.fn().mockResolvedValue();
+jest.unstable_mockModule(
+  resolve(__dirname, "../../src/ingestion/streakEvents.js"),
+  () => ({ updateStreakEvents: mockUpdateStreakEvents }),
+);
+
 const { runUpsert, addOrdinal } = await import(
   resolve(__dirname, "../../src/ingestion/pipeline/upsert.js")
 );
@@ -174,7 +180,7 @@ describe("runUpsert", () => {
   it("invalidates correct cache patterns for each league", async () => {
     await runUpsert(mockPool);
 
-    expect(mockInvalidatePattern).toHaveBeenCalledTimes(16);
+    expect(mockInvalidatePattern).toHaveBeenCalledTimes(19);
     for (const league of ["nba", "nfl", "nhl"]) {
       expect(mockInvalidatePattern).toHaveBeenCalledWith(`games:${league}:*`);
       expect(mockInvalidatePattern).toHaveBeenCalledWith(
@@ -337,5 +343,27 @@ describe("runUpsert", () => {
     expect(mockRunUpcomingProcessing).toHaveBeenCalledWith("nfl", mockPool);
     expect(mockRunUpcomingProcessing).toHaveBeenCalledWith("nhl", mockPool);
     expect(mockRefreshPopularity).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls updateStreakEvents once per league", async () => {
+    await runUpsert(mockPool);
+    expect(mockUpdateStreakEvents).toHaveBeenCalledTimes(3);
+    expect(mockUpdateStreakEvents).toHaveBeenCalledWith(mockPool, "nba");
+    expect(mockUpdateStreakEvents).toHaveBeenCalledWith(mockPool, "nfl");
+    expect(mockUpdateStreakEvents).toHaveBeenCalledWith(mockPool, "nhl");
+  });
+
+  it("invalidates the reports cache key per league", async () => {
+    await runUpsert(mockPool);
+    const patterns = mockInvalidatePattern.mock.calls.map((c) => c[0]);
+    expect(patterns).toContain("reports:list:nba");
+    expect(patterns).toContain("reports:list:nfl");
+    expect(patterns).toContain("reports:list:nhl");
+  });
+
+  it("does not block the rest of the pipeline if streak events throws", async () => {
+    mockUpdateStreakEvents.mockRejectedValueOnce(new Error("boom"));
+    await runUpsert(mockPool);
+    expect(mockRefreshPopularity).toHaveBeenCalled();
   });
 });
