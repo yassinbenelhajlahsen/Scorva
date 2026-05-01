@@ -255,7 +255,7 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PlayByPlay({ league, gameId, isLive }) {
   const { plays: playsData, loading, error, retry } = usePlays(league, gameId, isLive);
-  const [activeFilter, setActiveFilter] = useState(isLive ? "all" : "scoring");
+  const [activeFilter, setActiveFilter] = useState("all");
   const [prevPlayIds] = useState(() => new Set());
 
   const plays = useMemo(() => playsData?.plays ?? [], [playsData]);
@@ -369,7 +369,9 @@ export default function PlayByPlay({ league, gameId, isLive }) {
       {/* Filter pills */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
         <FilterPill label="All" active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
-        <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
+        {isLive && (
+          <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
+        )}
         {periods.map((p) => (
           <FilterPill
             key={p}
@@ -394,7 +396,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 plays={drive.plays}
                 league={league}
                 newPlayIds={newPlayIds}
-                highlightScoring={activeFilter !== "scoring"}
+                highlightScoring={isLive && activeFilter !== "scoring"}
               />
             ))
           ) : (
@@ -406,7 +408,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
             filteredPlays={filteredPlays}
             showPeriodHeaders={activeFilter === "all" || activeFilter === "scoring"}
             newPlayIds={newPlayIds}
-            highlightScoring={activeFilter !== "scoring"}
+            highlightScoring={isLive && activeFilter !== "scoring"}
             league={league}
           />
         )}

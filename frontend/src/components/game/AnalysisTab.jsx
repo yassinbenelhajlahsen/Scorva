@@ -1,11 +1,13 @@
 import BoxScore from "../ui/BoxScore.jsx";
 import AISummary from "../ui/AISummary.jsx";
+import TeamComparison from "./TeamComparison.jsx";
 
 export default function AnalysisTab({ gameId, homeTeam, awayTeam, league, season, isFinal, inProgress }) {
   if (isFinal || inProgress) {
     return (
       <>
         {isFinal && <AISummary gameId={gameId} />}
+        <TeamComparison homeTeam={homeTeam} awayTeam={awayTeam} league={league} />
         <BoxScore
           homeTeam={homeTeam}
           awayTeam={awayTeam}
