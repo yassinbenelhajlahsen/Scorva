@@ -84,9 +84,9 @@ async function scanPlayerStreaks(client, league) {
   return out;
 }
 
-function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */, statLabel) {
+function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
   return `
-    -- streak label: ${statLabel}
+    -- streak label: <set in JS>
     -- ties (homescore <> awayscore) are filtered out below
     WITH team_games AS (
       SELECT g.hometeamid AS team_id, g.date,
@@ -125,7 +125,6 @@ function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */, statLabel) {
       GROUP BY team_id
     )
     SELECT s.team_id        AS subject_id,
-           '${statLabel}'   AS stat_label,
            s.length,
            r.date           AS start_game_date,
            s.last_game_date
@@ -140,13 +139,13 @@ async function scanTeamStreaks(client, league) {
   if (!threshold) return [];
   const out = [];
   for (const [outcomeCol, label] of [["won", "win"], ["lost", "loss"]]) {
-    const sql = buildTeamScanSQL(outcomeCol, label);
+    const sql = buildTeamScanSQL(outcomeCol);
     const { rows } = await client.query(sql, [league, threshold]);
     for (const row of rows) {
       out.push({
         subject_type: "team",
         subject_id: row.subject_id,
-        stat_label: row.stat_label,
+        stat_label: label,
         length: row.length,
         start_game_date: row.start_game_date,
         last_game_date: row.last_game_date,

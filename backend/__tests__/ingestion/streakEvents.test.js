@@ -193,7 +193,7 @@ describe("updateStreakEvents — team streaks", () => {
     client.query.mockImplementation(async (sql) => {
       if (typeof sql !== "string") return { rows: [] };
       if (sql === "BEGIN" || sql === "COMMIT") return { rows: [] };
-      if (/FROM games/i.test(sql) && /win/i.test(sql)) {
+      if (/FROM games/i.test(sql) && /BOOL_AND\(won\)/i.test(sql)) {
         return {
           rows: [
             {
