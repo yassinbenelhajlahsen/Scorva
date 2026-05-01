@@ -15,6 +15,8 @@ import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import PlayerAwardsCard from "../components/cards/PlayerAwardsCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
+import StreakBadge from "../components/ui/StreakBadge.jsx";
+import { useStreak } from "../hooks/data/useStreak.js";
 import teamUrl from "../utils/teamUrl.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
@@ -130,6 +132,13 @@ export default function PlayerPage() {
     return playerData.games.filter((g) => String(g.date).slice(0, 7) === selectedMonth);
   }, [playerData, selectedMonth]);
 
+  const apiSeason = playerData?.season;
+  const currentSeason = playerData?.currentSeason;
+  const viewingCurrentSeason = (selectedSeason || apiSeason) === currentSeason;
+  const { streak } = useStreak(league, "player", playerData?.id, {
+    enabled: viewingCurrentSeason,
+  });
+
   if (loading) return <PlayerPageSkeleton slug={slug} league={league} />;
   if (error) return <ErrorState message={error} onRetry={retry} />;
 
@@ -150,8 +159,7 @@ export default function PlayerPage() {
     );
   }
 
-  const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, season: apiSeason, team, dob, draftInfo, status, statusDescription, currentSeason } = playerData;
-  const viewingCurrentSeason = (selectedSeason || apiSeason) === currentSeason;
+  const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, team, dob, draftInfo, status, statusDescription } = playerData;
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -198,10 +206,13 @@ export default function PlayerPage() {
         <div className="flex-1 flex flex-col gap-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             {viewingCurrentSeason ? (
-              <PlayerStatusBadge
-                status={status}
-                title={statusDescription || undefined}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <PlayerStatusBadge
+                  status={status}
+                  title={statusDescription || undefined}
+                />
+                <StreakBadge streak={streak} />
+              </div>
             ) : <span />}
             <div className="flex gap-2 ml-auto">
               <Link
