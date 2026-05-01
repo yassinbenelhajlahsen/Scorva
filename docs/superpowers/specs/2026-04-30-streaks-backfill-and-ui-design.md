@@ -71,31 +71,41 @@ export function tierCaseSql(labels, columnExpr) {
 
 `tierCaseSql` injects a deterministic ORDER BY into the player streak fetch. Team streaks don't need a tier table — `win`/`loss` are mutually exclusive on a single team, so the team query just does `ORDER BY length DESC LIMIT 1`.
 
-### 4. Player detail — `backend/src/services/players/playerDetailService.js`
+### 4. Streak service — `backend/src/services/streaks/streaksService.js` (new)
 
-Add a small, focused query that returns the top active streak for the player and attach it to the response:
+Single service function consumed by both player and team endpoints:
 
-```sql
-SELECT stat_label, length
-FROM streak_events
-WHERE subject_type = 'player'
-  AND subject_id = $1
-  AND is_active = TRUE
-ORDER BY <tier CASE expr> ASC, length DESC
-LIMIT 1
+```js
+export async function getActiveStreak(league, subjectType, subjectId) {
+  // SELECT stat_label, length
+  // FROM streak_events
+  // WHERE league = $1 AND subject_type = $2 AND subject_id = $3 AND is_active = TRUE
+  // ORDER BY <tier CASE expr (player only)> ASC, length DESC
+  // LIMIT 1
+  // Returns { length, statLabel, subjectType } | null
+}
 ```
 
-Attach as `playerData.streak = { length, statLabel, subjectType: 'player' } | null`. Only run the query when the requested season matches the current season (caller already knows this — `playerDetailService` does season comparison today). When viewing a non-current season, return `streak: null` without querying.
+For `subject_type = 'player'`, the ORDER BY uses `tierCaseSql(PLAYER_TIER[league], 'stat_label')` followed by `length DESC`. For `subject_type = 'team'`, just `length DESC` (win/loss don't co-occur).
 
-### 5. Team detail — `backend/src/services/teams/teamsService.js`
+Cached at `streak:{league}:{subjectType}:{subjectId}` with TTL 60s. Invalidated alongside `playerDetail:*` and a new `streak:*` pattern in `runUpsert` after each pipeline pass (so a freshly broken streak disappears within one upsert cycle).
 
-Same pattern: query `streak_events` with `subject_type = 'team'`, attach `team.streak = { length, statLabel: 'win' | 'loss', subjectType: 'team' } | null`.
+### 5. New endpoints
+
+- `GET /:league/players/:slug/streak` → `{ streak: { length, statLabel, subjectType: 'player' } | null }`
+- `GET /:league/teams/:teamId/streak` → `{ streak: { length, statLabel, subjectType: 'team' } | null }`
+
+Routes thin (delegate to controller); controllers resolve slug → ID (player only; team route accepts numeric ID), call `getActiveStreak`, return `{ streak }`.
+
+Player slug resolution uses the existing `slugResolver.js` utility (same pattern as `playerInfoController`).
 
 ### 6. Cache invalidation
 
-No new invalidation. Existing `playerDetail:*` cache is already cleared after each upsert pass at `backend/src/ingestion/pipeline/upsert.js`. The team detail cache (if present — verify during implementation) gets the same treatment via the existing pattern.
+Add `invalidatePattern("streak:${league}:*")` to the existing block in `backend/src/ingestion/pipeline/upsert.js` (right after the existing `playerDetail:*` invalidation) so streak responses refresh within one upsert cycle.
 
 ## Frontend changes
+
+**Numbering:** the four frontend changes are numbered 1–4 below.
 
 ### 1. `frontend/src/components/ui/StreakBadge.jsx` (new)
 
@@ -111,19 +121,35 @@ Mirrors the styling conventions of `PlayerStatusBadge` (compact pill, size varia
 - Team `loss`: `❄️ {length}-game loss streak`
 - Sizes: `md` (default) → `px-3 py-1 text-xs`; `sm` → `px-2 py-0.5 text-[10px]` (matches the `PlayerStatusBadge` `sm` variant used in the favorites panel).
 
-### 2. `frontend/src/pages/PlayerPage.jsx`
+### 2. `frontend/src/hooks/data/useStreak.js` (new)
 
-Render `<StreakBadge streak={playerData.streak} />` next to the existing `PlayerStatusBadge`. Place after the status badge so injury info reads first. Gated by the existing `viewingCurrentSeason` flag.
+```js
+export function useStreak(league, subjectType, subjectId, { enabled = true } = {}) {
+  // useQuery({ queryKey: queryKeys.streak(league, subjectType, subjectId), enabled, staleTime: 30_000 })
+  // returns { streak, ... }
+}
+```
 
-### 3. `frontend/src/pages/TeamPage.jsx`
+`enabled` lets callers gate the fetch to current-season views.
 
-Render `<StreakBadge streak={team.streak} />` next to the team name in the header. Gated by a current-season check: `!selectedSeason || selectedSeason === leagueSeasons[0]` (since `useTeam` doesn't expose a `currentSeason` field today, `leagueSeasons[0]` from `useSeasons(league)` serves as the current-season reference).
+### 3. `frontend/src/pages/PlayerPage.jsx`
+
+Call `useStreak(league, 'player', playerData?.id, { enabled: viewingCurrentSeason })` and render `<StreakBadge streak={streak} />` next to the existing `PlayerStatusBadge`. Place after the status badge so injury info reads first.
+
+### 4. `frontend/src/pages/TeamPage.jsx`
+
+Call `useStreak(league, 'team', team?.id, { enabled: isCurrentSeason })` where `isCurrentSeason = !selectedSeason || selectedSeason === leagueSeasons[0]`. Render `<StreakBadge streak={streak} />` next to the team name in the header.
 
 ## Testing
 
-- **Backend:** add a focused unit test for `streakTiers.tierCaseSql` (deterministic ordering). Existing `streakEvents` tests continue to pass after the season-filter change (update fixtures to include `season`).
-- **Backfill script:** smoke test that confirms it runs to completion against an empty test DB (no rows, no error).
-- **Frontend:** `StreakBadge.test.jsx` covering player streak, team win, team loss, and `null` (renders nothing).
+- **Backend:**
+  - Unit test for `streakTiers.tierCaseSql` (deterministic ordering, escapes labels safely).
+  - Unit test for `streaksService.getActiveStreak` (player ordering by tier+length; team ordering by length; null when no rows).
+  - Route tests for `/:league/players/:slug/streak` and `/:league/teams/:teamId/streak`.
+  - Existing `streakEvents` tests continue to pass after the season-filter change (update fixtures to pass a season arg through `updateStreakEvents`).
+- **Frontend:**
+  - `useStreak.test.js` covering enabled/disabled and successful fetch.
+  - `StreakBadge.test.jsx` covering player streak, team win, team loss, and `null` (renders nothing).
 
 Out of scope: end-to-end test of the live scan path (already covered by existing `streakEvents` tests).
 
