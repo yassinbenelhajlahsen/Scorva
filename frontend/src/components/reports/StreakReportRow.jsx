@@ -1,11 +1,7 @@
 import { Link } from "react-router-dom";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import { relativeTime } from "../../utils/relativeTime.js";
-
-function teamHref(team) {
-  const slug = team.abbreviation || team.shortname || team.name;
-  return `/${team.league}/teams/${slug}`;
-}
+import teamUrl from "../../utils/teamUrl.js";
 
 function TeamLogo({ team }) {
   if (team?.logoUrl) {
@@ -35,7 +31,7 @@ export default function StreakReportRow({ report }) {
     const team = report.team;
     return (
       <Link
-        to={teamHref(team)}
+        to={teamUrl(team.league, team)}
         className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200"
       >
         <TeamLogo team={team} />

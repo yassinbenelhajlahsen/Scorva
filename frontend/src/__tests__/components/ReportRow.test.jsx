@@ -71,7 +71,7 @@ describe("ReportRow", () => {
     expect(screen.getByText(/5-game win streak/)).toBeInTheDocument();
     expect(screen.getByAltText("Nuggets")).toBeInTheDocument();
     const link = screen.getByRole("link");
-    expect(link.getAttribute("href")).toMatch(/\/nba\/teams\/DEN/i);
+    expect(link.getAttribute("href")).toBe("/nba/teams/den");
   });
 
   it("renders a team loss streak with snowflake emoji", () => {
