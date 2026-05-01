@@ -118,16 +118,22 @@ describe("PlayByPlay", () => {
       expect(screen.getByText("Curry 3pt")).toBeInTheDocument();
     });
 
-    it("renders filter pills including All and Scoring", () => {
-      render(<PlayByPlay {...defaultProps} />);
+    it("renders All and Scoring filter pills when live", () => {
+      render(<PlayByPlay {...defaultProps} isLive={true} />);
       expect(screen.getByText("All")).toBeInTheDocument();
       expect(screen.getByText("Scoring")).toBeInTheDocument();
     });
 
+    it("hides the Scoring filter pill when not live", () => {
+      render(<PlayByPlay {...defaultProps} isLive={false} />);
+      expect(screen.getByText("All")).toBeInTheDocument();
+      expect(screen.queryByText("Scoring")).not.toBeInTheDocument();
+    });
+
     it("renders period filter pills for each distinct period", () => {
       render(<PlayByPlay {...defaultProps} />);
-      expect(screen.getByText("Q1")).toBeInTheDocument();
-      expect(screen.getByText("Q2")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Q1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Q2" })).toBeInTheDocument();
     });
 
     it("filters to scoring plays only when Scoring pill is clicked", () => {
@@ -143,7 +149,7 @@ describe("PlayByPlay", () => {
         error: false,
       });
 
-      render(<PlayByPlay {...defaultProps} />);
+      render(<PlayByPlay {...defaultProps} isLive={true} />);
       fireEvent.click(screen.getByText("Scoring"));
 
       expect(screen.getByText("Scoring play")).toBeInTheDocument();
@@ -164,7 +170,7 @@ describe("PlayByPlay", () => {
       });
 
       render(<PlayByPlay {...defaultProps} />);
-      fireEvent.click(screen.getByText("Q1"));
+      fireEvent.click(screen.getByRole("button", { name: "Q1" }));
 
       expect(screen.getByText("Q1 play")).toBeInTheDocument();
       expect(screen.queryByText("Q2 play")).not.toBeInTheDocument();
@@ -215,8 +221,8 @@ describe("PlayByPlay", () => {
       });
 
       render(<PlayByPlay {...defaultProps} league="nhl" />);
-      expect(screen.getByText("P1")).toBeInTheDocument();
-      expect(screen.getByText("P2")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "P1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "P2" })).toBeInTheDocument();
     });
   });
 
