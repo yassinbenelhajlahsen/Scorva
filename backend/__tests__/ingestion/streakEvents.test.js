@@ -147,3 +147,87 @@ describe("updateStreakEvents — player streaks", () => {
     }
   });
 });
+
+describe("updateStreakEvents — team streaks", () => {
+  let pool;
+  let client;
+
+  beforeEach(() => {
+    pool = createMockPool();
+    client = {
+      query: jest.fn(),
+      release: jest.fn(),
+    };
+    pool.connect = jest.fn().mockResolvedValue(client);
+    jest.clearAllMocks();
+  });
+
+  it("scans team W/L streaks from games for the requested league", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM games/i.test(c[0]) && /hometeamid|awayteamid/i.test(c[0]),
+    );
+    expect(scanCalls.length).toBeGreaterThan(0);
+    for (const [, params] of scanCalls) {
+      expect(params[0]).toBe("nba");
+    }
+  });
+
+  it("filters team scans by threshold of 3", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM games/i.test(c[0]),
+    );
+    for (const [, params] of scanCalls) {
+      expect(params[1]).toBe(3);
+    }
+  });
+
+  it("upserts active team streaks with subject_type='team'", async () => {
+    client.query.mockImplementation(async (sql) => {
+      if (typeof sql !== "string") return { rows: [] };
+      if (sql === "BEGIN" || sql === "COMMIT") return { rows: [] };
+      if (/FROM games/i.test(sql) && /win/i.test(sql)) {
+        return {
+          rows: [
+            {
+              subject_id: 13,
+              stat_label: "win",
+              length: 5,
+              start_game_date: "2026-04-20",
+              last_game_date: "2026-04-29",
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+
+    await updateStreakEvents(pool, "nba");
+
+    const upsertCall = client.query.mock.calls.find(
+      (c) => typeof c[0] === "string" && /INSERT INTO streak_events/i.test(c[0]),
+    );
+    expect(upsertCall).toBeDefined();
+    expect(upsertCall[1]).toEqual(expect.arrayContaining(["team", 13, "win"]));
+  });
+
+  it("ignores tied games (homescore = awayscore)", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nfl");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM games/i.test(c[0]),
+    );
+    for (const [sql] of scanCalls) {
+      expect(sql).toMatch(/homescore\s*<>\s*awayscore/);
+    }
+  });
+});

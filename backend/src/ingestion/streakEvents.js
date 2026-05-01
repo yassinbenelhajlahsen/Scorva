@@ -24,6 +24,7 @@ const PLAYER_STATS_BY_LEAGUE = {
 };
 
 const PLAYER_THRESHOLD = { nba: 4, nfl: 3, nhl: 3 };
+const TEAM_THRESHOLD = { nba: 3, nfl: 3, nhl: 3 };
 
 const RECENT_WINDOW_DAYS = 60;
 
@@ -74,6 +75,78 @@ async function scanPlayerStreaks(client, league) {
         subject_type: "player",
         subject_id: row.subject_id,
         stat_label: label,
+        length: row.length,
+        start_game_date: row.start_game_date,
+        last_game_date: row.last_game_date,
+      });
+    }
+  }
+  return out;
+}
+
+function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */, statLabel) {
+  return `
+    -- streak label: ${statLabel}
+    -- ties (homescore <> awayscore) are filtered out below
+    WITH team_games AS (
+      SELECT g.hometeamid AS team_id, g.date,
+             (g.homescore > g.awayscore) AS won,
+             (g.homescore < g.awayscore) AS lost
+      FROM games g
+      JOIN teams t ON t.id = g.hometeamid
+      WHERE t.league = $1
+        AND g.type IN ('regular','makeup','playoff')
+        AND g.date > CURRENT_DATE - INTERVAL '${RECENT_WINDOW_DAYS} days'
+        AND g.homescore IS NOT NULL AND g.awayscore IS NOT NULL
+        AND g.homescore <> g.awayscore
+      UNION ALL
+      SELECT g.awayteamid, g.date,
+             (g.awayscore > g.homescore),
+             (g.awayscore < g.homescore)
+      FROM games g
+      JOIN teams t ON t.id = g.awayteamid
+      WHERE t.league = $1
+        AND g.type IN ('regular','makeup','playoff')
+        AND g.date > CURRENT_DATE - INTERVAL '${RECENT_WINDOW_DAYS} days'
+        AND g.homescore IS NOT NULL AND g.awayscore IS NOT NULL
+        AND g.homescore <> g.awayscore
+    ),
+    ranked AS (
+      SELECT team_id, date, won, lost,
+             ROW_NUMBER() OVER (PARTITION BY team_id ORDER BY date DESC) AS rn
+      FROM team_games
+    ),
+    streaks AS (
+      SELECT team_id,
+             LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT ${outcomeCol}) - 1, COUNT(*)), COUNT(*))::int AS length,
+             BOOL_AND(${outcomeCol}) FILTER (WHERE rn = 1) AS most_recent_ok,
+             MAX(date) FILTER (WHERE rn = 1) AS last_game_date
+      FROM ranked
+      GROUP BY team_id
+    )
+    SELECT s.team_id        AS subject_id,
+           '${statLabel}'   AS stat_label,
+           s.length,
+           r.date           AS start_game_date,
+           s.last_game_date
+    FROM streaks s
+    JOIN ranked r ON r.team_id = s.team_id AND r.rn = s.length
+    WHERE s.length >= $2 AND s.most_recent_ok = TRUE
+  `;
+}
+
+async function scanTeamStreaks(client, league) {
+  const threshold = TEAM_THRESHOLD[league];
+  if (!threshold) return [];
+  const out = [];
+  for (const [outcomeCol, label] of [["won", "win"], ["lost", "loss"]]) {
+    const sql = buildTeamScanSQL(outcomeCol, label);
+    const { rows } = await client.query(sql, [league, threshold]);
+    for (const row of rows) {
+      out.push({
+        subject_type: "team",
+        subject_id: row.subject_id,
+        stat_label: row.stat_label,
         length: row.length,
         start_game_date: row.start_game_date,
         last_game_date: row.last_game_date,
@@ -158,7 +231,8 @@ export async function updateStreakEvents(pool, league) {
   try {
     await client.query("BEGIN");
     const players = await scanPlayerStreaks(client, league);
-    const active = players;
+    const teams   = await scanTeamStreaks(client, league);
+    const active  = [...players, ...teams];
     await upsertActiveRows(client, league, active);
     await deactivateMissing(client, league, active);
     await client.query("COMMIT");
