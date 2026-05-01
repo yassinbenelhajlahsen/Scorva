@@ -24,6 +24,7 @@ export const queryKeys = {
   teamSeasons:    (league, teamId) => ["teamSeasons", league, teamId],
   teamRoster:     (league, teamId, season) => ["teamRoster", league, teamId, season],
   standings:      (league, season) => ["standings", league, season],
+  streak:         (league, subjectType, subjectId) => ["streak", league, subjectType, subjectId],
   leagueGames:    (league, season, date) => ["leagueGames", league, season, date],
   game:           (league, gameId) => ["game", league, gameId],
   homeGames:      () => ["homeGames"],
