@@ -20,6 +20,9 @@ function buildSql(subjectType, league) {
 }
 
 export async function getActiveStreak(league, subjectType, subjectId) {
+  if (subjectType !== "player" && subjectType !== "team") {
+    throw new Error(`Invalid subjectType: ${subjectType}`);
+  }
   return cached(
     `streak:${league}:${subjectType}:${subjectId}`,
     TTL_SECONDS,

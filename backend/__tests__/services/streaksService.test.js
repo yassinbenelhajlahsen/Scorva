@@ -30,11 +30,14 @@ describe("getActiveStreak", () => {
     expect(out).toEqual({ length: 5, statLabel: "triple-double", subjectType: "player" });
   });
 
-  it("orders player query by tier CASE then length DESC", async () => {
+  it("orders player query with tier CASE ASC then length DESC", async () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
     await getActiveStreak("nba", "player", 42);
     const sql = mockPool.query.mock.calls[0][0];
-    expect(sql).toMatch(/ORDER BY[\s\S]+CASE stat_label[\s\S]+length DESC/i);
+    // tier ASC ensures rarest tier (THEN 0) sorts first
+    expect(sql).toMatch(/ORDER BY\s+CASE stat_label[^)]*ASC,\s*length DESC\s+LIMIT/i);
+    // includes the load-bearing tier-zero label so a reordering of PLAYER_TIER would surface
+    expect(sql).toMatch(/'triple-double' THEN 0/);
     expect(sql).toMatch(/subject_type = \$2/);
   });
 
@@ -57,5 +60,9 @@ describe("getActiveStreak", () => {
     mockPool.query.mockResolvedValueOnce({ rows: [] });
     await getActiveStreak("nhl", "team", 12);
     expect(mockPool.query.mock.calls[0][1]).toEqual(["nhl", "team", 12]);
+  });
+
+  it("throws on invalid subjectType", async () => {
+    await expect(getActiveStreak("nba", "coach", 1)).rejects.toThrow(/Invalid subjectType/);
   });
 });
