@@ -5,7 +5,7 @@ import { getBirthdaysForLeague } from "./birthdaysReports.js";
 import { getStreaksForLeague } from "./streaksReports.js";
 
 const LEAGUES = ["nba", "nfl", "nhl"];
-const TTL_SECONDS = 300; // 5 min
+const TTL_SECONDS = 1800; // 30 min — upsert explicitly invalidates on data change
 const TYPE_ORDER = { injury: 0, move: 1, streak: 2, birthday: 3 };
 
 function compareReports(a, b) {

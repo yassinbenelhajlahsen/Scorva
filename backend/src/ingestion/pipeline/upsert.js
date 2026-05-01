@@ -16,6 +16,7 @@ import { cleanupNonScoringPlays } from "../cleanup/cleanupPlays.js";
 import { syncInjuriesForLeague } from "../syncInjuries.js";
 import { runSeed as runSeedAwards } from "../scripts/seedAwards.js";
 import { updateStreakEvents } from "../streakEvents.js";
+import { getReportsForLeague } from "../../services/reports/reportsService.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -87,6 +88,11 @@ export async function runUpsert(pool) {
         await invalidatePattern(`playerDetail:${league}:*`);
         await invalidatePattern(`streak:${league}:*`);
         await invalidatePattern(`reports:list:${league}`);
+        try {
+          await getReportsForLeague(league);
+        } catch (err) {
+          log.error({ err, league }, "failed warming reports cache");
+        }
         if (league === "nba") await invalidatePattern("playoffs:nba:*");
         if (league === "nhl") await invalidatePattern("playoffs:nhl:*");
         if (league === "nfl") await invalidatePattern("playoffs:nfl:*");
