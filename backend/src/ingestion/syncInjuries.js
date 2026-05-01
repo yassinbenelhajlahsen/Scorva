@@ -26,6 +26,12 @@ export function normalizeStatus(raw) {
   return ESPN_STATUS_MAP[key] || null;
 }
 
+function cleanDesc(raw) {
+  if (!raw) return null;
+  const t = String(raw).trim();
+  return t === "" ? null : t;
+}
+
 // The per-team endpoint (`/teams/{id}/injuries`) returns `{}` — use the
 // league-wide feed instead. Shape: { injuries: [{id, displayName, injuries: [...]}] }
 async function fetchLeagueInjuries(leagueSlug) {
@@ -116,16 +122,18 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
         const status = normalizeStatus(entry?.status);
         if (!status) continue;
 
-        const description =
-          entry?.shortComment ||
-          entry?.longComment ||
-          entry?.details?.type ||
-          null;
+        const description = cleanDesc(
+          entry?.shortComment || entry?.longComment || entry?.details?.type,
+        );
 
         const prev = priorMap.get(espnPlayerId);
         if (!prev) continue;
 
-        const changed = prev.status !== status || prev.status_description !== description;
+        // ESPN intermittently omits the comment fields. Treat a missing
+        // description as "no signal" so we don't bump changed_at every cycle.
+        const descChanged =
+          description !== null && description !== prev.status_description;
+        const changed = prev.status !== status || descChanged;
 
         if (changed) {
           await client.query(
@@ -139,7 +147,7 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
         const res = await client.query(
           `UPDATE players
               SET status = $1,
-                  status_description = $2,
+                  status_description = COALESCE($2, status_description),
                   status_updated_at = NOW()
             WHERE espn_playerid = $3 AND league = $4`,
           [status, description, espnPlayerId, leagueSlug],

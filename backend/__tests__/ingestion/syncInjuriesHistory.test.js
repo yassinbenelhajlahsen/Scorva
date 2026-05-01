@@ -98,6 +98,64 @@ describe("syncInjuries history insertion", () => {
     expect(insertCalls).toHaveLength(0);
   });
 
+  it("does NOT insert when ESPN omits the description for an unchanged injury", async () => {
+    // Regression: ESPN intermittently drops shortComment/longComment. We must not
+    // treat that as a description change and bump changed_at on old injuries.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            // shortComment / longComment intentionally absent
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
+      [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const insertCalls = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCalls).toHaveLength(0);
+  });
+
+  it("does NOT insert when description differs only by whitespace", async () => {
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "  knee  ",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee" }] }],
+      [/UPDATE players[\s\S]*SET status/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const insertCalls = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /INSERT INTO player_status_history/.test(sql)
+    );
+    expect(insertCalls).toHaveLength(0);
+  });
+
   it("inserts a history row when clearing status (active player no longer injured)", async () => {
     mockAxiosGet.mockResolvedValueOnce({ data: { injuries: [{ id: 1, injuries: [] }] } });
 
