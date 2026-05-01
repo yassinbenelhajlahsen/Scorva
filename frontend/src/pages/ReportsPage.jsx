@@ -83,7 +83,7 @@ export default function ReportsPage() {
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) =>
       lastPage?.hasMore ? allPages.length * PAGE_SIZE : undefined,
-    staleTime: 60_000,
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 

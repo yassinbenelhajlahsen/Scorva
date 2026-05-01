@@ -22,6 +22,16 @@ export default function Navbar() {
   const leagueSlugs = new Set(["nba", "nfl", "nhl"]);
 
   function prefetchLeague(to) {
+    if (to === "/reports") {
+      queryClient.prefetchInfiniteQuery({
+        queryKey: ["reports", "all", "all"],
+        queryFn: ({ pageParam = 0, signal }) =>
+          queryFns.reports(undefined, undefined, 20, pageParam)({ signal }),
+        initialPageParam: 0,
+        staleTime: 10_000,
+      });
+      return;
+    }
     const league = to.slice(1);
     if (!leagueSlugs.has(league)) return;
     queryClient.prefetchQuery({ queryKey: queryKeys.leagueGames(league, null, null), queryFn: queryFns.leagueGames(league, null, null), staleTime: 10_000 });

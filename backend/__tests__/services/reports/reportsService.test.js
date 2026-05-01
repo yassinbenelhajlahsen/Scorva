@@ -68,14 +68,14 @@ describe("getReportsForLeague", () => {
     expect(out[0].type).toBe("injury");
   });
 
-  it("calls cached with the per-league key and 5-min TTL", async () => {
+  it("calls cached with the per-league key and 30-min TTL", async () => {
     mockInjuries.mockResolvedValueOnce([]);
     mockMoves.mockResolvedValueOnce([]);
     mockBirthdays.mockResolvedValueOnce([]);
     mockStreaks.mockResolvedValueOnce([]);
 
     await getReportsForLeague("nba");
-    expect(mockCached).toHaveBeenCalledWith("reports:list:nba", 300, expect.any(Function));
+    expect(mockCached).toHaveBeenCalledWith("reports:list:nba", 1800, expect.any(Function));
   });
 });
 
