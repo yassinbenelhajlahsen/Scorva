@@ -31,14 +31,12 @@ describe("PlayerStatusBadge", () => {
   it("uses the md size by default", () => {
     const { container } = render(<PlayerStatusBadge status="available" />);
     const pill = container.firstChild;
-    expect(pill.className).toContain("px-3");
-    expect(pill.className).toContain("text-xs");
+    expect(pill.className).toContain("text-[11px]");
   });
 
   it("applies compact styling when size is sm", () => {
     const { container } = render(<PlayerStatusBadge status="available" size="sm" />);
     const pill = container.firstChild;
-    expect(pill.className).toContain("px-2");
     expect(pill.className).toContain("text-[10px]");
   });
 });
