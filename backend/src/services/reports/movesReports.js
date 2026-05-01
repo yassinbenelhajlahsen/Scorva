@@ -65,6 +65,29 @@ async function loadTeamsByEspnId(league, espnIds) {
   return map;
 }
 
+async function loadTeamsByName(league) {
+  const res = await pool.query(
+    `SELECT id, abbreviation, name, shortname, location, logo_url FROM teams
+      WHERE league = $1`,
+    [league]
+  );
+  const map = new Map();
+  for (const row of res.rows) {
+    const team = {
+      id: row.id,
+      abbreviation: row.abbreviation,
+      name: row.name,
+      logoUrl: row.logo_url,
+    };
+    const aliases = [row.name, row.shortname, row.location].filter(Boolean);
+    for (const alias of aliases) {
+      const key = alias.toLowerCase();
+      if (!map.has(key)) map.set(key, team);
+    }
+  }
+  return map;
+}
+
 function isoDate(s) {
   // ESPN omits the seconds — be lenient.
   return new Date(s).toISOString();
@@ -77,9 +100,10 @@ export async function getMovesForLeague(league) {
   const espnTeamIds = [...new Set(
     transactions.map((t) => t.team?.id).filter(Boolean).map((id) => parseInt(id, 10))
   )];
-  const [teamsByEspn, playersByName] = await Promise.all([
+  const [teamsByEspn, playersByName, teamsByName] = await Promise.all([
     loadTeamsByEspnId(league, espnTeamIds),
     loadPlayersByName(league),
+    loadTeamsByName(league),
   ]);
 
   const out = [];
@@ -91,6 +115,7 @@ export async function getMovesForLeague(league) {
       description: t.description,
       team: teamLocal,
       players: playersByName,
+      teamsByName,
     });
     if (!parsed) return;
 

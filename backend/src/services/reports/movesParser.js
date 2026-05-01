@@ -5,6 +5,8 @@
 const SIGN_RE = /^\s*(?:re-?signed|signed|converted)/i;
 const WAIVE_RE = /^\s*(?:waived(?:\/injured)?|released)/i;
 const TRADE_RE = /^\s*(?:traded|acquired)/i;
+const TRADED_RE = /^\s*traded\b/i;
+const ACQUIRED_RE = /^\s*acquired\b/i;
 const COACH_RE = /^\s*(?:announced the resignation|fired|hired|named)/i;
 
 const AHL_RE = /\(AHL\)\.?\s*$/i;
@@ -75,7 +77,62 @@ export function extractPlayerNames(description, playersMap) {
   return out;
 }
 
-export function parseMove({ description, team, players }) {
+// Walks the description left-to-right and assigns each matched player a side
+// relative to the announcing team:
+//   "in"  = player is moving TO the announcing team (announcing = toTeam)
+//   "out" = player is moving AWAY from the announcing team (announcing = fromTeam)
+// State machine: "Acquired" sets side=in, "Traded" sets side=out, and
+// "for" / "in exchange for" flips it. Handles multi-clause trades like
+// "Acquired X from Y for Z" where X and Z move in opposite directions.
+export function assignTradeSides(description, matchedPlayers) {
+  const sides = new Map();
+  if (!description || !Array.isArray(matchedPlayers) || matchedPlayers.length === 0) {
+    return sides;
+  }
+
+  const events = [];
+  const tokenRe = /\b(acquired|traded|in exchange for|for)\b/gi;
+  for (const m of description.matchAll(tokenRe)) {
+    events.push({ pos: m.index, kind: "token", text: m[0].toLowerCase() });
+  }
+  for (const player of matchedPlayers) {
+    const escaped = player.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const m = new RegExp(`(?<!\\w)${escaped}(?!\\w)`, "i").exec(description);
+    if (m) events.push({ pos: m.index, kind: "player", playerId: player.id });
+  }
+  events.sort((a, b) => a.pos - b.pos);
+
+  let side = null;
+  for (const e of events) {
+    if (e.kind === "token") {
+      if (e.text === "acquired") side = "in";
+      else if (e.text === "traded") side = "out";
+      else if (side === "in") side = "out";
+      else if (side === "out") side = "in";
+    } else if (side) {
+      sides.set(e.playerId, side);
+    }
+  }
+  return sides;
+}
+
+// Find the first team in `teamsByName` whose key appears as a whole word in
+// `description`, excluding the announcing team. Keys are matched longest-first
+// so "Los Angeles Lakers" wins over "Lakers" if both are in the index.
+export function findPartnerTeam(description, teamsByName, announcingTeamId) {
+  if (!description || !teamsByName) return null;
+  const keys = [...teamsByName.keys()].sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    const team = teamsByName.get(key);
+    if (!team || team.id === announcingTeamId) continue;
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?<!\\w)${escaped}(?!\\w)`, "i");
+    if (re.test(description)) return team;
+  }
+  return null;
+}
+
+export function parseMove({ description, team, players, teamsByName }) {
   if (isAhlOnly(description)) return null;
   if (isOptionExercise(description)) return null;
 
@@ -85,17 +142,24 @@ export function parseMove({ description, team, players }) {
   const matched = extractPlayerNames(description, players);
   if (matched.length === 0) return null;
 
+  if (action === "trade") {
+    // Multi-clause trades like "Acquired X from Y for Z" send X and Z in
+    // opposite directions, so direction is assigned per-player.
+    const partner = findPartnerTeam(description, teamsByName, team?.id);
+    const sides = assignTradeSides(description, matched);
+    const defaultSide = ACQUIRED_RE.test(description) ? "in" : "out";
+    return matched.map((player) => {
+      const side = sides.get(player.id) || defaultSide;
+      const fromTeam = side === "in" ? partner : team;
+      const toTeam = side === "in" ? team : partner;
+      return { action, fromTeam, toTeam, player };
+    });
+  }
+
   let fromTeam = null;
   let toTeam = null;
-  if (action === "sign") {
-    toTeam = team;
-  } else if (action === "waive") {
-    fromTeam = team;
-  } else if (action === "trade") {
-    // V1: announcing team is the "from" side, "to" remains null when un-resolvable.
-    // A follow-up can parse "to/from/for {TEAM}" against a team-name index.
-    fromTeam = team;
-  }
+  if (action === "sign") toTeam = team;
+  else if (action === "waive") fromTeam = team;
 
   return matched.map((player) => ({ action, fromTeam, toTeam, player }));
 }

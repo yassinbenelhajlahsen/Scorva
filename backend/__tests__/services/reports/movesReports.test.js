@@ -45,6 +45,10 @@ describe("getMovesForLeague", () => {
     mockPoolQuery.mockResolvedValueOnce({
       rows: [{ id: 4234, name: "Trevon Scott", slug: "trevon-scott", image_url: "y.png" }],
     });
+    // teams-by-name lookup
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [{ id: 17, abbreviation: "BKN", name: "Brooklyn Nets", shortname: "Nets", location: "Brooklyn", logo_url: "x.png" }],
+    });
 
     const moves = await getMovesForLeague("nba");
 
@@ -67,6 +71,7 @@ describe("getMovesForLeague", () => {
         ],
       },
     });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [] });
     mockPoolQuery.mockResolvedValueOnce({ rows: [] });
     mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -99,6 +104,9 @@ describe("getMovesForLeague", () => {
         { id: 4234, name: "Trevon Scott", slug: "trevon-scott", image_url: "a.png" },
         { id: 5003, name: "Dalano Banton", slug: "dalano-banton", image_url: "b.png" },
       ],
+    });
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [{ id: 17, abbreviation: "BKN", name: "Brooklyn Nets", shortname: "Nets", location: "Brooklyn", logo_url: "x.png" }],
     });
 
     const moves = await getMovesForLeague("nba");

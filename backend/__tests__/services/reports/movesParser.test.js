@@ -174,12 +174,82 @@ describe("parseMove", () => {
     }]);
   });
 
-  it("for a trade: fromTeam=announcing team, toTeam=null (v1 fallback)", () => {
-    // V1 trades default toTeam=null because parsing the destination
-    // out of "to TEAM"/"for TEAM" is deferred. fromTeam is the announcing team.
+  const lakers = { id: 21, abbreviation: "LAL", name: "Los Angeles Lakers", logoUrl: "lal.png" };
+  const hawks = { id: 22, abbreviation: "ATL", name: "Atlanta Hawks", logoUrl: "atl.png" };
+  const teamsByName = new Map([
+    ["los angeles lakers", lakers],
+    ["lakers", lakers],
+    ["los angeles", lakers],
+    ["atlanta hawks", hawks],
+    ["hawks", hawks],
+    ["atlanta", hawks],
+    ["brooklyn nets", team],
+    ["nets", team],
+    ["brooklyn", team],
+  ]);
+
+  it("for 'Traded ... to {Team}': fromTeam=announcing, toTeam parsed from description", () => {
     const out = parseMove({
       description: "Traded F Trevon Scott to the Lakers for cash considerations.",
-      team, players,
+      team, players, teamsByName,
+    });
+    expect(out).toEqual([{
+      action: "trade",
+      fromTeam: team,
+      toTeam: lakers,
+      player: { id: 4234, name: "Trevon Scott" },
+    }]);
+  });
+
+  it("for 'Acquired ... from {Team}': toTeam=announcing, fromTeam parsed from description", () => {
+    const acquiringTeam = lakers;
+    const players2 = new Map([["luke kennard", { id: 9001, name: "Luke Kennard" }]]);
+    const out = parseMove({
+      description: "Acquired G Luke Kennard from the Atlanta Hawks.",
+      team: acquiringTeam, players: players2, teamsByName,
+    });
+    expect(out).toEqual([{
+      action: "trade",
+      fromTeam: hawks,
+      toTeam: acquiringTeam,
+      player: { id: 9001, name: "Luke Kennard" },
+    }]);
+  });
+
+  it("multi-clause 'Acquired X from {team} for Y': X and Y go opposite directions", () => {
+    // Real ESPN Hawks-side description from the 2026-02-05 Kennard/Vincent trade.
+    const players2 = new Map([
+      ["gabe vincent", { id: 7001, name: "Gabe Vincent" }],
+      ["luke kennard", { id: 7002, name: "Luke Kennard" }],
+    ]);
+    const out = parseMove({
+      description:
+        "Acquired G Gabe Vincent and a 2032 second-round pick from Los Angeles Lakers for G Luke Kennard.",
+      team: hawks, players: players2, teamsByName,
+    });
+    const byName = Object.fromEntries(out.map((m) => [m.player.name, m]));
+    expect(byName["Gabe Vincent"]).toMatchObject({ fromTeam: lakers, toTeam: hawks });
+    expect(byName["Luke Kennard"]).toMatchObject({ fromTeam: hawks, toTeam: lakers });
+  });
+
+  it("multi-clause 'Traded X to {team} for Y': X goes out, Y comes in", () => {
+    const players2 = new Map([
+      ["alpha one", { id: 8001, name: "Alpha One" }],
+      ["bravo two", { id: 8002, name: "Bravo Two" }],
+    ]);
+    const out = parseMove({
+      description: "Traded F Alpha One to the Lakers for G Bravo Two.",
+      team, players: players2, teamsByName,
+    });
+    const byName = Object.fromEntries(out.map((m) => [m.player.name, m]));
+    expect(byName["Alpha One"]).toMatchObject({ fromTeam: team, toTeam: lakers });
+    expect(byName["Bravo Two"]).toMatchObject({ fromTeam: lakers, toTeam: team });
+  });
+
+  it("for a trade with no resolvable partner team: fromTeam=announcing, toTeam=null", () => {
+    const out = parseMove({
+      description: "Traded F Trevon Scott for cash considerations.",
+      team, players, teamsByName,
     });
     expect(out).toEqual([{
       action: "trade",
