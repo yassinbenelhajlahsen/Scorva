@@ -67,7 +67,9 @@ export async function runUpsert(pool) {
         try {
           const season = await getCurrentSeason(league);
           if (season) {
-            await runSeedAwards({ pool, args: { league, season } });
+            // games.season stores NFL as "YYYY-YY"; seedAwards expects "YYYY".
+            const awardsSeason = league === "nfl" ? season.split("-")[0] : season;
+            await runSeedAwards({ pool, args: { league, season: awardsSeason } });
           }
         } catch (err) {
           log.error({ err, league }, "failed seeding awards");
