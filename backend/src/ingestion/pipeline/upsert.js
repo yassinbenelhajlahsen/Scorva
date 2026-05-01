@@ -12,6 +12,7 @@ import {
 import { refreshPopularity } from "../refreshPopularity.js";
 import { computeAllEmbeddings } from "../computePlayerEmbeddings.js";
 import { cleanupClinchedPlayoffGames } from "../cleanup/cleanupClinchedPlayoffGames.js";
+import { cleanupNonScoringPlays } from "../cleanup/cleanupPlays.js";
 import { syncInjuriesForLeague } from "../syncInjuries.js";
 import { runSeed as runSeedAwards } from "../scripts/seedAwards.js";
 import { updateStreakEvents } from "../streakEvents.js";
@@ -74,6 +75,11 @@ export async function runUpsert(pool) {
           await updateStreakEvents(pool, league);
         } catch (err) {
           log.error({ err, league }, "failed updating streak events");
+        }
+        try {
+          await cleanupNonScoringPlays(pool, league);
+        } catch (err) {
+          log.error({ err, league }, "failed cleaning up non-scoring plays");
         }
         await invalidatePattern(`games:${league}:*`);
         await invalidatePattern(`standings:${league}:*`);
