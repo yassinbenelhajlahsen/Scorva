@@ -182,6 +182,13 @@ describe("updateStreakEvents — player streaks", () => {
       expect(params[1]).toBe("2024-25");
     }
   });
+
+  it("throws when an explicit season is null or empty", async () => {
+    await expect(updateStreakEvents(pool, "nba", { season: null }))
+      .rejects.toThrow(/explicit season required/);
+    await expect(updateStreakEvents(pool, "nba", { season: "" }))
+      .rejects.toThrow(/explicit season required/);
+  });
 });
 
 describe("updateStreakEvents — team streaks", () => {

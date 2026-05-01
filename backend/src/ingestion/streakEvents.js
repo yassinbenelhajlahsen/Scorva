@@ -181,6 +181,9 @@ async function upsertActiveRows(client, league, active) {
   await client.query(sql, params);
 }
 
+// Deactivation is league-scoped, not season-scoped. When called once per season
+// (e.g. by the backfill script), invoke seasons in chronological order ending
+// with the current season so the active set reflects today's reality.
 async function deactivateMissing(client, league, active) {
   await client.query(`
     CREATE TEMP TABLE active_now (
@@ -224,11 +227,19 @@ async function deactivateMissing(client, league, active) {
   );
 }
 
-export async function updateStreakEvents(pool, league, { season } = {}) {
-  const effectiveSeason = season ?? (await getCurrentSeason(league));
-  if (!effectiveSeason) {
-    log.warn({ league }, "no current season resolved; skipping streak update");
-    return;
+export async function updateStreakEvents(pool, league, opts = {}) {
+  const seasonProvided = "season" in opts;
+  let effectiveSeason = opts.season;
+  if (!seasonProvided) {
+    effectiveSeason = await getCurrentSeason(league);
+    if (!effectiveSeason) {
+      log.warn({ league }, "no current season resolved; skipping streak update");
+      return;
+    }
+  } else if (!effectiveSeason) {
+    throw new Error(
+      `updateStreakEvents: explicit season required when option is provided (got ${effectiveSeason})`,
+    );
   }
   const client = await pool.connect();
   try {
