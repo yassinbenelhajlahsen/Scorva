@@ -7,6 +7,8 @@ import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import RosterGrid from "../components/team/RosterGrid.jsx";
 import RosterGridSkeleton from "../components/skeletons/RosterGridSkeleton.jsx";
+import StreakBadge from "../components/ui/StreakBadge.jsx";
+import { useStreak } from "../hooks/data/useStreak.js";
 import { useTeam } from "../hooks/data/useTeam.js";
 import { useTeamRoster } from "../hooks/data/useTeamRoster.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
@@ -56,6 +58,11 @@ export default function TeamPage() {
     retry: rosterRetry,
   } = useTeamRoster(league, team?.id ?? null, selectedSeason, {
     enabled: activeTab === "players",
+  });
+
+  const isCurrentSeason = !selectedSeason || selectedSeason === leagueSeasons[0];
+  const { streak } = useStreak(league, "team", team?.id, {
+    enabled: isCurrentSeason && !!team?.id,
   });
 
   useLayoutEffect(() => {
@@ -177,6 +184,7 @@ export default function TeamPage() {
               </svg>
             </button>
           </div>
+          {streak && <StreakBadge streak={streak} />}
           {team.logo_url && (
             <img
               src={team.logo_url}
