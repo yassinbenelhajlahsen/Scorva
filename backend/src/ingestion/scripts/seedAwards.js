@@ -4,7 +4,7 @@ import { parseArgs } from "util";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import logger from "../../logger.js";
-import { mapEspnAward, displayLabel, isKnownOutOfScope } from "../awards/awardTypeMap.js";
+import { mapEspnAward, isKnownOutOfScope } from "../awards/awardTypeMap.js";
 import { toEspnYear, decrementSeason, seasonMatchesLeague } from "../awards/seasonTranslator.js";
 import { fetchAwardIndex, fetchAward } from "../awards/espnAwardsClient.js";
 
@@ -184,42 +184,8 @@ async function processLeague({ league, args, pool, summary }) {
   }
 }
 
-function printSummary(summary, dryRun, durationMs) {
-  const prefix = dryRun ? "[DRY RUN — no DB writes] " : "";
-  const lines = [
-    `${prefix}Awards seed complete.`,
-    `  inserted:    ${summary.inserted}`,
-    `  skipped:     ${summary.skipped}    (already in DB)`,
-    `  unmatched:   ${summary.unmatched.length}    (athlete not in players table)`,
-    `  unmapped:    ${summary.unmapped.length}    (award name not in taxonomy)`,
-    `  outOfScope:  ${summary.outOfScope}    (known but intentionally not tracked)`,
-    `  errors:      ${summary.errors}`,
-    `  duration:    ${(durationMs / 1000).toFixed(1)}s`,
-  ];
-  if (summary.unmatched.length > 0) {
-    lines.push("", "Unmatched athletes:");
-    for (const u of summary.unmatched.slice(0, 50)) {
-      lines.push(`  [${u.league}/${u.season}] award=${u.awardType} espnAthleteId=${u.espnAthleteId} (label=${displayLabel(u.awardType)})`);
-    }
-    if (summary.unmatched.length > 50) {
-      lines.push(`  ... and ${summary.unmatched.length - 50} more`);
-    }
-  }
-  if (summary.unmapped.length > 0) {
-    lines.push("", "Unmapped awards:");
-    for (const u of summary.unmapped.slice(0, 50)) {
-      lines.push(`  [${u.league}/${u.season}] espnId=${u.espnId} name="${u.espnName}"`);
-    }
-    if (summary.unmapped.length > 50) {
-      lines.push(`  ... and ${summary.unmapped.length - 50} more`);
-    }
-  }
-  process.stdout.write(lines.join("\n") + "\n");
-}
-
 export async function runSeed({ pool, args }) {
   const summary = emptySummary();
-  const start = Date.now();
   for (const league of leaguesToProcess(args)) {
     try {
       await processLeague({ league, args, pool, summary });
@@ -228,7 +194,6 @@ export async function runSeed({ pool, args }) {
       summary.errors += 1;
     }
   }
-  printSummary(summary, args["dry-run"], Date.now() - start);
   return summary;
 }
 
