@@ -299,8 +299,8 @@ describe("syncInjuries history insertion", () => {
 
   it("clears a previously-injured player when ESPN now lists them as Active", async () => {
     // Player was 'out' in DB; ESPN now lists them as Active (recovered/returned).
-    // We skip the entry, but the per-team clear sweep should fire and transition
-    // them out → null with NOW() as changed_at (legitimate clear).
+    // We skip the entry, but the league-wide clear sweep should fire and
+    // transition them out → null with NOW() as changed_at (legitimate clear).
     mockAxiosGet.mockResolvedValueOnce({
       data: {
         injuries: [{
@@ -318,8 +318,8 @@ describe("syncInjuries history insertion", () => {
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
       [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "ankle", status_changed_at: new Date("2026-04-01T00:00Z") }] }],
-      // Per-team clear sweep finds this player (status set, espn id NOT in injuredEspnIds since we skipped Active)
-      [/SELECT id, league, status, status_description FROM players[\s\S]*WHERE teamid/, { rows: [{ id: 4234, league: "nfl", status: "out", status_description: "ankle" }] }],
+      // League-wide clear sweep finds this player (status set, espn id NOT in injuredEspnIds since we skipped Active)
+      [/SELECT id, league, status, status_description FROM players[\s\S]*NOT \(espn_playerid = ANY/, { rows: [{ id: 4234, league: "nfl", status: "out", status_description: "ankle" }] }],
       [/INSERT INTO player_status_history/, { rowCount: 1 }],
       [/UPDATE players[\s\S]*SET status[\s\S]*= NULL/, { rowCount: 1 }],
     ]);
@@ -341,7 +341,7 @@ describe("syncInjuries history insertion", () => {
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
       // The "clear" sweep uses a SELECT to find players to clear
-      [/SELECT id, league, status, status_description FROM players[\s\S]*WHERE teamid/, { rows: [
+      [/SELECT id, league, status, status_description FROM players[\s\S]*NOT \(espn_playerid = ANY/, { rows: [
         { id: 4234, league: "nba", status: "out", status_description: "ankle" }
       ] }],
       [/INSERT INTO player_status_history/, { rowCount: 1 }],
@@ -359,14 +359,66 @@ describe("syncInjuries history insertion", () => {
     );
   });
 
+  it("does NOT clear a player whose teamid in DB is stale (ESPN lists them under a different team)", async () => {
+    // Stale-teamid bug: player traded/signed during offseason. ESPN's league
+    // injury feed lists them under their NEW team's block; our DB still has
+    // them on the OLD team because upsertPlayer hasn't run (no box scores).
+    // The clear sweep must use a league-global injuredEspnIds set so a stale
+    // teamid doesn't make team A's sweep wrongly clear a player whom ESPN
+    // actually listed under team B's block.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [
+          { id: 1, injuries: [] },                         // team A — no entries
+          { id: 2, injuries: [{                            // team B — lists player
+            athlete: { links: [{ href: "/nfl/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "ankle",
+            date: "2026-04-01T00:00Z",
+          }] },
+        ],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [
+        { id: 1, espnid: 1 },  // DB: player has stale teamid=1 (team A)
+        { id: 2, espnid: 2 },  // ESPN now lists player under team B
+      ] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/,
+        { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "ankle", status_changed_at: new Date("2026-04-01T00:00Z") }] }],
+      // Pre-fix codepath (per-team sweep): team A finds the stale player, team B does not.
+      // After fix this regex is never hit (SQL changes).
+      [/SELECT id, league, status, status_description FROM players[\s\S]*WHERE teamid/, (sql, params) => {
+        if (params?.[0] === 1) {
+          return { rows: [{ id: 4234, league: "nfl", status: "out", status_description: "ankle" }] };
+        }
+        return { rows: [] };
+      }],
+      // Post-fix codepath (league-wide sweep): player IS in global injuredEspnIds → empty.
+      [/SELECT id, league, status, status_description FROM players[\s\S]*NOT \(espn_playerid = ANY/, { rows: [] }],
+      [/UPDATE players[\s\S]*SET status\s*=\s*\$1/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nfl");
+
+    // No spurious "out → null" history row should ever be inserted.
+    const clearInserts = pool.queryHandler.mock.calls.filter(([sql, params]) =>
+      /INSERT INTO player_status_history/.test(sql) &&
+      params?.[2] === "out" &&
+      params?.[4] === null
+    );
+    expect(clearInserts).toHaveLength(0);
+  });
+
   it("inserts a history row for stale-cleared players", async () => {
     // Empty injuries response so per-entry path doesn't fire
     mockAxiosGet.mockResolvedValueOnce({ data: { injuries: [{ id: 1, injuries: [] }] } });
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      // Per-team clear sweep returns no rows
-      [/SELECT id, league, status, status_description FROM players[\s\S]*WHERE teamid/, { rows: [] }],
+      // League-wide clear sweep returns no rows
+      [/SELECT id, league, status, status_description FROM players[\s\S]*NOT \(espn_playerid = ANY/, { rows: [] }],
       // Stale sweep finds one stale row
       [/SELECT id, league, status, status_description FROM players[\s\S]*status_updated_at\s*<\s*NOW/, {
         rows: [{ id: 5000, league: "nba", status: "out", status_description: "recovery" }],
