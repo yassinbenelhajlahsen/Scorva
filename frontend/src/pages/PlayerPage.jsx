@@ -275,7 +275,7 @@ export default function PlayerPage() {
         </div>
         </div>{/* end left: headshot + info card */}
 
-        {/* Similar Players sidebar — self-sizing, collapses when empty */}
+        {/* Similar Players sidebar — hidden by default, slides in when players are available */}
         <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
       </div>
 

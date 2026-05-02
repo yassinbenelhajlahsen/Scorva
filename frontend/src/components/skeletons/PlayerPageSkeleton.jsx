@@ -9,18 +9,6 @@ function unslugify(slug) {
     .join(" ");
 }
 
-function SimilarPlayerRowSkeleton() {
-  return (
-    <div className="flex items-center gap-3">
-      <Skeleton className="w-10 h-10 rounded-full shrink-0" />
-      <div className="flex-1 flex flex-col gap-1.5">
-        <Skeleton className="w-24 h-3 rounded" />
-        <Skeleton className="w-16 h-2.5 rounded" />
-      </div>
-    </div>
-  );
-}
-
 export default function PlayerPageSkeleton({ slug, league }) {
   const displayName = slug ? unslugify(slug) : "";
 
@@ -97,18 +85,6 @@ export default function PlayerPageSkeleton({ slug, league }) {
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Similar Players sidebar */}
-        <div className="shrink-0 flex flex-col" style={{ width: "20rem" }}>
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-5 h-full flex flex-col">
-            <Skeleton className="h-3 w-28 rounded mb-3" />
-            <div className="flex flex-col flex-1 justify-between">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <SimilarPlayerRowSkeleton key={i} />
-              ))}
             </div>
           </div>
         </div>
