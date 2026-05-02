@@ -174,13 +174,21 @@ export default function ReportsPage() {
               key={p.label}
               type="button"
               onClick={() => setType(p.id)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
+              className={`relative px-4 py-1.5 rounded-full text-xs font-medium border transition-colors duration-200 ${
                 active
-                  ? "bg-accent text-white border-accent"
+                  ? "text-white border-accent"
                   : "bg-surface-elevated text-text-secondary border-white/[0.08] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
-              {p.label}
+              {active && (
+                <m.span
+                  layoutId="reportTypePill"
+                  className="absolute inset-0 rounded-full bg-accent"
+                  style={{ zIndex: -1 }}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
+                />
+              )}
+              <span className="relative z-10">{p.label}</span>
             </button>
           );
         })}
