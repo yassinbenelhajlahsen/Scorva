@@ -22,7 +22,7 @@ const QUERY = `
       TO_DATE(dob, 'DD/MM/YYYY')         AS dob_date,
       EXTRACT(MONTH FROM TO_DATE(dob, 'DD/MM/YYYY')) AS m,
       EXTRACT(DAY   FROM TO_DATE(dob, 'DD/MM/YYYY')) AS d,
-      EXTRACT(YEAR  FROM CURRENT_DATE)   AS y
+      EXTRACT(YEAR  FROM (NOW() AT TIME ZONE 'America/New_York')::date) AS y
     FROM players p
     WHERE p.league = $1
       AND p.dob IS NOT NULL
@@ -69,8 +69,8 @@ const QUERY = `
     bday_date,
     age
   FROM with_date
-  WHERE bday_date <= CURRENT_DATE
-    AND bday_date > CURRENT_DATE - INTERVAL '30 days'
+  WHERE bday_date <= (NOW() AT TIME ZONE 'America/New_York')::date
+    AND bday_date > (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '30 days'
   ORDER BY bday_date DESC
   LIMIT 200
 `;
@@ -82,10 +82,11 @@ export async function getBirthdaysForLeague(league) {
     const result = await pool.query(QUERY, [league, currentSeason]);
     return result.rows.map((r) => {
       const iso = new Date(r.bday_date).toISOString();
+      const dateStr = iso.slice(0, 10);
       return {
-        id: `birthday-${r.player_id}-${iso.slice(0, 10)}`,
+        id: `birthday-${r.player_id}-${dateStr}`,
         type: "birthday",
-        date: iso,
+        date: dateStr,
         league,
         player: {
           id: r.player_id,

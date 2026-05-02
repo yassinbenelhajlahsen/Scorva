@@ -2,12 +2,12 @@ import ReportRow from "./ReportRow.jsx";
 import ReportRowSkeleton from "../skeletons/ReportRowSkeleton.jsx";
 
 function dateHeader(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function dateKey(iso) {
-  return new Date(iso).toISOString().slice(0, 10);
+  return iso.slice(0, 10);
 }
 
 export default function ReportsList({ reports, groupByDate = false, loading = false, skeletonCount = 5 }) {
