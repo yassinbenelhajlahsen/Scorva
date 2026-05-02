@@ -1,8 +1,10 @@
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { m } from "framer-motion";
 import { queryFns } from "../lib/query.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useUserPrefs } from "../hooks/user/useUserPrefs.js";
 import leagueData from "../utils/leagueData.js";
 import ReportsList from "../components/reports/ReportsList.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -13,6 +15,7 @@ const LEAGUE_PILLS = [
   { id: "nfl", label: "NFL" },
   { id: "nhl", label: "NHL" },
 ];
+const LEAGUE_IDS = new Set(LEAGUE_PILLS.map((p) => p.id).filter(Boolean));
 
 const TYPE_PILLS = [
   { id: undefined, label: "All" },
@@ -28,6 +31,30 @@ export default function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const league = searchParams.get("league") || undefined;
   const type = searchParams.get("type") || undefined;
+
+  const { session } = useAuth();
+  const { prefs, loading: prefsLoading } = useUserPrefs();
+  const hasAppliedDefaultRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAppliedDefaultRef.current) return;
+    if (session === undefined) return;
+    if (session && (prefsLoading || prefs === null)) return;
+    hasAppliedDefaultRef.current = true;
+
+    if (searchParams.get("league")) return;
+    const def = session ? prefs?.default_league : null;
+    if (!def || !LEAGUE_IDS.has(def)) return;
+
+    setSearchParams(
+      (prev) => {
+        const sp = new URLSearchParams(prev);
+        sp.set("league", def);
+        return sp;
+      },
+      { replace: true },
+    );
+  }, [session, prefs, prefsLoading, searchParams, setSearchParams]);
 
   const tabNavRef = useRef(null);
   const tabRefs = useRef([]);
