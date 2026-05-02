@@ -40,7 +40,8 @@ function buildPlayerScanSQL(statExpr, label) {
       JOIN players p ON p.id = s.playerid
       WHERE p.league = $1
         AND g.season = $2
-        AND g.type IN ('regular','makeup','playoff')
+        AND g.type IN ('regular','makeup','playoff','final')
+        AND g.status ILIKE 'Final%'
     ),
     streaks AS (
       SELECT subject_id,
@@ -95,7 +96,8 @@ function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
       JOIN teams t ON t.id = g.hometeamid
       WHERE t.league = $1
         AND g.season = $2
-        AND g.type IN ('regular','makeup','playoff')
+        AND g.type IN ('regular','makeup','playoff','final')
+        AND g.status ILIKE 'Final%'
         AND g.homescore IS NOT NULL AND g.awayscore IS NOT NULL
         AND g.homescore <> g.awayscore
       UNION ALL
@@ -106,7 +108,8 @@ function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
       JOIN teams t ON t.id = g.awayteamid
       WHERE t.league = $1
         AND g.season = $2
-        AND g.type IN ('regular','makeup','playoff')
+        AND g.type IN ('regular','makeup','playoff','final')
+        AND g.status ILIKE 'Final%'
         AND g.homescore IS NOT NULL AND g.awayscore IS NOT NULL
         AND g.homescore <> g.awayscore
     ),

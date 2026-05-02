@@ -170,6 +170,20 @@ describe("updateStreakEvents — player streaks", () => {
     }
   });
 
+  it("only counts completed (Final) games in player streaks", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
+    );
+    expect(scanCalls.length).toBeGreaterThan(0);
+    for (const [sql] of scanCalls) {
+      expect(sql).toMatch(/g\.status\s+ILIKE\s+'Final%'/i);
+    }
+  });
+
   it("threads an explicit season override into queries", async () => {
     client.query.mockResolvedValue({ rows: [] });
 
@@ -272,6 +286,20 @@ describe("updateStreakEvents — team streaks", () => {
     );
     for (const [sql] of scanCalls) {
       expect(sql).toMatch(/homescore\s*<>\s*awayscore/);
+    }
+  });
+
+  it("only counts completed (Final) games in team streaks", async () => {
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM games/i.test(c[0]),
+    );
+    expect(scanCalls.length).toBeGreaterThan(0);
+    for (const [sql] of scanCalls) {
+      expect(sql).toMatch(/g\.status\s+ILIKE\s+'Final%'/i);
     }
   });
 });
