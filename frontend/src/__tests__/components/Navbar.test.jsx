@@ -46,6 +46,14 @@ vi.mock("../../components/layout/NavbarSearch.jsx", () => ({
   default: () => <button aria-label="Open search">search</button>,
 }));
 
+// Stub the mobile search row's data hooks (Navbar drives a SearchBar directly).
+vi.mock("../../hooks/data/useSearch.js", () => ({
+  useSearch: () => ({ results: [], loading: false }),
+}));
+vi.mock("../../hooks/data/useDuplicatePlayerSlugs.js", () => ({
+  useDuplicatePlayerSlugsAll: () => ({}),
+}));
+
 const { useAuth } = await import("../../context/AuthContext.jsx");
 const Navbar = (await import("../../components/layout/Navbar.jsx")).default;
 

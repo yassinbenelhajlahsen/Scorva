@@ -1,9 +1,11 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import logo from "/favicon.webp";
 import NavbarSearch from "./NavbarSearch.jsx";
+import SearchBar from "../ui/SearchBar.jsx";
+import { useSearch } from "../../hooks/data/useSearch.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import AvatarDropdown from "./AvatarDropdown.jsx";
 
@@ -13,6 +15,13 @@ export default function Navbar() {
   const { session, openAuthModal } = useAuth();
   const queryClient = useQueryClient();
   const leagueSlugs = new Set(["nba", "nfl", "nhl"]);
+
+  // Mobile-only persistent search row state.
+  const [mobileQuery, setMobileQuery] = useState("");
+  const { results: mobileResults, loading: mobileLoading } = useSearch(mobileQuery);
+  useEffect(() => {
+    setMobileQuery("");
+  }, [location.pathname, location.search]);
 
   function prefetchLeague(to) {
     if (to === "/reports") {
@@ -97,9 +106,11 @@ export default function Navbar() {
             Reports
           </Link>
 
-          <div className="w-px h-4 bg-white/[0.12]" />
+          <div className="hidden sm:block w-px h-4 bg-white/[0.12]" />
 
-          <NavbarSearch />
+          <div className="hidden sm:flex items-center">
+            <NavbarSearch />
+          </div>
 
           {session === undefined ? null : (
             <div className="flex items-center gap-3">
@@ -117,6 +128,16 @@ export default function Navbar() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile-only persistent search row */}
+      <div className="sm:hidden px-5 pb-3 flex justify-center">
+        <SearchBar
+          allItems={mobileResults}
+          query={mobileQuery}
+          setQuery={setMobileQuery}
+          loading={mobileLoading}
+        />
       </div>
     </nav>
   );
