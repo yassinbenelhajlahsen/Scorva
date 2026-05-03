@@ -131,7 +131,7 @@ export default function Navbar() {
       </div>
 
       {/* Mobile-only persistent search row */}
-      <div className="sm:hidden px-5 pb-3 flex justify-center">
+      <div className="sm:hidden px-5 pb-3 flex [&>div]:max-w-none [&>div]:w-full">
         <SearchBar
           allItems={mobileResults}
           query={mobileQuery}
