@@ -33,7 +33,7 @@ function sortBySlateOrder(games) {
   return [...live, ...scheduled, ...final];
 }
 
-export function useGlobalSlate(leagueFilter) {
+export function useScoresBar(leagueFilter) {
   const slateDate = getSlateDateET();
 
   // Always call the hook for every league (Hooks rules), gate via `enabled`.

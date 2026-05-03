@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGlobalSlate } from "../../hooks/data/useGlobalSlate.js";
-import { GlobalSlateSkeleton } from "../skeletons/LeaguePageSkeleton.jsx";
+import { useScoresBar } from "../../hooks/data/useScoresBar.js";
+import { ScoresBarSkeleton } from "../skeletons/LeaguePageSkeleton.jsx";
 import { compactTime, statusGroup } from "../../utils/slateDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
@@ -122,13 +122,13 @@ function GamePill({ game, queryClient }) {
   );
 }
 
-export default function GlobalSlate({ leagueFilter = null }) {
+export default function ScoresBar({ leagueFilter = null }) {
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
-  const { games, loading, error } = useGlobalSlate(leagueFilter);
+  const { games, loading, error } = useScoresBar(leagueFilter);
 
   if (HIDDEN_PATHS.has(pathname)) return null;
-  if (loading) return <GlobalSlateSkeleton />;
+  if (loading) return <ScoresBarSkeleton />;
   if (error || games.length === 0) return null;
 
   const showLeagueTag = leagueFilter === null;
@@ -142,7 +142,7 @@ export default function GlobalSlate({ leagueFilter = null }) {
     : null;
 
   return (
-    <div className="sm:sticky sm:top-14 z-40 bg-[#0a0a0c] sm:bg-[rgba(10,10,12,0.88)] sm:backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none">
+    <div className="sticky top-[var(--navbar-height,3.5rem)] z-40 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none">
       <div className="flex items-center gap-5 pl-5 py-2">
         {groups
           ? groups.map(({ league, items }) => (

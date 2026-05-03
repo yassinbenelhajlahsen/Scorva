@@ -23,6 +23,24 @@ export default function Navbar() {
     setMobileQuery("");
   }, [location.pathname, location.search]);
 
+  // Publish the navbar's measured height as --navbar-height so siblings (e.g.
+  // ScoresBar) can stick to its bottom edge across breakpoints. The height
+  // varies on mobile because of the second search row and iOS safe-area inset.
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const apply = () => {
+      document.documentElement.style.setProperty(
+        "--navbar-height",
+        `${el.getBoundingClientRect().height}px`
+      );
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   function prefetchLeague(to) {
     if (to === "/reports") {
       queryClient.prefetchInfiniteQuery({
