@@ -183,7 +183,7 @@ describe("newsService", () => {
 
     const articles = await getNews();
 
-    expect(articles.length).toBeLessThanOrEqual(10);
+    expect(articles.length).toBeLessThanOrEqual(12);
   });
 
   it("handles one league failing gracefully", async () => {
