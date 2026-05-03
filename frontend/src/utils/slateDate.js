@@ -13,8 +13,8 @@ export function statusGroup(game) {
 }
 
 // Today's ET date, rolling back to yesterday before 6 AM ET so late-night
-// viewers still see last night's finals (matches the existing LeagueSlate
-// behavior — without it the rail goes empty between midnight and 6 AM).
+// viewers still see last night's finals — without it the rail goes empty
+// between midnight and 6 AM.
 export function getSlateDateET() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/New_York",
