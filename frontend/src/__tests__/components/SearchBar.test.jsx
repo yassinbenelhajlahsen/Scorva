@@ -100,4 +100,18 @@ describe("SearchBar", () => {
     render(<SearchBar allItems={[mockPlayer]} query="leb" setQuery={vi.fn()} loading={false} />);
     expect(screen.getByText(/F · Lakers/)).toBeInTheDocument();
   });
+
+  it("forwards inputRef to the underlying input element", () => {
+    const ref = { current: null };
+    render(
+      <SearchBar
+        allItems={[]}
+        query=""
+        setQuery={vi.fn()}
+        loading={false}
+        inputRef={ref}
+      />
+    );
+    expect(ref.current).toBe(screen.getByRole("textbox"));
+  });
 });

@@ -6,7 +6,7 @@ import { playerSlug } from "../../utils/playerUrl.js";
 import { useDuplicatePlayerSlugsAll } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
-export default function SearchBar({ allItems, query, setQuery, loading }) {
+export default function SearchBar({ allItems, query, setQuery, loading, inputRef }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const dupeSlugsByLeague = useDuplicatePlayerSlugsAll({ enabled: query.trim().length > 0 });
@@ -44,6 +44,7 @@ export default function SearchBar({ allItems, query, setQuery, loading }) {
     <div className="relative w-full max-w-sm flex-grow">
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
