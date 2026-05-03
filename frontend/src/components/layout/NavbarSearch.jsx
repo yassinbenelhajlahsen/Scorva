@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/data/useSearch.js";
+import { useLocation } from "react-router-dom";
 
 function isTypingContext(target) {
   if (!target) return false;
@@ -17,6 +18,8 @@ export default function NavbarSearch() {
 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+
+  const location = useLocation();
 
   function open() {
     setQuery("");
@@ -65,6 +68,11 @@ export default function NavbarSearch() {
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
+
+  useEffect(() => {
+    setIsOpen(false);
+    setQuery("");
+  }, [location.pathname, location.search]);
 
   return (
     <div ref={containerRef} className="relative flex items-center">

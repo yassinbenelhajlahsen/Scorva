@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ prefetchQuery: vi.fn() }),
@@ -144,5 +144,29 @@ describe("NavbarSearch — focus + query reset", () => {
     fireEvent.click(screen.getByRole("button", { name: /close search/i }));
     fireEvent.click(screen.getByRole("button", { name: /open search/i }));
     expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+});
+
+function NavigateProbe({ to }) {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(to)} data-testid="probe">
+      go
+    </button>
+  );
+}
+
+describe("NavbarSearch — route change", () => {
+  it("closes when the route changes", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <NavbarSearch />
+        <NavigateProbe to="/nba" />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: /open search/i }));
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("probe"));
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 });
