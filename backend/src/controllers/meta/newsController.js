@@ -3,7 +3,7 @@ import logger from "../../logger.js";
 
 export async function getNewsList(req, res) {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 4, 1), 10);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 4, 1), 12);
     const articles = await getNews();
     res.json({ articles: articles.slice(0, limit) });
   } catch (err) {

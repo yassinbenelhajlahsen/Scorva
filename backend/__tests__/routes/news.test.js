@@ -52,7 +52,7 @@ describe("News Route - GET /api/news", () => {
     expect(res.body.articles).toHaveLength(2);
   });
 
-  it("caps limit at 10", async () => {
+  it("caps limit at 12", async () => {
     const res = await request(app).get("/api/news?limit=99");
     expect(res.body.articles).toHaveLength(5);
   });
