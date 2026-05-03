@@ -18,7 +18,6 @@ import { containerVariants, itemVariants } from "../utils/motion.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
-import LeagueSlate from "../components/navigation/LeagueSlate.jsx";
 import { LEAGUE_LABELS } from "../constants/leagueLabels.js";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 import { SwipeableTabs } from "../components/ui/SwipeableTabs.jsx";
@@ -155,9 +154,6 @@ export default function LeaguePage() {
       </div>
     );
   }
-
-  // Today's-games strip — only on games tab + current season
-  const showSlate = activeTab === "games" && !selectedSeason;
 
   function renderStandingsRows(teams) {
     const tiers = getPlayoffTiers(league, selectedSeason);
@@ -410,8 +406,6 @@ export default function LeaguePage() {
           ))}
         </div>
       </div>
-
-      {showSlate && <LeagueSlate league={league} />}
 
       {activeTab === "games" && (
         <DateNavigation
