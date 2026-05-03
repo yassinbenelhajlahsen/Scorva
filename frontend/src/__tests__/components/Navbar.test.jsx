@@ -41,14 +41,9 @@ vi.mock("../../hooks/user/useFavorites.js", () => ({
   useFavorites: vi.fn(() => ({ favorites: null, loading: false, refresh: vi.fn() })),
 }));
 
-// Mock useSearch to avoid real API calls
-vi.mock("../../hooks/data/useSearch.js", () => ({
-  useSearch: vi.fn(() => ({ results: [], loading: false })),
-}));
-
-// Mock SearchBar to keep tests focused on Navbar
-vi.mock("../../components/ui/SearchBar.jsx", () => ({
-  default: () => <input placeholder="Search" />,
+// Mock NavbarSearch so the layout tests stay focused on the navbar shell
+vi.mock("../../components/layout/NavbarSearch.jsx", () => ({
+  default: () => <button aria-label="Open search">search</button>,
 }));
 
 const { useAuth } = await import("../../context/AuthContext.jsx");

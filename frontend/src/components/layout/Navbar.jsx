@@ -1,16 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import logo from "/favicon.webp";
-import SearchBar from "../ui/SearchBar.jsx";
-import { useSearch } from "../../hooks/data/useSearch.js";
+import NavbarSearch from "./NavbarSearch.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import AvatarDropdown from "./AvatarDropdown.jsx";
 
 export default function Navbar() {
-  const [query, setQuery] = useState("");
-  const { results: allItems, loading } = useSearch(query);
   const navRef = useRef(null);
   const location = useLocation();
   const { session, openAuthModal } = useAuth();
@@ -34,16 +31,6 @@ export default function Navbar() {
     queryClient.prefetchQuery({ queryKey: queryKeys.gameDates(league, null), queryFn: queryFns.gameDates(league, null), staleTime: 10_000 });
   }
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (navRef.current && !navRef.current.contains(e.target)) {
-        setQuery("");
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const leagueLinks = [
     { to: "/nba", label: "NBA" },
     { to: "/nfl", label: "NFL" },
@@ -52,9 +39,8 @@ export default function Navbar() {
 
   return (
     <nav ref={navRef} className="sticky top-0 z-50 bg-[#0a0a0c] sm:bg-[rgba(10,10,12,0.88)] sm:backdrop-blur-2xl border-b border-white/[0.06]">
-      {/* Main row */}
-      <div className="relative flex items-center px-5 pb-3 pt-[max(0.75rem,calc(0.75rem+env(safe-area-inset-top)))]">
-        {/* Left: Brand */}
+      <div className="relative flex items-center px-5 pb-3 pt-[max(0.75rem,calc(0.75rem+env(safe-area-inset-top)))] gap-5">
+        {/* Left cluster: brand + league links */}
         <Link
           to="/"
           className="flex items-center gap-2.5 shrink-0"
@@ -70,18 +56,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Center: Search — desktop only, truly centered */}
-        <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 w-full max-w-sm px-4">
-          <SearchBar
-            allItems={allItems}
-            query={query}
-            setQuery={setQuery}
-            loading={loading}
-          />
-        </div>
-
-        {/* Right: Nav links + divider + auth */}
-        <div className="ml-auto flex items-center gap-5 shrink-0">
+        <div className="flex items-center gap-5 shrink-0">
           {leagueLinks.map(({ to, label }) => {
             const isActive = location.pathname.startsWith(to);
             const currentTab = new URLSearchParams(location.search).get("tab");
@@ -103,9 +78,10 @@ export default function Navbar() {
               </Link>
             );
           })}
+        </div>
 
-          {/* Divider + Reports utility link */}
-          <div className="w-px h-4 bg-white/[0.12]" />
+        {/* Right cluster: Reports + search + auth */}
+        <div className="ml-auto flex items-center gap-5 shrink-0">
           <Link
             to="/reports"
             onMouseEnter={() => prefetchLeague("/reports")}
@@ -120,6 +96,11 @@ export default function Navbar() {
             </svg>
             Reports
           </Link>
+
+          <div className="w-px h-4 bg-white/[0.12]" />
+
+          <NavbarSearch />
+
           {session === undefined ? null : (
             <div className="flex items-center gap-3">
               <div className="w-px h-4 bg-white/[0.12]" />
@@ -136,16 +117,6 @@ export default function Navbar() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Mobile search row */}
-      <div className="sm:hidden px-5 pb-3 flex justify-center">
-        <SearchBar
-          allItems={allItems}
-          query={query}
-          setQuery={setQuery}
-          loading={loading}
-        />
       </div>
     </nav>
   );
