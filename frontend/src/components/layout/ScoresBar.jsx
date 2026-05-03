@@ -142,7 +142,7 @@ export default function ScoresBar({ leagueFilter = null }) {
     : null;
 
   return (
-    <div className="sticky top-[var(--navbar-height,3.5rem)] z-40 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none">
+    <div className="sticky top-[var(--navbar-height,3.5rem)] z-40 bg-[#0a0a0c] sm:bg-[rgba(10,10,12,0.88)] sm:backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none">
       <div className="flex items-center gap-5 pl-5 py-2">
         {groups
           ? groups.map(({ league, items }) => (

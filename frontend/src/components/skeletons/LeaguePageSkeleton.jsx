@@ -27,7 +27,7 @@ export function ScoresBarSkeleton() {
   return (
     <div
       data-testid="scores-bar-skeleton"
-      className="sticky top-[var(--navbar-height,3.5rem)] z-40 bg-[rgba(10,10,12,0.88)] backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none"
+      className="sticky top-[var(--navbar-height,3.5rem)] z-40 bg-[#0a0a0c] sm:bg-[rgba(10,10,12,0.88)] sm:backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none"
     >
       <div className="flex items-center gap-2 px-5 py-2 max-w-[1200px] mx-auto">
         {Array.from({ length: 4 }).map((_, i) => (
