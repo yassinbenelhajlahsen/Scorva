@@ -77,7 +77,7 @@ export default function Homepage() {
     <div className="flex flex-col w-full max-w-[1200px] mx-auto px-5 sm:px-8 py-12">
 
       {/* Hero — always real, no data dependency */}
-      <div className="text-center mb-20 mt-8">
+      <div className="text-center mb-10 mt-8">
         <h1 className="animate-hero-up font-bold leading-[0.95] tracking-[-0.04em] bg-gradient-to-br from-white via-[#f0ece6] to-[#e8863a] bg-clip-text text-transparent text-[4.5rem] sm:text-[6.5rem] lg:text-[8rem]">
           Scorva
         </h1>
