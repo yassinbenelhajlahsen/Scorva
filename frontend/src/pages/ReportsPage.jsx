@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { m } from "framer-motion";
 import { queryFns } from "../lib/query.js";
@@ -99,6 +99,7 @@ export default function ReportsPage() {
     data,
     isLoading,
     isError,
+    isFetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -112,6 +113,7 @@ export default function ReportsPage() {
       lastPage?.hasMore ? allPages.length * PAGE_SIZE : undefined,
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    placeholderData: keepPreviousData,
   });
 
   const reports = data?.pages?.flatMap((p) => p.reports ?? []) ?? [];
@@ -174,32 +176,32 @@ export default function ReportsPage() {
               key={p.label}
               type="button"
               onClick={() => setType(p.id)}
-              className={`relative px-4 py-1.5 rounded-full text-xs font-medium border transition-colors duration-200 ${
+              className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-colors duration-200 ${
                 active
-                  ? "text-white border-accent"
+                  ? "bg-accent text-white border-accent"
                   : "bg-surface-elevated text-text-secondary border-white/[0.08] hover:border-white/[0.14] hover:text-text-primary"
               }`}
             >
-              {active && (
-                <m.span
-                  layoutId="reportTypePill"
-                  className="absolute inset-0 rounded-full bg-accent"
-                  style={{ zIndex: -1 }}
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
-                />
-              )}
-              <span className="relative z-10">{p.label}</span>
+              {p.label}
             </button>
           );
         })}
       </div>
 
-      <ReportsList
-        reports={reports}
-        groupByDate={true}
-        loading={isLoading && reports.length === 0}
-        skeletonCount={20}
-      />
+      <div
+        className={`transition-opacity duration-200 ${
+          isFetching && !isFetchingNextPage && reports.length > 0
+            ? "opacity-60"
+            : "opacity-100"
+        }`}
+      >
+        <ReportsList
+          reports={reports}
+          groupByDate={true}
+          loading={isLoading && reports.length === 0}
+          skeletonCount={20}
+        />
+      </div>
 
       {!isLoading && hasNextPage && (
         <div className="flex justify-center mt-6">
