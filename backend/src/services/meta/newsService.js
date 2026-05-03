@@ -81,7 +81,7 @@ async function fetchAllNews() {
     if (first) { picked.push(first); seen.add(first); }
   }
   for (const article of articles) {
-    if (picked.length >= 10) break;
+    if (picked.length >= 12) break;
     if (!seen.has(article)) picked.push(article);
   }
 
