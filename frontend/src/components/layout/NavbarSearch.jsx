@@ -62,6 +62,10 @@ export default function NavbarSearch() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+  }, [isOpen]);
+
   return (
     <div ref={containerRef} className="relative flex items-center">
       {!isOpen && (

@@ -127,3 +127,22 @@ describe("NavbarSearch — slash shortcut", () => {
     expect(within(container).queryByRole("textbox")).not.toBeInTheDocument();
   });
 });
+
+describe("NavbarSearch — focus + query reset", () => {
+  it("focuses the input when the search opens", () => {
+    renderAt();
+    fireEvent.click(screen.getByRole("button", { name: /open search/i }));
+    expect(document.activeElement).toBe(screen.getByRole("textbox"));
+  });
+
+  it("clears the query when the search reopens", () => {
+    renderAt();
+    fireEvent.click(screen.getByRole("button", { name: /open search/i }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "lebron" } });
+    expect(screen.getByRole("textbox")).toHaveValue("lebron");
+
+    fireEvent.click(screen.getByRole("button", { name: /close search/i }));
+    fireEvent.click(screen.getByRole("button", { name: /open search/i }));
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+});
