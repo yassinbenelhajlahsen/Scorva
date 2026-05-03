@@ -16,11 +16,11 @@ describe("getNews", () => {
     expect(apiFetch).toHaveBeenCalledWith("/api/news", expect.any(Object));
   });
 
-  it("passes default limit of 4", async () => {
+  it("passes default limit of 10", async () => {
     await getNews();
     expect(apiFetch).toHaveBeenCalledWith(
       "/api/news",
-      expect.objectContaining({ params: { limit: 4 } })
+      expect.objectContaining({ params: { limit: 10 } })
     );
   });
 
