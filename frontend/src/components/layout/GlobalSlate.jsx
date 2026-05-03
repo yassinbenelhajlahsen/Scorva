@@ -48,7 +48,7 @@ function TeamSide({ name, logo, score, showScore, isWinner, isLoser, isLive }) {
   );
 }
 
-function GamePill({ game, showLeagueTag, queryClient }) {
+function GamePill({ game, queryClient }) {
   const group = statusGroup(game);
   const isLive = group === "live";
   const isFinal = group === "final";
@@ -85,11 +85,6 @@ function GamePill({ game, showLeagueTag, queryClient }) {
       }}
       className="flex-1 min-w-fit inline-flex items-center justify-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.12] rounded-xl px-3 py-2 transition-colors duration-150"
     >
-      {showLeagueTag && (
-        <span className="text-[9px] font-semibold uppercase tracking-widest text-text-tertiary">
-          {game.league.toUpperCase()}
-        </span>
-      )}
       <div className="flex items-center gap-1.5 pr-3 border-r border-white/[0.08]">
         {isLive && (
           <span className="relative flex w-1.5 h-1.5">
@@ -138,17 +133,46 @@ export default function GlobalSlate({ leagueFilter = null }) {
 
   const showLeagueTag = leagueFilter === null;
 
+  // Multi-league mode: group pills under a single league label per group.
+  // Order leagues [nba, nfl, nhl]; preserve the hook's sort within each group.
+  const groups = showLeagueTag
+    ? ["nba", "nfl", "nhl"]
+        .map((lg) => ({ league: lg, items: games.filter((g) => g.league === lg) }))
+        .filter((g) => g.items.length > 0)
+    : null;
+
   return (
     <div className="sm:sticky sm:top-14 z-40 bg-[#0a0a0c] sm:bg-[rgba(10,10,12,0.88)] sm:backdrop-blur-2xl border-b border-white/[0.06] overflow-x-auto scrollbar-none">
-      <div className="flex items-center gap-2 px-5 py-2 max-w-[1200px] mx-auto">
-        {games.map((g) => (
-          <GamePill
-            key={`${g.league}-${g.id}`}
-            game={g}
-            showLeagueTag={showLeagueTag}
-            queryClient={queryClient}
-          />
-        ))}
+      <div className="flex items-center gap-5 pl-5 py-2">
+        {groups
+          ? groups.map(({ league, items }) => (
+              <div
+                key={league}
+                style={{ flexGrow: items.length }}
+                className="flex items-center gap-2 min-w-fit"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary">
+                  {league.toUpperCase()}
+                </span>
+                {items.map((g) => (
+                  <GamePill
+                    key={`${league}-${g.id}`}
+                    game={g}
+                    queryClient={queryClient}
+                  />
+                ))}
+              </div>
+            ))
+          : games.map((g) => (
+              <GamePill
+                key={`${g.league}-${g.id}`}
+                game={g}
+                queryClient={queryClient}
+              />
+            ))}
+        {/* Right gutter — workaround for Chrome/Safari dropping padding-right
+            at scroll-end on horizontally scrollable flex containers. */}
+        <div aria-hidden className="w-1 h-6 flex-shrink-0" />
       </div>
     </div>
   );
