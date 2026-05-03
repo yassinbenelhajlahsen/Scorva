@@ -24,14 +24,20 @@ export default function NewsPreviewModal({ article, onClose }) {
       {article && (
         <m.div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 pt-[max(1rem,calc(1rem+env(safe-area-inset-top)))] pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom)))]"
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Backdrop */}
+          {/* Blur layer — not opacity-animated so iOS allocates the compositing layer before the animation starts */}
+          <div className="absolute inset-0 backdrop-blur-sm" />
+          {/* Dark overlay — fades in separately, no backdrop-filter so no compositing cost */}
           <m.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu [will-change:backdrop-filter,opacity]"
+            className="absolute inset-0 bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
           />
 
