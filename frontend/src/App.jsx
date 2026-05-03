@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "./lib/queryClient.js";
 import PageWrapper from "./components/layout/PageWrapper.jsx";
 import Navbar from "./components/layout/Navbar.jsx";
+import GlobalSlate from "./components/layout/GlobalSlate.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import ScrollToTop from "./components/layout/ScrollToTop.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -18,6 +19,7 @@ import { FavoritesPanelProvider } from "./context/FavoritesPanelContext.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 import IOSInstallHint from "./components/pwa/IOSInstallHint.jsx";
 import { trackVisit } from "./lib/pwaVisitTracking.js";
+import { resolveLeagueFilter } from "./utils/slateDate.js";
 
 const About        = lazy(() => import("./pages/About.jsx"));
 const LeaguePage   = lazy(() => import("./pages/LeaguePage.jsx"));
@@ -64,6 +66,9 @@ function useBlockEdgeSwipe() {
 }
 
 function AppShellInner() {
+  const { pathname } = useLocation();
+  const leagueFilter = resolveLeagueFilter(pathname);
+
   useEffect(() => {
     trackVisit();
   }, []);
@@ -72,6 +77,7 @@ function AppShellInner() {
   return (
     <div className="bg-surface-primary text-text-primary min-h-screen font-sans antialiased">
       <Navbar />
+      <GlobalSlate leagueFilter={leagueFilter} />
       <ScrollToTop />
       <ErrorBoundary>
         <AnimatedRoutes />
