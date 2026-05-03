@@ -352,7 +352,7 @@ export async function streamAISummary(gameData, league, onBullet, { signal } = {
 
   const stream = await Promise.race([
     openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         {
           role: "system",
@@ -364,8 +364,8 @@ export async function streamAISummary(gameData, league, onBullet, { signal } = {
           content: prompt,
         },
       ],
-      temperature: 0.9,
-      max_tokens: 300,
+      max_completion_tokens: 300,
+      reasoning_effort: "minimal",
       stream: true,
     }),
     new Promise((_, reject) =>
@@ -414,7 +414,7 @@ export async function generateAISummary(gameData, league) {
   try {
     const completion = await Promise.race([
       openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5-mini",
         messages: [
           {
             role: "system",
@@ -426,8 +426,8 @@ export async function generateAISummary(gameData, league) {
             content: prompt,
           },
         ],
-        temperature: 0.9,
-        max_tokens: 300,
+        max_completion_tokens: 300,
+        reasoning_effort: "minimal",
       }),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("OpenAI request timeout")), 30000)

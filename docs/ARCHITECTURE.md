@@ -622,7 +622,7 @@ incomplete assistant message from state.
 `frontend/src/api/chat.js` enforces a 1 MB SSE buffer cap; disconnects with `onError` if exceeded.
 
 ### Conversation summarization
-When a conversation exceeds 20 messages, older messages are compressed via `gpt-4o-mini`.
+When a conversation exceeds 20 messages, older messages are compressed via `gpt-5-nano`.
 The result is stored in `chat_conversations.summary`; `summarized_up_to` tracks the last
 summarized offset to avoid re-processing. The summary is prepended to the system prompt as a
 system message each turn.

@@ -128,7 +128,7 @@ export async function summarizeOlderMessages(messages, existingSummary) {
     : `Summarize the following conversation between a user and a sports assistant. Capture the key topics discussed, specific players/teams/stats mentioned, and the user's main interests. Be concise — 3-5 sentences.\n\n${formatted}`;
 
   const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5-nano",
     messages: [
       {
         role: "system",
@@ -136,8 +136,8 @@ export async function summarizeOlderMessages(messages, existingSummary) {
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0.3,
-    max_tokens: 300,
+    max_completion_tokens: 300,
+    reasoning_effort: "minimal",
   });
 
   return res.choices[0].message.content.trim();
@@ -184,12 +184,12 @@ export async function runAgentLoop(history, pageContext, onDelta, { onStatus, co
     if (signal?.aborted) break;
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-5-mini",
       messages,
       tools: TOOL_DEFINITIONS,
       tool_choice: "auto",
-      temperature: 0.7,
-      max_tokens: 1024,
+      max_completion_tokens: 1024,
+      reasoning_effort: "minimal",
       stream: true,
     }, { signal });
 

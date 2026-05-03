@@ -405,8 +405,7 @@ describe("chatAgentService — summarizeOlderMessages", () => {
     const result = await summarizeOlderMessages(messages, null);
 
     expect(mockCreate).toHaveBeenCalledTimes(1);
-    // The call should use gpt-4o-mini
-    expect(mockCreate.mock.calls[0][0].model).toBe("gpt-4o-mini");
+    expect(mockCreate.mock.calls[0][0].model).toBe("gpt-5-nano");
     expect(result).toBe("User asked about LeBron and standings.");
   });
 
