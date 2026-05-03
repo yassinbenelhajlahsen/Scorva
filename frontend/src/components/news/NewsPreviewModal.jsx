@@ -31,7 +31,7 @@ export default function NewsPreviewModal({ article, onClose }) {
         >
           {/* Backdrop */}
           <m.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transform-gpu [will-change:backdrop-filter,opacity]"
             onClick={onClose}
           />
 
