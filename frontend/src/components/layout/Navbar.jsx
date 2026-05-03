@@ -26,14 +26,14 @@ export default function Navbar() {
   // Publish the navbar's measured height as --navbar-height so siblings (e.g.
   // ScoresBar) can stick to its bottom edge across breakpoints. The height
   // varies on mobile because of the second search row and iOS safe-area inset.
+  // Round to integer px and subtract 1 so the sibling overlaps the navbar's
+  // semi-transparent bottom border, eliminating a hairline seam at the join.
   useEffect(() => {
     const el = navRef.current;
     if (!el) return;
     const apply = () => {
-      document.documentElement.style.setProperty(
-        "--navbar-height",
-        `${el.getBoundingClientRect().height}px`
-      );
+      const h = Math.round(el.getBoundingClientRect().height) - 1;
+      document.documentElement.style.setProperty("--navbar-height", `${h}px`);
     };
     apply();
     const ro = new ResizeObserver(apply);
