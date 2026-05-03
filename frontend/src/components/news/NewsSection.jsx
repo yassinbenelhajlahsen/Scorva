@@ -7,7 +7,7 @@ import NewsCardCompact from "./NewsCardCompact.jsx";
 import NewsCardSkeleton from "../skeletons/NewsCardSkeleton.jsx";
 import NewsPreviewModal from "./NewsPreviewModal.jsx";
 
-const MOBILE_PAGE_SIZE = 4;
+const MOBILE_COLLAPSED_COUNT = 4;
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -30,24 +30,23 @@ export default function NewsSection() {
   const [selected, setSelected] = useState(null);
   const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState(false);
-  const [mobileVisible, setMobileVisible] = useState(MOBILE_PAGE_SIZE);
+  const [showAllMobile, setShowAllMobile] = useState(false);
 
   useEffect(() => {
     setExpanded(!isMobile);
   }, [isMobile]);
 
   useEffect(() => {
-    setMobileVisible(MOBILE_PAGE_SIZE);
+    setShowAllMobile(false);
   }, [isMobile]);
 
   if (error || (!loading && articles.length === 0)) return null;
 
-  const visible = isMobile ? articles.slice(0, mobileVisible) : articles;
-  const canShowMore = isMobile && mobileVisible < articles.length;
-
-  const handleShowMore = () => {
-    setMobileVisible((n) => Math.min(n + MOBILE_PAGE_SIZE, articles.length));
-  };
+  const visible =
+    isMobile && !showAllMobile
+      ? articles.slice(0, MOBILE_COLLAPSED_COUNT)
+      : articles;
+  const showToggle = isMobile && articles.length > MOBILE_COLLAPSED_COUNT;
 
   return (
     <div className="mb-14">
@@ -104,12 +103,12 @@ export default function NewsSection() {
         </m.div>
       )}
 
-      {canShowMore && !loading && (
+      {showToggle && !loading && (
         <button
-          onClick={handleShowMore}
+          onClick={() => setShowAllMobile((v) => !v)}
           className="mt-3 w-full text-center text-xs font-semibold uppercase tracking-wide text-text-secondary py-3 rounded-xl border border-white/[0.08] bg-surface-elevated hover:bg-surface-overlay hover:border-white/[0.14] transition-colors cursor-pointer"
         >
-          Show more
+          {showAllMobile ? "Show less" : "Show more"}
         </button>
       )}
 
