@@ -10,7 +10,7 @@ vi.mock("../../utils/slateDate.js", async () => {
 });
 
 const { useSlateGames } = await import("../../hooks/data/useSlateGames.js");
-const { useGlobalSlate } = await import("../../hooks/data/useGlobalSlate.js");
+const { useScoresBar } = await import("../../hooks/data/useScoresBar.js");
 
 function mockLeagueResponse(perLeague) {
   // perLeague: { nba: {games, resolvedDate, loading, error}, nfl: ..., nhl: ... }
@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("useGlobalSlate — single-league filter", () => {
+describe("useScoresBar — single-league filter", () => {
   it("returns only the filtered league's games", async () => {
     mockLeagueResponse({
       nba: {
@@ -38,7 +38,7 @@ describe("useGlobalSlate — single-league filter", () => {
       // nfl/nhl should be disabled — return empty stubs from default branch
     });
 
-    const { result } = renderHook(() => useGlobalSlate("nba"), {
+    const { result } = renderHook(() => useScoresBar("nba"), {
       wrapper: createWrapper(),
     });
 
@@ -52,7 +52,7 @@ describe("useGlobalSlate — single-league filter", () => {
     mockLeagueResponse({
       nba: { games: [], resolvedDate: "2026-05-02", loading: false, error: false },
     });
-    renderHook(() => useGlobalSlate("nba"), { wrapper: createWrapper() });
+    renderHook(() => useScoresBar("nba"), { wrapper: createWrapper() });
 
     const calls = useSlateGames.mock.calls;
     const nbaCall = calls.find((c) => c[0] === "nba");
@@ -64,7 +64,7 @@ describe("useGlobalSlate — single-league filter", () => {
   });
 });
 
-describe("useGlobalSlate — multi-league filter (null)", () => {
+describe("useScoresBar — multi-league filter (null)", () => {
   it("merges games from all three leagues with league tags", async () => {
     mockLeagueResponse({
       nba: {
@@ -87,7 +87,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
       },
     });
 
-    const { result } = renderHook(() => useGlobalSlate(null), {
+    const { result } = renderHook(() => useScoresBar(null), {
       wrapper: createWrapper(),
     });
 
@@ -120,7 +120,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
       },
     });
 
-    const { result } = renderHook(() => useGlobalSlate(null), {
+    const { result } = renderHook(() => useScoresBar(null), {
       wrapper: createWrapper(),
     });
 
@@ -141,7 +141,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
       nhl: { games: [], resolvedDate: null, loading: true, error: false },
     });
 
-    const { result } = renderHook(() => useGlobalSlate(null), {
+    const { result } = renderHook(() => useScoresBar(null), {
       wrapper: createWrapper(),
     });
 
@@ -156,7 +156,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
       nhl: { games: [], resolvedDate: null, loading: true, error: false },
     });
 
-    const { result } = renderHook(() => useGlobalSlate(null), {
+    const { result } = renderHook(() => useScoresBar(null), {
       wrapper: createWrapper(),
     });
 
@@ -170,7 +170,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
       nhl: { games: [], resolvedDate: null, loading: false, error: true },
     });
 
-    const { result } = renderHook(() => useGlobalSlate(null), {
+    const { result } = renderHook(() => useScoresBar(null), {
       wrapper: createWrapper(),
     });
 
@@ -189,7 +189,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
       nhl: { games: [], resolvedDate: null, loading: false, error: true },
     });
 
-    const { result } = renderHook(() => useGlobalSlate(null), {
+    const { result } = renderHook(() => useScoresBar(null), {
       wrapper: createWrapper(),
     });
 
@@ -198,7 +198,7 @@ describe("useGlobalSlate — multi-league filter (null)", () => {
   });
 });
 
-describe("useGlobalSlate — sort within group", () => {
+describe("useScoresBar — sort within group", () => {
   it("sorts scheduled games chronologically by start_time", async () => {
     mockLeagueResponse({
       nba: {
@@ -212,7 +212,7 @@ describe("useGlobalSlate — sort within group", () => {
       },
     });
 
-    const { result } = renderHook(() => useGlobalSlate("nba"), {
+    const { result } = renderHook(() => useScoresBar("nba"), {
       wrapper: createWrapper(),
     });
 

@@ -3,18 +3,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-vi.mock("../../hooks/data/useGlobalSlate.js", () => ({ useGlobalSlate: vi.fn() }));
+vi.mock("../../hooks/data/useScoresBar.js", () => ({ useScoresBar: vi.fn() }));
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ prefetchQuery: vi.fn() }),
 }));
 
-const { useGlobalSlate } = await import("../../hooks/data/useGlobalSlate.js");
-const GlobalSlate = (await import("../../components/layout/GlobalSlate.jsx")).default;
+const { useScoresBar } = await import("../../hooks/data/useScoresBar.js");
+const ScoresBar = (await import("../../components/layout/ScoresBar.jsx")).default;
 
 function renderAt(path, props = { leagueFilter: null }) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <GlobalSlate {...props} />
+      <ScoresBar {...props} />
     </MemoryRouter>
   );
 }
@@ -23,27 +23,27 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("GlobalSlate", () => {
+describe("ScoresBar", () => {
   it("renders nothing when games is empty and not loading", () => {
-    useGlobalSlate.mockReturnValue({ games: [], loading: false, error: false });
+    useScoresBar.mockReturnValue({ games: [], loading: false, error: false });
     const { container } = renderAt("/");
     expect(container.firstChild).toBeNull();
   });
 
   it("renders nothing when error and games empty", () => {
-    useGlobalSlate.mockReturnValue({ games: [], loading: false, error: true });
+    useScoresBar.mockReturnValue({ games: [], loading: false, error: true });
     const { container } = renderAt("/");
     expect(container.firstChild).toBeNull();
   });
 
   it("renders skeleton while loading", () => {
-    useGlobalSlate.mockReturnValue({ games: [], loading: true, error: false });
+    useScoresBar.mockReturnValue({ games: [], loading: true, error: false });
     renderAt("/");
-    expect(screen.getByTestId("global-slate-skeleton")).toBeInTheDocument();
+    expect(screen.getByTestId("scores-bar-skeleton")).toBeInTheDocument();
   });
 
   it("renders pills for each game", () => {
-    useGlobalSlate.mockReturnValue({
+    useScoresBar.mockReturnValue({
       games: [
         {
           id: 1,
@@ -71,7 +71,7 @@ describe("GlobalSlate", () => {
   });
 
   it("shows league tag in multi-league mode (leagueFilter=null)", () => {
-    useGlobalSlate.mockReturnValue({
+    useScoresBar.mockReturnValue({
       games: [
         {
           id: 1,
@@ -96,7 +96,7 @@ describe("GlobalSlate", () => {
   });
 
   it("hides league tag when leagueFilter is set", () => {
-    useGlobalSlate.mockReturnValue({
+    useScoresBar.mockReturnValue({
       games: [
         {
           id: 1,
@@ -121,7 +121,7 @@ describe("GlobalSlate", () => {
   });
 
   it("hides on /about", () => {
-    useGlobalSlate.mockReturnValue({
+    useScoresBar.mockReturnValue({
       games: [{ id: 1, league: "nba", status: "Final", home_shortname: "X", away_shortname: "Y" }],
       loading: false,
       error: false,
@@ -131,7 +131,7 @@ describe("GlobalSlate", () => {
   });
 
   it("hides on /privacy", () => {
-    useGlobalSlate.mockReturnValue({
+    useScoresBar.mockReturnValue({
       games: [{ id: 1, league: "nba", status: "Final", home_shortname: "X", away_shortname: "Y" }],
       loading: false,
       error: false,
@@ -141,7 +141,7 @@ describe("GlobalSlate", () => {
   });
 
   it("links each pill to /{league}/games/{id}", () => {
-    useGlobalSlate.mockReturnValue({
+    useScoresBar.mockReturnValue({
       games: [
         {
           id: 42,
