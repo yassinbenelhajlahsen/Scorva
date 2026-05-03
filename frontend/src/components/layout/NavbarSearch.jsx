@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import SearchBar from "../ui/SearchBar.jsx";
 import { useSearch } from "../../hooks/data/useSearch.js";
 
+function isTypingContext(target) {
+  if (!target) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return true;
+  if (target.isContentEditable) return true;
+  return false;
+}
+
 export default function NavbarSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -24,11 +32,15 @@ export default function NavbarSearch() {
     if (!isOpen) return;
     function handleMouseDown(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
-        close();
+        setQuery("");
+        setIsOpen(false);
       }
     }
     function handleKeyDown(e) {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") {
+        setQuery("");
+        setIsOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("keydown", handleKeyDown);
@@ -37,6 +49,18 @@ export default function NavbarSearch() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key !== "/") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingContext(e.target)) return;
+      e.preventDefault();
+      open();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div ref={containerRef} className="relative flex items-center">
