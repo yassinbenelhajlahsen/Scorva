@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
 import { useLeagueData } from "../../hooks/data/useLeagueData.js";
-import { LeagueSlateSkeleton } from "../skeletons/LeaguePageSkeleton.jsx";
+import { GlobalSlateSkeleton } from "../skeletons/LeaguePageSkeleton.jsx";
 
 function statusGroup(game) {
   const s = game.status || "";
@@ -199,7 +199,7 @@ export default function LeagueSlate({ league }) {
     return [...live, ...scheduled, ...final];
   }, [games]);
 
-  if (loading) return <LeagueSlateSkeleton />;
+  if (loading) return <GlobalSlateSkeleton />;
   if (error || offSeason || sorted.length === 0) return null;
 
   return (

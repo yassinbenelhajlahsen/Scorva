@@ -23,10 +23,13 @@ function GamePillSkeleton() {
   );
 }
 
-export function LeagueSlateSkeleton() {
+export function GlobalSlateSkeleton() {
   return (
-    <div className="mb-5 overflow-x-auto scrollbar-none">
-      <div className="flex items-center gap-2 pb-1">
+    <div
+      data-testid="global-slate-skeleton"
+      className="border-b border-white/[0.06] overflow-x-auto scrollbar-none"
+    >
+      <div className="flex items-center gap-2 px-5 py-2 max-w-[1200px] mx-auto">
         {Array.from({ length: 4 }).map((_, i) => (
           <GamePillSkeleton key={i} />
         ))}
