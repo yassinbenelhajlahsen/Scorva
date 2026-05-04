@@ -255,7 +255,66 @@ describe("getPlaysForAgent", () => {
         season: "2025-26",
       });
 
-      expect(result).toEqual({ plays: [], capped: false });
+      expect(result).toEqual({ plays: [], capped: false, retention: "scoring_only" });
+    });
+  });
+
+  describe("retention field", () => {
+    it("returns retention 'scoring_only' for cross-game queries (no second status query)", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [makePlay()] });
+
+      const result = await getPlaysForAgent({
+        league: "nba",
+        playerName: "LeBron",
+        season: "2025-26",
+      });
+
+      expect(result.retention).toBe("scoring_only");
+      // Cross-game should NOT issue a status lookup query
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns retention 'scoring_only' for a Final single-game query", async () => {
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makePlay()] })
+        .mockResolvedValueOnce({ rows: [{ status: "Final" }] });
+
+      const result = await getPlaysForAgent({
+        league: "nba",
+        gameId: 99,
+        season: "2025-26",
+      });
+
+      expect(result.retention).toBe("scoring_only");
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns retention 'all' for a live (non-Final) single-game query", async () => {
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makePlay()] })
+        .mockResolvedValueOnce({ rows: [{ status: "In Progress" }] });
+
+      const result = await getPlaysForAgent({
+        league: "nba",
+        gameId: 99,
+        season: "2025-26",
+      });
+
+      expect(result.retention).toBe("all");
+    });
+
+    it("treats 'Final/OT' status as scoring_only", async () => {
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [makePlay()] })
+        .mockResolvedValueOnce({ rows: [{ status: "Final/OT" }] });
+
+      const result = await getPlaysForAgent({
+        league: "nba",
+        gameId: 99,
+        season: "2025-26",
+      });
+
+      expect(result.retention).toBe("scoring_only");
     });
   });
 

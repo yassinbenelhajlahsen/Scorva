@@ -230,7 +230,15 @@ export const TOOL_DEFINITIONS = [
         "Returns plays in chronological order (earliest first). " +
         "Results are capped at 50 — a full game has 400+ plays. For full-game questions, " +
         "use the period filter to query one quarter at a time instead of fetching all plays at once. " +
-        "If capped is true in the response, tell the user results were truncated.",
+        "If capped is true in the response, tell the user results were truncated. " +
+        "Retention: once a game is marked Final, only scoring plays are retained — non-scoring " +
+        "plays (turnovers, missed shots, incomplete passes, fouls, etc.) are deleted to save space. " +
+        "Live and pre-game games retain all plays. Cross-game queries (gameId omitted) only " +
+        "include Final games, so they are effectively scoring-only. The response includes a " +
+        "`retention` field ('all' or 'scoring_only'); when it is 'scoring_only', filters like " +
+        "playType or searchText for non-scoring events will return little or nothing — tell the " +
+        "user that non-scoring play-by-play data is not stored for completed games rather than " +
+        "guessing why results are sparse.",
       parameters: {
         type: "object",
         properties: {
