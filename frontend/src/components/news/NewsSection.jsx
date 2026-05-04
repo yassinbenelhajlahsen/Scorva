@@ -87,13 +87,13 @@ export default function NewsSection() {
       ) : (
         <m.div
           key="compact"
-          className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden divide-y divide-white/[0.06]"
+          className="bg-white/[0.06] border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-px"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
           {visible.map((article, i) => (
-            <m.div key={`${article.league}-${i}`} variants={itemVariants}>
+            <m.div key={`${article.league}-${i}`} variants={itemVariants} className="bg-surface-elevated">
               <NewsCardCompact
                 article={article}
                 onClick={() => setSelected(article)}
