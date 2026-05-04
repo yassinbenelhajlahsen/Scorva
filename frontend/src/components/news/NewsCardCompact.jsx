@@ -7,11 +7,13 @@ export default function NewsCardCompact({ article, onClick }) {
       onClick={onClick}
       className="w-full text-left flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-150 hover:bg-surface-overlay focus-visible:bg-surface-overlay focus:outline-none"
     >
-      <img
-        src={leagueData[article.league]?.logo}
-        alt={article.league}
-        className={`shrink-0 ${article.league === "nhl" ? "w-6 h-6" : "w-4 h-4"} object-contain`}
-      />
+      <div className="shrink-0 w-6 h-6 flex items-center justify-center">
+        <img
+          src={leagueData[article.league]?.logo}
+          alt={article.league}
+          className={`${article.league === "nhl" ? "w-6 h-6" : "w-4 h-4"} object-contain`}
+        />
+      </div>
       <p className="flex-1 min-w-0 text-sm font-medium text-text-primary leading-snug line-clamp-2">
         {article.headline}
       </p>
