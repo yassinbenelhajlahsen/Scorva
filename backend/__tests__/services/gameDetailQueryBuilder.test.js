@@ -39,4 +39,31 @@ describe("buildGameDetailSQL", () => {
     expect(sql).toContain("'seriesScore'");
     expect(sql).toContain("LEFT JOIN LATERAL");
   });
+
+  it("includes hasUnplayedPriorSeriesGames key", () => {
+    const sql = buildGameDetailSQL("nba");
+    expect(sql).toContain("'hasUnplayedPriorSeriesGames'");
+  });
+
+  it("uses strict less-than for prior series games and excludes finals/cancellations", () => {
+    const sql = buildGameDetailSQL("nba");
+    expect(sql).toContain("g3.id < g.id");
+    expect(sql).toContain("g3.status NOT ILIKE 'Final%'");
+    expect(sql).toContain("g3.status NOT ILIKE 'Cancel%'");
+  });
+
+  it("filters play-in games out of the unplayed-prior subquery", () => {
+    const sql = buildGameDetailSQL("nba");
+    expect(sql).toContain("g3.game_label NOT ILIKE '%play-in%'");
+  });
+
+  it("includes hasUnplayedPriorSeriesGames for nhl", () => {
+    const sql = buildGameDetailSQL("nhl");
+    expect(sql).toContain("'hasUnplayedPriorSeriesGames'");
+  });
+
+  it("includes hasUnplayedPriorSeriesGames for nfl (always-false at runtime)", () => {
+    const sql = buildGameDetailSQL("nfl");
+    expect(sql).toContain("'hasUnplayedPriorSeriesGames'");
+  });
 });

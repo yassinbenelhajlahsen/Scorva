@@ -495,6 +495,9 @@ Returns `"low"` when either team has <5 games played OR either team's `impactFac
 ### Cache
 Key includes `MAX(status_updated_at)` across both rosters as a freshness suffix — entries auto-invalidate when ESPN pushes a new injury report; otherwise served from cache for 1h. The cache key prefetch + freshness query runs *before* `cached()`, so an injury update reliably busts the prediction without a TTL drop.
 
+### Hidden for future playoff games
+For NBA/NHL playoff matchups, the prediction card in the frontend is hidden when the game-detail response sets `hasUnplayedPriorSeriesGames: true`. That flag is computed by a lateral subquery in `services/games/gameDetailQueryBuilder.js` (alias `ups`) that EXISTS-checks for any earlier game in the same series (same season, same team pair, type `playoff`/`final`, non-play-in) whose status is not `Final%` (and not `Cancel%`). Predictions for such games would be effectively static — the inputs (form, injuries, prior series result) won't change until Game N-1 finishes — so `OverviewTab.jsx` renders a small placeholder card instead. The prediction endpoint itself is not gated; the cost is one cached compute per game.
+
 ## Auth & users
 
 ### Users table
