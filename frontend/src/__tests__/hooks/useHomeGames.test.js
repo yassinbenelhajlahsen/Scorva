@@ -63,7 +63,7 @@ describe("useHomeGames", () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it("does not pass live league when no games are live", async () => {
+  it("does not pass any league when every slate is terminal", async () => {
     getAllLeagueGames.mockResolvedValue(mockGames);
     renderHook(() => useHomeGames(), { wrapper: createWrapper() });
     await waitFor(() => expect(getAllLeagueGames).toHaveBeenCalled());
@@ -78,11 +78,23 @@ describe("useHomeGames", () => {
     };
     getAllLeagueGames.mockResolvedValue(liveGamesData);
     renderHook(() => useHomeGames(), { wrapper: createWrapper() });
-    // Wait until hook re-renders with live game data (so useLiveGames gets "nba")
     await waitFor(() =>
       expect(useLiveGames).toHaveBeenCalledWith("nba")
     );
     expect(useLiveGames).toHaveBeenCalledWith(null);
+  });
+
+  it("passes live league when only Scheduled games are present so tip-offs are caught", async () => {
+    const scheduledOnly = {
+      nba: [{ id: 1, status: "Scheduled" }],
+      nhl: [{ id: 2, status: "Final" }],
+      nfl: [{ id: 3, status: "Final" }],
+    };
+    getAllLeagueGames.mockResolvedValue(scheduledOnly);
+    renderHook(() => useHomeGames(), { wrapper: createWrapper() });
+    await waitFor(() =>
+      expect(useLiveGames).toHaveBeenCalledWith("nba")
+    );
   });
 
   it("updates games with liveGames data when available", async () => {

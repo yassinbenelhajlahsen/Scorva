@@ -4,13 +4,17 @@ import { getAllLeagueGames } from "../../api/games.js";
 import { useLiveGames } from "../live/useLiveGames.js";
 import { queryKeys } from "../../lib/query.js";
 
-function hasLiveGame(games) {
-  return games.some(
-    (g) =>
-      g.status.includes("In Progress") ||
-      g.status.includes("End of Period") ||
-      g.status.includes("Halftime")
-  );
+function hasActiveGame(games) {
+  return games.some((g) => {
+    const s = g.status ?? "";
+    const isTerminal =
+      s.includes("Final") ||
+      s.includes("Postponed") ||
+      s.includes("Canceled") ||
+      s.includes("Cancelled") ||
+      s.includes("Suspended");
+    return !isTerminal && s.length > 0;
+  });
 }
 
 export function useHomeGames() {
@@ -27,9 +31,9 @@ export function useHomeGames() {
     staleTime: 0,
   });
 
-  const { liveGames: liveNba } = useLiveGames(hasLiveGame(games.nba) ? "nba" : null);
-  const { liveGames: liveNhl } = useLiveGames(hasLiveGame(games.nhl) ? "nhl" : null);
-  const { liveGames: liveNfl } = useLiveGames(hasLiveGame(games.nfl) ? "nfl" : null);
+  const { liveGames: liveNba } = useLiveGames(hasActiveGame(games.nba) ? "nba" : null);
+  const { liveGames: liveNhl } = useLiveGames(hasActiveGame(games.nhl) ? "nhl" : null);
+  const { liveGames: liveNfl } = useLiveGames(hasActiveGame(games.nfl) ? "nfl" : null);
 
   // Push SSE updates into the query cache
   useEffect(() => {

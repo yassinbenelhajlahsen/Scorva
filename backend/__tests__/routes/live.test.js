@@ -161,9 +161,24 @@ describe("streamGames", () => {
     );
   });
 
-  it("sends event: done and ends stream when no live games", async () => {
+  it("sends event: done and ends stream when slate is all terminal", async () => {
     const finalGame = { ...fixtures.game(), status: "Final" };
-    mockPool.query.mockResolvedValueOnce({ rows: [finalGame] });
+    const postponed = { ...fixtures.game(), status: "Postponed" };
+    const canceled = { ...fixtures.game(), status: "Canceled" };
+    mockPool.query.mockResolvedValueOnce({
+      rows: [finalGame, postponed, canceled],
+    });
+
+    const req = makeReq({ league: "nba" });
+    const res = makeRes();
+    await streamGames(req, res);
+
+    expect(res.written).toContain("event: done\ndata: final\n\n");
+    expect(res.end).toHaveBeenCalled();
+  });
+
+  it("sends event: done and ends stream when slate is empty", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
@@ -176,6 +191,32 @@ describe("streamGames", () => {
   it("keeps stream open when games are at Halftime", async () => {
     const halftimeGame = { ...fixtures.game(), status: "Halftime" };
     mockPool.query.mockResolvedValueOnce({ rows: [halftimeGame] });
+
+    const req = makeReq({ league: "nba" });
+    const res = makeRes();
+    await streamGames(req, res);
+
+    expect(res.written).not.toContain("event: done\ndata: final\n\n");
+    expect(res.end).not.toHaveBeenCalled();
+  });
+
+  it("keeps stream open for a Scheduled-only slate so tip-offs are caught", async () => {
+    const scheduled = { ...fixtures.game(), status: "Scheduled" };
+    mockPool.query.mockResolvedValueOnce({ rows: [scheduled, scheduled] });
+
+    const req = makeReq({ league: "nba" });
+    const res = makeRes();
+    await streamGames(req, res);
+
+    expect(res.written).not.toContain("event: done\ndata: final\n\n");
+    expect(res.end).not.toHaveBeenCalled();
+    expect(res.written.find((w) => w.startsWith("data:"))).toBeDefined();
+  });
+
+  it("keeps stream open for a mixed slate (scheduled + final)", async () => {
+    const scheduled = { ...fixtures.game(), status: "Scheduled" };
+    const finalGame = { ...fixtures.game(), status: "Final" };
+    mockPool.query.mockResolvedValueOnce({ rows: [scheduled, finalGame] });
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();

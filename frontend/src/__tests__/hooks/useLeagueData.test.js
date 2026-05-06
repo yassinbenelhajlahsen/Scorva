@@ -188,6 +188,48 @@ describe("useLeagueData — SSE activation", () => {
     const calls = useLiveGames.mock.calls;
     expect(calls.every((c) => c[0] === null)).toBe(true);
   });
+
+  it("passes league to useLiveGames when today's slate is Scheduled-only so tip-offs are caught", async () => {
+    const todayET = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
+    getLeagueGames.mockResolvedValue({
+      games: [{ id: 1, status: "Scheduled" }],
+      resolvedDate: todayET,
+      resolvedSeason: "2025-26",
+    });
+
+    renderHook(() => useLeagueData("nba", null, todayET), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      const calls = useLiveGames.mock.calls;
+      expect(calls.some((c) => c[0] === "nba")).toBe(true);
+    });
+  });
+
+  it("passes null to useLiveGames when today's slate is all terminal", async () => {
+    const todayET = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
+    getLeagueGames.mockResolvedValue({
+      games: [
+        { id: 1, status: "Final" },
+        { id: 2, status: "Postponed" },
+      ],
+      resolvedDate: todayET,
+      resolvedSeason: "2025-26",
+    });
+
+    renderHook(() => useLeagueData("nba", null, todayET), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
+    const calls = useLiveGames.mock.calls;
+    expect(calls.every((c) => c[0] === null)).toBe(true);
+  });
 });
 
 describe("useLeagueData — SSE payload filter", () => {

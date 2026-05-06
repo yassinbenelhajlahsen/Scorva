@@ -58,7 +58,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("useLiveGame", () => {
-  it("does not open EventSource when isLive is false", () => {
+  it("does not open EventSource when enabled is false", () => {
     renderHook(() => useLiveGame("nba", "1", false));
     expect(MockEventSource.instances).toHaveLength(0);
   });

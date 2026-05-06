@@ -12,11 +12,13 @@ const leagueHandlers = {
   nhl: getNhlGame,
 };
 
-function isLiveStatus(status) {
+function isTerminalStatus(status) {
   return (
-    status.includes("In Progress") ||
-    status.includes("End of Period") ||
-    status.includes("Halftime")
+    status.includes("Final") ||
+    status.includes("Postponed") ||
+    status.includes("Canceled") ||
+    status.includes("Cancelled") ||
+    status.includes("Suspended")
   );
 }
 
@@ -46,8 +48,9 @@ export async function streamGames(req, res) {
       const games = await getGames(league.toLowerCase(), { live: true });
       if (res.writableEnded) return;
       res.write(`data: ${JSON.stringify(games)}\n\n`);
-      const anyLive = games.some((g) => isLiveStatus(g.status));
-      if (!anyLive) {
+      const allTerminal =
+        games.length === 0 || games.every((g) => isTerminalStatus(g.status));
+      if (allTerminal) {
         res.write("event: done\ndata: final\n\n");
         cleanup();
         res.end();
