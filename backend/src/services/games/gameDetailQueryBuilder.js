@@ -91,7 +91,8 @@ SELECT json_build_object(
     'seriesScore', json_build_object(
       'homeWins', COALESCE(sc.home_series_wins, 0),
       'awayWins', COALESCE(sc.away_series_wins, 0)
-    )
+    ),
+    'hasUnplayedPriorSeriesGames', COALESCE(ups.has_unplayed, false)
   ),
   'homeTeam', json_build_object(
     'info', json_build_object(
@@ -147,5 +148,24 @@ LEFT JOIN LATERAL (
       (g2.hometeamid = g.awayteamid AND g2.awayteamid = g.hometeamid)
     )
 ) sc ON true
+LEFT JOIN LATERAL (
+  SELECT EXISTS (
+    SELECT 1 FROM games g3
+    WHERE g.league IN ('nba', 'nhl')
+      AND g.type IN ('playoff', 'final')
+      AND (g.game_label IS NULL OR g.game_label NOT ILIKE '%play-in%')
+      AND g3.league = g.league
+      AND g3.season = g.season
+      AND g3.type IN ('playoff', 'final')
+      AND (g3.game_label IS NULL OR g3.game_label NOT ILIKE '%play-in%')
+      AND g3.id < g.id
+      AND g3.status NOT ILIKE 'Final%'
+      AND g3.status NOT ILIKE 'Cancel%'
+      AND (
+        (g3.hometeamid = g.hometeamid AND g3.awayteamid = g.awayteamid) OR
+        (g3.hometeamid = g.awayteamid AND g3.awayteamid = g.hometeamid)
+      )
+  ) AS has_unplayed
+) ups ON true
 WHERE g.id = $1 AND g.league = $2`;
 }

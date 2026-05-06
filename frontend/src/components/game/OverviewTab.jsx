@@ -114,15 +114,22 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* Prediction — pre-game only */}
-      {isPreGame && (prediction || predictionLoading) && (
-        <PredictionCard
-          prediction={prediction}
-          loading={predictionLoading}
-          league={league}
-          homeColor={homeTeam?.info?.color}
-          awayColor={awayTeam?.info?.color}
-        />
+      {/* Prediction — pre-game only; hidden when a prior playoff series game is still pending */}
+      {isPreGame && game?.hasUnplayedPriorSeriesGames ? (
+        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 mb-6 text-sm text-text-secondary">
+          Prediction available after the previous game in this series finishes.
+        </div>
+      ) : (
+        isPreGame &&
+        (prediction || predictionLoading) && (
+          <PredictionCard
+            prediction={prediction}
+            loading={predictionLoading}
+            league={league}
+            homeColor={homeTeam?.info?.color}
+            awayColor={awayTeam?.info?.color}
+          />
+        )
       )}
 
       {/* Top performers — live/final */}
