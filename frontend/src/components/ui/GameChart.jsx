@@ -96,7 +96,7 @@ function computeXPos(dp, periodLengths) {
   return (dp.period - 1) + elapsedFraction;
 }
 
-function buildPositioned(sampled) {
+function buildPositioned(sampled, isFinal) {
   const useTime = hasTimeInfo(sampled);
   const periodLengths = useTime ? computePeriodLengths(sampled) : null;
   const xPositions = sampled.map((dp, i) =>
@@ -107,12 +107,18 @@ function buildPositioned(sampled) {
   const maxPeriod = useTime
     ? Math.max(0, ...sampled.map((dp) => dp.period ?? 0))
     : 0;
+  // For final games, snap the last point's xPos to the period boundary so the
+  // line and area reach the right edge — ESPN's last play often has a residual
+  // clock value, leaving a visible gap between the line end and the chart end.
+  if (isFinal && useTime && xPositions.length > 0) {
+    xPositions[xPositions.length - 1] = Math.max(REGULATION_COUNT, maxPeriod);
+  }
   return { useTime, xPositions, maxPeriod };
 }
 
-function buildChartData(raw) {
+function buildChartData(raw, isFinal) {
   const sampled = downsample(raw);
-  const { useTime, xPositions, maxPeriod } = buildPositioned(sampled);
+  const { useTime, xPositions, maxPeriod } = buildPositioned(sampled, isFinal);
   const points = sampled.map((dp, i) => ({
     xPos: xPositions[i],
     home: Math.round(dp.homeWinPercentage * 100),
@@ -121,9 +127,9 @@ function buildChartData(raw) {
   return { points, useTime, maxPeriod };
 }
 
-function buildMarginData(raw) {
+function buildMarginData(raw, isFinal) {
   const sampled = downsample(raw);
-  const { useTime, xPositions, maxPeriod } = buildPositioned(sampled);
+  const { useTime, xPositions, maxPeriod } = buildPositioned(sampled, isFinal);
   const points = sampled.map((dp, i) => ({
     xPos: xPositions[i],
     margin: dp.margin,
@@ -233,14 +239,15 @@ export default function GameChart({
   scoreMargin,
   homeTeam,
   awayTeam,
+  isFinal = false,
 }) {
   const [viewMode, setViewMode] = useState("winProb");
 
   if (!data || data.length === 0) return null;
 
-  const chart = buildChartData(data);
+  const chart = buildChartData(data, isFinal);
   const margin =
-    scoreMargin?.length > 0 ? buildMarginData(scoreMargin) : null;
+    scoreMargin?.length > 0 ? buildMarginData(scoreMargin, isFinal) : null;
   const isMarginMode = viewMode === "margin" && margin;
   const active = isMarginMode ? margin : chart;
   const periodTicks = buildPeriodTicks(active);
