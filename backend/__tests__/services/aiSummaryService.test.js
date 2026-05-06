@@ -21,12 +21,19 @@ jest.unstable_mockModule("openai", () => ({
   })),
 }));
 
+const mockGetPlays = jest.fn();
+const playsServicePath = resolve(__dirname, "../../src/services/games/playsService.js");
+jest.unstable_mockModule(playsServicePath, () => ({
+  getPlays: mockGetPlays,
+}));
+
 const servicePath = resolve(__dirname, "../../src/services/ai/aiSummaryService.js");
 const {
   buildGameData,
   getTopPerformers,
   calculateTeamStats,
   buildPrompt,
+  getClutchPlays,
 } = await import(servicePath);
 
 describe("aiSummaryService - pure functions", () => {
@@ -298,6 +305,101 @@ describe("aiSummaryService - pure functions", () => {
       const result = buildGameData(awayWin, []);
 
       expect(result.winner).toBe("Boston Celtics");
+    });
+  });
+
+  describe("getClutchPlays", () => {
+    beforeEach(() => {
+      mockGetPlays.mockReset();
+    });
+
+    // Helper: build NBA Q4 scoring play in last 5 min
+    const q4Play = (clock, home, away, scoring = true, sequence = 0) => ({
+      period: 4,
+      clock,
+      home_score: home,
+      away_score: away,
+      scoring_play: scoring,
+      description: `${home}-${away} at ${clock}`,
+      sequence,
+    });
+
+    it("returns null gameWinningPlay when game was never within one possession in clutch (NBA garbage time)", async () => {
+      // Replicates game 522487: OKC up 14-21 throughout last 5 min, ends 108-90
+      mockGetPlays.mockResolvedValue({
+        plays: [
+          q4Play("5:48", 98, 82, true, 1),
+          q4Play("5:16", 101, 82, true, 2),
+          q4Play("4:24", 101, 84, true, 3),
+          q4Play("2:39", 101, 87, true, 4),
+          q4Play("2:12", 103, 87, true, 5),
+          q4Play("1:45", 105, 87, true, 6),
+          q4Play("41.0", 108, 87, true, 7),
+          q4Play("20.5", 108, 90, true, 8),
+        ],
+      });
+
+      const result = await getClutchPlays(522487, "nba");
+
+      expect(result.plays).toEqual([]);
+      expect(result.gameWinningPlay).toBeNull();
+    });
+
+    it("returns gameWinningPlay when clutch window had a one-possession margin (NBA)", async () => {
+      // 5-pt final, lead was 3 with 1:00 left
+      mockGetPlays.mockResolvedValue({
+        plays: [
+          q4Play("4:30", 95, 92, true, 1),
+          q4Play("3:00", 97, 95, true, 2),
+          q4Play("1:00", 100, 97, true, 3),
+          q4Play("0:20", 102, 97, true, 4),
+        ],
+      });
+
+      const result = await getClutchPlays(1, "nba");
+
+      expect(result.plays.length).toBeGreaterThan(0);
+      expect(result.gameWinningPlay).not.toBeNull();
+      expect(result.gameWinningPlay.description).toContain("102-97");
+    });
+
+    it("returns gameWinningPlay when game ends in OT (always considered competitive via OT plays)", async () => {
+      mockGetPlays.mockResolvedValue({
+        plays: [
+          q4Play("0:01", 100, 100, true, 1),
+          { period: 5, clock: "2:00", home_score: 102, away_score: 100, scoring_play: true, description: "OT bucket", sequence: 2 },
+          { period: 5, clock: "0:30", home_score: 105, away_score: 102, scoring_play: true, description: "OT dagger", sequence: 3 },
+        ],
+      });
+
+      const result = await getClutchPlays(2, "nba");
+
+      expect(result.plays.length).toBeGreaterThan(0);
+      expect(result.gameWinningPlay).not.toBeNull();
+    });
+
+    it("uses NHL one-goal threshold", async () => {
+      // NHL: 3-1 final, lead was always 2+ in clutch
+      mockGetPlays.mockResolvedValue({
+        plays: [
+          { period: 3, clock: "4:00", home_score: 2, away_score: 0, scoring_play: true, description: "early P3", sequence: 1 },
+          { period: 3, clock: "2:00", home_score: 3, away_score: 0, scoring_play: true, description: "extending", sequence: 2 },
+          { period: 3, clock: "0:30", home_score: 3, away_score: 1, scoring_play: true, description: "consolation", sequence: 3 },
+        ],
+      });
+
+      const result = await getClutchPlays(3, "nhl");
+
+      expect(result.gameWinningPlay).toBeNull();
+      expect(result.plays).toEqual([]);
+    });
+
+    it("returns empty when no plays available", async () => {
+      mockGetPlays.mockResolvedValue({ plays: [] });
+
+      const result = await getClutchPlays(4, "nba");
+
+      expect(result).toEqual({ plays: [], gameWinningPlay: null });
     });
   });
 

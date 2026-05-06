@@ -27,6 +27,11 @@ function mapPlay(play, leagueUpper) {
   };
 }
 
+// One-possession margin per league. If the score was never within this margin
+// during the clutch window, the game wasn't competitive at the end and the
+// "last scoring play" is garbage time, not a game-winner.
+const ONE_POSSESSION = { NBA: 5, NFL: 8, NHL: 1 };
+
 export async function getClutchPlays(gameId, league) {
   try {
     const result = await getPlays(gameId, league);
@@ -37,12 +42,7 @@ export async function getClutchPlays(gameId, league) {
     const leagueUpper = league.toUpperCase();
     const finalRegPeriod = leagueUpper === "NHL" ? 3 : 4;
     const CLUTCH_SECONDS = 300; // 5 minutes
-
-    // Last scoring play from the entire game = the game winner
-    const lastScoringPlay = [...result.plays]
-      .reverse()
-      .find((p) => p.scoring_play);
-    const gameWinningPlay = lastScoringPlay ? mapPlay(lastScoringPlay, leagueUpper) : null;
+    const onePossession = ONE_POSSESSION[leagueUpper] ?? 5;
 
     const clutch = result.plays.filter((play) => {
       if (play.period > finalRegPeriod) return true; // all OT plays
@@ -57,7 +57,23 @@ export async function getClutchPlays(gameId, league) {
       return remaining !== null && remaining <= CLUTCH_SECONDS;
     });
 
-    // Sort chronologically, cap at last 20 (most clutch)
+    // Game must have been within one possession at some point in the clutch
+    // window. Otherwise the result was decided well before the buzzer and any
+    // late scores are stat-padding, not decisive plays.
+    const wasCompetitive = clutch.some((p) => {
+      if (p.home_score == null || p.away_score == null) return false;
+      return Math.abs(p.home_score - p.away_score) <= onePossession;
+    });
+
+    if (!wasCompetitive) {
+      return { plays: [], gameWinningPlay: null };
+    }
+
+    const lastScoringPlay = [...result.plays]
+      .reverse()
+      .find((p) => p.scoring_play);
+    const gameWinningPlay = lastScoringPlay ? mapPlay(lastScoringPlay, leagueUpper) : null;
+
     clutch.sort((a, b) => a.sequence - b.sequence);
     const capped = clutch.slice(-20);
 
@@ -459,7 +475,7 @@ Rules:
 - Start each bullet with a dash (-)
 - Do NOT restate the final score as a bullet — the reader already knows it
 - Anchor each bullet to something specific from the game data: a player performance, a quarter swing, a statistical gap, or a late-game play
-- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors${gameData.gameWinningPlay ? "\n- One bullet MUST describe the gameWinningPlay by player name — this is the decisive final play" : gameData.clutchPlays ? "\n- One bullet MUST reference a specific late-game moment from the clutchPlays data" : ""}
+- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors${gameData.gameWinningPlay ? "\n- One bullet MUST describe the gameWinningPlay by player name — this is the final scoring play of a competitive finish (game was within one possession in the clutch)" : gameData.clutchPlays ? "\n- One bullet MUST reference a specific late-game moment from the clutchPlays data" : ""}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;
