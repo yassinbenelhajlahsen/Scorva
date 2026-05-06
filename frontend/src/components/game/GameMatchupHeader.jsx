@@ -20,9 +20,9 @@ export default function GameMatchupHeader({
 }) {
   const queryClient = useQueryClient();
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 mb-10">
+    <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto_1fr] items-center justify-center gap-8 sm:gap-16 mb-10">
       {/* Home Team */}
-      <div className="flex flex-col sm:flex-row items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:justify-self-end">
         {homeTeam.info.logoUrl ? (
           <img
             src={homeTeam.info.logoUrl}
@@ -136,7 +136,7 @@ export default function GameMatchupHeader({
       </div>
 
       {/* Away Team */}
-      <div className="flex flex-col sm:flex-row items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:justify-self-start">
         <div className="text-center sm:text-right order-2 sm:order-1">
           {awayTeam.info.name === "TBD" ? (
             <span className="text-2xl sm:text-4xl font-bold tracking-tight text-text-tertiary">
