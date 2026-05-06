@@ -338,6 +338,32 @@ describe("aiSummaryService - pure functions", () => {
       expect(result).not.toHaveProperty("inGameInjuries");
     });
 
+    it("should pass NHL injuries with toi field through to gameData", () => {
+      const injuries = [
+        { name: "Connor McDavid", team: "EDM", toi: "7:24", status: "day-to-day", description: "lower body" },
+      ];
+
+      const result = buildGameData(baseGame, [], {}, { injuries });
+
+      expect(result.inGameInjuries).toEqual(injuries);
+      expect(result.inGameInjuries[0]).not.toHaveProperty("minutes");
+    });
+
+    it("should drop streaks shorter than 5 games", () => {
+      const result = buildGameData(baseGame, [], {}, {
+        streaks: { home: { type: "win", length: 4 }, away: null },
+      });
+      expect(result).not.toHaveProperty("enteringStreaks");
+    });
+
+    it("should drop streaks for playoff games regardless of length", () => {
+      const playoffGame = { ...baseGame, game_type: "playoff", game_label: "Round 1 - Game 1" };
+      const result = buildGameData(playoffGame, [], {}, {
+        streaks: { home: { type: "win", length: 8 }, away: { type: "win", length: 6 } },
+      });
+      expect(result).not.toHaveProperty("enteringStreaks");
+    });
+
     it("should compute benchPointsSwing for NBA when both teams have bench data", () => {
       const stats = [
         // Lakers (home) — top 5 by minutes are starters
@@ -369,15 +395,15 @@ describe("aiSummaryService - pure functions", () => {
 
     it("should pass enteringStreaks through to gameData", () => {
       const streaks = {
-        home: { type: "win", length: 4 },
-        away: { type: "loss", length: 3 },
+        home: { type: "win", length: 6 },
+        away: { type: "loss", length: 5 },
       };
 
       const result = buildGameData(baseGame, [], {}, { streaks });
 
       expect(result.enteringStreaks).toEqual({
-        home: { team: "Los Angeles Lakers", type: "win", length: 4 },
-        away: { team: "Boston Celtics", type: "loss", length: 3 },
+        home: { team: "Los Angeles Lakers", type: "win", length: 6 },
+        away: { team: "Boston Celtics", type: "loss", length: 5 },
       });
     });
 

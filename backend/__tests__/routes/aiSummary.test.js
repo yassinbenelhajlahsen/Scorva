@@ -276,6 +276,7 @@ describe("AI Summary Route - GET /games/:id/ai-summary", () => {
           {
             id: 1,
             league: "nba",
+            date: "2025-01-15",
             status: "Final",
             homescore: 100,
             awayscore: 95,

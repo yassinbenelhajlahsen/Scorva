@@ -80,7 +80,7 @@ export async function getAiSummary(req, res) {
     const [stats, clutchPlays, injuries, streaks] = await Promise.all([
       getGameStats(id),
       getClutchPlays(id, game.league),
-      getInGameInjuries(id, game.league),
+      getInGameInjuries(id, game.league, game.date),
       getTeamStreaks(game),
     ]);
     const gameData = buildGameData(game, stats, clutchPlays, {

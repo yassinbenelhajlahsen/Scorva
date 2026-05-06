@@ -186,36 +186,58 @@ export async function getTeamStreaks(game) {
 }
 
 // Detect players who likely left this game with an injury, or played
-// limited minutes due to one. Heuristic: low minutes + non-active injury
-// status updated near game time + meaningful popularity. NBA-only for now.
-export async function getInGameInjuries(gameId, league) {
-  if (league?.toLowerCase() !== "nba") return [];
+// limited time due to one. Heuristic: low usage + popularity + a
+// historical injury-status change recorded close to the game date (via
+// player_status_history). NBA uses minutes < 15; NHL uses TOI < 8:00 and
+// excludes goalies (a pulled goalie has low TOI but isn't injured).
+const INJURY_STATUSES = "('day-to-day', 'questionable', 'doubtful', 'out', 'ir')";
+export async function getInGameInjuries(gameId, league, gameDate) {
+  const lg = league?.toLowerCase();
+  if (lg !== "nba" && lg !== "nhl") return [];
+  if (!gameDate) return [];
+
+  const usageSelect = lg === "nba" ? "s.minutes AS minutes, NULL AS toi" : "NULL AS minutes, s.toi AS toi";
+  const usageFilter = lg === "nba"
+    ? "s.minutes IS NOT NULL AND s.minutes > 0 AND s.minutes < 15"
+    : `s.toi ~ '^[0-9]+:[0-9]+$'
+       AND (p.position IS NULL OR p.position <> 'G')
+       AND (split_part(s.toi, ':', 1)::int * 60 + split_part(s.toi, ':', 2)::int) > 0
+       AND (split_part(s.toi, ':', 1)::int * 60 + split_part(s.toi, ':', 2)::int) < 480`;
 
   try {
     const result = await pool.query(
-      `SELECT p.name, p.status, p.status_description, s.minutes,
-              t.shortname AS team_short
-       FROM stats s
-       JOIN players p ON p.id = s.playerid
-       JOIN teams t ON t.id = COALESCE(s.teamid, p.teamid)
-       WHERE s.gameid = $1
-         AND s.minutes IS NOT NULL
-         AND s.minutes > 0
-         AND s.minutes < 15
-         AND p.status IN ('day-to-day', 'questionable', 'doubtful', 'out', 'ir')
-         AND p.popularity > 50
-         AND p.status_updated_at IS NOT NULL
-         AND p.status_updated_at >= NOW() - INTERVAL '7 days'
-       ORDER BY p.popularity DESC
+      `SELECT name, status, description, minutes, toi, team_short
+       FROM (
+         SELECT DISTINCT ON (p.id)
+           p.name,
+           p.popularity,
+           psh.new_status AS status,
+           psh.new_status_description AS description,
+           ${usageSelect},
+           t.shortname AS team_short
+         FROM stats s
+         JOIN players p ON p.id = s.playerid
+         JOIN teams t ON t.id = COALESCE(s.teamid, p.teamid)
+         JOIN player_status_history psh ON psh.player_id = p.id
+         WHERE s.gameid = $1
+           AND p.popularity > 50
+           AND psh.new_status IN ${INJURY_STATUSES}
+           AND psh.changed_at >= ($2::date - INTERVAL '1 day')
+           AND psh.changed_at <= ($2::date + INTERVAL '2 days')
+           AND ${usageFilter}
+         ORDER BY p.id, psh.changed_at DESC
+       ) sub
+       ORDER BY popularity DESC
        LIMIT 5`,
-      [gameId]
+      [gameId, gameDate]
     );
     return result.rows.map((r) => ({
       name: r.name,
       team: r.team_short,
-      minutes: r.minutes,
+      ...(r.minutes != null ? { minutes: r.minutes } : {}),
+      ...(r.toi != null ? { toi: r.toi } : {}),
       status: r.status,
-      description: r.status_description,
+      description: r.description,
     }));
   } catch (err) {
     logger.warn({ err }, "Failed to fetch in-game injuries for AI summary");
@@ -332,12 +354,15 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
     }
   }
 
+  // Streaks: only surface long ones (5+), and skip in playoffs where
+  // series context dominates and a regular-season streak is noise.
   let streakContext = null;
-  if (streaks) {
-    const homeStreak = streaks.home
+  if (streaks && game.game_type !== "playoff") {
+    const MIN_STREAK = 5;
+    const homeStreak = streaks.home && streaks.home.length >= MIN_STREAK
       ? { team: game.home_team_name, ...streaks.home }
       : null;
-    const awayStreak = streaks.away
+    const awayStreak = streaks.away && streaks.away.length >= MIN_STREAK
       ? { team: game.away_team_name, ...streaks.away }
       : null;
     if (homeStreak || awayStreak) {
@@ -623,11 +648,11 @@ export function buildPrompt(gameData, league) {
       : "";
 
   const injuryRule = gameData.inGameInjuries?.length
-    ? `\n- Factor inGameInjuries into your analysis. Each entry shows a player whose minutes were limited and who has a current injury status — they likely left the game or played hurt. If a notable player is in the list, one bullet should mention this as a contributing factor.`
+    ? `\n- Factor inGameInjuries into your analysis. Each entry shows a player whose playing time (minutes for NBA, TOI for NHL) was unusually limited and who had an injury status set around the game date — they likely left the game or played hurt. If a notable player is in the list, one bullet should mention this as a contributing factor.`
     : "";
 
   const streakRule = gameData.enteringStreaks
-    ? `\n- enteringStreaks shows each team's W/L streak going INTO this game (length = games before today). When a team had a streak >= 3, frame the result as extending or snapping it (winner extends a win streak by 1; loser extends a loss streak by 1; otherwise the streak just snapped).`
+    ? `\n- enteringStreaks shows long W/L streaks (5+ games) going INTO this game. Only reference a streak if it genuinely shaped the matchup or result — do not lead with it, and do not mention it just because it exists. If the streak isn't load-bearing for the story, ignore it entirely.`
     : "";
 
   const benchRule = gameData.benchPointsSwing
