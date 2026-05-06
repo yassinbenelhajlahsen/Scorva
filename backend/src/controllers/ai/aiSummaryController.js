@@ -3,6 +3,8 @@ import {
   getGameForSummary,
   getGameStats,
   getClutchPlays,
+  getInGameInjuries,
+  getTeamStreaks,
   saveSummary,
   buildGameData,
   streamAISummary,
@@ -74,12 +76,17 @@ export async function getAiSummary(req, res) {
       return;
     }
 
-    // Step 4: Fetch stats and clutch plays, then build game data
-    const [stats, clutchPlays] = await Promise.all([
+    // Step 4: Fetch stats, clutch plays, in-game injuries, and entering streaks
+    const [stats, clutchPlays, injuries, streaks] = await Promise.all([
       getGameStats(id),
       getClutchPlays(id, game.league),
+      getInGameInjuries(id, game.league),
+      getTeamStreaks(game),
     ]);
-    const gameData = buildGameData(game, stats, clutchPlays);
+    const gameData = buildGameData(game, stats, clutchPlays, {
+      injuries,
+      streaks,
+    });
 
     // Step 5: Stream generation
     res.writeHead(200, NDJSON_HEADERS);

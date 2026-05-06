@@ -118,6 +118,10 @@ export async function getGameForSummary(id) {
       g.ot2,
       g.ot3,
       g.ot4,
+      g.type as game_type,
+      g.game_label,
+      g.hometeamid,
+      g.awayteamid,
       ht.name as home_team_name,
       ht.shortname as home_team_short,
       at.name as away_team_name,
@@ -129,6 +133,94 @@ export async function getGameForSummary(id) {
     [id]
   );
   return result.rows[0] ?? null;
+}
+
+// Compute each team's W/L streak going INTO this game. Looks back at the
+// most recent final games before this date and counts consecutive same-result
+// games. Streak length < 2 returns null (a 1-game "streak" is just yesterday).
+export async function getTeamStreaks(game) {
+  if (!game?.hometeamid || !game?.awayteamid) {
+    return { home: null, away: null };
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT g.id, g.date, g.hometeamid, g.awayteamid, g.homescore, g.awayscore
+       FROM games g
+       WHERE g.league = $1
+         AND g.status = 'Final'
+         AND g.date < $2
+         AND (g.hometeamid = $3 OR g.awayteamid = $3
+              OR g.hometeamid = $4 OR g.awayteamid = $4)
+       ORDER BY g.date DESC, g.id DESC
+       LIMIT 30`,
+      [game.league, game.date, game.hometeamid, game.awayteamid]
+    );
+
+    const computeStreak = (teamId) => {
+      const teamGames = rows.filter(
+        (r) => r.hometeamid === teamId || r.awayteamid === teamId
+      );
+      if (teamGames.length === 0) return null;
+      const wonAt = (r) =>
+        r.hometeamid === teamId
+          ? r.homescore > r.awayscore
+          : r.awayscore > r.homescore;
+      const first = wonAt(teamGames[0]);
+      let len = 0;
+      for (const r of teamGames) {
+        if (wonAt(r) === first) len++;
+        else break;
+      }
+      if (len < 2) return null;
+      return { type: first ? "win" : "loss", length: len };
+    };
+
+    return {
+      home: computeStreak(game.hometeamid),
+      away: computeStreak(game.awayteamid),
+    };
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch team streaks for AI summary");
+    return { home: null, away: null };
+  }
+}
+
+// Detect players who likely left this game with an injury, or played
+// limited minutes due to one. Heuristic: low minutes + non-active injury
+// status updated near game time + meaningful popularity. NBA-only for now.
+export async function getInGameInjuries(gameId, league) {
+  if (league?.toLowerCase() !== "nba") return [];
+
+  try {
+    const result = await pool.query(
+      `SELECT p.name, p.status, p.status_description, s.minutes,
+              t.shortname AS team_short
+       FROM stats s
+       JOIN players p ON p.id = s.playerid
+       JOIN teams t ON t.id = COALESCE(s.teamid, p.teamid)
+       WHERE s.gameid = $1
+         AND s.minutes IS NOT NULL
+         AND s.minutes > 0
+         AND s.minutes < 15
+         AND p.status IN ('day-to-day', 'questionable', 'doubtful', 'out', 'ir')
+         AND p.popularity > 50
+         AND p.status_updated_at IS NOT NULL
+         AND p.status_updated_at >= NOW() - INTERVAL '7 days'
+       ORDER BY p.popularity DESC
+       LIMIT 5`,
+      [gameId]
+    );
+    return result.rows.map((r) => ({
+      name: r.name,
+      team: r.team_short,
+      minutes: r.minutes,
+      status: r.status,
+      description: r.status_description,
+    }));
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch in-game injuries for AI summary");
+    return [];
+  }
 }
 
 export async function getGameStats(id) {
@@ -158,8 +250,9 @@ export async function saveSummary(id, summary) {
   embedGameSummary(id).catch(() => {});
 }
 
-export function buildGameData(game, stats, clutchData = {}) {
+export function buildGameData(game, stats, clutchData = {}, extras = {}) {
   const { plays: clutchPlays = [], gameWinningPlay = null } = clutchData;
+  const { injuries = [], streaks = null } = extras;
   const league = game.league.toUpperCase();
 
   const parseScore = (scoreStr) => {
@@ -226,6 +319,32 @@ export function buildGameData(game, stats, clutchData = {}) {
     league
   );
 
+  let benchPointsSwing = null;
+  if (homeStats.benchPoints != null && awayStats.benchPoints != null) {
+    const diff = Math.abs(homeStats.benchPoints - awayStats.benchPoints);
+    if (diff > 0) {
+      benchPointsSwing = {
+        team: homeStats.benchPoints > awayStats.benchPoints
+          ? game.home_team_name
+          : game.away_team_name,
+        diff,
+      };
+    }
+  }
+
+  let streakContext = null;
+  if (streaks) {
+    const homeStreak = streaks.home
+      ? { team: game.home_team_name, ...streaks.home }
+      : null;
+    const awayStreak = streaks.away
+      ? { team: game.away_team_name, ...streaks.away }
+      : null;
+    if (homeStreak || awayStreak) {
+      streakContext = { home: homeStreak, away: awayStreak };
+    }
+  }
+
   return {
     league,
     date: game.date,
@@ -246,6 +365,11 @@ export function buildGameData(game, stats, clutchData = {}) {
       home: homeStats,
       away: awayStats,
     },
+    ...(benchPointsSwing ? { benchPointsSwing } : {}),
+    ...(streakContext ? { enteringStreaks: streakContext } : {}),
+    ...(game.game_type ? { gameType: game.game_type } : {}),
+    ...(game.game_label ? { gameLabel: game.game_label } : {}),
+    ...(injuries.length > 0 ? { inGameInjuries: injuries } : {}),
     ...(filteredClutchPlays.length > 0 ? { clutchPlays: filteredClutchPlays } : {}),
     ...(filteredGameWinner ? { gameWinningPlay: filteredGameWinner } : {}),
   };
@@ -255,13 +379,25 @@ export function getTopPerformers(stats, league) {
   const performers = [];
 
   if (league === "NBA") {
-    const topScorers = stats
+    const sortedScorers = stats
       .filter((s) => s.points > 0)
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 3);
+      .sort((a, b) => b.points - a.points);
+
+    // Guarantee each team's top scorer is represented before filling by points,
+    // so the winning team's anchor isn't crowded out by the loser's role players.
+    const picked = new Map();
+    const teams = [...new Set(sortedScorers.map((s) => s.team_short))];
+    for (const team of teams) {
+      const top = sortedScorers.find((s) => s.team_short === team);
+      if (top) picked.set(top.player_name, top);
+    }
+    for (const s of sortedScorers) {
+      if (picked.size >= 3) break;
+      if (!picked.has(s.player_name)) picked.set(s.player_name, s);
+    }
 
     performers.push(
-      ...topScorers.map((s) => ({
+      ...[...picked.values()].slice(0, 3).map((s) => ({
         name: s.player_name,
         team: s.team_short,
         stats: `${s.points} PTS, ${s.rebounds || 0} REB, ${s.assists || 0} AST`,
@@ -314,23 +450,37 @@ export function calculateTeamStats(teamStats, league) {
       (sum, s) => sum + (s.assists || 0),
       0
     );
-    const fgMade = teamStats.reduce((sum, s) => {
-      const fg = s.fg ? s.fg.split("-")[0] : "0";
-      return sum + parseInt(fg);
-    }, 0);
-    const fgAttempted = teamStats.reduce((sum, s) => {
-      const fg = s.fg ? s.fg.split("-")[1] : "0";
-      return sum + parseInt(fg);
-    }, 0);
+    const sumMadeAtt = (col) => {
+      const made = teamStats.reduce((sum, s) => {
+        const v = s[col] ? s[col].split("-")[0] : "0";
+        return sum + (parseInt(v) || 0);
+      }, 0);
+      const att = teamStats.reduce((sum, s) => {
+        const v = s[col] ? s[col].split("-")[1] : "0";
+        return sum + (parseInt(v) || 0);
+      }, 0);
+      return { made, att };
+    };
+    const fg = sumMadeAtt("fg");
+    const three = sumMadeAtt("threept");
+
+    // Bench scoring: top 5 by minutes are starters in NBA, rest are bench.
+    const sortedByMinutes = [...teamStats].sort(
+      (a, b) => (b.minutes || 0) - (a.minutes || 0)
+    );
+    const benchPoints = sortedByMinutes
+      .slice(5)
+      .reduce((sum, s) => sum + (s.points || 0), 0);
 
     return {
       points: totalPoints,
       rebounds: totalRebounds,
       assists: totalAssists,
-      fgPct:
-        fgAttempted > 0
-          ? ((fgMade / fgAttempted) * 100).toFixed(1) + "%"
-          : "0%",
+      fgPct: fg.att > 0 ? ((fg.made / fg.att) * 100).toFixed(1) + "%" : "0%",
+      threePoint: `${three.made}-${three.att}`,
+      threePtPct:
+        three.att > 0 ? ((three.made / three.att) * 100).toFixed(1) + "%" : "0%",
+      benchPoints,
     };
   } else if (league === "NFL") {
     const totalYds = teamStats.reduce((sum, s) => sum + (s.yds || 0), 0);
@@ -467,15 +617,39 @@ export function buildPrompt(gameData, league) {
 
   const frame = storyFrames[gameData.storyType] || storyFrames.standard;
 
+  const playoffContext =
+    gameData.gameType === "playoff" && gameData.gameLabel
+      ? `\nPlayoff context: this is ${gameData.gameLabel}. Series stakes elevate the framing — anchor at least the opening bullet to the result's meaning in the series.`
+      : "";
+
+  const injuryRule = gameData.inGameInjuries?.length
+    ? `\n- Factor inGameInjuries into your analysis. Each entry shows a player whose minutes were limited and who has a current injury status — they likely left the game or played hurt. If a notable player is in the list, one bullet should mention this as a contributing factor.`
+    : "";
+
+  const streakRule = gameData.enteringStreaks
+    ? `\n- enteringStreaks shows each team's W/L streak going INTO this game (length = games before today). When a team had a streak >= 3, frame the result as extending or snapping it (winner extends a win streak by 1; loser extends a loss streak by 1; otherwise the streak just snapped).`
+    : "";
+
+  const benchRule = gameData.benchPointsSwing
+    ? `\n- benchPointsSwing.diff is the bench-scoring differential — this number is the SWING, not one team's total. Use it precisely (e.g. "${gameData.benchPointsSwing.team}'s bench outscored the opposition by ${gameData.benchPointsSwing.diff}").`
+    : "";
+
+  const winningPlayRule = gameData.gameWinningPlay
+    ? "\n- One bullet MUST describe the gameWinningPlay by player name — the game was within one possession in the clutch, so this play is genuinely decisive."
+    : gameData.clutchPlays
+      ? "\n- One bullet MUST reference a specific late-game moment from the clutchPlays data."
+      : "";
+
   return `Summarize this ${league} game for a knowledgeable fan using exactly 3 bullet points.
 
-Narrative frame: ${frame}
+Narrative frame: ${frame}${playoffContext}
 
 Rules:
 - Start each bullet with a dash (-)
 - Do NOT restate the final score as a bullet — the reader already knows it
 - Anchor each bullet to something specific from the game data: a player performance, a quarter swing, a statistical gap, or a late-game play
-- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors${gameData.gameWinningPlay ? "\n- One bullet MUST describe the gameWinningPlay by player name — this is the final scoring play of a competitive finish (game was within one possession in the clutch)" : gameData.clutchPlays ? "\n- One bullet MUST reference a specific late-game moment from the clutchPlays data" : ""}
+- Credit the winning team's primary scorer somewhere in the summary
+- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors${winningPlayRule}${injuryRule}${streakRule}${benchRule}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;

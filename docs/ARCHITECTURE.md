@@ -526,9 +526,20 @@ Check `user.app_metadata.providers` array includes `"email"` (not single `provid
 - **`clutchPlays`**: all plays from the last 5 minutes of the final regulation period (Q4 for NBA/NFL, P3 for NHL) plus all overtime plays. Capped at 20 (the most recent). Shape: `{ clock, period, description, score, scoringPlay }`.
 - **`gameWinningPlay`**: the last scoring play of the entire game (highest sequence with `scoring_play = true`), surfaced as a distinct field so the LLM can't miss it.
 
-Both fields are omitted entirely for blowout games (garbage time). `getClutchPlays` returns from the plays Redis cache (30-day TTL for final games) — no extra DB round trip.
+Both fields are only emitted when the score was within one possession at some point in the clutch window (NBA ≤5, NFL ≤8, NHL ≤1 goal — the `ONE_POSSESSION` map in `aiSummaryService.js`). If the game was never competitive in those final minutes, both fields are omitted so the model can't dramatize a garbage-time bucket as decisive. Blowouts (final margin past the per-league `blowout` threshold) also strip the fields as a second line of defense.
 
-Clock parsing handles two ESPN formats: `"5:32"` (M:SS, most plays) and `"5.4"` (sub-minute seconds-only, used when under 1 minute remaining). The prompt instructs the LLM to describe the `gameWinningPlay` by player name in one bullet.
+`getClutchPlays` returns from the plays Redis cache (30-day TTL for final games) — no extra DB round trip.
+
+Clock parsing handles two ESPN formats: `"5:32"` (M:SS, most plays) and `"5.4"` (sub-minute seconds-only, used when under 1 minute remaining). The prompt instructs the LLM to describe the `gameWinningPlay` by player name in one bullet — but only when the field is present.
+
+### Additional context fields
+`buildGameData` enriches the prompt JSON with several optional signals when available:
+
+- **`gameType`** + **`gameLabel`** — playoff series context (e.g. `"West Semifinals - Game 1"`); the prompt elevates the framing when `gameType === "playoff"`.
+- **`inGameInjuries`** (NBA only) — players who appeared in the box score with `minutes < 15`, a non-active injury status (`day-to-day`/`out`/`ir`/`questionable`/`doubtful`), `popularity > 50`, and `status_updated_at` within the last 7 days. Computed by `getInGameInjuries(id, league)`. The model is told these players likely left the game or played hurt and should mention them when notable.
+- **`enteringStreaks`** — each team's W/L streak going *into* this game (length ≥ 2), computed by `getTeamStreaks(game)` directly off the `games` table (last 30 final games for either team, then count consecutive same-result games per team). Pre-game state, not post-game — the model is asked to frame the result as extending or snapping the streak.
+- **`benchPointsSwing`** (NBA) — `{ team, diff }` showing the bench-scoring differential. Bench is defined as players outside the top 5 by minutes per team. Surfaced as an explicit precomputed field so the model uses the *swing*, not one team's total. `teamStats.{home,away}` also include `benchPoints`, `threePoint`, and `threePtPct` per side.
+- **`topPerformers`** (NBA) guarantees each team's leading scorer is represented before filling remaining slots by points — keeps the winning team's anchor from being crowded out.
 
 ## Prisma
 Schema/migrations only — runtime uses `pg` directly.

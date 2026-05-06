@@ -38,7 +38,7 @@ const {
 
 describe("aiSummaryService - pure functions", () => {
   describe("getTopPerformers", () => {
-    it("should return top 3 NBA scorers", () => {
+    it("should return top NBA scorers with both teams represented", () => {
       const stats = [
         { player_name: "Player A", team_short: "LAL", points: 35, rebounds: 10, assists: 5 },
         { player_name: "Player B", team_short: "LAL", points: 28, rebounds: 8, assists: 3 },
@@ -51,7 +51,9 @@ describe("aiSummaryService - pure functions", () => {
       expect(result).toHaveLength(3);
       expect(result[0].name).toBe("Player A");
       expect(result[0].stats).toContain("35 PTS");
-      expect(result[2].name).toBe("Player C");
+      const teams = result.map((p) => p.team);
+      expect(teams).toContain("LAL");
+      expect(teams).toContain("BOS");
     });
 
     it("should filter out zero-point NBA players", () => {
@@ -305,6 +307,140 @@ describe("aiSummaryService - pure functions", () => {
       const result = buildGameData(awayWin, []);
 
       expect(result.winner).toBe("Boston Celtics");
+    });
+
+    it("should pass through gameType and gameLabel when present", () => {
+      const playoffGame = {
+        ...baseGame,
+        game_type: "playoff",
+        game_label: "West Semifinals - Game 1",
+      };
+
+      const result = buildGameData(playoffGame, []);
+
+      expect(result.gameType).toBe("playoff");
+      expect(result.gameLabel).toBe("West Semifinals - Game 1");
+    });
+
+    it("should include inGameInjuries when provided", () => {
+      const injuries = [
+        { name: "Jarred Vanderbilt", team: "Lakers", minutes: 6, status: "day-to-day", description: "dislocated pinky" },
+      ];
+
+      const result = buildGameData(baseGame, [], {}, { injuries });
+
+      expect(result.inGameInjuries).toEqual(injuries);
+    });
+
+    it("should omit inGameInjuries when array is empty", () => {
+      const result = buildGameData(baseGame, [], {}, { injuries: [] });
+
+      expect(result).not.toHaveProperty("inGameInjuries");
+    });
+
+    it("should compute benchPointsSwing for NBA when both teams have bench data", () => {
+      const stats = [
+        // Lakers (home) — top 5 by minutes are starters
+        { player_name: "S1", team_short: "LAL", points: 27, minutes: 36, fg: "10-20", threept: "3-6" },
+        { player_name: "S2", team_short: "LAL", points: 18, minutes: 37, fg: "7-15", threept: "3-6" },
+        { player_name: "S3", team_short: "LAL", points: 8, minutes: 36, fg: "4-12", threept: "0-5" },
+        { player_name: "S4", team_short: "LAL", points: 12, minutes: 32, fg: "5-13", threept: "2-8" },
+        { player_name: "S5", team_short: "LAL", points: 7, minutes: 29, fg: "3-7", threept: "1-3" },
+        { player_name: "B1", team_short: "LAL", points: 10, minutes: 27, fg: "4-7", threept: "0-0" },
+        { player_name: "B2", team_short: "LAL", points: 3, minutes: 16, fg: "1-3", threept: "0-0" },
+        // Thunder (away) — bench scoring 34
+        { player_name: "T1", team_short: "BOS", points: 24, minutes: 31, fg: "9-17", threept: "2-2" },
+        { player_name: "T2", team_short: "BOS", points: 18, minutes: 35, fg: "8-15", threept: "0-1" },
+        { player_name: "T3", team_short: "BOS", points: 6, minutes: 28, fg: "2-7", threept: "2-5" },
+        { player_name: "T4", team_short: "BOS", points: 18, minutes: 28, fg: "7-15", threept: "1-5" },
+        { player_name: "T5", team_short: "BOS", points: 8, minutes: 25, fg: "4-7", threept: "0-0" },
+        { player_name: "TB1", team_short: "BOS", points: 12, minutes: 15, fg: "4-7", threept: "4-5" },
+        { player_name: "TB2", team_short: "BOS", points: 18, minutes: 28, fg: "7-15", threept: "1-5" },
+      ];
+
+      const result = buildGameData(baseGame, stats);
+
+      expect(result.benchPointsSwing).toBeDefined();
+      expect(result.benchPointsSwing.diff).toBeGreaterThan(0);
+      expect(["Los Angeles Lakers", "Boston Celtics"]).toContain(
+        result.benchPointsSwing.team
+      );
+    });
+
+    it("should pass enteringStreaks through to gameData", () => {
+      const streaks = {
+        home: { type: "win", length: 4 },
+        away: { type: "loss", length: 3 },
+      };
+
+      const result = buildGameData(baseGame, [], {}, { streaks });
+
+      expect(result.enteringStreaks).toEqual({
+        home: { team: "Los Angeles Lakers", type: "win", length: 4 },
+        away: { team: "Boston Celtics", type: "loss", length: 3 },
+      });
+    });
+
+    it("should omit enteringStreaks when both sides are null", () => {
+      const result = buildGameData(baseGame, [], {}, {
+        streaks: { home: null, away: null },
+      });
+
+      expect(result).not.toHaveProperty("enteringStreaks");
+    });
+  });
+
+  describe("getTopPerformers - team representation", () => {
+    it("guarantees both teams' top scorer when one team dominates the leaderboard", () => {
+      // OKC dominates top of board, Lakers' top scorer (LeBron) is 4th by points
+      const stats = [
+        { player_name: "Holmgren", team_short: "OKC", points: 24, rebounds: 12, assists: 1 },
+        { player_name: "SGA", team_short: "OKC", points: 22, rebounds: 3, assists: 6 },
+        { player_name: "Mitchell", team_short: "OKC", points: 21, rebounds: 2, assists: 4 },
+        { player_name: "LeBron", team_short: "LAL", points: 20, rebounds: 4, assists: 6 },
+        { player_name: "Hachimura", team_short: "LAL", points: 18, rebounds: 2, assists: 2 },
+      ];
+
+      const result = getTopPerformers(stats, "NBA");
+
+      expect(result).toHaveLength(3);
+      expect(result.map((p) => p.team)).toContain("LAL");
+      expect(result.map((p) => p.name)).toContain("LeBron");
+    });
+  });
+
+  describe("calculateTeamStats NBA additions", () => {
+    it("computes 3PT and bench points alongside FG%", () => {
+      const teamStats = [
+        // 5 starters by minutes
+        { player_name: "S1", points: 24, rebounds: 12, assists: 1, fg: "9-17", threept: "2-2", minutes: 31 },
+        { player_name: "S2", points: 18, rebounds: 3, assists: 6, fg: "8-15", threept: "0-1", minutes: 35 },
+        { player_name: "S3", points: 6, rebounds: 3, assists: 4, fg: "2-7", threept: "2-5", minutes: 28 },
+        { player_name: "S4", points: 8, rebounds: 9, assists: 4, fg: "4-7", threept: "0-0", minutes: 25 },
+        { player_name: "S5", points: 18, rebounds: 2, assists: 4, fg: "7-15", threept: "1-5", minutes: 28 },
+        // bench
+        { player_name: "B1", points: 12, rebounds: 2, assists: 2, fg: "4-7", threept: "4-5", minutes: 15 },
+        { player_name: "B2", points: 9, rebounds: 1, assists: 1, fg: "3-7", threept: "1-3", minutes: 11 },
+        { player_name: "B3", points: 5, rebounds: 2, assists: 2, fg: "2-7", threept: "1-4", minutes: 20 },
+      ];
+
+      const result = calculateTeamStats(teamStats, "NBA");
+
+      expect(result.points).toBe(100);
+      expect(result.threePoint).toBe("11-25");
+      expect(result.threePtPct).toBe("44.0%");
+      expect(result.benchPoints).toBe(26); // B1 + B2 + B3 = 12 + 9 + 5
+    });
+
+    it("handles missing threept gracefully", () => {
+      const teamStats = [
+        { points: 10, fg: "4-8", threept: null, minutes: 20 },
+      ];
+
+      const result = calculateTeamStats(teamStats, "NBA");
+
+      expect(result.threePoint).toBe("0-0");
+      expect(result.threePtPct).toBe("0%");
     });
   });
 
