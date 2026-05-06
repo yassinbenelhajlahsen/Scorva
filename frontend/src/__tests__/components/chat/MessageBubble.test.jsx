@@ -217,4 +217,62 @@ describe("MessageBubble", () => {
     expect(paragraphs[0].textContent).toBe("First paragraph.");
     expect(paragraphs[1].textContent).toBe("Second paragraph.");
   });
+
+  describe("entity links", () => {
+    // Links require Router context; wrap in MemoryRouter for these cases.
+    const renderWithRouter = async (content) => {
+      const { MemoryRouter } = await import("react-router-dom");
+      return render(
+        <MemoryRouter>
+          <MessageBubble role="assistant" content={content} isStreaming={false} />
+        </MemoryRouter>
+      );
+    };
+
+    it("renders [Name](player:nba:ID) as a link to the player page", async () => {
+      await renderWithRouter("[Stephen Curry](player:nba:20171) had a big game.");
+      const link = screen.getByRole("link", { name: "Stephen Curry" });
+      expect(link).toHaveAttribute("href", "/nba/players/20171");
+    });
+
+    it("renders [Team](team:nba:ID) as a link to the team page", async () => {
+      await renderWithRouter("The [Heat](team:nba:533) won.");
+      const link = screen.getByRole("link", { name: "Heat" });
+      expect(link).toHaveAttribute("href", "/nba/teams/533");
+    });
+
+    it("renders [Game](game:nba:ID) as a link to the game page", async () => {
+      await renderWithRouter("Watch [Heat 150 - Wizards 129](game:nba:259977)!");
+      const link = screen.getByRole("link", { name: "Heat 150 - Wizards 129" });
+      expect(link).toHaveAttribute("href", "/nba/games/259977");
+    });
+
+    it("falls back to plain label for unknown schemes", async () => {
+      await renderWithRouter("[Mystery](mlb:something:1)");
+      expect(screen.queryByRole("link")).toBeNull();
+      expect(screen.getByText("Mystery")).toBeInTheDocument();
+    });
+
+    it("falls back to plain label for invalid league", async () => {
+      await renderWithRouter("[Bogus](player:wnba:1)");
+      expect(screen.queryByRole("link")).toBeNull();
+      expect(screen.getByText("Bogus")).toBeInTheDocument();
+    });
+
+    it("renders multiple entity links in one paragraph", async () => {
+      await renderWithRouter(
+        "[Curry](player:nba:20171) of the [Warriors](team:nba:534) starred."
+      );
+      const links = screen.getAllByRole("link");
+      expect(links).toHaveLength(2);
+      expect(links[0]).toHaveAttribute("href", "/nba/players/20171");
+      expect(links[1]).toHaveAttribute("href", "/nba/teams/534");
+    });
+
+    it("preserves bold markdown alongside links", async () => {
+      await renderWithRouter("**Top scorer:** [Curry](player:nba:20171)");
+      expect(document.querySelector("strong")?.textContent).toBe("Top scorer:");
+      expect(screen.getByRole("link", { name: "Curry" })).toBeInTheDocument();
+    });
+  });
 });

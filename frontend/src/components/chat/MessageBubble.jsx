@@ -1,16 +1,58 @@
 import { m } from "framer-motion";
+import { Link } from "react-router-dom";
 import ChatTypingIndicator from "./ChatTypingIndicator.jsx";
+import { useChat } from "../../context/ChatContext.jsx";
 
-function renderInline(text) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
+const LEAGUES = new Set(["nba", "nfl", "nhl"]);
+
+// Resolve a sentinel target like "player:nba:20171" → "/nba/players/20171".
+// Returns null if the target is malformed or uses an unknown scheme — the link
+// then falls through to plain text so we never render broken anchors.
+function resolveTarget(target) {
+  const m1 = /^(player|team|game):([a-z]+):([A-Za-z0-9_-]+)$/.exec(target);
+  if (!m1) return null;
+  const [, kind, league, id] = m1;
+  if (!LEAGUES.has(league)) return null;
+  if (kind === "player") return `/${league}/players/${id}`;
+  if (kind === "team") return `/${league}/teams/${id}`;
+  if (kind === "game") return `/${league}/games/${id}`;
+  return null;
+}
+
+// Splits inline text into bold spans, sentinel links, and plain text. The single
+// regex captures both `**bold**` and `[label](scheme:league:id)` so we walk the
+// string once and preserve order.
+const INLINE_RE = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g;
+
+function renderInline(text, onLinkClick) {
+  return text.split(INLINE_RE).map((part, i) => {
+    if (!part) return part;
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
+    if (link) {
+      const [, label, target] = link;
+      const path = resolveTarget(target);
+      if (path) {
+        return (
+          <Link
+            key={i}
+            to={path}
+            onClick={onLinkClick}
+            className="text-accent hover:underline"
+          >
+            {label}
+          </Link>
+        );
+      }
+      return label;
     }
     return part;
   });
 }
 
-function renderContent(text) {
+function renderContent(text, onLinkClick) {
   const lines = text.split("\n");
   const blocks = [];
   let current = null;
@@ -44,21 +86,21 @@ function renderContent(text) {
     if (block.type === "ul") {
       return (
         <ul key={i}>
-          {block.lines.map((l, j) => <li key={j}>{renderInline(l)}</li>)}
+          {block.lines.map((l, j) => <li key={j}>{renderInline(l, onLinkClick)}</li>)}
         </ul>
       );
     }
     if (block.type === "ol") {
       return (
         <ol key={i}>
-          {block.lines.map((l, j) => <li key={j}>{renderInline(l)}</li>)}
+          {block.lines.map((l, j) => <li key={j}>{renderInline(l, onLinkClick)}</li>)}
         </ol>
       );
     }
     return (
       <p key={i}>
         {block.lines.flatMap((l, j) =>
-          j > 0 ? [<br key={`br-${j}`} />, ...renderInline(l)] : renderInline(l)
+          j > 0 ? [<br key={`br-${j}`} />, ...renderInline(l, onLinkClick)] : renderInline(l, onLinkClick)
         )}
       </p>
     );
@@ -68,6 +110,8 @@ function renderContent(text) {
 export default function MessageBubble({ role, content, isError, isStreaming, statusText }) {
   const isUser = role === "user";
   const isEmpty = !content;
+  const chat = useChat();
+  const onLinkClick = chat?.closePanel;
 
   return (
     <m.div
@@ -102,7 +146,7 @@ export default function MessageBubble({ role, content, isError, isStreaming, sta
             )}
           </div>
         ) : (
-          <div className="chat-markdown">{renderContent(content)}</div>
+          <div className="chat-markdown">{renderContent(content, onLinkClick)}</div>
         )}
       </div>
     </m.div>

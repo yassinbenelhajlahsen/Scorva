@@ -306,7 +306,7 @@ describe("chatAgentService — runAgentLoop", () => {
       .mockReturnValueOnce(
         fakeStream([
           toolCallChunk(0, "c1", "get_player_detail", '{"league":"nba","playerId":1}'),
-          toolCallChunk(1, "c2", "get_player_comparison", '{"league":"nba","playerId1":1,"playerId2":2}'),
+          toolCallChunk(1, "c2", "get_player_detail", '{"league":"nba","playerId":2}'),
         ])
       )
       .mockReturnValueOnce(fakeStream([contentChunk("Done.")]));
@@ -314,7 +314,7 @@ describe("chatAgentService — runAgentLoop", () => {
     const onStatus = jest.fn();
     await runAgentLoop([], null, () => {}, { onStatus });
 
-    expect(onStatus).toHaveBeenCalledWith("Fetching player stats · Comparing players");
+    expect(onStatus).toHaveBeenCalledWith("Fetching player stats · Fetching player stats");
   });
 
   it("does not throw when onStatus is not provided", async () => {

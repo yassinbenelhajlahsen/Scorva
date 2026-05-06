@@ -18,7 +18,13 @@ const STAT_COLUMNS = {
   nhl: { g: "g", a: "a", shots: "shots", saves: "saves", pim: "pim" },
 };
 
-export async function getStatLeaders(league, stat, season = null, limit = 10) {
+export async function getStatLeaders(
+  league,
+  stat,
+  season = null,
+  limit = 10,
+  { seasonStart, seasonEnd } = {},
+) {
   const leagueColumns = STAT_COLUMNS[league];
   const safeColumn = leagueColumns?.[stat];
   if (!safeColumn) {
@@ -28,26 +34,57 @@ export async function getStatLeaders(league, stat, season = null, limit = 10) {
 
   const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 50);
 
+  const params = [league];
+  const where = [
+    "g.league = $1",
+    "g.status ILIKE 'Final%'",
+    "g.type IN ('regular', 'makeup')",
+    `s.${safeColumn} IS NOT NULL`,
+    MINUTES_FILTER_SQL,
+  ];
+
+  const useRange = !season && (seasonStart || seasonEnd);
+  if (useRange) {
+    if (seasonStart) {
+      params.push(seasonStart);
+      where.push(`g.season >= $${params.length}`);
+    }
+    if (seasonEnd) {
+      params.push(seasonEnd);
+      where.push(`g.season <= $${params.length}`);
+    }
+  } else {
+    params.push(season);
+    where.push(
+      `g.season = COALESCE($${params.length}, (SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL))`,
+    );
+  }
+
+  params.push(safeLimit);
+
   const result = await pool.query(
     `SELECT p.id, p.name, p.position,
             t.id AS team_id, t.shortname AS team,
             ROUND(AVG(s.${safeColumn})::numeric, 1) AS avg_stat,
+            SUM(s.${safeColumn}) AS total_stat,
             COUNT(*) AS games_played
      FROM stats s
      JOIN games g ON g.id = s.gameid
      JOIN players p ON p.id = s.playerid
      JOIN teams t ON t.id = p.teamid
-     WHERE g.league = $1
-       AND g.season = COALESCE($2, (SELECT MAX(season) FROM games WHERE league = $1 AND season IS NOT NULL))
-       AND g.status ILIKE 'Final%'
-       AND g.type IN ('regular', 'makeup')
-       AND s.${safeColumn} IS NOT NULL
-       AND ${MINUTES_FILTER_SQL}
+     WHERE ${where.join(" AND ")}
      GROUP BY p.id, p.name, p.position, t.id, t.shortname
      HAVING COUNT(*) >= 5
      ORDER BY avg_stat DESC
-     LIMIT $3`,
-    [league, season, safeLimit]
+     LIMIT $${params.length}`,
+    params,
   );
-  return { stat, league, season, leaders: result.rows };
+  return {
+    stat,
+    league,
+    season: useRange ? null : season,
+    seasonStart: useRange ? seasonStart || null : null,
+    seasonEnd: useRange ? seasonEnd || null : null,
+    leaders: result.rows,
+  };
 }

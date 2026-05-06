@@ -52,6 +52,7 @@ export function ChatProvider({ children }) {
         isStreaming,
         setIsStreaming,
         resetConversation,
+        closePanel: () => setIsOpen(false),
       }}
     >
       {children}

@@ -29,7 +29,7 @@ describe("statLeadersService", () => {
 
       const result = await getStatLeaders("nba", "points", "2025-26", 10);
 
-      expect(result).toEqual({ stat: "points", league: "nba", season: "2025-26", leaders: mockLeaders });
+      expect(result).toEqual({ stat: "points", league: "nba", season: "2025-26", seasonStart: null, seasonEnd: null, leaders: mockLeaders });
     });
 
     it("accepts all valid NBA stats", async () => {

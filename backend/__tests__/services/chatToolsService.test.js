@@ -55,9 +55,6 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/he
 jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/statLeaders.js"), () => ({
   getStatLeaders: mockGetStatLeaders,
 }));
-jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerComparison.js"), () => ({
-  getPlayerComparison: mockGetPlayerComparison,
-}));
 jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/teamStats.js"), () => ({
   getTeamStats: mockGetTeamStats,
 }));
@@ -87,6 +84,45 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/in
   getPlayerStatus: mockGetPlayerStatus,
 }));
 
+// Mock the new tool modules so the test doesn't pull in pgvector / playoff services
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/topSingleGame.js"), () => ({
+  getTopSingleGamePerformances: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerGameLog.js"), () => ({
+  getPlayerGameLog: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/findGames.js"), () => ({
+  findGames: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerCareer.js"), () => ({
+  getPlayerCareer: jest.fn(),
+}));
+const mockGetPlayerUnified = jest.fn();
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerUnified.js"), () => ({
+  getPlayerUnified: mockGetPlayerUnified,
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/similarPlayers.js"), () => ({
+  similarPlayersTool: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerTeamHistory.js"), () => ({
+  getPlayerTeamHistory: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/streaks.js"), () => ({
+  getStreaks: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playoffBracket.js"), () => ({
+  getPlayoffBracket: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/advancedStats.js"), () => ({
+  getAdvancedStats: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/clutchPerformance.js"), () => ({
+  getClutchPerformance: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerAwards.js"), () => ({
+  getPlayerAwards: jest.fn(),
+}));
+
 const servicePath = resolve(__dirname, "../../src/services/ai/chat/toolsService.js");
 const { TOOL_DEFINITIONS, executeTool } = await import(servicePath);
 
@@ -99,7 +135,7 @@ describe("chatToolsService", () => {
   describe("TOOL_DEFINITIONS", () => {
     it("exports an array of tool definitions", () => {
       expect(Array.isArray(TOOL_DEFINITIONS)).toBe(true);
-      expect(TOOL_DEFINITIONS.length).toBe(17);
+      expect(TOOL_DEFINITIONS.length).toBe(24);
     });
 
     it("every definition has type 'function' and a function.name", () => {
@@ -119,15 +155,13 @@ describe("chatToolsService", () => {
       expect(names).toContain("get_standings");
       expect(names).toContain("get_head_to_head");
       expect(names).toContain("get_stat_leaders");
-      expect(names).toContain("get_player_comparison");
       expect(names).toContain("get_team_stats");
       expect(names).toContain("web_search");
       expect(names).toContain("get_seasons");
       expect(names).toContain("get_teams");
       expect(names).toContain("semantic_search");
       expect(names).toContain("get_plays");
-      expect(names).toContain("get_team_injuries");
-      expect(names).toContain("get_league_injuries");
+      expect(names).toContain("get_injuries");
       expect(names).toContain("get_player_status");
     });
 
@@ -207,20 +241,33 @@ describe("chatToolsService", () => {
       expect(mockGetNhlGame).toHaveBeenCalledWith(3);
     });
 
-    it("delegates 'get_player_detail' to the NBA handler", async () => {
-      mockGetNbaPlayer.mockResolvedValueOnce({ id: 1 });
+    it("delegates 'get_player_detail' to getPlayerUnified()", async () => {
+      mockGetPlayerUnified.mockResolvedValueOnce({ playerId: 1 });
 
       await executeTool("get_player_detail", { league: "nba", playerId: 1, season: "2025-26" });
 
-      expect(mockGetNbaPlayer).toHaveBeenCalledWith(1, "2025-26");
+      expect(mockGetPlayerUnified).toHaveBeenCalledWith({
+        league: "nba",
+        playerId: 1,
+        season: "2025-26",
+      });
     });
 
-    it("delegates 'get_player_detail' to the NFL handler", async () => {
-      mockGetNflPlayer.mockResolvedValueOnce({ id: 5 });
+    it("delegates 'get_player_detail' with include array to getPlayerUnified()", async () => {
+      mockGetPlayerUnified.mockResolvedValueOnce({ playerId: 5 });
 
-      await executeTool("get_player_detail", { league: "nfl", playerId: 5, season: "2025" });
+      await executeTool("get_player_detail", {
+        league: "nfl",
+        playerId: 5,
+        include: ["detail", "career"],
+      });
 
-      expect(mockGetNflPlayer).toHaveBeenCalledWith(5, "2025");
+      expect(mockGetPlayerUnified).toHaveBeenCalledWith({
+        league: "nfl",
+        playerId: 5,
+        season: expect.any(String),
+        include: ["detail", "career"],
+      });
     });
 
     it("delegates 'get_standings' to getStandings()", async () => {
@@ -255,20 +302,10 @@ describe("chatToolsService", () => {
         limit: 10,
       });
 
-      expect(mockGetStatLeaders).toHaveBeenCalledWith("nba", "points", "2025-26", 10);
-    });
-
-    it("delegates 'get_player_comparison' to getPlayerComparison()", async () => {
-      mockGetPlayerComparison.mockResolvedValueOnce({ players: [] });
-
-      await executeTool("get_player_comparison", {
-        league: "nba",
-        playerId1: 1,
-        playerId2: 2,
-        season: "2025-26",
+      expect(mockGetStatLeaders).toHaveBeenCalledWith("nba", "points", "2025-26", 10, {
+        seasonStart: undefined,
+        seasonEnd: undefined,
       });
-
-      expect(mockGetPlayerComparison).toHaveBeenCalledWith("nba", 1, 2, "2025-26");
     });
 
     it("delegates 'get_team_stats' to getTeamStats()", async () => {
@@ -344,10 +381,10 @@ describe("chatToolsService", () => {
       expect(result).toEqual(mockResult);
     });
 
-    it("delegates 'get_team_injuries' to getTeamInjuries()", async () => {
+    it("delegates 'get_injuries' with teamId to getTeamInjuries()", async () => {
       mockGetTeamInjuries.mockResolvedValueOnce({ count: 0, players: [] });
 
-      await executeTool("get_team_injuries", {
+      await executeTool("get_injuries", {
         league: "nba",
         teamId: 2,
         season: "2025-26",
@@ -356,10 +393,10 @@ describe("chatToolsService", () => {
       expect(mockGetTeamInjuries).toHaveBeenCalledWith("nba", 2, "2025-26");
     });
 
-    it("delegates 'get_league_injuries' to getLeagueInjuries() with options", async () => {
+    it("delegates 'get_injuries' without teamId to getLeagueInjuries() with options", async () => {
       mockGetLeagueInjuries.mockResolvedValueOnce({ count: 0, players: [] });
 
-      await executeTool("get_league_injuries", {
+      await executeTool("get_injuries", {
         league: "nba",
         status: "out",
         minPopularity: 50,
@@ -399,15 +436,6 @@ describe("chatToolsService", () => {
       expect(result).toEqual({ error: "Invalid league" });
     });
 
-    it("returns error for invalid league on get_player_detail", async () => {
-      const result = await executeTool("get_player_detail", {
-        league: "mlb",
-        playerId: 1,
-        season: "2025",
-      });
-
-      expect(result).toEqual({ error: "Invalid league" });
-    });
   });
 
   describe("trimGameDetail (via get_game_detail)", () => {
