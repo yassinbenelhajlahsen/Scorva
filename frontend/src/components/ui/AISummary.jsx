@@ -36,15 +36,16 @@ export default function AISummary({ gameId }) {
           {/* Ghost content rows */}
           <div className="p-6 sm:p-8 space-y-5 pointer-events-none select-none">
             {[
-              [1, 0.55],
-              [0.82, 0.4],
-              [0.92, 0.48],
-            ].map(([w1, w2], i) => (
+              [1, 0.92, 0.55],
+              [0.82, 0.95, 0.4],
+              [0.92, 0.85, 0.48],
+            ].map(([w1, w2, w3], i) => (
               <div key={i} className="flex gap-3">
                 <div className="w-1.5 h-1.5 bg-white/[0.06] rounded-full mt-[7px] flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3 bg-white/[0.05] rounded-full" style={{ width: `${w1 * 100}%` }} />
-                  <div className="h-3 bg-white/[0.03] rounded-full" style={{ width: `${w2 * 100}%` }} />
+                  <div className="h-3 bg-white/[0.04] rounded-full sm:hidden" style={{ width: `${w2 * 100}%` }} />
+                  <div className="h-3 bg-white/[0.03] rounded-full" style={{ width: `${w3 * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -125,14 +126,20 @@ export default function AISummary({ gameId }) {
                     );
                   }
 
-                  // Skeleton placeholder for not-yet-arrived bullets
-                  const widths = [[1, 0.7], [0.85, 0.55], [0.9, 0.6]][i];
+                  // Skeleton placeholder for not-yet-arrived bullets.
+                  // Third row only shows on mobile, where bullets typically wrap to 3 lines.
+                  const widths = [
+                    [1, 0.9, 0.7],
+                    [0.85, 0.95, 0.55],
+                    [0.9, 0.88, 0.6],
+                  ][i];
                   return (
                     <li key={`skeleton-${i}`} className="flex gap-3 animate-pulse">
                       <div className="w-1.5 h-1.5 bg-accent/30 rounded-full mt-2 flex-shrink-0" />
                       <div className="flex-1 space-y-2">
                         <div className="h-3.5 bg-white/[0.06] rounded-full" style={{ width: `${widths[0] * 100}%` }} />
-                        <div className="h-3.5 bg-white/[0.04] rounded-full" style={{ width: `${widths[1] * 100}%` }} />
+                        <div className="h-3.5 bg-white/[0.05] rounded-full sm:hidden" style={{ width: `${widths[1] * 100}%` }} />
+                        <div className="h-3.5 bg-white/[0.04] rounded-full" style={{ width: `${widths[2] * 100}%` }} />
                       </div>
                     </li>
                   );
