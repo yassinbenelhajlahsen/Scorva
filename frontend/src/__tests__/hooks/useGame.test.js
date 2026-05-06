@@ -111,6 +111,39 @@ describe("useGame", () => {
     expect(useLiveGame).toHaveBeenCalledWith("nba", 1, false);
   });
 
+  it("refetches on visibilitychange→visible", async () => {
+    getGameById.mockResolvedValue(mockGameData);
+    renderHook(() => useGame("nba", 1), { wrapper: createWrapper() });
+    await waitFor(() => expect(getGameById).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() => expect(getGameById).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not refetch when visibilityState is hidden", async () => {
+    getGameById.mockResolvedValue(mockGameData);
+    renderHook(() => useGame("nba", 1), { wrapper: createWrapper() });
+    await waitFor(() => expect(getGameById).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "hidden",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getGameById).toHaveBeenCalledTimes(1);
+  });
+
   it("updates gameData when liveData arrives", async () => {
     getGameById.mockResolvedValue(mockGameData);
     const liveUpdate = {

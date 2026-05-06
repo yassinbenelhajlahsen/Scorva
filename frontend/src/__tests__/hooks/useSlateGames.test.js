@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { createWrapper } from "../helpers/queryWrapper.jsx";
 
 vi.mock("../../api/games.js", () => ({ getLeagueGames: vi.fn() }));
@@ -99,6 +99,40 @@ describe("useSlateGames", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     const lastCall = useLiveGames.mock.calls.at(-1);
     expect(lastCall?.[0]).toBe("nba");
+  });
+
+  it("refetches on visibilitychange→visible", async () => {
+    getLeagueGames.mockResolvedValue({ games: [], resolvedDate: "2026-05-02" });
+    renderHook(() => useSlateGames("nba"), { wrapper: createWrapper() });
+    await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not refetch on visibility when enabled is false", async () => {
+    getLeagueGames.mockResolvedValue({ games: [], resolvedDate: "2026-05-02" });
+    renderHook(() => useSlateGames("nba", { enabled: false }), {
+      wrapper: createWrapper(),
+    });
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getLeagueGames).not.toHaveBeenCalled();
   });
 
   it("does NOT subscribe to SSE when slate is all terminal", async () => {

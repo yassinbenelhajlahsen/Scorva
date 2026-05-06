@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-quer
 import { getLeagueGames } from "../../api/games.js";
 import { getStandings } from "../../api/teams.js";
 import { useLiveGames } from "../live/useLiveGames.js";
+import { useVisibilityReconnect } from "../live/useVisibilityReconnect.js";
 import { queryKeys } from "../../lib/query.js";
 
 function hasActiveGame(games) {
@@ -124,6 +125,13 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
     () => Promise.allSettled([gamesQuery.refetch(), standingsQuery.refetch()]),
     [gamesQuery, standingsQuery],
   );
+
+  // Refresh REST snapshot when the tab becomes visible again — covers stale
+  // data after the OS suspended the SSE on a backgrounded PWA tab. Only
+  // refetch the games query (standings don't change in-session).
+  useVisibilityReconnect(() => {
+    gamesQuery.refetch();
+  });
 
   return {
     games,

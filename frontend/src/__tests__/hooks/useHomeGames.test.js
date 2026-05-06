@@ -115,6 +115,39 @@ describe("useHomeGames", () => {
     );
   });
 
+  it("refetches on visibilitychange→visible", async () => {
+    getAllLeagueGames.mockResolvedValue(mockGames);
+    renderHook(() => useHomeGames(), { wrapper: createWrapper() });
+    await waitFor(() => expect(getAllLeagueGames).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() => expect(getAllLeagueGames).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not refetch when visibilityState is hidden", async () => {
+    getAllLeagueGames.mockResolvedValue(mockGames);
+    renderHook(() => useHomeGames(), { wrapper: createWrapper() });
+    await waitFor(() => expect(getAllLeagueGames).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "hidden",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getAllLeagueGames).toHaveBeenCalledTimes(1);
+  });
+
   it("retry re-fetches games", async () => {
     getAllLeagueGames.mockResolvedValue(mockGames);
     const { result } = renderHook(() => useHomeGames(), {

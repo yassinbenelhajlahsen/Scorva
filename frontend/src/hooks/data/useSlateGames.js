@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getLeagueGames } from "../../api/games.js";
 import { useLiveGames } from "../live/useLiveGames.js";
+import { useVisibilityReconnect } from "../live/useVisibilityReconnect.js";
 import { queryKeys } from "../../lib/query.js";
 import { getSlateDateET, statusGroup } from "../../utils/slateDate.js";
 
@@ -54,6 +55,12 @@ export function useSlateGames(league, { enabled = true } = {}) {
       { games: payload, resolvedDate, resolvedSeason: null }
     );
   }, [liveGames, sseLeague, queryClient, league, slateDate, resolvedDate]);
+
+  // Refresh REST snapshot when the tab becomes visible again — covers stale
+  // data after the OS suspended the SSE on a backgrounded PWA tab.
+  useVisibilityReconnect(() => {
+    if (enabled) query.refetch();
+  }, enabled);
 
   return {
     games,
