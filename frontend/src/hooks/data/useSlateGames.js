@@ -5,8 +5,11 @@ import { useLiveGames } from "../live/useLiveGames.js";
 import { queryKeys } from "../../lib/query.js";
 import { getSlateDateET, statusGroup } from "../../utils/slateDate.js";
 
-function hasLiveGame(games) {
-  return games.some((g) => statusGroup(g) === "live");
+function hasActiveGame(games) {
+  return games.some((g) => {
+    const group = statusGroup(g);
+    return group === "live" || group === "scheduled";
+  });
 }
 
 export function useSlateGames(league, { enabled = true } = {}) {
@@ -33,8 +36,9 @@ export function useSlateGames(league, { enabled = true } = {}) {
     games = raw;
   }
 
-  // SSE subscription gated on live games to avoid idle EventSources.
-  const sseLeague = enabled && hasLiveGame(games) ? league : null;
+  // SSE subscription gated on active-or-upcoming games (live or scheduled today)
+  // so a Scheduled game flips to In Progress without a manual refresh.
+  const sseLeague = enabled && hasActiveGame(games) ? league : null;
   const { liveGames } = useLiveGames(sseLeague);
 
   // Fold SSE updates back into the same cache key the query uses, so the rail

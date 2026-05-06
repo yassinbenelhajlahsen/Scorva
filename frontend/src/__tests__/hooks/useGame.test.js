@@ -92,6 +92,25 @@ describe("useGame", () => {
     await waitFor(() => expect(useLiveGame).toHaveBeenCalledWith("nba", 1, true));
   });
 
+  it("starts live polling for a Scheduled game so tip-off is caught", async () => {
+    const scheduled = {
+      json_build_object: { game: { id: 1, status: "Scheduled" } },
+    };
+    getGameById.mockResolvedValue(scheduled);
+    renderHook(() => useGame("nba", 1), { wrapper: createWrapper() });
+    await waitFor(() => expect(useLiveGame).toHaveBeenCalledWith("nba", 1, true));
+  });
+
+  it("does not start live polling for a Postponed game", async () => {
+    const postponed = {
+      json_build_object: { game: { id: 1, status: "Postponed" } },
+    };
+    getGameById.mockResolvedValue(postponed);
+    renderHook(() => useGame("nba", 1), { wrapper: createWrapper() });
+    await waitFor(() => expect(getGameById).toHaveBeenCalled());
+    expect(useLiveGame).toHaveBeenCalledWith("nba", 1, false);
+  });
+
   it("updates gameData when liveData arrives", async () => {
     getGameById.mockResolvedValue(mockGameData);
     const liveUpdate = {

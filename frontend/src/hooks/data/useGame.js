@@ -4,13 +4,15 @@ import { getGameById } from "../../api/games.js";
 import { useLiveGame } from "../live/useLiveGame.js";
 import { queryKeys } from "../../lib/query.js";
 
-function isLiveStatus(status) {
-  return (
-    typeof status === "string" &&
-    (status.includes("In Progress") ||
-      status.includes("End of Period") ||
-      status.includes("Halftime"))
-  );
+function isActiveStatus(status) {
+  if (typeof status !== "string" || status.length === 0) return false;
+  const isFinal =
+    status.includes("Final") ||
+    status.includes("Postponed") ||
+    status.includes("Canceled") ||
+    status.includes("Cancelled") ||
+    status.includes("Suspended");
+  return !isFinal;
 }
 
 export function useGame(league, gameId) {
@@ -28,8 +30,8 @@ export function useGame(league, gameId) {
   });
 
   const gameStatus = gameData?.json_build_object?.game?.status;
-  const isLive = isLiveStatus(gameStatus);
-  const { liveData } = useLiveGame(league, gameId, isLive);
+  const isActive = isActiveStatus(gameStatus);
+  const { liveData } = useLiveGame(league, gameId, isActive);
 
   // Push SSE data into the query cache and trigger plays refresh
   useEffect(() => {

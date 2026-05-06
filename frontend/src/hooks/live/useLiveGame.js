@@ -4,7 +4,7 @@ import { getLiveGameUrl, getGameById } from "../../api/games.js";
 const MAX_FAILURES = 3;
 const POLL_INTERVAL_MS = 30_000;
 
-export function useLiveGame(league, gameId, isLive) {
+export function useLiveGame(league, gameId, enabled) {
   const [liveData, setLiveData] = useState(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
@@ -16,7 +16,7 @@ export function useLiveGame(league, gameId, isLive) {
   const throttleRef = useRef(null);
 
   useEffect(() => {
-    if (!isLive || !league || !gameId) return;
+    if (!enabled || !league || !gameId) return;
 
     function startPollingFallback() {
       setConnectionError(true);
@@ -79,7 +79,7 @@ export function useLiveGame(league, gameId, isLive) {
     };
 
     return cleanup;
-  }, [league, gameId, isLive]);
+  }, [league, gameId, enabled]);
 
   return { liveData, isStreaming, connectionError };
 }

@@ -71,7 +71,7 @@ describe("useSlateGames", () => {
     expect(result.current.games).toEqual([]);
   });
 
-  it("subscribes to SSE only when there is a live game", async () => {
+  it("subscribes to SSE when there is a live game", async () => {
     getLeagueGames.mockResolvedValue({
       games: [{ id: 1, status: "In Progress" }],
       resolvedDate: "2026-05-02",
@@ -82,21 +82,37 @@ describe("useSlateGames", () => {
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    // Last call to useLiveGames should be with the league name once games arrive
     const lastCall = useLiveGames.mock.calls.at(-1);
     expect(lastCall?.[0]).toBe("nba");
   });
 
-  it("does NOT subscribe to SSE when no games are live", async () => {
+  it("subscribes to SSE for a Scheduled-only slate so tip-offs are caught", async () => {
     getLeagueGames.mockResolvedValue({
       games: [{ id: 1, status: "Scheduled" }],
+      resolvedDate: "2026-05-02",
+    });
+
+    const { result } = renderHook(() => useSlateGames("nba"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const lastCall = useLiveGames.mock.calls.at(-1);
+    expect(lastCall?.[0]).toBe("nba");
+  });
+
+  it("does NOT subscribe to SSE when slate is all terminal", async () => {
+    getLeagueGames.mockResolvedValue({
+      games: [
+        { id: 1, status: "Final" },
+        { id: 2, status: "Postponed" },
+      ],
       resolvedDate: "2026-05-02",
     });
 
     renderHook(() => useSlateGames("nba"), { wrapper: createWrapper() });
 
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalled());
-    // After data resolves, useLiveGames should be called with null
     const lastCall = useLiveGames.mock.calls.at(-1);
     expect(lastCall?.[0]).toBe(null);
   });
