@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllLeagueGames } from "../../api/games.js";
 import { useLiveGames } from "../live/useLiveGames.js";
+import { useVisibilityReconnect } from "../live/useVisibilityReconnect.js";
 import { queryKeys } from "../../lib/query.js";
 
 function hasActiveGame(games) {
@@ -44,6 +45,12 @@ export function useHomeGames() {
       nfl: liveNfl ?? prev?.nfl ?? [],
     }));
   }, [liveNba, liveNhl, liveNfl, queryClient]);
+
+  // Refresh REST snapshot when the tab becomes visible again — covers stale
+  // data after the OS suspended the SSE on a backgrounded PWA tab.
+  useVisibilityReconnect(() => {
+    refetch();
+  });
 
   const error = isError ? "Could not load games. Please try again later." : null;
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getGameById } from "../../api/games.js";
 import { useLiveGame } from "../live/useLiveGame.js";
+import { useVisibilityReconnect } from "../live/useVisibilityReconnect.js";
 import { queryKeys } from "../../lib/query.js";
 
 function isActiveStatus(status) {
@@ -40,6 +41,12 @@ export function useGame(league, gameId) {
       queryClient.invalidateQueries({ queryKey: queryKeys.plays(league, gameId) });
     }
   }, [liveData, queryClient, league, gameId]);
+
+  // Refresh REST snapshot when the tab becomes visible again — covers stale
+  // data after the OS suspended the SSE on a backgrounded PWA tab.
+  useVisibilityReconnect(() => {
+    refetch();
+  });
 
   const retry = useCallback(() => {
     refetch();

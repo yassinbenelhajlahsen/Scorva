@@ -258,6 +258,45 @@ describe("useLeagueData — SSE payload filter", () => {
   });
 });
 
+describe("useLeagueData — visibility refetch", () => {
+  it("refetches games on visibilitychange→visible", async () => {
+    getLeagueGames.mockResolvedValue([]);
+    renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not refetch when visibilityState is hidden", async () => {
+    getLeagueGames.mockResolvedValue([]);
+    renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(getLeagueGames).toHaveBeenCalledTimes(1));
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "hidden",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(getLeagueGames).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("useLeagueData — error and retry", () => {
   it("sets error state when getLeagueGames rejects", async () => {
     getLeagueGames.mockRejectedValue(new Error("Network error"));

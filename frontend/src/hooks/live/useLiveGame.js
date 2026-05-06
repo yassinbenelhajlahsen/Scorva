@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { getLiveGameUrl, getGameById } from "../../api/games.js";
+import { useVisibilityReconnect } from "./useVisibilityReconnect.js";
 
 const MAX_FAILURES = 3;
 const POLL_INTERVAL_MS = 30_000;
@@ -8,12 +9,20 @@ export function useLiveGame(league, gameId, enabled) {
   const [liveData, setLiveData] = useState(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
+  const [reconnectKey, setReconnectKey] = useState(0);
 
   const esRef = useRef(null);
   const pollRef = useRef(null);
   const failureCount = useRef(0);
   const pendingRef = useRef(null);
   const throttleRef = useRef(null);
+
+  // On tab return, force a reconnect — mobile PWAs and desktop sleep often
+  // leave the EventSource silently dead even though readyState reports OPEN.
+  useVisibilityReconnect(() => {
+    if (!enabled || !league || !gameId) return;
+    setReconnectKey((k) => k + 1);
+  }, !!enabled && !!league && !!gameId);
 
   useEffect(() => {
     if (!enabled || !league || !gameId) return;
@@ -79,7 +88,7 @@ export function useLiveGame(league, gameId, enabled) {
     };
 
     return cleanup;
-  }, [league, gameId, enabled]);
+  }, [league, gameId, enabled, reconnectKey]);
 
   return { liveData, isStreaming, connectionError };
 }

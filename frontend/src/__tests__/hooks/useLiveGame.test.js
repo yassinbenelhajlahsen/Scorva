@@ -152,4 +152,64 @@ describe("useLiveGame", () => {
     expect(MockEventSource.instances[0].closed).toBe(true);
     expect(MockEventSource.instances).toHaveLength(2);
   });
+
+  it("reopens EventSource when tab becomes visible (covers silently-killed SSE)", () => {
+    renderHook(() => useLiveGame("nba", "1", true));
+    expect(MockEventSource.instances).toHaveLength(1);
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(MockEventSource.instances[0].closed).toBe(true);
+    expect(MockEventSource.instances).toHaveLength(2);
+  });
+
+  it("reopens EventSource on pageshow with persisted=true (bfcache restore)", () => {
+    renderHook(() => useLiveGame("nba", "1", true));
+    expect(MockEventSource.instances).toHaveLength(1);
+
+    act(() => {
+      const ev = new Event("pageshow");
+      Object.defineProperty(ev, "persisted", { value: true });
+      window.dispatchEvent(ev);
+    });
+
+    expect(MockEventSource.instances[0].closed).toBe(true);
+    expect(MockEventSource.instances).toHaveLength(2);
+  });
+
+  it("does not reopen when hook is disabled", () => {
+    renderHook(() => useLiveGame("nba", "1", false));
+    expect(MockEventSource.instances).toHaveLength(0);
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(MockEventSource.instances).toHaveLength(0);
+  });
+
+  it("removes visibility/pageshow/online listeners on unmount", () => {
+    const removeDoc = vi.spyOn(document, "removeEventListener");
+    const removeWin = vi.spyOn(window, "removeEventListener");
+
+    const { unmount } = renderHook(() => useLiveGame("nba", "1", true));
+    unmount();
+
+    expect(removeDoc).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    expect(removeWin).toHaveBeenCalledWith("pageshow", expect.any(Function));
+    expect(removeWin).toHaveBeenCalledWith("online", expect.any(Function));
+
+    removeDoc.mockRestore();
+    removeWin.mockRestore();
+  });
 });
