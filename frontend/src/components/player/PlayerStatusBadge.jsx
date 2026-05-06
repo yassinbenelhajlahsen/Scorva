@@ -11,28 +11,22 @@ const STATUS_LABELS = {
 
 const TONES = {
   green: {
-    bar: "from-[#86efac] via-[#34c759] to-[#15803d]",
     label: "text-win",
     ring: "ring-win/25",
     bg: "bg-[radial-gradient(130%_160%_at_0%_50%,rgba(52,199,89,0.24)_0%,rgba(10,12,16,0.94)_55%)]",
     glow: "shadow-[0_0_22px_-6px_rgba(52,199,89,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)]",
-    dot: "bg-win",
   },
   amber: {
-    bar: "from-[#fcd34d] via-[#f59e0b] to-[#92400e]",
     label: "text-amber-400",
     ring: "ring-amber-500/25",
     bg: "bg-[radial-gradient(130%_160%_at_0%_50%,rgba(245,158,11,0.26)_0%,rgba(10,12,16,0.94)_55%)]",
     glow: "shadow-[0_0_22px_-6px_rgba(245,158,11,0.5),inset_0_1px_0_0_rgba(255,255,255,0.05)]",
-    dot: "bg-amber-400",
   },
   red: {
-    bar: "from-[#fca5a5] via-[#ff453a] to-[#7f1d1d]",
     label: "text-loss",
     ring: "ring-loss/25",
     bg: "bg-[radial-gradient(130%_160%_at_0%_50%,rgba(255,69,58,0.26)_0%,rgba(10,12,16,0.94)_55%)]",
     glow: "shadow-[0_0_22px_-6px_rgba(255,69,58,0.5),inset_0_1px_0_0_rgba(255,255,255,0.06)]",
-    dot: "bg-loss",
   },
 };
 
@@ -65,20 +59,12 @@ export default function PlayerStatusBadge({ status, title, size = "md" }) {
     >
       <span
         aria-hidden
-        className={`self-stretch w-[3px] my-1 ml-1.5 mr-1.5 rounded-full bg-gradient-to-b ${tone.bar}`}
+        className={`self-stretch w-[3px] rounded-full bg-gradient-to-b`}
       />
       <span
         className={`uppercase tracking-[0.16em] font-semibold ${tone.label}`}
       >
         {label}
-      </span>
-      <span aria-hidden className="relative inline-flex w-1.5 h-1.5 ml-0.5">
-        <span
-          className={`absolute inset-0 rounded-full ${tone.dot} animate-ping opacity-60`}
-        />
-        <span
-          className={`relative inline-flex w-1.5 h-1.5 rounded-full ${tone.dot}`}
-        />
       </span>
     </div>
   );
