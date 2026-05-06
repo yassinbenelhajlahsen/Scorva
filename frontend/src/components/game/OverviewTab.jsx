@@ -116,8 +116,49 @@ export default function OverviewTab({
 
       {/* Prediction — pre-game only; hidden when a prior playoff series game is still pending */}
       {isPreGame && game?.hasUnplayedPriorSeriesGames ? (
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 mb-6 text-sm text-text-secondary">
-          Prediction available after the previous game in this series finishes.
+        <div className="relative overflow-hidden bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(135deg, rgba(255,255,255,0.8) 0 1px, transparent 1px 12px)",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl opacity-20"
+            style={{ background: "radial-gradient(circle, #e8863a 0%, transparent 70%)" }}
+          />
+
+          <div className="relative flex items-start gap-4">
+            <div className="shrink-0 w-11 h-11 rounded-xl bg-accent/10 border border-accent/25 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                className="w-5 h-5 text-accent"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="11" width="16" height="9" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-sm font-semibold text-text-primary tracking-tight">
+                  Prediction Locked
+                </h3>
+              </div>
+              <p className="mt-1.5 text-sm text-text-secondary leading-relaxed">
+                Prediction available after the previous game in this series finishes.
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
         isPreGame &&
@@ -163,6 +204,7 @@ export default function OverviewTab({
           scoreMargin={scoreMargin}
           homeTeam={homeTeam}
           awayTeam={awayTeam}
+          isFinal={isFinal}
         />
       )}
     </>

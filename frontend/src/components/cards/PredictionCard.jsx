@@ -108,6 +108,18 @@ function FactorIcon({ type }) {
   return null;
 }
 
+function inferFavoredTeam(text, prediction) {
+  if (!text || !prediction) return null;
+  const home = prediction.homeTeam?.shortName;
+  const away = prediction.awayTeam?.shortName;
+  if (!home || !away) return null;
+  const hasHome = home && new RegExp(`\\b${home}\\b`, "i").test(text);
+  const hasAway = away && new RegExp(`\\b${away}\\b`, "i").test(text);
+  if (hasHome && !hasAway) return "home";
+  if (hasAway && !hasHome) return "away";
+  return null;
+}
+
 function getInitials(name) {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
@@ -280,12 +292,16 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
   const homeProb = prediction?.homeTeam.winProbability ?? 50;
   const awayProb = prediction?.awayTeam.winProbability ?? 50;
   const homeFavored = homeProb >= awayProb;
+  const margin = Math.abs(homeProb - awayProb);
+  const favoredColor = homeFavored ? homeColor : awayColor;
+  const confidence =
+    margin >= 30 ? "High Confidence" : margin >= 12 ? "Lean" : "Toss-up";
 
   return (
     <div className="mb-6">
       {/* Section header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-accent/15 flex-shrink-0">
             {/* Target/crosshair — "we're predicting a winner" */}
             <svg className="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -294,14 +310,37 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
               <circle cx="12" cy="12" r="2" />
             </svg>
           </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-text-primary">Pre-Game Forecast</h2>
-          </div>
+          <h2 className="text-xl font-bold tracking-tight text-text-primary">Pre-Game Forecast</h2>
         </div>
+        {prediction && !loading && (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] uppercase tracking-[0.12em] font-medium text-text-secondary">
+            <span className="relative flex w-1.5 h-1.5">
+              <span
+                className="absolute inset-0 rounded-full animate-ping opacity-60"
+                style={{ background: favoredColor }}
+              />
+              <span
+                className="relative w-1.5 h-1.5 rounded-full"
+                style={{ background: favoredColor }}
+              />
+            </span>
+            {confidence}
+          </span>
+        )}
       </div>
 
       {/* Card */}
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
+      <div className="relative bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
+        {prediction && !loading && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-16 w-56 h-56 rounded-full blur-3xl opacity-25"
+            style={{
+              background: `radial-gradient(circle, ${favoredColor} 0%, transparent 70%)`,
+              [homeFavored ? "left" : "right"]: "-3rem",
+            }}
+          />
+        )}
         <div className="p-5 sm:p-6">
           {loading ? (
             <LoadingSkeleton />
@@ -392,15 +431,29 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
                   </span>
                 </div>
                 {/* Single bidirectional bar */}
-                <div className="h-3 rounded-full overflow-hidden flex">
-                  <m.div
-                    className="h-full"
-                    style={{ background: homeColor }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${homeProb}%` }}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                <div className="relative">
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-0 -bottom-1 h-3 blur-md opacity-40 pointer-events-none"
+                    style={{
+                      background: `linear-gradient(90deg, ${homeColor} 0%, ${homeColor} ${homeProb}%, ${awayColor} ${homeProb}%, ${awayColor} 100%)`,
+                    }}
                   />
-                  <div className="flex-1 h-full" style={{ background: awayColor, opacity: 0.7 }} />
+                  <div className="relative h-3 rounded-full overflow-hidden flex ring-1 ring-white/[0.06]">
+                    <m.div
+                      className="h-full"
+                      style={{ background: homeColor }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${homeProb}%` }}
+                      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                    <div className="flex-1 h-full" style={{ background: awayColor, opacity: 0.7 }} />
+                  </div>
+                  {/* 50% threshold tick */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-5 bg-white/30"
+                  />
                 </div>
               </div>
 
@@ -451,14 +504,31 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
               {prediction.keyFactors?.length > 0 && (
                 <div className="border-t border-white/[0.06] pt-4">
                   <p className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2.5">Key Factors</p>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {prediction.keyFactors.map((factor, i) => {
                       // Support both old shape (string) and new shape ({ text, type })
                       const text = typeof factor === "string" ? factor : factor.text;
                       const type = typeof factor === "string" ? "home" : factor.type;
+                      const favors = inferFavoredTeam(text, prediction);
+                      const tint =
+                        favors === "home"
+                          ? homeColor
+                          : favors === "away"
+                            ? awayColor
+                            : null;
                       return (
-                        <li key={i} className="flex items-center gap-2.5">
-                          <span className="text-accent flex-shrink-0">
+                        <li
+                          key={i}
+                          className="flex items-center gap-2.5 pl-3 py-1.5 rounded-lg border-l-2 transition-colors"
+                          style={{
+                            borderLeftColor: tint ?? "rgba(255,255,255,0.08)",
+                            background: tint ? `${tint}0D` : "transparent",
+                          }}
+                        >
+                          <span
+                            className="flex-shrink-0"
+                            style={{ color: tint ?? "var(--color-accent, #e8863a)" }}
+                          >
                             <FactorIcon type={type} />
                           </span>
                           <span className="text-sm text-text-secondary leading-snug">{text}</span>
