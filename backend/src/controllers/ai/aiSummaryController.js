@@ -10,6 +10,7 @@ import {
   buildGameData,
   streamAISummary,
 } from "../../services/ai/aiSummaryService.js";
+import pool from "../../db/db.js";
 import logger from "../../logger.js";
 
 const NDJSON_HEADERS = {
@@ -123,5 +124,30 @@ export async function getAiSummary(req, res) {
       message: "AI summary unavailable for this game.",
     });
     res.end();
+  }
+}
+
+// Dev-only: clears the cached ai_summary so the next GET regenerates with the
+// current prompt/data shape. Returns 404 in production so the route is invisible.
+export async function clearAiSummary(req, res) {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
+  const { id } = req.params;
+  if (Number.isNaN(parseInt(id, 10))) {
+    return res.status(400).json({ error: "Invalid game ID" });
+  }
+  try {
+    const result = await pool.query(
+      "UPDATE games SET ai_summary = NULL WHERE id = $1",
+      [id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Game not found" });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "Failed to clear AI summary");
+    return res.status(500).json({ error: "Failed to clear summary" });
   }
 }

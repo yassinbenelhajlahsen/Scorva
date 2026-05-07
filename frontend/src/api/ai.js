@@ -6,6 +6,10 @@ export function getAISummary(gameId, { signal, token } = {}) {
   return apiFetch(`/api/games/${gameId}/ai-summary`, { signal, token });
 }
 
+export function clearAISummary(gameId, { token } = {}) {
+  return apiFetch(`/api/games/${gameId}/ai-summary`, { method: "DELETE", token });
+}
+
 export function streamAISummary(gameId, { token, signal, onBullet, onFull, onDone, onError } = {}) {
   fetch(`${BASE}/api/games/${gameId}/ai-summary`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},

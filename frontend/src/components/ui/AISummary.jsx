@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useAISummary } from "../../hooks/ai/useAISummary.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { clearAISummary } from "../../api/ai.js";
 
 const BULLET_COUNT = 3;
 
@@ -12,8 +14,22 @@ const bulletVariants = {
 export default function AISummary({ gameId }) {
   const { session, openAuthModal } = useAuth();
   const { bullets, loading, error, cached } = useAISummary(gameId);
+  const [clearing, setClearing] = useState(false);
 
   if (!gameId) return null;
+
+  const handleDevClear = async () => {
+    if (!session || clearing) return;
+    if (!window.confirm(`Clear cached AI summary for game ${gameId}?`)) return;
+    setClearing(true);
+    try {
+      await clearAISummary(gameId, { token: session.access_token });
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to clear AI summary:", err);
+      setClearing(false);
+    }
+  };
 
   if (session === null) {
     return (
@@ -89,10 +105,21 @@ export default function AISummary({ gameId }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-xl font-bold tracking-tight text-text-primary">Game Summary</h2>
           <p className="text-xs text-text-tertiary mt-0.5">AI-generated insights from this matchup</p>
         </div>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={handleDevClear}
+            disabled={clearing}
+            title="Dev: clear cached summary and regenerate"
+            className="text-[11px] font-mono uppercase tracking-wide px-2.5 py-1 rounded-md border border-loss/30 text-loss/80 hover:bg-loss/10 hover:text-loss disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {clearing ? "Clearing…" : "Clear (dev)"}
+          </button>
+        )}
       </div>
 
       {/* Content card */}
