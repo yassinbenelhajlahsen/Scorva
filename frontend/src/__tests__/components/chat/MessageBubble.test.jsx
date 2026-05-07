@@ -20,6 +20,10 @@ vi.mock("../../../components/chat/ChatTypingIndicator.jsx", () => ({
   default: () => <div data-testid="typing-indicator" />,
 }));
 
+vi.mock("../../../context/ChatContext.jsx", () => ({
+  useChat: () => ({ closePanel: vi.fn() }),
+}));
+
 // Import after mocking to get the correct path relative to test
 const MessageBubble = (await import("../../../components/chat/MessageBubble.jsx")).default;
 
