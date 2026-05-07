@@ -38,49 +38,75 @@ backend/__tests__/
 │   ├── playerInfo.test.js               # GET /:league/players/:slug
 │   ├── players.test.js                  # GET /:league/players
 │   ├── plays.test.js                    # GET /:league/games/:gameId/plays
+│   ├── reports.test.js                  # GET /reports (filters, infinite-scroll)
 │   ├── search.test.js                   # GET /search
 │   ├── seasons.test.js                  # GET /:league/seasons
 │   ├── standings.test.js                # GET /:league/standings
+│   ├── streaks.test.js                  # GET /:league/players/:slug/streak, /teams/:teamId/streak
 │   ├── teams.test.js                    # GET /:league/teams
+│   ├── teamsRoster.test.js              # GET /:league/teams/:teamId/roster
 │   ├── user.test.js                     # GET|PATCH /user/profile, DELETE /user/account
 │   ├── webhooks.test.js                 # POST /webhooks/supabase-auth
 │   └── winProbability.test.js           # GET /:league/games/:eventId/win-probability
 ├── controllers/
-│   └── headToHeadController.test.js    # Compare H2H controller validation + routing
+│   ├── chatController.test.js           # streamChat — input validation + SSE streaming
+│   └── headToHeadController.test.js     # Compare H2H controller validation + routing
 ├── services/
 │   ├── aiSummaryService.test.js         # AI summary generation + data building
 │   ├── chatAgentService.test.js         # Agent loop, tool calls, summarization
 │   ├── chatHistoryService.test.js       # Conversation persistence
-│   ├── chatToolsService.test.js         # 13 tool definitions + executeTool dispatch
+│   ├── chatToolsService.test.js         # 24 tool definitions + executeTool dispatch
+│   ├── compareHeadToHead.test.js        # Compare feature H2H service (teams + players)
 │   ├── embeddingService.test.js         # pgvector embedding + semantic search
 │   ├── favoritesService.test.js         # ensureUser, getFavorites, CRUD, checkFavorites
+│   ├── gameDetailQueryBuilder.test.js   # SQL fragment builder (per-league stat columns)
 │   ├── gameDetailService.test.js        # getNbaGame/getNflGame/getNhlGame, cacheIf
 │   ├── gamesService.test.js             # getGames (all branches), getGameDates
 │   ├── headToHeadService.test.js        # Head-to-head game history (chat tool)
-│   ├── compareHeadToHead.test.js       # Compare feature H2H service (teams + players)
+│   ├── injuriesService.test.js          # get_injuries / get_player_status (chat tools)
 │   ├── newsService.test.js              # ESPN news fetch, filtering, caching
-│   ├── playerComparisonService.test.js  # Side-by-side player stats
+│   ├── nflPlayoffsService.test.js       # getNflPlayoffs — 14/12-team formats, reseeding
+│   ├── nhlPlayoffsService.test.js       # getNhlPlayoffs — unsupported seasons, projected bracket, tiebreakers
 │   ├── playerDetailService.test.js      # getNbaPlayer/getNflPlayer/getNhlPlayer, TTL
 │   ├── playersService.test.js           # Player list queries
+│   ├── playoffsService.test.js          # NBA playoffs — play-in, projected, ESPN placeholder teams
+│   ├── playsAgentService.test.js        # get_plays chat tool (single + cross-game)
 │   ├── playsService.test.js             # Play-by-play retrieval + ESPN proxy
+│   ├── predictionService.test.js        # Pre-game prediction blend, injury impact, confidence
+│   ├── reports/birthdaysReports.test.js # Birthdays report query
+│   ├── reports/injuriesReports.test.js  # Injuries report query (transitions, active filter)
+│   ├── reports/movesParser.test.js      # ESPN transaction string parser
+│   ├── reports/movesReports.test.js     # Moves report query
+│   ├── reports/reportsService.test.js   # Reports orchestrator (sorting, slicing, cache)
+│   ├── reports/streaksReports.test.js   # Streaks report query
+│   ├── searchParser.test.js             # Search query parser (alias detection, normalization)
 │   ├── searchService.test.js            # ILIKE stage 1 + fuzzy stage 2 fallback
 │   ├── seasonsService.test.js           # Season list queries
 │   ├── semanticSearchService.test.js    # Embedding-based game search
-│   ├── nhlPlayoffsService.test.js        # getNhlPlayoffs — unsupported seasons, projected bracket, tiebreakers, partial/complete bracket
-│   ├── standingsService.test.js         # getStandings, season-aware TTL
+│   ├── standingsService.test.js         # getStandings, season-aware TTL, tiebreakers
 │   ├── statLeadersService.test.js       # Stat leader queries + validation
+│   ├── streakTiers.test.js              # Player streak tier ranking helpers
+│   ├── streaksService.test.js           # getActiveStreak (cached, tier-ordered)
+│   ├── teamResolver.test.js             # Team resolution helper (id/slug/abbreviation)
 │   ├── teamStatsService.test.js         # Team aggregate stats
+│   ├── teamsRosterService.test.js       # Team roster query (per-league sort, averages)
 │   ├── teamsService.test.js             # Team list queries
 │   ├── userService.test.js              # getUser, updateUser, deleteUser
 │   ├── webSearchService.test.js         # Tavily API integration
 │   └── winProbabilityService.test.js    # ESPN win probability proxy + caching
 ├── ingestion/
+│   ├── awardTypeMap.test.js             # ESPN award name → normalized type code
+│   ├── cleanupClinchedPlayoffGames.test.js # Removes status=Scheduled games after series clinches
 │   ├── commonMappings.test.js           # Shared mapping utilities
 │   ├── espnImage.test.js                # ESPN CDN URL rewriting
 │   ├── eventProcessor.test.js           # ESPN ingest pipeline (30+ cases)
 │   ├── liveSync.test.js                 # Live game sync worker
 │   ├── mapStatsToSchema.test.js         # NBA/NFL/NHL stat field mapping
 │   ├── refreshPopularity.test.js        # Player popularity UPDATE
+│   ├── seasonTranslator.test.js         # Awards calendar-year → season string
+│   ├── seedAwards.test.js               # One-shot awards seeding script
+│   ├── streakEvents.test.js             # Streak scan (player/team) + UPSERT pipeline
+│   ├── syncInjuriesHistory.test.js      # syncInjuries history-row insertion + status transitions
 │   ├── upsert.test.js                   # Scheduled upsert orchestration
 │   ├── upsertGame.test.js               # Game upsert with winner/OT logic
 │   ├── upsertPlayer.test.js             # Player upsert with preserveExistingTeam
@@ -101,13 +127,11 @@ backend/__tests__/
 ├── db/
 │   ├── db.test.js                       # PG pool connection
 │   └── notificationBus.test.js          # LISTEN/NOTIFY bus lifecycle
-├── controllers/
-│   └── chatController.test.js           # streamChat — input validation + SSE streaming
 └── integration/
     └── app.test.js                      # Full app middleware + routing
 ```
 
-**Total: 72 test files.**
+**Total: 94 test files.** When adding a new test, also update this list — it doubles as a coverage map.
 
 ## Running Tests
 

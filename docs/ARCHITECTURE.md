@@ -259,10 +259,82 @@ After every `runUpsert` cycle, `pipeline/upsert.js` invalidates `reports:list:{l
 - API: `frontend/src/api/reports.js`; hook: `frontend/src/hooks/data/useReports.js` (TQ infinite query). Query key: `queryKeys.reports(league, type, limit, offset)`.
 - Streak rows reuse `teamUrl` helper for team links; full row is clickable through to the player page.
 
+## Player awards
+
+Award winners (MVP, All-NBA, Finals MVP, ROY, DPOY, Vezina, Selke, Calder, NFL MVP, OPOY, Super Bowl MVP, Conn Smythe, etc.) are seeded once from ESPN's awards index and surfaced via `get_player_awards` (chat) and inline in `playerDetailService` per-season responses.
+
+### Schema (migration `20260428000000_add_player_awards`)
+```
+player_awards(
+  id SERIAL PK,
+  player_id INT FK → players ON DELETE CASCADE,
+  league VARCHAR(10),
+  season VARCHAR(10),         -- NBA/NHL "YYYY-YY", NFL "YYYY"
+  award_type VARCHAR(50),     -- normalized code (e.g. "mvp", "all_nba", "finals_mvp")
+  award_name VARCHAR(100),    -- ESPN display string
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (player_id, league, season, award_type),
+  INDEX (player_id),
+  INDEX (league, season)
+)
+```
+
+### Ingestion (`ingestion/awards/`)
+- `awardTypeMap.js` — `mapEspnAward(league, espnName)` normalizes ESPN's display strings to a stable `award_type` code; `isKnownOutOfScope(...)` filters non-individual awards (rookie of the month, all-star MVP, etc.)
+- `seasonTranslator.js` — `toEspnYear`, `decrementSeason`, `seasonMatchesLeague` resolve ESPN's calendar-year award URLs to our season strings (NBA/NHL `YYYY-YY`, NFL `YYYY`). NBA MVP at calendar year 2016 maps to season `"2015-16"`; NFL MVP at 2016 maps to `"2016"`.
+- `espnAwardsClient.js` — `fetchAwardIndex`, `fetchAward` — thin ESPN HTTP wrapper.
+- `scripts/seedAwards.js` — one-shot seeding script. `node backend/src/ingestion/scripts/seedAwards.js [--league nba|nfl|nhl] [--season ...]`. Idempotent via `ON CONFLICT (player_id, league, season, award_type) DO NOTHING`.
+
+### Data span
+NBA MVP back to 2001-02, NFL MVP to 2003, NHL Hart to 2005-06 — predates the 2015-16 game/stats span. `agentService.buildSystemPrompt` instructs the model to attempt `get_player_awards` before saying "no data" for older seasons.
+
+### Frontend surface
+`playerDetailService` joins `player_awards` into season summaries: `awards: COALESCE(json_agg(...), '[]'::json)` per season. Rendered on PlayerPage career section.
+
+## Team roster
+
+`GET /:league/teams/:teamId/roster?season=` — returns the roster sorted by per-game stat (NBA: points; NFL: yds; NHL: g+a). Active players only — derived as the most-recent team for each player via `stats.teamid` window function. Cached `roster:{league}:{teamId}:{season}` 5m current / 30d past.
+
+- Service: `services/teams/teamsService.js#getTeamRoster` (uses `rosterSortMetricSql` and `rosterAveragesSql` league-specific helpers in the same file)
+- Frontend: `useTeamRoster` hook + `RosterGrid` component on TeamPage
+
+## ScoresBar (global scores ticker)
+
+Sticky horizontal slate of today's games (across NBA + NFL + NHL) shown above the Navbar — renamed from `GlobalSlate` and made sticky on mobile (commit `ef76dd2`). Hidden on `/about` and `/privacy`.
+
+- Component: `frontend/src/components/layout/ScoresBar.jsx`
+- Hook: `frontend/src/hooks/data/useScoresBar.js` (composes per-league `useSlateGames`)
+- Per-league hook: `frontend/src/hooks/data/useSlateGames.js` — uses `useLiveGames` for live updates and `useVisibilityReconnect` for tab-return refresh; gates SSE on whether the slate has any active or upcoming games (so a `Scheduled→Live` flip refreshes without a manual reload, commit `fa0e926`)
+- Date helper: `frontend/src/utils/slateDate.js` — `getSlateDateET`, `compactTime`, `statusGroup`
+- Skeleton: `ScoresBarSkeleton` exported from `LeaguePageSkeleton.jsx`
+- Optional `leagueFilter` prop scopes the bar to a single league (LeaguePage)
+
+## Visibility reconnect for SSE
+
+`frontend/src/hooks/live/useVisibilityReconnect.js` — calls a refresh callback whenever the tab becomes visible again. Listens for `visibilitychange` (visible), `pageshow` with `persisted=true` (iOS Safari bfcache), and `online` events. SSE often dies silently when a PWA is backgrounded; this hook re-fetches the slate so stale tabs catch up without a manual refresh (commit `36dd764`).
+
 ## syncInjuries (`ingestion/syncInjuries.js`)
-Polls the ESPN league-wide injuries feed and writes `players.status`, `players.status_description`, `players.status_updated_at`, `players.status_changed_at`. Source of truth for `get_team_injuries` / `get_league_injuries` / `get_player_status` chat tools and the prediction injury impact model.
+Polls the ESPN league-wide injuries feed and writes `players.status`, `players.status_description`, `players.status_updated_at`, `players.status_changed_at`. Source of truth for `get_injuries` / `get_player_status` chat tools and the prediction injury impact model.
 
 **Change detection** is keyed on ESPN's `entry.date` (the canonical "this injury report was filed/edited at" timestamp), persisted in `players.status_changed_at` (migration `20260501000000_add_player_status_changed_at`). A new `player_status_history` row is inserted only when (a) `status` changed, or (b) `entry.date` differs from the stored `status_changed_at`. This stops `shortComment` text drift and intermittently-missing description fields from manufacturing history rows / churning timestamps every sync cycle. The history row's `changed_at` column is `COALESCE(entry.date, NOW())`. When an injury clears (player drops off the feed or staleness sweep fires), `status_changed_at` is reset to `NULL`.
+
+### `player_status_history` schema (migration `20260430000000_add_player_status_history`)
+```
+player_status_history(
+  id BIGSERIAL PK,
+  player_id INT FK → players,
+  league VARCHAR(10),
+  prev_status VARCHAR(20),
+  prev_status_description TEXT,
+  new_status VARCHAR(20),
+  new_status_description TEXT,
+  changed_at TIMESTAMPTZ DEFAULT NOW(),
+  INDEX (changed_at DESC),
+  INDEX (league, changed_at DESC),
+  INDEX (player_id)
+)
+```
+Consumed by `injuriesReports.js` (Reports feed), `aiSummaryService.getInGameInjuries` (historical injury context for AI summaries), and the `injuries` Reports query (which filters out no-op `prev IS DISTINCT FROM new` transitions and any row touching `'active'`).
 
 **Status="Active" entries are skipped.** ESPN's NFL injury feed bundles non-injury news — contract signings, trade announcements, return-from-injury notes — into the same feed with `status: "Active"` and roster-news `shortComment` text. `ESPN_STATUS_MAP` deliberately omits `active`, so `normalizeStatus` returns `null` for those entries and the per-entry loop skips them via the `if (!status) continue;` guard. A genuinely-recovered player (e.g. moving from `out` to `Active`) is still cleared correctly: by skipping their entry we don't push their espn id into `injuredEspnIds`, so the per-team clear sweep transitions them from their prior status to `null`. The reports query layers a defensive `COALESCE(prev_status, '') <> 'active' AND COALESCE(new_status, '') <> 'active'` filter as belt-and-suspenders against any historical rows pre-dating this change.
 
@@ -340,6 +412,9 @@ Records which team a player was on **at the time of the game** — set at ingest
 
 ### `teams.division` (VARCHAR, nullable)
 Seeded per league per ESPN team ID by migration `20260415000001_seed_conf_division`. Used by `nhlPlayoffsService.js` and `nflPlayoffsService.js` to build divisional brackets, and by `tiebreaker.js` for the NBA division-leader bonus and the NFL `divWinPct` tiebreaker step. If not populated for a team: NHL and NFL playoff derivation returns `warning: "division_data_missing"` with an empty projected bracket; NBA tiebreaker skips the division-leader bonus silently.
+
+### `teams.abbreviation` (VARCHAR(5), nullable)
+Three-letter team code (e.g. `BOS`, `LAL`). Added by migration `20260427000000_add_team_abbreviation` and populated by `upsertTeam.js` from ESPN. Backfill: `node backend/src/ingestion/scripts/backfillTeamAbbreviations.js`. Used by chat in-text entity links (`[Name](team:LEAGUE:abbreviation)` is also accepted, though numeric IDs are preferred) and by UI components that need a compact team label.
 
 ### `games.game_label` (TEXT, nullable)
 Display-only text (e.g. `"NBA Finals - Game 1"`, `"Wild Card Round"`). Never use for classification logic.
@@ -664,13 +739,26 @@ All vectors are stored as `vector(14)` (NHL max); NBA and NFL are zero-padded. Q
 
 **Cache:** `similarPlayers:{league}:{playerId}:{season}` — 120s current season, 30 days past. Invalidated on each upsert cycle.
 
-### 17 chat tools
-`search`, `get_games`, `get_game_detail`, `get_player_detail`, `get_standings`,
-`get_head_to_head`, `get_stat_leaders`, `get_player_comparison`, `get_team_stats`,
-`web_search`, `get_seasons`, `get_teams`, `semantic_search`, `get_plays`,
-`get_team_injuries`, `get_league_injuries`, `get_player_status`
+### Chat tools
 
-OpenAI function schemas defined in `chat/toolDefinitions.js`; execution dispatch in `chat/toolsService.js`; individual tool logic in `services/chat/tools/`.
+24 tools split across discovery, games, players, teams, streaks, injuries, and external search. Full reference (parameters, return shapes, caveats, when to use each) lives in **[`docs/agent-tools.md`](agent-tools.md)**.
+
+- OpenAI function schemas: `chat/toolDefinitions.js`
+- Dispatch: `chat/toolsService.js#executeTool` — switch on tool name, plus `RANGE_AWARE_TOOLS` set that opts certain tools out of the season auto-fill (otherwise multi-season queries get silently scoped to one year).
+- Implementations: `chat/tools/*.js`
+- Routing rules (which question → which tool): `chat/agentService.js#buildSystemPrompt`. The prompt explicitly tells the model "for X questions use `<tool>`" so it doesn't fall back to `web_search` / `semantic_search`.
+
+**Notable consolidations** (April 2026):
+- `get_player_detail` is now a unified player tool with an `include` array (`detail` | `game_log` | `career`). It absorbed the old `get_player_career` and `get_player_game_log` tools.
+- `get_injuries` replaces the old `get_team_injuries` + `get_league_injuries` pair — pass `teamId` for a single team report, omit it for the league-wide view. `get_player_status` remains a separate cheap single-player check.
+- `get_player_comparison` removed — Sid calls `get_player_detail` for each player in parallel and lays them out side by side.
+
+**Data span.** Game/stats/plays data goes back to 2015-16. `player_awards` reaches further (NBA MVP to 2001-02, NFL MVP to 2003, NHL Hart to 2005-06) — the prompt nudges the model to attempt the awards tool before saying "no data" for older seasons. Pre-2015-16 games/stats: tool returns empty, model says the database doesn't go back that far.
+
+### In-text entity links
+The model emits `[Name](player|team|game:LEAGUE:ID)` sentinels in its responses. `frontend/src/components/chat/MessageBubble.jsx#resolveTarget` parses these into React Router `Link`s. `resolveTeam` accepts numeric team IDs in addition to abbreviation/slug so all three entity types resolve uniformly via numeric ID. Clicking a link auto-closes the chat panel via `closePanel()` exposed on `ChatContext`.
+
+The model uses IDs straight from tool results — never invents them — so unresolvable links are rare and gracefully degrade to plain label text.
 
 ### `get_plays` tool
 Queries the `plays` table directly — no embeddings. Handles both single-game and cross-game queries via a single parameterized SQL query. Optional filters: `gameId`, `playerName` (ILIKE on description), `teamId`, `period`, `scoringOnly`, `playType` (ILIKE), `searchText` (ILIKE on description). Season auto-resolved by `executeTool`. Default limit 30, hard cap 50.
@@ -680,11 +768,7 @@ Queries the `plays` table directly — no embeddings. Handles both single-game a
 - NFL: conditionally adds `drive_number`, `drive_description`, `drive_result` columns to SELECT and result shape.
 - Returns `{ plays, total, capped }` so the LLM knows if results were truncated.
 
-### Injury tools
-`get_team_injuries`, `get_league_injuries`, `get_player_status` all read from the `players.status`, `players.status_description`, `players.status_updated_at` columns populated by `ingestion/syncInjuries.js` (ESPN league-wide feed). Source of truth is the DB — `web_search` is reserved for return timelines, trade rumors, and reporter context.
-
-- `get_team_injuries(league, teamId, season?)` — returns `{ team, season, asOf, count, players[] }`. Each player includes league-specific `seasonAverages` (NBA: points/rebounds/assists/minutes; NFL: yards/touchdowns/interceptions; NHL: goals/assists/shots) joined from `stats` → `games` with the standard `regular`/`makeup` + minutes/TOI filter. Sorted by severity (`out` < `ir` < `doubtful` < `questionable` < `day-to-day` < `suspended`). `asOf = MAX(status_updated_at)`.
-- `get_league_injuries(league, { status?, minPopularity?, limit? })` — cross-team view joined to `teams`, ordered by `popularity DESC` then severity. `limit` default 25, hard cap 50. Roster-level only (no stat join).
-- `get_player_status(league, playerId)` — single-player lookup. Returns `{ status: "active" }` when `status IS NULL`, `{ error: "Player not found" }` when the player doesn't exist.
+### Injury data
+Both injury tools (`get_injuries`, `get_player_status`) read from `players.status`, `players.status_description`, `players.status_updated_at` populated by `ingestion/syncInjuries.js` (ESPN league-wide feed). DB is the source of truth — `web_search` is reserved for return timelines, trade rumors, reporter context.
 
 **Cache keys:** `injuries:team:{league}:{teamId}:{season}` 120s, `injuries:league:{league}:{status|all}:{minPop}:{limit}` 120s, `injuries:player:{league}:{playerId}` 60s.

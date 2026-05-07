@@ -3,6 +3,7 @@
 ## API endpoints (all under `/api`)
 - `GET /:league/teams`
 - `GET /:league/teams/:teamId/seasons` — distinct seasons the team has played in, ordered DESC
+- `GET /:league/teams/:teamId/roster` — optional `?season=`; returns roster sorted by league-specific per-game stat (NBA: points, NFL: yds, NHL: g+a). Each player includes `id, name, position, jerseynum, image_url, status, status_description, status_updated_at, espn_playerid, averages`. Cached 5m current / 30d past (`roster:{league}:{teamId}:{season}`)
 - `GET /:league/standings` — optional `?season=`; returns array of team objects sorted by conference then primary value. Each team includes `wins`, `losses`, `division`, and league-specific fields:
   - **NBA**: `winPct`, `pointDiff`, `confWinPct`
   - **NHL**: `otl`, `ptsPct`, `regWins`, `gf`, `pointDiff`, `confWinPct`

@@ -51,9 +51,9 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 
 | What            | Where                                                |
 | --------------- | ---------------------------------------------------- |
-| Route           | `backend/src/routes/teams/teams.js`                  |
+| Route           | `backend/src/routes/teams/teams.js` (teams, seasons, roster) |
 | Controller      | `backend/src/controllers/teams/teamsController.js`   |
-| Service         | `backend/src/services/teams/teamsService.js`         |
+| Service (list/seasons/roster) | `backend/src/services/teams/teamsService.js` (`getTeamsByLeague`, `getTeamAvailableSeasons`, `getTeamRoster`) |
 
 ## Backend — Domain: Standings & Playoffs
 
@@ -75,6 +75,7 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Controllers           | `backend/src/controllers/user/`                              |
 | User service          | `backend/src/services/user/userService.js`                   |
 | Favorites service     | `backend/src/services/user/favoritesService.js`              |
+| Ensure-user helper    | `backend/src/services/user/ensureUser.js`                    |
 
 ## Backend — Domain: AI (Chat, Summary, Embeddings)
 
@@ -85,11 +86,16 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | AI summary service                | `backend/src/services/ai/aiSummaryService.js`              |
 | Embedding service (RAG)           | `backend/src/services/ai/embeddingService.js`              |
 | Chat agent (LLM loop)             | `backend/src/services/ai/chat/agentService.js`             |
+| Chat tool reference (docs)        | `docs/agent-tools.md`                                      |
 | Chat tool schemas                 | `backend/src/services/ai/chat/toolDefinitions.js`          |
 | Chat tools (dispatch)             | `backend/src/services/ai/chat/toolsService.js`             |
 | Chat tool implementations         | `backend/src/services/ai/chat/tools/`                      |
+| Chat unified player tool          | `backend/src/services/ai/chat/tools/playerUnified.js`      |
+| Chat games / find-games tools     | `backend/src/services/ai/chat/tools/{findGames,topSingleGame,playerGameLog,playerCareer}.js` |
+| Chat advanced/clutch/awards/streaks | `backend/src/services/ai/chat/tools/{advancedStats,clutchPerformance,playerAwards,streaks}.js` |
+| Chat similar/team-history/playoffs  | `backend/src/services/ai/chat/tools/{similarPlayers,playerTeamHistory,playoffBracket}.js` |
 | Chat plays tool                   | `backend/src/services/ai/chat/tools/plays.js`              |
-| Chat injury tools                 | `backend/src/services/ai/chat/tools/injuries.js`           |
+| Chat injuries tool                | `backend/src/services/ai/chat/tools/injuries.js`           |
 | Chat history                      | `backend/src/services/ai/chat/historyService.js`           |
 
 ## Backend — Domain: Reports & Streaks
@@ -121,6 +127,8 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Controllers           | `backend/src/controllers/meta/`                                   |
 | News service          | `backend/src/services/meta/newsService.js`                        |
 | Search service        | `backend/src/services/meta/searchService.js`                      |
+| Search query parser   | `backend/src/services/meta/searchParser.js`                       |
+| Team resolver helper  | `backend/src/services/meta/teamResolver.js`                       |
 | Seasons service       | `backend/src/services/meta/seasonsService.js`                     |
 | Head-to-head service  | `backend/src/services/meta/headToHeadService.js`                  |
 
@@ -130,6 +138,10 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | ----------------------------- | -------------------------------------------------------- |
 | ESPN API client (fetch+retry) | `backend/src/ingestion/espn/espnAPIClient.js`            |
 | ESPN image helper             | `backend/src/ingestion/espn/espnImage.js`                |
+| Awards ESPN client            | `backend/src/ingestion/awards/espnAwardsClient.js`       |
+| Awards type/name normalizer   | `backend/src/ingestion/awards/awardTypeMap.js`           |
+| Awards calendar-year resolver | `backend/src/ingestion/awards/seasonTranslator.js`       |
+| Awards seed script (one-shot) | `backend/src/ingestion/scripts/seedAwards.js`            |
 | Event processor               | `backend/src/ingestion/pipeline/eventProcessor.js`       |
 | Scheduled upsert              | `backend/src/ingestion/pipeline/upsert.js`               |
 | Live sync worker              | `backend/src/ingestion/pipeline/liveSync.js`             |
@@ -169,7 +181,37 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | OAuth callback page     | `frontend/src/pages/AuthCallback.jsx`                          |
 | API wrappers            | `frontend/src/api/`                                            |
 | Data hooks              | `frontend/src/hooks/{ai,data,live,user}/`                      |
+| Top-level UX hooks      | `frontend/src/hooks/{useSeasonParam,usePullToRefresh,useStandalone,useSwipeToClose,useSwipeableTabs}.js` |
 | Utilities               | `frontend/src/utils/`                                          |
+| Slate-date util         | `frontend/src/utils/slateDate.js` (`getSlateDateET`, `compactTime`, `statusGroup`) |
+
+## Frontend — Layout
+
+| What                           | Where                                                       |
+| ------------------------------ | ----------------------------------------------------------- |
+| Navbar                         | `frontend/src/components/layout/Navbar.jsx`                 |
+| Navbar search (icon-driven)    | `frontend/src/components/layout/NavbarSearch.jsx`           |
+| Avatar dropdown                | `frontend/src/components/layout/AvatarDropdown.jsx`         |
+| Footer                         | `frontend/src/components/layout/Footer.jsx`                 |
+| Page wrapper                   | `frontend/src/components/layout/PageWrapper.jsx`            |
+| Scroll-to-top on route change  | `frontend/src/components/layout/ScrollToTop.jsx`            |
+| ScoresBar (global slate)       | `frontend/src/components/layout/ScoresBar.jsx`              |
+| ScoresBar hook                 | `frontend/src/hooks/data/useScoresBar.js`                   |
+| Per-league slate hook          | `frontend/src/hooks/data/useSlateGames.js`                  |
+| Visibility-reconnect hook      | `frontend/src/hooks/live/useVisibilityReconnect.js`         |
+| ScoresBar skeleton             | exported from `frontend/src/components/skeletons/LeaguePageSkeleton.jsx` |
+
+## Frontend — PWA / Mobile UX
+
+| What                      | Where                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| iOS install hint          | `frontend/src/components/pwa/IOSInstallHint.jsx`            |
+| Pull-to-refresh wrapper   | `frontend/src/components/ui/PullToRefresh.jsx`              |
+| Pull-to-refresh hook      | `frontend/src/hooks/usePullToRefresh.js`                    |
+| Swipeable tabs wrapper    | `frontend/src/components/ui/SwipeableTabs.jsx`              |
+| Swipeable tabs hook       | `frontend/src/hooks/useSwipeableTabs.js`                    |
+| Swipe-to-close (panels)   | `frontend/src/hooks/useSwipeToClose.js`                     |
+| Standalone-mode detection | `frontend/src/hooks/useStandalone.js`                       |
 
 ## Frontend — Game
 
@@ -193,6 +235,14 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | ----------------------- | -------------------------------------------------------------- |
 | Similar players hook    | `frontend/src/hooks/data/useSimilarPlayers.js`                 |
 | Similar players card    | `frontend/src/components/cards/SimilarPlayersCard.jsx`         |
+
+## Frontend — Teams
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Team hook               | `frontend/src/hooks/data/useTeam.js`                           |
+| Team roster hook        | `frontend/src/hooks/data/useTeamRoster.js`                     |
+| Roster grid component   | `frontend/src/components/team/RosterGrid.jsx`                  |
 
 ## Frontend — Compare
 

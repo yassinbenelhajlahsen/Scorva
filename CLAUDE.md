@@ -44,6 +44,7 @@ IMPORTANT: All packages use ESM (`"type": "module"`). Always use `.js` extension
 | Doc | Read when… |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | data flow, live sync, SSE, Redis, game columns, auth, AI/chat, RAG |
+| [`docs/agent-tools.md`](docs/agent-tools.md) | adding, modifying, or debugging chat agent tools |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | UI — design tokens, component patterns, Tailwind v4 |
 | [`docs/file-map.md`](docs/file-map.md) | finding any file in the codebase |
 | [`docs/api-reference.md`](docs/api-reference.md) | looking up an endpoint or frontend route |
