@@ -34,7 +34,11 @@ const {
   calculateTeamStats,
   buildPrompt,
   getClutchPlays,
+  getPlayoffSeries,
 } = await import(servicePath);
+
+const dbModule = await import(dbPath);
+const mockDbQuery = dbModule.default.query;
 
 describe("aiSummaryService - pure functions", () => {
   describe("getTopPerformers", () => {
@@ -414,6 +418,22 @@ describe("aiSummaryService - pure functions", () => {
 
       expect(result).not.toHaveProperty("enteringStreaks");
     });
+
+    it("should pass seriesState through to gameData when provided", () => {
+      const series = {
+        round: "East Semifinals",
+        gameNumber: 2,
+        beforeThisGame: "Los Angeles Lakers lead 1-0",
+        afterThisGame: "Los Angeles Lakers lead 2-0",
+      };
+      const result = buildGameData(baseGame, [], {}, { series });
+      expect(result.seriesState).toEqual(series);
+    });
+
+    it("should omit seriesState when not provided", () => {
+      const result = buildGameData(baseGame, [], {}, {});
+      expect(result).not.toHaveProperty("seriesState");
+    });
   });
 
   describe("getTopPerformers - team representation", () => {
@@ -565,6 +585,100 @@ describe("aiSummaryService - pure functions", () => {
     });
   });
 
+  describe("getPlayoffSeries", () => {
+    beforeEach(() => {
+      mockDbQuery.mockReset();
+    });
+
+    const playoffGame = {
+      id: 520690,
+      league: "nba",
+      season: "2025-26",
+      date: "2026-05-06T04:00:00.000Z",
+      hometeamid: 526,
+      awayteamid: 535,
+      homescore: 108,
+      awayscore: 102,
+      home_team_name: "New York Knicks",
+      away_team_name: "Philadelphia 76ers",
+      game_type: "playoff",
+      game_label: "East Semifinals - Game 2",
+    };
+
+    it("returns null for non-playoff games", async () => {
+      const r = await getPlayoffSeries({ ...playoffGame, game_type: "regular" });
+      expect(r).toBeNull();
+      expect(mockDbQuery).not.toHaveBeenCalled();
+    });
+
+    it("returns null for NFL playoff games (single elimination)", async () => {
+      const r = await getPlayoffSeries({ ...playoffGame, league: "nfl", game_label: "Wild Card Round" });
+      expect(r).toBeNull();
+      expect(mockDbQuery).not.toHaveBeenCalled();
+    });
+
+    it("returns null when game_label has no Game N marker (e.g. Play-In)", async () => {
+      const r = await getPlayoffSeries({ ...playoffGame, game_label: "Play-In Round 1" });
+      expect(r).toBeNull();
+      expect(mockDbQuery).not.toHaveBeenCalled();
+    });
+
+    it("computes 2-0 series lead from prior Game 1 win + this Game 2 win", async () => {
+      // Prior Game 1: Knicks (home, id 526) won
+      mockDbQuery.mockResolvedValueOnce({
+        rows: [{ winnerid: 526, hometeamid: 526, awayteamid: 535 }],
+      });
+
+      const r = await getPlayoffSeries(playoffGame);
+
+      expect(r).toEqual({
+        round: "East Semifinals",
+        gameNumber: 2,
+        beforeThisGame: "New York Knicks lead 1-0",
+        afterThisGame: "New York Knicks lead 2-0",
+      });
+    });
+
+    it("formats Game 1 with no prior games as 'Series begins'", async () => {
+      mockDbQuery.mockResolvedValueOnce({ rows: [] });
+
+      const r = await getPlayoffSeries({
+        ...playoffGame,
+        game_label: "East Semifinals - Game 1",
+      });
+
+      expect(r.beforeThisGame).toBe("Series begins (Game 1)");
+      expect(r.afterThisGame).toBe("New York Knicks lead 1-0");
+    });
+
+    it("formats tied series", async () => {
+      // Each team has one prior win
+      mockDbQuery.mockResolvedValueOnce({
+        rows: [
+          { winnerid: 526, hometeamid: 526, awayteamid: 535 },
+          { winnerid: 535, hometeamid: 535, awayteamid: 526 },
+        ],
+      });
+
+      const r = await getPlayoffSeries({
+        ...playoffGame,
+        game_label: "East Semifinals - Game 3",
+        // 76ers (away in this game) win
+        homescore: 100,
+        awayscore: 110,
+      });
+
+      expect(r.beforeThisGame).toBe("Series tied 1-1");
+      expect(r.afterThisGame).toBe("Philadelphia 76ers lead 2-1");
+    });
+
+    it("returns null and logs on db error", async () => {
+      mockDbQuery.mockRejectedValueOnce(new Error("boom"));
+      const r = await getPlayoffSeries(playoffGame);
+      expect(r).toBeNull();
+    });
+  });
+
   describe("buildPrompt", () => {
     const baseGameData = {
       league: "NBA",
@@ -628,6 +742,46 @@ describe("aiSummaryService - pure functions", () => {
 
       expect(prompt).toContain("3 bullet points");
       expect(prompt).toContain("dash (-)");
+    });
+
+    it("should NOT contain the dropped 'credit primary scorer' rule", () => {
+      const prompt = buildPrompt(baseGameData, "NBA");
+      expect(prompt).not.toMatch(/Credit the winning team's primary scorer/i);
+    });
+
+    it("should include anti-template guidance", () => {
+      const prompt = buildPrompt(baseGameData, "NBA");
+      expect(prompt).toMatch(/Vary the structure/i);
+      expect(prompt).toMatch(/don't follow a fixed template/i);
+    });
+
+    it("should include seriesState strings as the source of truth when present", () => {
+      const data = {
+        ...baseGameData,
+        gameType: "playoff",
+        gameLabel: "East Semifinals - Game 2",
+        seriesState: {
+          round: "East Semifinals",
+          gameNumber: 2,
+          beforeThisGame: "Knicks lead 1-0",
+          afterThisGame: "Knicks lead 2-0",
+        },
+      };
+      const prompt = buildPrompt(data, "NBA");
+      expect(prompt).toContain("Knicks lead 2-0");
+      expect(prompt).toContain("Knicks lead 1-0");
+      expect(prompt).toMatch(/source of truth/i);
+      expect(prompt).toMatch(/never invent/i);
+    });
+
+    it("should soften winning-play rule (no MUST describe directive)", () => {
+      const data = {
+        ...baseGameData,
+        gameWinningPlay: { description: "buzzer beater", clock: "0:00" },
+      };
+      const prompt = buildPrompt(data, "NBA");
+      expect(prompt).not.toMatch(/One bullet MUST describe the gameWinningPlay/i);
+      expect(prompt).toMatch(/Reference it by player name in one bullet/i);
     });
   });
 });

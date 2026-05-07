@@ -105,6 +105,7 @@ export async function getGameForSummary(id) {
     `SELECT
       g.id,
       g.league,
+      g.season,
       g.date,
       g.homescore,
       g.awayscore,
@@ -133,6 +134,66 @@ export async function getGameForSummary(id) {
     [id]
   );
   return result.rows[0] ?? null;
+}
+
+// Compute the best-of-N playoff series record entering and after this game.
+// Only applies to NBA/NHL playoff games whose label includes "Game N" — NFL
+// is single-elim (no series) and play-in games don't carry a series record.
+// Returns null otherwise so the prompt can skip series context entirely.
+export async function getPlayoffSeries(game) {
+  if (game?.game_type !== "playoff") return null;
+  if (!game?.hometeamid || !game?.awayteamid || !game?.league) return null;
+  const lg = game.league.toLowerCase();
+  if (lg !== "nba" && lg !== "nhl") return null;
+  if (!game.game_label || !/Game \d+/i.test(game.game_label)) return null;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT g.winnerid, g.hometeamid, g.awayteamid
+       FROM games g
+       WHERE g.league = $1
+         AND g.season = $2
+         AND g.type = 'playoff'
+         AND g.status = 'Final'
+         AND g.id <> $3
+         AND g.date < $4
+         AND ((g.hometeamid = $5 AND g.awayteamid = $6)
+           OR (g.hometeamid = $6 AND g.awayteamid = $5))`,
+      [game.league, game.season, game.id, game.date, game.hometeamid, game.awayteamid]
+    );
+
+    let homeWins = 0;
+    let awayWins = 0;
+    for (const r of rows) {
+      if (r.winnerid === game.hometeamid) homeWins++;
+      else if (r.winnerid === game.awayteamid) awayWins++;
+    }
+
+    const thisHome = game.homescore > game.awayscore ? 1 : 0;
+    const thisAway = game.awayscore > game.homescore ? 1 : 0;
+
+    const fmt = (h, a) => {
+      if (h === 0 && a === 0) return null;
+      if (h === a) return `Series tied ${h}-${a}`;
+      if (h > a) return `${game.home_team_name} lead ${h}-${a}`;
+      return `${game.away_team_name} lead ${a}-${h}`;
+    };
+
+    const sepIdx = game.game_label.indexOf(" - ");
+    const round = sepIdx > 0 ? game.game_label.slice(0, sepIdx) : game.game_label;
+    const m = game.game_label.match(/Game (\d+)/i);
+    const gameNumber = m ? parseInt(m[1], 10) : rows.length + 1;
+
+    return {
+      round,
+      gameNumber,
+      beforeThisGame: fmt(homeWins, awayWins) ?? `Series begins (Game ${gameNumber})`,
+      afterThisGame: fmt(homeWins + thisHome, awayWins + thisAway),
+    };
+  } catch (err) {
+    logger.warn({ err }, "Failed to fetch playoff series state for AI summary");
+    return null;
+  }
 }
 
 // Compute each team's W/L streak going INTO this game. Looks back at the
@@ -274,7 +335,7 @@ export async function saveSummary(id, summary) {
 
 export function buildGameData(game, stats, clutchData = {}, extras = {}) {
   const { plays: clutchPlays = [], gameWinningPlay = null } = clutchData;
-  const { injuries = [], streaks = null } = extras;
+  const { injuries = [], streaks = null, series = null } = extras;
   const league = game.league.toUpperCase();
 
   const parseScore = (scoreStr) => {
@@ -394,6 +455,7 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
     ...(streakContext ? { enteringStreaks: streakContext } : {}),
     ...(game.game_type ? { gameType: game.game_type } : {}),
     ...(game.game_label ? { gameLabel: game.game_label } : {}),
+    ...(series ? { seriesState: series } : {}),
     ...(injuries.length > 0 ? { inGameInjuries: injuries } : {}),
     ...(filteredClutchPlays.length > 0 ? { clutchPlays: filteredClutchPlays } : {}),
     ...(filteredGameWinner ? { gameWinningPlay: filteredGameWinner } : {}),
@@ -642,10 +704,16 @@ export function buildPrompt(gameData, league) {
 
   const frame = storyFrames[gameData.storyType] || storyFrames.standard;
 
-  const playoffContext =
-    gameData.gameType === "playoff" && gameData.gameLabel
-      ? `\nPlayoff context: this is ${gameData.gameLabel}. Series stakes elevate the framing — anchor at least the opening bullet to the result's meaning in the series.`
-      : "";
+  let seriesContext = "";
+  if (gameData.seriesState) {
+    const s = gameData.seriesState;
+    const before = s.beforeThisGame.startsWith("Series begins")
+      ? s.beforeThisGame
+      : `it was "${s.beforeThisGame}" entering this game`;
+    seriesContext = `\nSeries context: ${s.round}, Game ${s.gameNumber}. After this game, "${s.afterThisGame}" (${before}). Use these strings as the source of truth for the series record — never invent or estimate it. Series stakes matter, but don't formulaically lead with them.`;
+  } else if (gameData.gameType === "playoff" && gameData.gameLabel) {
+    seriesContext = `\nPlayoff context: this is ${gameData.gameLabel}.`;
+  }
 
   const injuryRule = gameData.inGameInjuries?.length
     ? `\n- Factor inGameInjuries into your analysis. Each entry shows a player whose playing time (minutes for NBA, TOI for NHL) was unusually limited and who had an injury status set around the game date — they likely left the game or played hurt. If a notable player is in the list, one bullet should mention this as a contributing factor.`
@@ -660,21 +728,21 @@ export function buildPrompt(gameData, league) {
     : "";
 
   const winningPlayRule = gameData.gameWinningPlay
-    ? "\n- One bullet MUST describe the gameWinningPlay by player name — the game was within one possession in the clutch, so this play is genuinely decisive."
+    ? "\n- gameWinningPlay shows the decisive late moment — the game was within one possession in the clutch. Reference it by player name in one bullet; placement is up to you, and you can combine it with other context (a performer's night, a defensive sequence, etc.) when natural."
     : gameData.clutchPlays
-      ? "\n- One bullet MUST reference a specific late-game moment from the clutchPlays data."
+      ? "\n- Reference a specific late-game moment from the clutchPlays data when it shaped the result."
       : "";
 
   return `Summarize this ${league} game for a knowledgeable fan using exactly 3 bullet points.
 
-Narrative frame: ${frame}${playoffContext}
+Narrative frame: ${frame}${seriesContext}
 
 Rules:
 - Start each bullet with a dash (-)
 - Do NOT restate the final score as a bullet — the reader already knows it
-- Anchor each bullet to something specific from the game data: a player performance, a quarter swing, a statistical gap, or a late-game play
-- Credit the winning team's primary scorer somewhere in the summary
-- Focus on what made THIS game different using the storyType and topPerformers as your primary anchors${winningPlayRule}${injuryRule}${streakRule}${benchRule}
+- Anchor each bullet to something specific in the game data: a player performance, a period swing, a statistical gap, a late-game play, or context (series, injuries, streaks)
+- Vary the structure — don't follow a fixed template (e.g. series-then-performer-then-final-play). Combine ideas across bullets when they reinforce each other, and skip a category entirely if forcing it would produce filler
+- Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist${winningPlayRule}${injuryRule}${streakRule}${benchRule}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;

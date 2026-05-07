@@ -608,16 +608,20 @@ Both fields are only emitted when the score was within one possession at some po
 
 `getClutchPlays` returns from the plays Redis cache (30-day TTL for final games) — no extra DB round trip.
 
-Clock parsing handles two ESPN formats: `"5:32"` (M:SS, most plays) and `"5.4"` (sub-minute seconds-only, used when under 1 minute remaining). The prompt instructs the LLM to describe the `gameWinningPlay` by player name in one bullet — but only when the field is present.
+Clock parsing handles two ESPN formats: `"5:32"` (M:SS, most plays) and `"5.4"` (sub-minute seconds-only, used when under 1 minute remaining). The prompt asks the LLM to reference the `gameWinningPlay` by player name in one bullet when present, with placement up to the model — earlier wording forced "MUST describe in a bullet" but that combined with other rules pushed every summary into a fixed series→performer→final-play template.
 
 ### Additional context fields
 `buildGameData` enriches the prompt JSON with several optional signals when available:
 
-- **`gameType`** + **`gameLabel`** — playoff series context (e.g. `"West Semifinals - Game 1"`); the prompt elevates the framing when `gameType === "playoff"`.
+- **`gameType`** + **`gameLabel`** — playoff round + game number (e.g. `"East Semifinals - Game 2"`). Used as fallback context when no `seriesState` is computed.
+- **`seriesState`** (NBA + NHL playoffs only) — `{ round, gameNumber, beforeThisGame, afterThisGame }` precomputed series record strings (e.g. `"New York Knicks lead 2-0"`). Computed by `getPlayoffSeries(game)` from the `games` table: counts prior `Final` games this season between the same two teams of `type='playoff'`, then adds this game's result. Skipped for NFL (single-elim) and play-in games (label has no `Game N` marker). The prompt passes the strings as the *source of truth* and explicitly forbids the model from inventing the series record — earlier summaries hallucinated scores like "tied 1-1" when the actual record was 2-0.
 - **`inGameInjuries`** (NBA + NHL) — players who appeared in the box score with unusually low usage (NBA: `minutes < 15`; NHL: `TOI < 8:00`, skaters only), a non-active injury status (`day-to-day`/`out`/`ir`/`questionable`/`doubtful`), `popularity > 50`, and a matching row in `player_status_history` with `changed_at` between `game.date - 1 day` and `game.date + 2 days` (so historical summaries pull the injury status that was current *at the time of the game*, not today's status). Computed by `getInGameInjuries(id, league, gameDate)`. The model is told these players likely left the game or played hurt and should mention them when notable.
 - **`enteringStreaks`** — each team's W/L streak (length ≥ 5) going *into* this game, computed by `getTeamStreaks(game)` directly off the `games` table (last 30 final games for either team, then count consecutive same-result games per team). Skipped entirely when `gameType === "playoff"` — series context dominates and a regular-season streak going into game 4 is noise. Pre-game state, not post-game; the prompt asks the model to reference the streak only if it materially shaped the result, not as default framing.
 - **`benchPointsSwing`** (NBA) — `{ team, diff }` showing the bench-scoring differential. Bench is defined as players outside the top 5 by minutes per team. Surfaced as an explicit precomputed field so the model uses the *swing*, not one team's total. `teamStats.{home,away}` also include `benchPoints`, `threePoint`, and `threePtPct` per side.
 - **`topPerformers`** (NBA) guarantees each team's leading scorer is represented before filling remaining slots by points — keeps the winning team's anchor from being crowded out.
+
+### Anti-template prompt structure
+Earlier prompts had three overlapping `MUST`-style rules — anchor the opening bullet to the series result, credit the winning team's primary scorer somewhere, describe the gameWinningPlay in a bullet — that mapped almost 1:1 onto the three bullets. The model converged on a fixed series-then-performer-then-final-play structure across every summary. The current prompt drops the "credit primary scorer" rule entirely, removes the positional ("opening bullet") language from series framing, softens the gameWinningPlay rule to leave placement open, and explicitly instructs the model to *vary structure across summaries and skip a category if forcing it would produce filler*. Top performers and storyType are described as anchors, not a checklist.
 
 ## Prisma
 Schema/migrations only — runtime uses `pg` directly.
