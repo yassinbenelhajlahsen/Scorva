@@ -19,7 +19,6 @@ const mockGetTeamsByLeague = jest.fn();
 const mockGetSeasons = jest.fn();
 const mockGetHeadToHead = jest.fn();
 const mockGetStatLeaders = jest.fn();
-const mockGetPlayerComparison = jest.fn();
 const mockGetTeamStats = jest.fn();
 const mockWebSearch = jest.fn();
 const mockGetCurrentSeason = jest.fn().mockResolvedValue("2025-26");
