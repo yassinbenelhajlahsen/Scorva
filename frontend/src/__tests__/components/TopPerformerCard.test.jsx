@@ -99,4 +99,33 @@ describe("TopPerformerCard", () => {
     fireEvent.error(img);
     expect(img.src).toContain("defaultPhoto.webp");
   });
+
+  it("renders rating column on the right when ratingGrade is provided", () => {
+    render(
+      <TopPerformerCard
+        player={{
+          id: 1,
+          name: "SGA",
+          position: "G",
+          imageUrl: "/sga.png",
+          stats: { PTS: 38, REB: 5, AST: 7 },
+          ratingGrade: 8.0,
+        }}
+        league="nba"
+      />
+    );
+    expect(screen.getByText("8.0")).toBeInTheDocument();
+    const labels = screen.getAllByText(/^Rating$/i);
+    expect(labels.length).toBeGreaterThan(0);
+  });
+
+  it("does NOT render rating column when ratingGrade is missing", () => {
+    render(
+      <TopPerformerCard
+        player={{ id: 1, name: "SGA", position: "G", stats: { PTS: 38 } }}
+        league="nba"
+      />
+    );
+    expect(screen.queryByText(/^Rating$/i)).not.toBeInTheDocument();
+  });
 });

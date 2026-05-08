@@ -46,6 +46,7 @@ function TopPerformerCard({ player, title = "Top Performer", league, season: sea
   if (!player) return null;
 
   const { name, position, imageUrl, stats } = player;
+  const ratingGrade = player.ratingGrade;
   const slug = playerSlug(player, dupeSlugs);
   const path = buildSeasonUrl(`/${league}/players/${slug}`, season);
   const formattedStats = statFormatMap[league]?.(stats) || [];
@@ -84,28 +85,41 @@ function TopPerformerCard({ player, title = "Top Performer", league, season: sea
         </span>
       </div>
 
-      {/* Right zone — info */}
-      <div className="flex-1 flex flex-col justify-between px-3.5 py-3 min-w-0">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors duration-200 truncate">
-            {name}
+      {/* Right zone — info + optional rating column */}
+      <div className="flex-1 flex items-stretch min-w-0">
+        <div className="flex-1 flex flex-col justify-between pl-3.5 pr-2 py-3 min-w-0">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors duration-200 truncate">
+              {name}
+            </div>
+            <div className="text-xs text-text-tertiary mt-0.5 truncate">{position}</div>
           </div>
-          <div className="text-xs text-text-tertiary mt-0.5 truncate">{position}</div>
+
+          {/* Stat blocks */}
+          {formattedStats.length > 0 && (
+            <div className="flex items-end gap-3.5">
+              {formattedStats.slice(0, 4).map(({ label, value }) => (
+                <div key={label} className="flex flex-col items-start">
+                  <span className="text-sm font-bold text-text-primary tabular-nums leading-none">
+                    {value}
+                  </span>
+                  <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-0.5">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Stat blocks */}
-        {formattedStats.length > 0 && (
-          <div className="flex items-end gap-3.5">
-            {formattedStats.slice(0, 4).map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-start">
-                <span className="text-sm font-bold text-text-primary tabular-nums leading-none">
-                  {value}
-                </span>
-                <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-0.5">
-                  {label}
-                </span>
-              </div>
-            ))}
+        {ratingGrade != null && (
+          <div className="shrink-0 pl-3 pr-3.5 py-3 flex flex-col items-center justify-center border-l border-white/[0.08]">
+            <span className="text-accent font-black text-3xl tabular-nums leading-none">
+              {ratingGrade.toFixed(1)}
+            </span>
+            <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1">
+              Rating
+            </span>
           </div>
         )}
       </div>
