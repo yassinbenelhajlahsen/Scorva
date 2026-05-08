@@ -5,6 +5,7 @@ import upsertPlayer from "../upsert/upsertPlayer.js";
 import upsertStat from "../upsert/upsertStat.js";
 import upsertGame from "../upsert/upsertGame.js";
 import upsertPlays from "../upsert/upsertPlays.js";
+import upsertPlayParticipants from "../upsert/upsertPlayParticipants.js";
 import { espnImage } from "../espn/espnImage.js";
 import { DateTime } from "luxon";
 import logger from "../../logger.js";
@@ -316,6 +317,8 @@ export async function processEvent(client, leagueSlug, event, { force = false } 
       parseInt(homeComp.team.id, 10),
       parseInt(awayComp.team.id, 10),
     );
+
+    await upsertPlayParticipants(client, gameId, statsResp.data, leagueSlug);
 
     try {
       for (const group of playerGroups) {
