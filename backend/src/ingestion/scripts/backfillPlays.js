@@ -112,10 +112,8 @@ async function main() {
      FROM games g
      WHERE g.status ILIKE '%final%'
        AND g.eventid IS NOT NULL
-       AND g.season = '2024-25'
-       AND NOT EXISTS (
-         SELECT 1 FROM plays p WHERE p.gameid = g.id
-       )
+       AND g.season = '2025-26'
+       AND g.league='nba'
      ORDER BY g.date DESC`,
   );
 
@@ -137,6 +135,7 @@ async function main() {
           failed++;
         }
       }),
+      log.info({ done: Math.min(i + BATCH_SIZE, games.length), total: games.length, processed, failed }, "batch complete")
     );
 
     if (i + BATCH_SIZE < games.length) {
