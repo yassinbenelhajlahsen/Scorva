@@ -77,7 +77,7 @@ app.use("/api", gamesRoute);
 app.use("/api", gamesInfoRoute);
 app.use("/api", predictionRoute);
 app.use("/api", playsRoute);
-app.use("/api/:league", topPerformancesRouter);
+app.use("/api", topPerformancesRouter);
 app.use("/api", playersRoute);
 app.use("/api", playerInfoRoute);
 app.use("/api", similarPlayersRoute);

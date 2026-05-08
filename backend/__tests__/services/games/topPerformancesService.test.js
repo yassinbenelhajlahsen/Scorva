@@ -25,7 +25,7 @@ describe("getTopPerformances", () => {
       rows: [
         {
           playerid: 11, gameid: 100, rating: "47.3",
-          name: "Luka Dončić", image_url: "/luka.png", position: "G", slug: "luka-doncic",
+          name: "Luka Dončić", image_url: "/luka.png", position: "G",
           date: new Date("2026-05-05"),
           hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
           points: 32, rebounds: 12, assists: 9,
@@ -56,7 +56,7 @@ describe("getTopPerformances", () => {
         {
           playerid: 11, total_rating: "234.7", games_played: "5", avg_per_game: "46.94",
           best_game_id: 100, best_game_rating: "54.8", best_opp_abbreviation: "LAL",
-          name: "Nikola Jokić", image_url: "/jokic.png", position: "C", slug: "nikola-jokic",
+          name: "Nikola Jokić", image_url: "/jokic.png", position: "C",
           team_id: 3, abbreviation: "DEN", logo_url: "/den.png", primary_color: "#0E2240",
         },
       ],

@@ -23,6 +23,18 @@ export function gradeFromRaw(raw) {
   return Math.max(0, Math.min(10, Number(raw) / GRADE_DIVISOR));
 }
 
+/**
+ * Mutates the given object in place: coerces obj.rating to a Number (or null)
+ * and adds obj.ratingGrade as a 0-10 calibrated value rounded to one decimal.
+ * Safe to call multiple times. No-op for nullish ratings (preserves null).
+ */
+export function attachRatingGrade(obj) {
+  if (obj == null) return;
+  const r = obj.rating != null ? Number(obj.rating) : null;
+  obj.rating = r;
+  obj.ratingGrade = r == null ? null : Math.round(gradeFromRaw(r) * 10) / 10;
+}
+
 export function clampPlayValue(v) {
   if (v > 10) return 10;
   if (v < -10) return -10;

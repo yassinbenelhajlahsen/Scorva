@@ -32,7 +32,6 @@ async function queryGames(league, days, limit) {
   const { rows } = await pool.query(
     `SELECT s.playerid, s.gameid, s.rating,
             p.name, p.image_url, p.position,
-            COALESCE(p.name, '') AS slug,
             g.date,
             g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
             s.points, s.rebounds, s.assists,
@@ -102,7 +101,6 @@ function shapeGameRow(r) {
     player: {
       id: r.playerid,
       name: r.name,
-      slug: r.slug,
       imageUrl: r.image_url,
       position: r.position,
       team: {

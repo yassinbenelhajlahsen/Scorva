@@ -14,7 +14,7 @@ jest.unstable_mockModule(
 const { default: router } = await import("../../src/routes/games/topPerformances.js");
 
 const app = express();
-app.use("/api/:league", router);
+app.use("/api", router);
 
 beforeEach(() => mockGet.mockReset());
 

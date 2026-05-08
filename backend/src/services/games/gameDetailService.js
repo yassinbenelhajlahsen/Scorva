@@ -1,16 +1,9 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { buildGameDetailSQL } from "./gameDetailQueryBuilder.js";
-import { gradeFromRaw } from "./ratingEngine.js";
+import { attachRatingGrade } from "./ratingEngine.js";
 
 const GAME_DETAIL_TTL = 30 * 86400; // 30 days
-
-function shapePlayerRating(player) {
-  const rating = player.rating != null ? Number(player.rating) : null;
-  player.rating = rating;
-  player.ratingGrade = rating == null ? null : Math.round(gradeFromRaw(rating) * 10) / 10;
-  return player;
-}
 
 function shapeRatings(row) {
   if (!row) return row;
@@ -19,7 +12,7 @@ function shapeRatings(row) {
   for (const side of ["homeTeam", "awayTeam"]) {
     const players = detail[side]?.players;
     if (Array.isArray(players)) {
-      for (const p of players) shapePlayerRating(p);
+      for (const p of players) attachRatingGrade(p);
     }
   }
   return row;

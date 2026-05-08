@@ -1,17 +1,13 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
-import { gradeFromRaw } from "../games/ratingEngine.js";
+import { attachRatingGrade } from "../games/ratingEngine.js";
 
 function shapeRatings(row) {
   if (!row) return row;
   const player = row.json_build_object;
   if (!player || !Array.isArray(player.games)) return row;
-  for (const g of player.games) {
-    const rating = g.rating != null ? Number(g.rating) : null;
-    g.rating = rating;
-    g.ratingGrade = rating == null ? null : Math.round(gradeFromRaw(rating) * 10) / 10;
-  }
+  for (const g of player.games) attachRatingGrade(g);
   return row;
 }
 
