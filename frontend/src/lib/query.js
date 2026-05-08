@@ -5,6 +5,7 @@ import { getTeams } from "../api/teams.js";
 import { getNews } from "../api/news.js";
 import { getReports } from "../api/reports.js";
 import { getHeadToHead } from "../api/compare.js";
+import { getTopPerformances } from "../api/topPerformances.js";
 import resolveTeam from "../utils/resolveTeam.js";
 
 export const queryKeys = {
@@ -34,6 +35,8 @@ export const queryKeys = {
   headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
   playoffs:       (league, season) => ["playoffs", league, season],
   duplicatePlayerSlugs: (league) => ["duplicatePlayerSlugs", league],
+  topPerformances: (league, days, type, limit) =>
+    ["top-performances", league, days, type, limit],
 };
 
 export const queryFns = {
@@ -56,6 +59,8 @@ export const queryFns = {
   headToHead: (league, type, ids) => () =>
     getHeadToHead(league, type, ids).then((d) => d.games),
   duplicatePlayerSlugs: (league) => ({ signal }) => getDuplicatePlayerSlugs(league, { signal }),
+  topPerformances: (league, days, type, limit) =>
+    ({ signal }) => getTopPerformances(league, { days, type, limit, signal }),
 };
 
 export function useDebouncedValue(value, delay = 200) {
