@@ -90,7 +90,7 @@ describe("upsertPlays", () => {
       expect(sql).toContain("INSERT INTO plays");
       expect(sql).toContain("ON CONFLICT (gameid, sequence) DO UPDATE");
       expect(params[0]).toBe(42); // gameId
-      expect(params.length).toBe(15); // gameId + 14 unnest arrays
+      expect(params.length).toBe(16); // gameId + 15 unnest arrays
     });
 
     it("passes correct play fields", async () => {
@@ -260,5 +260,54 @@ describe("upsertPlays", () => {
       const [, params] = mockClient.query.mock.calls[0];
       expect(params[10][0]).toBe(AWAY_TEAM_ID);
     });
+  });
+});
+
+describe("upsertPlays — NBA distance capture", () => {
+  test("includes shot_distance_ft computed from coordinates for NBA shooting plays", async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [] }) };
+    const summaryData = {
+      plays: [
+        {
+          id: "1", sequenceNumber: "1", type: { text: "Jump Shot" },
+          text: "Player makes 24-foot three point jumper",
+          period: { number: 1 }, clock: { displayValue: "11:46" },
+          homeScore: 0, awayScore: 3, scoringPlay: true,
+          shootingPlay: true,
+          team: { id: "5" },
+          coordinate: { x: 1, y: 4 },
+        },
+      ],
+    };
+
+    await upsertPlays(client, 1, summaryData, "nba", 100, 200, 5, 8);
+
+    expect(client.query).toHaveBeenCalledTimes(1);
+    const args = client.query.mock.calls[0][1];
+    // The args array shape includes shot_distance_ft as the last sliced array.
+    // Find it by feature: the last array of small ints corresponding to plays.
+    // We expect a single call with shot_distance_ft = [24].
+    const callArgs = args;
+    expect(callArgs[callArgs.length - 1]).toEqual([24]);
+  });
+
+  test("writes null shot_distance_ft for non-shooting plays", async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [] }) };
+    const summaryData = {
+      plays: [
+        {
+          id: "1", sequenceNumber: "1", type: { text: "Defensive Rebound" },
+          text: "Player defensive rebound",
+          period: { number: 1 }, clock: { displayValue: "11:00" },
+          shootingPlay: false,
+          team: { id: "5" },
+          coordinate: { x: 24, y: 8 },
+        },
+      ],
+    };
+
+    await upsertPlays(client, 1, summaryData, "nba", 100, 200, 5, 8);
+    const callArgs = client.query.mock.calls[0][1];
+    expect(callArgs[callArgs.length - 1]).toEqual([null]);
   });
 });

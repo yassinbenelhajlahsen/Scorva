@@ -1,3 +1,5 @@
+import { extractShotDistance } from "../mappings/nbaPlayDistance.js";
+
 /**
  * Extracts play-by-play data from an ESPN summary response and bulk-upserts
  * into the plays table.
@@ -18,7 +20,7 @@ export default async function upsertPlays(
 ) {
   const rawRows = league === "nfl"
     ? extractNflPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnId)
-    : extractPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnId);
+    : extractPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnId, league);
 
   // Deduplicate by sequence — ESPN occasionally emits duplicate sequenceNumbers;
   // keep the last occurrence to match ESPN's own ordering.
@@ -34,7 +36,8 @@ export default async function upsertPlays(
        gameid, espn_play_id, sequence, period, clock,
        description, short_text, home_score, away_score,
        scoring_play, team_id, play_type,
-       drive_number, drive_description, drive_result
+       drive_number, drive_description, drive_result,
+       shot_distance_ft
      )
      SELECT
        $1,
@@ -51,7 +54,8 @@ export default async function upsertPlays(
        unnest($12::text[]),
        unnest($13::int[]),
        unnest($14::text[]),
-       unnest($15::text[])
+       unnest($15::text[]),
+       unnest($16::int[])
      ON CONFLICT (gameid, sequence) DO UPDATE SET
        espn_play_id      = EXCLUDED.espn_play_id,
        period            = EXCLUDED.period,
@@ -65,7 +69,8 @@ export default async function upsertPlays(
        play_type         = EXCLUDED.play_type,
        drive_number      = EXCLUDED.drive_number,
        drive_description = EXCLUDED.drive_description,
-       drive_result      = EXCLUDED.drive_result`,
+       drive_result      = EXCLUDED.drive_result,
+       shot_distance_ft  = EXCLUDED.shot_distance_ft`,
     [
       gameId,
       rows.map((r) => r.espn_play_id),
@@ -82,6 +87,7 @@ export default async function upsertPlays(
       rows.map((r) => r.drive_number),
       rows.map((r) => r.drive_description),
       rows.map((r) => r.drive_result),
+      rows.map((r) => r.shot_distance_ft),
     ],
   );
 }
@@ -94,7 +100,7 @@ function resolveTeamId(espnTeamId, homeEspnId, awayEspnId, homeTeamId, awayTeamI
   return null;
 }
 
-function extractPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnId) {
+function extractPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnId, league) {
   const plays = summaryData.plays;
   if (!Array.isArray(plays) || plays.length === 0) return [];
 
@@ -113,6 +119,7 @@ function extractPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnI
     drive_number:      null,
     drive_description: null,
     drive_result:      null,
+    shot_distance_ft:  league === "nba" ? extractShotDistance(play) : null,
   })).filter((r) => r.sequence > 0 && r.description);
 }
 
@@ -151,6 +158,7 @@ function extractNflPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEs
         drive_number:      driveNumber,
         drive_description: drive.description ?? null,
         drive_result:      drive.result ?? null,
+        shot_distance_ft:  null,
       });
     });
   });
