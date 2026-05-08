@@ -1,8 +1,29 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { buildGameDetailSQL } from "./gameDetailQueryBuilder.js";
+import { gradeFromRaw } from "./ratingEngine.js";
 
 const GAME_DETAIL_TTL = 30 * 86400; // 30 days
+
+function shapePlayerRating(player) {
+  const rating = player.rating != null ? Number(player.rating) : null;
+  player.rating = rating;
+  player.ratingGrade = rating == null ? null : Math.round(gradeFromRaw(rating) * 10) / 10;
+  return player;
+}
+
+function shapeRatings(row) {
+  if (!row) return row;
+  const detail = row.json_build_object;
+  if (!detail) return row;
+  for (const side of ["homeTeam", "awayTeam"]) {
+    const players = detail[side]?.players;
+    if (Array.isArray(players)) {
+      for (const p of players) shapePlayerRating(p);
+    }
+  }
+  return row;
+}
 
 async function getGameDetail(gameId, league) {
   return cached(
@@ -10,7 +31,7 @@ async function getGameDetail(gameId, league) {
     GAME_DETAIL_TTL,
     async () => {
       const result = await pool.query(buildGameDetailSQL(league), [gameId, league]);
-      return result.rows[0] ?? null;
+      return shapeRatings(result.rows[0] ?? null);
     },
     { cacheIf: (data) => data?.json_build_object?.game?.status?.includes("Final") }
   );

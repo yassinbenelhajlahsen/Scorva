@@ -52,6 +52,7 @@ export function buildGameDetailSQL(league) {
         'draftInfo', p.draftinfo,
         'imageUrl', p.image_url,
         'espnId', p.espn_playerid,
+        'rating', s.rating,
         'stats', json_build_object(${statCols}
         )
       )), '[]'::json)

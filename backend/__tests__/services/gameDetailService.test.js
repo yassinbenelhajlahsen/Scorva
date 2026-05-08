@@ -112,5 +112,37 @@ describe("gameDetailService", () => {
       const [, , , opts] = mockCached.mock.calls[0];
       expect(opts.cacheIf(null)).toBeFalsy();
     });
+
+    it("shapes rating + ratingGrade on each player", async () => {
+      const row = {
+        json_build_object: {
+          game: { status: "Final", league },
+          homeTeam: {
+            info: { id: 1 },
+            players: [
+              { id: 11, name: "Player A", rating: 47.3, stats: { PTS: 32 } },
+              { id: 12, name: "Player B", rating: null, stats: { PTS: 0 } },
+            ],
+          },
+          awayTeam: {
+            info: { id: 2 },
+            players: [
+              { id: 21, name: "Player C", rating: "27.5", stats: { PTS: 18 } },
+            ],
+          },
+        },
+      };
+      mockPool.query.mockResolvedValueOnce({ rows: [row] });
+
+      const result = await fn()(1);
+      const home = result.json_build_object.homeTeam.players;
+      const away = result.json_build_object.awayTeam.players;
+      expect(home[0].rating).toBe(47.3);
+      expect(home[0].ratingGrade).toBeCloseTo(8.6, 1);
+      expect(home[1].rating).toBeNull();
+      expect(home[1].ratingGrade).toBeNull();
+      expect(away[0].rating).toBe(27.5);
+      expect(away[0].ratingGrade).toBeCloseTo(5.0, 1);
+    });
   });
 });
