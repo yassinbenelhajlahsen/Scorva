@@ -333,6 +333,7 @@ export default function PlayerPage() {
                     playerName={name}
                     gameType={game.type}
                     gameLabel={game.game_label}
+                    ratingGrade={game.ratingGrade}
                   />
                 </m.div>
               );

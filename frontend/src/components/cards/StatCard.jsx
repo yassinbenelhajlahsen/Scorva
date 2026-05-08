@@ -17,6 +17,7 @@ export default function StatCard({
   playerName,
   gameType = "regular",
   gameLabel,
+  ratingGrade,
 }) {
   const isFinal = status?.includes("Final");
   const inProgress =
@@ -53,6 +54,15 @@ export default function StatCard({
       }}
     >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:z-10 cursor-pointer max-w-sm mx-auto overflow-hidden">
+
+        {ratingGrade != null && (
+          <div className="absolute top-3 left-3 flex flex-col items-start">
+            <span className="text-[9px] uppercase tracking-widest text-text-tertiary font-medium">Rating</span>
+            <span className="text-accent font-bold text-2xl tabular-nums leading-none">
+              {ratingGrade.toFixed(1)}
+            </span>
+          </div>
+        )}
 
         {/* Game info */}
         {(opponent || date) && (

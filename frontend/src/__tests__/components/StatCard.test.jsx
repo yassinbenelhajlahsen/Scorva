@@ -113,4 +113,34 @@ describe("StatCard — with stats", () => {
     // "%" is a sibling text node; the label "FG%" is shown in the <span> above
     expect(screen.getByText("FG%")).toBeInTheDocument();
   });
+
+  it("renders rating chip top-left when ratingGrade is provided", () => {
+    render(
+      <StatCard
+        stats={mockStats}
+        opponent="OKC"
+        date="May 5"
+        ratingGrade={8.4}
+        gameId={1}
+        league="nba"
+        playerName="Test Player"
+      />
+    );
+    expect(screen.getByText(/^Rating$/i)).toBeInTheDocument();
+    expect(screen.getByText("8.4")).toBeInTheDocument();
+  });
+
+  it("does NOT render rating chip when ratingGrade is null/undefined", () => {
+    render(
+      <StatCard
+        stats={mockStats}
+        opponent="OKC"
+        date="May 5"
+        gameId={1}
+        league="nba"
+        playerName="Test Player"
+      />
+    );
+    expect(screen.queryByText(/^Rating$/i)).not.toBeInTheDocument();
+  });
 });
