@@ -13,6 +13,8 @@
  * recomputeGame(client, gameId) is in this same module — see Task 8.
  */
 
+import { getWinProbability } from "./winProbabilityService.js";
+
 const WPA_WEIGHT = 30;
 const GRADE_DIVISOR = 5.5;
 
@@ -76,8 +78,6 @@ export function baseValue(role, ctx = {}) {
       return 0;
   }
 }
-
-import { getWinProbability } from "./winProbabilityService.js";
 
 /**
  * Idempotently recompute play_ratings + stats.rating for a single game.

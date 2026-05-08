@@ -382,10 +382,18 @@ export async function processEvent(client, leagueSlug, event, { force = false } 
 
       // NBA only — recompute per-player rating from the freshly written plays + participants.
       if (leagueSlug === "nba") {
+        await client.query("SAVEPOINT rating_calc");
         try {
           await recomputeGame(client, gameId);
+          await client.query("RELEASE SAVEPOINT rating_calc");
         } catch (err) {
-          log.warn({ err, gameId }, "rating recompute failed; continuing");
+          log.warn({ err, gameId }, "rating recompute failed; rolled back to savepoint, continuing");
+          try {
+            await client.query("ROLLBACK TO SAVEPOINT rating_calc");
+            await client.query("RELEASE SAVEPOINT rating_calc");
+          } catch (rollbackErr) {
+            log.error({ rollbackErr, gameId }, "failed to release rating savepoint");
+          }
         }
       }
 
