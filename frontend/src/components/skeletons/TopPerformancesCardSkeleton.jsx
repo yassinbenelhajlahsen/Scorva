@@ -4,7 +4,7 @@ export default function TopPerformancesCardSkeleton() {
   return (
     <div
       data-testid="top-performances-skeleton"
-      className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 max-w-[600px] mx-auto"
+      className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 max-w-[1200px] mx-auto my-8"
     >
       <div className="flex items-center justify-between mb-4">
         <Skeleton className="h-3 w-32" />

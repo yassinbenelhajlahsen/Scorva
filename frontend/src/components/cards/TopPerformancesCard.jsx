@@ -38,16 +38,19 @@ export default function TopPerformancesCard({ league = "nba" }) {
           </button>
         ))}
       </div>
-      <HeroRow item={hero} tab={tab} league={league} />
       <ul className="flex flex-col gap-1">
+        <li>
+          <HeroRow item={hero} tab={tab} league={league} />
+        </li>
         {rest.map((it, idx) => (
-          <CompactRow
-            key={(it.player?.id || idx) + ":" + (it.game?.id || "")}
-            item={it}
-            rank={idx + 2}
-            tab={tab}
-            league={league}
-          />
+          <li key={(it.player?.id || idx) + ":" + (it.game?.id || "")}>
+            <CompactRow
+              item={it}
+              rank={idx + 2}
+              tab={tab}
+              league={league}
+            />
+          </li>
         ))}
       </ul>
     </div>
@@ -101,24 +104,22 @@ function CompactRow({ item, rank, tab, league }) {
     ? `${item.stats.points}/${item.stats.rebounds}/${item.stats.assists}`
     : `${item.gamesPlayed} GP`;
   return (
-    <li>
-      <Link to={to} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-overlay transition-all">
-        <span className="text-text-tertiary font-semibold text-xs w-4 tabular-nums">{rank}</span>
-        <img
-          loading="lazy"
-          src={item.player.imageUrl || "/defaultPhoto.webp"}
-          alt=""
-          className="w-7 h-7 object-cover rounded-full shrink-0"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = "/defaultPhoto.webp";
-          }}
-        />
-        <span className="text-sm font-medium text-text-primary flex-1 truncate">{item.player.name}</span>
-        <span className="text-text-tertiary text-[11px] tabular-nums">{meta}</span>
-        <span className="text-accent font-bold text-sm tabular-nums w-12 text-right">{value}</span>
-      </Link>
-    </li>
+    <Link to={to} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-overlay transition-all">
+      <span className="text-text-tertiary font-semibold text-xs w-4 tabular-nums">{rank}</span>
+      <img
+        loading="lazy"
+        src={item.player.imageUrl || "/defaultPhoto.webp"}
+        alt=""
+        className="w-7 h-7 object-cover rounded-full shrink-0"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = "/defaultPhoto.webp";
+        }}
+      />
+      <span className="text-sm font-medium text-text-primary flex-1 truncate">{item.player.name}</span>
+      <span className="text-text-tertiary text-[11px] tabular-nums">{meta}</span>
+      <span className="text-accent font-bold text-sm tabular-nums w-12 text-right">{value}</span>
+    </Link>
   );
 }
 

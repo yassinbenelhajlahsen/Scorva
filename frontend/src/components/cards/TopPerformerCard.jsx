@@ -129,6 +129,7 @@ function TopPerformerCard({ player, title = "Top Performer", league, season: sea
 
 export default memo(TopPerformerCard, (prev, next) => {
   return prev.player?.name === next.player?.name &&
+    prev.player?.ratingGrade === next.player?.ratingGrade &&
     prev.title === next.title &&
     prev.league === next.league;
 });
