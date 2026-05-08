@@ -1,6 +1,19 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
+import { gradeFromRaw } from "../games/ratingEngine.js";
+
+function shapeRatings(row) {
+  if (!row) return row;
+  const player = row.json_build_object;
+  if (!player || !Array.isArray(player.games)) return row;
+  for (const g of player.games) {
+    const rating = g.rating != null ? Number(g.rating) : null;
+    g.rating = rating;
+    g.ratingGrade = rating == null ? null : Math.round(gradeFromRaw(rating) * 10) / 10;
+  }
+  return row;
+}
 
 export async function getNbaPlayer(playerId, season) {
   const currentSeason = await getCurrentSeason("nba");
@@ -72,6 +85,7 @@ export async function getNbaPlayer(playerId, season) {
               s2.turnovers,
               s2.plusminus,
               s2.minutes,
+              s2.rating,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.shortname ELSE ht.shortname END AS opponent,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN true ELSE false END AS isHome,
@@ -130,7 +144,7 @@ export async function getNbaPlayer(playerId, season) {
     `,
       ["nba", playerId, season, currentSeason]
     );
-    return result.rows[0] ?? null;
+    return shapeRatings(result.rows[0] ?? null);
   });
 }
 
@@ -184,6 +198,7 @@ export async function getNflPlayer(playerId, season) {
               s2.sacks  AS "SACK",
               s2.td     AS "TD",
               s2.interceptions AS "INT",
+              s2.rating,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.shortname ELSE ht.shortname END AS opponent,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN true ELSE false END AS isHome,
@@ -242,7 +257,7 @@ export async function getNflPlayer(playerId, season) {
     `,
       ["nfl", playerId, season, currentSeason]
     );
-    return result.rows[0] ?? null;
+    return shapeRatings(result.rows[0] ?? null);
   });
 }
 
@@ -307,6 +322,7 @@ export async function getNhlPlayer(playerId, season) {
               s2.tk      AS "TK",
               s2.gv      AS "GV",
               s2.plusminus AS "plusminus",
+              s2.rating,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.shortname ELSE ht.shortname END AS opponent,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN at.logo_url ELSE ht.logo_url END AS opponentLogo,
               CASE WHEN g.hometeamid = COALESCE(s2.teamid, p.teamid) THEN true ELSE false END AS isHome,
@@ -365,6 +381,6 @@ export async function getNhlPlayer(playerId, season) {
     `,
       ["nhl", playerId, season, currentSeason]
     );
-    return result.rows[0] ?? null;
+    return shapeRatings(result.rows[0] ?? null);
   });
 }
