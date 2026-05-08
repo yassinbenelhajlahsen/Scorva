@@ -11,13 +11,13 @@
 **Spec:** [`docs/superpowers/specs/2026-05-08-player-rating-system-design.md`](../specs/2026-05-08-player-rating-system-design.md)
 
 **Phase boundaries (read top-down):**
-- A. Foundation (Task 1)
-- B. Plays enrichment (Tasks 2–6)
-- C. Rating engine (Tasks 7–9)
-- D. Backfill (Task 10)
-- E. Backend API (Tasks 11–15)
-- F. Frontend (Tasks 16–20)
-- G. Tuning + docs (Tasks 21–22)
+- Task 1. Schema migration
+- Task 2. NBA parsing + plays + participants + pipeline wiring
+- Task 3. Rating engine + recompute + hook
+- Task 4. Backfill
+- Task 5. Backend API surface
+- Task 6. Frontend
+- Task 7. Verify + tune + docs
 
 ---
 
@@ -149,7 +149,11 @@ stats.rating, plays.shot_distance_ft, play_participants, play_ratings."
 
 ---
 
-## Task 2: NBA shot distance extractor (pure function, TDD)
+## Task 2: NBA parsing + plays + participants + pipeline wiring
+
+This task bundles the NBA-specific play ingestion changes: pure-function distance and role extractors (TDD), the `shot_distance_ft` write into `upsertPlays`, the new `upsertPlayParticipants` writer, and wiring both into `eventProcessor` while dropping the obsolete non-scoring play cleanup.
+
+### 2A: NBA shot distance extractor (pure function, TDD)
 
 **Files:**
 - Create: `backend/src/ingestion/mappings/nbaPlayDistance.js`
@@ -272,7 +276,7 @@ git commit -m "feat(rating): add NBA shot distance extractor"
 
 ---
 
-## Task 3: NBA participant role inference (pure function, TDD)
+### 2B: NBA participant role inference (pure function, TDD)
 
 **Files:**
 - Create: `backend/src/ingestion/mappings/nbaPlayRoles.js`
@@ -592,7 +596,7 @@ git commit -m "feat(rating): add NBA participant role inference"
 
 ---
 
-## Task 4: Wire `shot_distance_ft` into upsertPlays
+### 2C: Wire `shot_distance_ft` into upsertPlays
 
 **Files:**
 - Modify: `backend/src/ingestion/upsert/upsertPlays.js` — add `shot_distance_ft` to extracted rows + INSERT statement (NBA only).
@@ -787,7 +791,7 @@ git commit -m "feat(rating): capture NBA shot distance into plays.shot_distance_
 
 ---
 
-## Task 5: Per-game `upsertPlayParticipants` module
+### 2D: Per-game `upsertPlayParticipants` module
 
 **Files:**
 - Create: `backend/src/ingestion/upsert/upsertPlayParticipants.js`
@@ -1016,7 +1020,7 @@ git commit -m "feat(rating): add upsertPlayParticipants — resolve ESPN partici
 
 ---
 
-## Task 6: Hook participants capture into eventProcessor + drop non-scoring cleanup
+### 2E: Hook participants capture into eventProcessor + drop non-scoring cleanup
 
 **Files:**
 - Modify: `backend/src/ingestion/pipeline/eventProcessor.js` — call `upsertPlayParticipants` after `upsertPlays`
@@ -1084,7 +1088,11 @@ git commit -m "feat(rating): wire upsertPlayParticipants into ingestion; drop no
 
 ---
 
-## Task 7: Rating engine — pure-function helpers (TDD)
+## Task 3: Rating engine + recompute + hook
+
+This task bundles the pure-function rating helpers (TDD), the idempotent `recomputeGame` implementation with mocked-pg integration tests, and the wiring into `eventProcessor` after participants + stats are written.
+
+### 3A: Rating engine — pure-function helpers (TDD)
 
 **Files:**
 - Create: `backend/src/services/games/ratingEngine.js` (helpers + `gradeFromRaw` only — `recomputeGame` lands in Task 8)
@@ -1286,7 +1294,7 @@ git commit -m "feat(rating): add rating engine pure-function helpers"
 
 ---
 
-## Task 8: Rating engine — `recomputeGame`
+### 3B: Rating engine — `recomputeGame`
 
 **Files:**
 - Modify: `backend/src/services/games/ratingEngine.js` — add `recomputeGame(client, gameId)`
@@ -1601,7 +1609,7 @@ git commit -m "feat(rating): add ratingEngine.recomputeGame — idempotent per-g
 
 ---
 
-## Task 9: Hook recomputeGame into eventProcessor
+### 3C: Hook recomputeGame into eventProcessor
 
 **Files:**
 - Modify: `backend/src/ingestion/pipeline/eventProcessor.js` — call `recomputeGame` after participants
@@ -1643,7 +1651,7 @@ git commit -m "feat(rating): hook recomputeGame into eventProcessor (NBA only)"
 
 ---
 
-## Task 10: Backfill script for current NBA season
+## Task 4: Backfill script for current NBA season
 
 **Files:**
 - Create: `backend/src/ingestion/scripts/backfillPlayerRatings.js`
@@ -1774,7 +1782,11 @@ git commit -m "feat(rating): add one-shot backfill script for current NBA season
 
 ---
 
-## Task 11: `topPerformancesService` — both query types
+## Task 5: Backend API surface
+
+This task bundles the `topPerformancesService` (both query types), its controller + route + mount, and the inclusion of `rating` + `ratingGrade` on game-detail and player-detail responses.
+
+### 5A: `topPerformancesService` — both query types
 
 **Files:**
 - Create: `backend/src/services/games/topPerformancesService.js`
@@ -2062,7 +2074,7 @@ git commit -m "feat(rating): add topPerformancesService — Best Games + Last 7 
 
 ---
 
-## Task 12: Top Performances controller + route + mount
+### 5B: Top Performances controller + route + mount
 
 **Files:**
 - Create: `backend/src/controllers/games/topPerformancesController.js`
@@ -2184,7 +2196,7 @@ git commit -m "feat(rating): add /:league/top-performances endpoint"
 
 ---
 
-## Task 13: Add `rating` + `ratingGrade` to game-detail player stats
+### 5C: Add `rating` + `ratingGrade` to game-detail player stats
 
 **Files:**
 - Modify: `backend/src/services/games/gameDetailService.js` — include `s.rating` in the SELECT and shape per-player stats with `rating` and `ratingGrade`
@@ -2229,7 +2241,7 @@ git commit -m "feat(rating): include rating + ratingGrade in game detail player 
 
 ---
 
-## Task 14: Add `rating` to player-detail game log
+### 5D: Add `rating` to player-detail game log
 
 **Files:**
 - Modify: `backend/src/services/players/playerDetailService.js` — include `s.rating` in the game-log SELECT and shape rows with `rating` + `ratingGrade`
@@ -2248,7 +2260,11 @@ git commit -m "feat(rating): include rating + ratingGrade in player game log"
 
 ---
 
-## Task 15: Frontend — `StatCard` chip (S-B placement)
+## Task 6: Frontend
+
+This task bundles every frontend change: the `StatCard` and `TopPerformerCard` rating chips, the Top Performances API client + hook, the new `TopPerformancesCard` component (H-C layout) with skeleton, and mounting it on the Homepage.
+
+### 6A: Frontend — `StatCard` chip (S-B placement)
 
 **Files:**
 - Modify: `frontend/src/components/cards/StatCard.jsx`
@@ -2349,7 +2365,7 @@ git commit -m "feat(rating): add rating chip top-left on StatCard (S-B variant)"
 
 ---
 
-## Task 16: Frontend — `TopPerformerCard` chip (T-D placement)
+### 6B: Frontend — `TopPerformerCard` chip (T-D placement)
 
 **Files:**
 - Modify: `frontend/src/components/cards/TopPerformerCard.jsx`
@@ -2441,7 +2457,7 @@ git commit -m "feat(rating): add rating column on TopPerformerCard right side (T
 
 ---
 
-## Task 17: Frontend — Top Performances API client + hook
+### 6C: Frontend — Top Performances API client + hook
 
 **Files:**
 - Create: `frontend/src/api/topPerformances.js`
@@ -2512,7 +2528,7 @@ git commit -m "feat(rating): add Top Performances API client and useTopPerforman
 
 ---
 
-## Task 18: Frontend — `TopPerformancesCard` component (H-C layout)
+### 6D: Frontend — `TopPerformancesCard` component (H-C layout)
 
 **Files:**
 - Create: `frontend/src/components/cards/TopPerformancesCard.jsx`
@@ -2755,7 +2771,7 @@ git commit -m "feat(rating): add TopPerformancesCard component (H-C layout) with
 
 ---
 
-## Task 19: Mount `TopPerformancesCard` on Homepage
+### 6E: Mount `TopPerformancesCard` on Homepage
 
 **Files:**
 - Modify: `frontend/src/pages/Homepage.jsx`
@@ -2797,7 +2813,11 @@ git commit -m "feat(rating): mount TopPerformancesCard on Homepage"
 
 ---
 
-## Task 20: Verify and lint
+## Task 7: Verify + tune + docs
+
+This task bundles end-of-rollout verification (lint + tests + manual smoke), post-backfill calibration tuning, and the documentation updates that publish the new feature.
+
+### 7A: Verify and lint
 
 **Files:** none (verification only)
 
@@ -2839,7 +2859,7 @@ git commit -m "chore(rating): verify pass"
 
 ---
 
-## Task 21: Calibration tuning
+### 7B: Calibration tuning
 
 **Files:** none initially (data analysis); `backend/src/services/games/ratingEngine.js` if tuning is needed.
 
@@ -2888,7 +2908,7 @@ git commit -m "tune(rating): adjust grade divisor based on backfill distribution
 
 ---
 
-## Task 22: Update docs
+### 7C: Update docs
 
 **Files:**
 - Modify: `docs/ARCHITECTURE.md` — add a "Player Rating System" section
@@ -2945,30 +2965,30 @@ git commit -m "docs: document player rating system"
 
 **Spec coverage:** every section of the spec maps to a task —
 - Schema → Task 1
-- Distance extractor → Task 2
-- Role inference → Task 3
-- Plays-side ingestion changes (distance) → Task 4
-- play_participants writer → Task 5
-- Pipeline wiring + cleanup drop → Task 6
-- Engine helpers → Task 7
-- Engine recompute → Task 8
-- Pipeline recompute trigger → Task 9
-- Backfill script → Task 10
-- topPerformancesService (both types) → Task 11
-- Controller + route + mount → Task 12
-- rating in game-detail → Task 13
-- rating in player game log → Task 14
-- StatCard chip → Task 15
-- TopPerformerCard chip → Task 16
-- API client + hook → Task 17
-- TopPerformancesCard component → Task 18
-- Mount on Homepage → Task 19
-- Verify/lint → Task 20
-- Calibration tuning → Task 21
-- Doc updates → Task 22
+- Distance extractor → Task 2A
+- Role inference → Task 2B
+- Plays-side ingestion changes (distance) → Task 2C
+- play_participants writer → Task 2D
+- Pipeline wiring + cleanup drop → Task 2E
+- Engine helpers → Task 3A
+- Engine recompute → Task 3B
+- Pipeline recompute trigger → Task 3C
+- Backfill script → Task 4
+- topPerformancesService (both types) → Task 5A
+- Controller + route + mount → Task 5B
+- rating in game-detail → Task 5C
+- rating in player game log → Task 5D
+- StatCard chip → Task 6A
+- TopPerformerCard chip → Task 6B
+- API client + hook → Task 6C
+- TopPerformancesCard component → Task 6D
+- Mount on Homepage → Task 6E
+- Verify/lint → Task 7A
+- Calibration tuning → Task 7B
+- Doc updates → Task 7C
 
 **Type/name consistency:** `gradeFromRaw`, `recomputeGame`, `inferParticipantRoles`, `extractShotDistance`, `getTopPerformances`, `useTopPerformances`, `TopPerformancesCard` — used identically across all tasks.
 
 **No placeholders:** code blocks present in every implementation step. Test code present where TDD applies. No "TBD" / "implement later" / "similar to Task N" patterns.
 
-**Open question deferred to runtime:** Task 21 (calibration) is intentionally a tuning task — it has no fixed correct answer until real data exists. The plan tells the engineer how to inspect distributions and decide.
+**Open question deferred to runtime:** Task 7B (calibration) is intentionally a tuning task — it has no fixed correct answer until real data exists. The plan tells the engineer how to inspect distributions and decide.

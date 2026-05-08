@@ -51,3 +51,9 @@ IMPORTANT: All packages use ESM (`"type": "module"`). Always use `.js` extension
 | [`docs/conventions.md`](docs/conventions.md) | middleware order, validation rules, new endpoint checklist |
 | [`docs/testing.md`](docs/testing.md) | writing frontend Vitest tests |
 | [`backend/__tests__/README.md`](backend/__tests__/README.md) | writing backend Jest/Supertest tests |
+
+## Superpowers task execution
+- Use subagent review for tasks that touch >100 LOC, schema, or external APIs
+- Skip review for: pure wiring (imports, mounts, route registration), 
+  doc updates, single-file config changes, and tasks marked "trivial" in the plan
+- Annotate tasks in plans with [REVIEW] or [TRIVIAL] to signal which mode applies
