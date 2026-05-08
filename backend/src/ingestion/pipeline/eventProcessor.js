@@ -6,6 +6,7 @@ import upsertStat from "../upsert/upsertStat.js";
 import upsertGame from "../upsert/upsertGame.js";
 import upsertPlays from "../upsert/upsertPlays.js";
 import upsertPlayParticipants from "../upsert/upsertPlayParticipants.js";
+import { recomputeGame } from "../../services/games/ratingEngine.js";
 import { espnImage } from "../espn/espnImage.js";
 import { DateTime } from "luxon";
 import logger from "../../logger.js";
@@ -378,6 +379,16 @@ export async function processEvent(client, leagueSlug, event, { force = false } 
           }
         }
       }
+
+      // NBA only — recompute per-player rating from the freshly written plays + participants.
+      if (leagueSlug === "nba") {
+        try {
+          await recomputeGame(client, gameId);
+        } catch (err) {
+          log.warn({ err, gameId }, "rating recompute failed; continuing");
+        }
+      }
+
       await client.query("COMMIT");
       return gameId;
     } catch (err) {
