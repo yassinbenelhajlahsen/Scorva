@@ -91,7 +91,7 @@ export default function GamePage() {
         }, 300);
       }, 2000);
     });
-  }, [gameData, location.hash, activeTab]);
+  }, [gameData, location.hash, location.search, activeTab]);
 
   const gameObj = gameData?.json_build_object;
   const homeTeamData = gameObj?.homeTeam;
