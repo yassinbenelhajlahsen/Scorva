@@ -29,12 +29,14 @@ export default function PlaysList({ league = "nba", window: win, sort, position 
         const to = `/${league}/games/${it.game.id}?tab=plays#play-${it.play.id}`;
         const datePart = showDate && it.game.date ? ` · ${formatDate(it.game.date)}` : "";
         const opp = `${it.game.isHome ? "vs" : "@"} ${it.game.opponent.abbreviation}`;
-        const desc = truncate(it.play.description, 64);
+        const time = formatGameClock(it.play.period, it.play.clock);
+        const action = simplifyDesc(it.play.description, it.player.name);
+        const meta = [time, action, opp].filter(Boolean).join(" · ") + datePart;
         const props = {
           to,
           imageUrl: it.player.imageUrl,
           name: it.player.name,
-          meta: `${desc} · ${opp}${datePart}`,
+          meta,
           value: it.play.weightedValue.toFixed(1),
           onMouseEnter: () => {
             if (window.matchMedia?.("(hover: hover)").matches) {
@@ -58,9 +60,30 @@ export default function PlaysList({ league = "nba", window: win, sort, position 
   );
 }
 
-function truncate(s, n) {
-  if (!s) return "";
-  return s.length <= n ? s : s.slice(0, n - 1) + "…";
+function simplifyDesc(desc, playerName) {
+  if (!desc) return "";
+  let s = desc.trim();
+  if (playerName) {
+    const lower = s.toLowerCase();
+    const pn = playerName.toLowerCase();
+    if (lower.startsWith(pn + " ")) s = s.slice(playerName.length + 1);
+  }
+  s = s.replace(/\s*\([^)]*\bassists?\)\s*/gi, "");
+  s = s.replace(/\s*\.\s*Assisted by [^.]+\.?$/i, "");
+  s = s.replace(/(\d+)-foot\s+/g, "$1ft ");
+  s = s.replace(/\bthree point jumper\b/gi, "3PT");
+  s = s.replace(/\bthree point(?:er)?\b/gi, "3PT");
+  s = s.replace(/\btwo point jumper\b/gi, "2PT");
+  s = s.replace(/\bjump shot\b/gi, "jumper");
+  s = s.replace(/\bfree throw (\d+) of (\d+)\b/gi, "FT $1/$2");
+  s = s.replace(/\.\s*$/, "").trim();
+  return s.length > 36 ? s.slice(0, 35) + "…" : s;
+}
+
+function formatGameClock(period, clock) {
+  if (!period) return "";
+  const label = period <= 4 ? `Q${period}` : (period === 5 ? "OT" : `${period - 4}OT`);
+  return clock ? `${label} ${clock}` : label;
 }
 
 function formatDate(d) {
