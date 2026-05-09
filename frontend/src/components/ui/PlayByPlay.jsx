@@ -136,7 +136,7 @@ function ParticipantChip({ participant, league, gameId, dupeSlugs }) {
 }
 
 // ─── Single play row ──────────────────────────────────────────────────────────
-function PlayRow({ play, isNew, highlightScoring, league, gameId, dupeSlugs }) {
+function PlayRow({ play, isNew, highlightScoring, scoredSide, league, gameId, dupeSlugs }) {
   const isScoring = highlightScoring && play.scoring_play;
   const participants = Array.isArray(play.participants) ? play.participants : [];
   return (
@@ -202,10 +202,17 @@ function PlayRow({ play, isNew, highlightScoring, league, gameId, dupeSlugs }) {
         )}
       </div>
 
-      {/* Running score */}
+      {/* Running score — only the side that incremented turns green. Decoupled
+          from `isScoring` so the highlight still shows under the Scoring filter. */}
       {play.home_score != null && play.away_score != null && (
-        <span className={`font-mono text-xs shrink-0 tabular-nums pt-0.5 ${isScoring ? "text-win font-bold" : "text-text-primary"}`}>
-          {play.home_score}–{play.away_score}
+        <span className="font-mono text-xs shrink-0 tabular-nums pt-0.5">
+          <span className={play.scoring_play && scoredSide === "home" ? "text-win font-bold" : "text-text-primary"}>
+            {play.home_score}
+          </span>
+          <span className="text-text-primary">–</span>
+          <span className={play.scoring_play && scoredSide === "away" ? "text-win font-bold" : "text-text-primary"}>
+            {play.away_score}
+          </span>
         </span>
       )}
     </m.div>
@@ -213,7 +220,7 @@ function PlayRow({ play, isNew, highlightScoring, league, gameId, dupeSlugs }) {
 }
 
 // ─── NFL drive group ──────────────────────────────────────────────────────────
-function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, league, gameId, dupeSlugs }) {
+function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, scoredSideMap, league, gameId, dupeSlugs }) {
   const [open, setOpen] = useState(false);
   const scoringPlay = plays.some((p) => p.scoring_play);
 
@@ -253,6 +260,7 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
                 play={play}
                 isNew={newPlayIds.has(play.espn_play_id)}
                 highlightScoring={highlightScoring}
+                scoredSide={scoredSideMap?.get(play.id ?? play.espn_play_id ?? play.sequence) ?? null}
                 league={league}
                 gameId={gameId}
                 dupeSlugs={dupeSlugs}
@@ -291,7 +299,7 @@ function comparePlaysNewestFirst(a, b, league) {
 }
 
 // ─── Play list with optional period grouping ─────────────────────────────────
-function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, league, gameId, dupeSlugs }) {
+function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, scoredSideMap, league, gameId, dupeSlugs }) {
   // Sort newest-first across all periods: period DESC, then clock-aware within period.
   const sortedPlays = useMemo(() => {
     return [...filteredPlays].sort((a, b) => {
@@ -319,6 +327,7 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
             play={play}
             isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
             highlightScoring={highlightScoring}
+            scoredSide={scoredSideMap?.get(play.id ?? play.espn_play_id ?? play.sequence) ?? null}
             league={league}
             gameId={gameId}
             dupeSlugs={dupeSlugs}
@@ -340,6 +349,7 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
                 play={play}
                 isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
                 highlightScoring={highlightScoring}
+                scoredSide={scoredSideMap?.get(play.id ?? play.espn_play_id ?? play.sequence) ?? null}
                 league={league}
                 gameId={gameId}
                 dupeSlugs={dupeSlugs}
@@ -387,6 +397,34 @@ export default function PlayByPlay({ league, gameId, isLive }) {
       prevPlayIds.add(p.espn_play_id ?? String(p.sequence));
     });
   }, [plays, isLive, prevPlayIds]);
+
+  // Walk plays in chronological order (oldest first) once to detect which
+  // side incremented its score on each scoring play. Computed off the full
+  // unfiltered list so consecutive scoring plays still see the right "prev"
+  // even when the user has the Scoring filter on.
+  const scoredSideMap = useMemo(() => {
+    const map = new Map();
+    const chronological = [...plays].sort((a, b) => {
+      if (a.period !== b.period) return (a.period ?? 0) - (b.period ?? 0);
+      return -comparePlaysNewestFirst(a, b, league);
+    });
+    let prevHome = 0;
+    let prevAway = 0;
+    for (const play of chronological) {
+      const key = play.id ?? play.espn_play_id ?? play.sequence;
+      if (play.home_score == null || play.away_score == null) {
+        map.set(key, null);
+        continue;
+      }
+      let side = null;
+      if (play.home_score > prevHome) side = "home";
+      else if (play.away_score > prevAway) side = "away";
+      map.set(key, side);
+      prevHome = play.home_score;
+      prevAway = play.away_score;
+    }
+    return map;
+  }, [plays, league]);
 
   // Filter logic
   const filteredPlays = useMemo(() => {
@@ -498,6 +536,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 dupeSlugs={dupeSlugs}
                 newPlayIds={newPlayIds}
                 highlightScoring={activeFilter !== "scoring"}
+                scoredSideMap={scoredSideMap}
               />
             ))
           ) : (
@@ -510,6 +549,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
             showPeriodHeaders={activeFilter === "all" || activeFilter === "scoring"}
             newPlayIds={newPlayIds}
             highlightScoring={activeFilter !== "scoring"}
+            scoredSideMap={scoredSideMap}
             league={league}
             gameId={gameId}
             dupeSlugs={dupeSlugs}
