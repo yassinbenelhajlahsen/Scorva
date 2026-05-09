@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, LazyMotion, domAnimation } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -29,7 +29,7 @@ const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
 const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
-const ReportsPage  = lazy(() => import("./pages/ReportsPage.jsx"));
+const PulsePage    = lazy(() => import("./pages/PulsePage.jsx"));
 
 function useBlockEdgeSwipe() {
   useEffect(() => {
@@ -128,13 +128,14 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/reports"
+          path="/pulse"
           element={
             <PageWrapper>
-              <ReportsPage />
+              <PulsePage />
             </PageWrapper>
           }
         />
+        <Route path="/reports" element={<Navigate to="/pulse" replace />} />
         <Route
           path="/:league/players/:playerId"
           element={

@@ -293,11 +293,15 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Chat actions hook       | `frontend/src/hooks/ai/useChatActions.js`                      |
 | Chat components         | `frontend/src/components/chat/`                                |
 
-## Frontend — Reports & Streaks
+## Frontend — Pulse, Reports & Streaks
 
 | What                    | Where                                                          |
 | ----------------------- | -------------------------------------------------------------- |
-| Reports page            | `frontend/src/pages/ReportsPage.jsx`                           |
+| Pulse page              | `frontend/src/pages/PulsePage.jsx` (route `/pulse`; `/reports` redirects here) |
+| Highlights tab          | `frontend/src/components/highlights/HighlightsTab.jsx` (mode toggle + Beta hint + section composition; rendered inside Pulse Highlights sub-tab) |
+| Top performers          | `frontend/src/components/highlights/TopPerformers.jsx` (props: `league`, `mode`; leaderboard list) |
+| Top performers skeleton | `frontend/src/components/skeletons/TopPerformersSkeleton.jsx` |
+| Top performances hook   | `frontend/src/hooks/data/useTopPerformances.js`                |
 | Reports API             | `frontend/src/api/reports.js`                                  |
 | Reports hook            | `frontend/src/hooks/data/useReports.js`                        |
 | Reports components      | `frontend/src/components/reports/` (ReportsList, ReportRow, InjuryReportRow, MoveReportRow, BirthdayReportRow, StreakReportRow, NRBadge) |
@@ -308,14 +312,14 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | PlayerStatusBadge       | `frontend/src/components/player/PlayerStatusBadge.jsx`         |
 | TeamComparison          | `frontend/src/components/game/TeamComparison.jsx` (rendered in AnalysisTab on GamePage) |
 
-## Frontend — Top Performances (Homepage)
+## Frontend — Top Performances (Pulse → Highlights)
 
 | What                    | Where                                                          |
 | ----------------------- | -------------------------------------------------------------- |
 | Top Performances API    | `frontend/src/api/topPerformances.js`                          |
 | Top Performances hook   | `frontend/src/hooks/data/useTopPerformances.js`                |
-| Top Performances card   | `frontend/src/components/cards/TopPerformancesCard.jsx`        |
-| Skeleton                | `frontend/src/components/skeletons/TopPerformancesCardSkeleton.jsx` |
+
+(Component lives under `components/highlights/` — see the Pulse table above.)
 
 ## Frontend — News
 

@@ -236,9 +236,13 @@ streak_events(
 - API: `frontend/src/api/streaks.js`; hook: `frontend/src/hooks/data/useStreak.js` (30s staleTime); query key `queryKeys.streak(league, subjectType, subjectId)`.
 - `StreakBadge` (`frontend/src/components/ui/StreakBadge.jsx`) — renders on PlayerPage and TeamPage (current-season view only). Props: `streak` object, `size: "md"|"sm"`. Loss streaks (team L-streaks) use a blue/ice tone; all others use orange/fire tone with animated pulsing dot.
 
-## Reports (`/reports` page)
+## Pulse (`/pulse` page)
 
-Top-level league-agnostic feed of injuries, moves, birthdays, and active streaks. Backed by a single cached service that aggregates from existing tables.
+Top-level page that combines two surfaces under one roof:
+1. **Reports** — league-agnostic feed of injuries, moves, birthdays, and active streaks. Backed by a single cached service that aggregates from existing tables.
+2. **Highlights** — NBA-only "Best Games" and "Last 7 Days" leaderboards (see `/:league/top-performances` API). Shown only when the league pill is **All** or **NBA**.
+
+The page presents two sub-tabs (Highlights / Reports) for NBA/All scope, collapses to Reports-only for NFL/NHL. Highlights tab has an internal Best Games / Last 7 Days mode toggle (small sliding pill). Sub-tab uses a sliding pill indicator + `SwipeableTabs` for content animation. League-pill changes animate active tab content via an internal `LeagueSwap` (`AnimatePresence` keyed by league/mode/type), so league switches feel consistent across both sub-tabs. The legacy `/reports` route redirects to `/pulse`.
 
 ### Backend
 - Route: `backend/src/routes/reports/reports.js` — `GET /api/reports`
@@ -251,12 +255,16 @@ Top-level league-agnostic feed of injuries, moves, birthdays, and active streaks
   - `streaksReports.js` — joins `streak_events` (active, current-season window) with `players` and `teams`
 
 ### Cache warming
-After every `runUpsert` cycle, `pipeline/upsert.js` invalidates `reports:list:{league}:*` then calls `getReportsForLeague(league)` to repopulate the cache. The Navbar `/reports` link prefetches `["reports", "all", "all"]` on `mouseenter`, so first navigation is hot.
+After every `runUpsert` cycle, `pipeline/upsert.js` invalidates `reports:list:{league}:*` then calls `getReportsForLeague(league)` to repopulate the cache. The Navbar `/pulse` link prefetches `["reports", "all", "all"]` on `mouseenter`, so first navigation to the Reports tab is hot.
 
 ### Frontend
-- Page: `frontend/src/pages/ReportsPage.jsx` — league tabs (with team-color logos) + type filter + infinite scroll. Loading state shows 20 skeleton rows.
-- Components in `frontend/src/components/reports/`: `ReportsList`, `ReportRow` (dispatcher), `InjuryReportRow`, `MoveReportRow`, `BirthdayReportRow`, `StreakReportRow`, `NRBadge`. Skeleton: `frontend/src/components/skeletons/ReportRowSkeleton.jsx`.
-- API: `frontend/src/api/reports.js`; hook: `frontend/src/hooks/data/useReports.js` (TQ infinite query). Query key: `queryKeys.reports(league, type, limit, offset)`.
+- Page: `frontend/src/pages/PulsePage.jsx` — owns the league pills (top-level scope), the sub-tab pill strip (Highlights / Reports), and `SwipeableTabs` for content sliding. The page wraps each sub-tab's body in a directional `SlideSwap` (matching `SwipeableTabs` variants) keyed by league so league pill changes slide content in/out.
+- Highlights tab: `frontend/src/components/highlights/HighlightsTab.jsx` is the container — owns the Best Games / Last 7 Days mode toggle (sliding pill, URL state via `?mode=`), the Beta · NBA-only hint, and the inner directional slide on mode change. Composes one or more leaf sections (today: `TopPerformers`; future: `TopPlays`, etc.). Designed to grow.
+- Highlights leaves in `frontend/src/components/highlights/`:
+  - `TopPerformers.jsx` (props: `league`, `mode`) — renders the leaderboard list (hero row + up to 24 compact rows). Skeleton: `frontend/src/components/skeletons/TopPerformersSkeleton.jsx`. Backed by `useTopPerformances`.
+- Reports tab content: type filter + infinite scroll (20 skeleton rows on first load).
+- Reports components in `frontend/src/components/reports/`: `ReportsList`, `ReportRow` (dispatcher), `InjuryReportRow`, `MoveReportRow`, `BirthdayReportRow`, `StreakReportRow`, `NRBadge`. Skeleton: `frontend/src/components/skeletons/ReportRowSkeleton.jsx`.
+- Reports API: `frontend/src/api/reports.js`; hook: `frontend/src/hooks/data/useReports.js` (TQ infinite query). Query key: `queryKeys.reports(league, type, limit, offset)`.
 - Streak rows reuse `teamUrl` helper for team links; full row is clickable through to the player page.
 
 ## Player awards
@@ -779,7 +787,7 @@ Both injury tools (`get_injuries`, `get_player_status`) read from `players.statu
 
 ## Player Rating System (NBA only in v1)
 
-Per-play, WPA-weighted player performance rating that aggregates to per-game `stats.rating` and feeds the homepage "Top Performances" component (`TopPerformancesCard`) plus the rating chips on `StatCard` and `TopPerformerCard`. NFL and NHL are deferred to later phases — NHL specifically needs a synthesized winprob model since ESPN doesn't ship one for hockey.
+Per-play, WPA-weighted player performance rating that aggregates to per-game `stats.rating` and feeds the Pulse page Highlights tab (`HighlightsTab` → `TopPerformers`) plus the rating chips on `StatCard` and `TopPerformerCard`. NFL and NHL are deferred to later phases — NHL specifically needs a synthesized winprob model since ESPN doesn't ship one for hockey.
 
 ### Data flow
 
@@ -811,8 +819,8 @@ weighted = clamp(base_value + WPA_WEIGHT × wpa_delta × team_sign, -10.0, +10.0
 
 - `StatCard` chip (top-left): grade only, e.g. `8.6`. No `/10` suffix, no raw shown.
 - `TopPerformerCard` chip (right column): grade only, large, with vertical divider from stats.
-- `TopPerformancesCard` Best Games tab: grade only on each row.
-- `TopPerformancesCard` Last 7 Days tab: cumulative raw sum (the only place raw is shown to users).
+- `TopPerformers` (Highlights tab, Best Games mode): grade only on each row.
+- `TopPerformers` (Highlights tab, Last 7 Days mode): cumulative raw sum (the only place raw is shown to users).
 - Negative raw → grade floors at 0; chip never shows negative.
 
 ### Storage

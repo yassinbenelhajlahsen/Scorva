@@ -1,75 +1,50 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTopPerformances } from "../../hooks/data/useTopPerformances.js";
-import TopPerformancesCardSkeleton from "../skeletons/TopPerformancesCardSkeleton.jsx";
+import TopPerformersSkeleton from "../skeletons/TopPerformersSkeleton.jsx";
 
-const TABS = [
-  { id: "games",      label: "Best Games" },
-  { id: "cumulative", label: "Last 7 Days" },
-];
+export default function TopPerformers({ league = "nba", mode = "games" }) {
+  const { data, isLoading } = useTopPerformances(league, { type: mode, days: 7, limit: 25 });
 
-export default function TopPerformancesCard({ league = "nba" }) {
-  const [tab, setTab] = useState("games");
-  const { data, isLoading } = useTopPerformances(league, { type: tab, days: 7, limit: 5 });
-
-  if (isLoading) return <TopPerformancesCardSkeleton />;
-  if (!data?.performances?.length) return null;
+  if (isLoading) return <TopPerformersSkeleton />;
+  if (!data?.performances?.length) {
+    return (
+      <p className="text-center text-text-tertiary text-sm py-12">
+        No top performances yet.
+      </p>
+    );
+  }
 
   const items = data.performances;
   const hero = items[0];
   const rest = items.slice(1);
 
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 max-w-[1200px] mx-auto my-8">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold">Top Performances</h3>
-        <span className="text-[10px] text-text-tertiary">Last 7 Days</span>
-      </div>
-      <div className="flex gap-2 mb-4">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-1.5 text-xs uppercase tracking-widest font-semibold rounded-full transition-all duration-200 ${
-              tab === t.id ? "bg-accent text-white" : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <ul className="flex flex-col gap-1">
-        <li>
-          <HeroRow item={hero} tab={tab} league={league} />
+    <ul className="flex flex-col gap-1">
+      <li>
+        <HeroRow item={hero} mode={mode} league={league} />
+      </li>
+      {rest.map((it, idx) => (
+        <li key={(it.player?.id || idx) + ":" + (it.game?.id || "")}>
+          <CompactRow item={it} rank={idx + 2} mode={mode} league={league} />
         </li>
-        {rest.map((it, idx) => (
-          <li key={(it.player?.id || idx) + ":" + (it.game?.id || "")}>
-            <CompactRow
-              item={it}
-              rank={idx + 2}
-              tab={tab}
-              league={league}
-            />
-          </li>
-        ))}
-      </ul>
-    </div>
+      ))}
+    </ul>
   );
 }
 
-function HeroRow({ item, tab, league }) {
+function HeroRow({ item, mode, league }) {
   const color = item.player?.team?.primary_color || "#e8863a";
-  const to = tab === "games"
+  const to = mode === "games"
     ? `/${league}/games/${item.game.id}`
     : `/${league}/players/${item.player.slug || item.player.id}`;
-  const meta = tab === "games"
+  const meta = mode === "games"
     ? `${item.stats.points}/${item.stats.rebounds}/${item.stats.assists}  ·  ${item.game.isHome ? "vs" : "@"} ${item.game.opponent.abbreviation}${item.game.date ? ` · ${formatDate(item.game.date)}` : ""}`
     : `${item.gamesPlayed} GP · avg ${item.avgPerGame.toFixed(1)}`;
-  const value = tab === "games" ? item.ratingGrade.toFixed(1) : item.totalRating.toFixed(1);
+  const value = mode === "games" ? item.ratingGrade.toFixed(1) : item.totalRating.toFixed(1);
   return (
     <Link
       to={to}
-      className="relative flex items-center gap-4 px-5 py-4 rounded-2xl mb-3 cursor-pointer overflow-hidden hover:brightness-110 transition-all"
+      className="relative flex items-center gap-4 h-[88px] px-5 rounded-2xl mb-3 cursor-pointer overflow-hidden hover:brightness-110 transition-all"
       style={{
         background: `linear-gradient(135deg, ${color}33 0%, ${color}11 60%, transparent 100%)`,
         border: `1px solid ${color}40`,
@@ -95,17 +70,20 @@ function HeroRow({ item, tab, league }) {
   );
 }
 
-function CompactRow({ item, rank, tab, league }) {
-  const to = tab === "games"
+function CompactRow({ item, rank, mode, league }) {
+  const to = mode === "games"
     ? `/${league}/games/${item.game.id}`
     : `/${league}/players/${item.player.slug || item.player.id}`;
-  const value = tab === "games" ? item.ratingGrade.toFixed(1) : item.totalRating.toFixed(1);
-  const meta = tab === "games"
+  const value = mode === "games" ? item.ratingGrade.toFixed(1) : item.totalRating.toFixed(1);
+  const meta = mode === "games"
     ? `${item.stats.points}/${item.stats.rebounds}/${item.stats.assists}`
     : `${item.gamesPlayed} GP`;
   return (
-    <Link to={to} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-overlay transition-all">
-      <span className="text-text-tertiary font-semibold text-xs w-4 tabular-nums">{rank}</span>
+    <Link
+      to={to}
+      className="flex items-center gap-3 h-12 px-3 rounded-xl hover:bg-surface-overlay transition-all"
+    >
+      <span className="text-text-tertiary font-semibold text-xs w-5 tabular-nums">{rank}</span>
       <img
         loading="lazy"
         src={item.player.imageUrl || "/defaultPhoto.webp"}

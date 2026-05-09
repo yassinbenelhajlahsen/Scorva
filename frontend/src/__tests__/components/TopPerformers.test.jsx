@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { renderWithProviders } from "../helpers/testUtils.jsx";
 
 vi.mock("react-router-dom", () => ({
@@ -11,7 +11,7 @@ vi.mock("../../hooks/data/useTopPerformances.js", () => ({
   useTopPerformances: vi.fn(),
 }));
 
-const TopPerformancesCard = (await import("../../components/cards/TopPerformancesCard.jsx")).default;
+const TopPerformers = (await import("../../components/highlights/TopPerformers.jsx")).default;
 const { useTopPerformances } = await import("../../hooks/data/useTopPerformances.js");
 
 const games = {
@@ -66,27 +66,19 @@ const cumulative = {
   ],
 };
 
-describe("TopPerformancesCard", () => {
-  test("renders Best Games tab by default with hero #1 and rest list", () => {
-    useTopPerformances.mockImplementation((_, { type }) => ({
-      isLoading: false,
-      data: type === "games" ? games : cumulative,
-    }));
-    renderWithProviders(<TopPerformancesCard league="nba" />);
-    expect(screen.getByText("Top Performances")).toBeInTheDocument();
+describe("TopPerformers", () => {
+  test("renders games mode with hero #1 and rest list", () => {
+    useTopPerformances.mockReturnValue({ isLoading: false, data: games });
+    renderWithProviders(<TopPerformers league="nba" mode="games" />);
     expect(screen.getByText("Luka Dončić")).toBeInTheDocument();
     expect(screen.getByText("8.6")).toBeInTheDocument();
-    // raw is hidden on Best Games
+    // raw rating not shown in games mode
     expect(screen.queryByText("47.3")).not.toBeInTheDocument();
   });
 
-  test("switching to Last 7 Days tab shows cumulative totals (raw)", () => {
-    useTopPerformances.mockImplementation((_, { type }) => ({
-      isLoading: false,
-      data: type === "games" ? games : cumulative,
-    }));
-    renderWithProviders(<TopPerformancesCard league="nba" />);
-    fireEvent.click(screen.getByRole("button", { name: /last 7 days/i }));
+  test("renders cumulative mode with totals (raw rating)", () => {
+    useTopPerformances.mockReturnValue({ isLoading: false, data: cumulative });
+    renderWithProviders(<TopPerformers league="nba" mode="cumulative" />);
     expect(screen.getByText("Nikola Jokić")).toBeInTheDocument();
     expect(screen.getByText("234.7")).toBeInTheDocument();
     expect(screen.getByText(/5 GP/i)).toBeInTheDocument();
@@ -94,7 +86,7 @@ describe("TopPerformancesCard", () => {
 
   test("renders skeleton while loading", () => {
     useTopPerformances.mockReturnValue({ isLoading: true });
-    renderWithProviders(<TopPerformancesCard league="nba" />);
-    expect(screen.getByTestId("top-performances-skeleton")).toBeInTheDocument();
+    renderWithProviders(<TopPerformers league="nba" />);
+    expect(screen.getByTestId("top-performers-skeleton")).toBeInTheDocument();
   });
 });

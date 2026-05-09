@@ -13,7 +13,6 @@ import { useUserPrefs } from "../hooks/user/useUserPrefs.js";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import NewsSection from "../components/news/NewsSection.jsx";
-import TopPerformancesCard from "../components/cards/TopPerformancesCard.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 export default function Homepage() {
@@ -89,9 +88,6 @@ export default function Homepage() {
 
       {/* News Headlines */}
       <NewsSection />
-
-      {/* Top Performances */}
-      <TopPerformancesCard league="nba" />
 
       {/* League tabs + Games */}
       {error ? (

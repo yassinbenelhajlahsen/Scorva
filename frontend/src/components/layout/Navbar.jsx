@@ -42,7 +42,7 @@ export default function Navbar() {
   }, []);
 
   function prefetchLeague(to) {
-    if (to === "/reports") {
+    if (to === "/pulse") {
       queryClient.prefetchInfiniteQuery({
         queryKey: ["reports", "all", "all"],
         queryFn: ({ pageParam = 0, signal }) =>
@@ -107,13 +107,13 @@ export default function Navbar() {
           })}
         </div>
 
-        {/* Right cluster: Reports + search + auth */}
+        {/* Right cluster: Pulse + search + auth */}
         <div className="ml-auto flex items-center gap-5 shrink-0">
           <Link
-            to="/reports"
-            onMouseEnter={() => prefetchLeague("/reports")}
+            to="/pulse"
+            onMouseEnter={() => prefetchLeague("/pulse")}
             className={`touch-target flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
-              location.pathname.startsWith("/reports")
+              location.pathname.startsWith("/pulse") || location.pathname.startsWith("/reports")
                 ? "text-accent"
                 : "text-text-secondary hover:text-text-primary"
             }`}
@@ -121,7 +121,7 @@ export default function Navbar() {
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M14.003 5.5L21 5.5C21.513 5.5 21.936 5.886 21.993 6.383L22 6.5L22 13.5C22 14.052 21.552 14.5 21 14.5C20.487 14.5 20.064 14.114 20.007 13.617L20 13.5L19.999 8.914L12.707 16.207C12.347 16.567 11.78 16.595 11.388 16.291L11.294 16.208L8.998 13.916L3.709 19.205C3.319 19.596 2.686 19.596 2.295 19.206C1.935 18.845 1.907 18.278 2.212 17.886L2.295 17.791L8.29 11.795C8.65 11.435 9.217 11.407 9.609 11.711L9.703 11.794L12 14.086L18.584 7.5L14.003 7.5C13.49 7.5 13.068 7.114 13.01 6.617L13.003 6.5C13.003 5.987 13.389 5.564 13.887 5.507L14.003 5.5Z" />
             </svg>
-            Reports
+            Pulse
           </Link>
 
           <div className="hidden sm:block w-px h-4 bg-white/[0.12]" />
