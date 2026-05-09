@@ -1,69 +1,75 @@
 import { useRef, useLayoutEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
-import TopPerformers from "./TopPerformers.jsx";
+import FilterBar from "./filters/FilterBar.jsx";
+import RankingsList from "./tabs/RankingsList.jsx";
+import PerformancesList from "./tabs/PerformancesList.jsx";
+import PlaysList from "./tabs/PlaysList.jsx";
 
-const MODES = [
-  { id: "games", label: "Best Games" },
-  { id: "cumulative", label: "Last 7 Days" },
+const TABS = [
+  { id: "rankings",     label: "Rankings" },
+  { id: "performances", label: "Performances" },
+  { id: "plays",        label: "Plays" },
 ];
+
+const ALLOWED_WINDOWS = new Set(["today", "week", "month", "season", "all"]);
+const ALLOWED_POSITIONS = new Set(["all", "G", "F", "C"]);
+const ALLOWED_SORTS = new Set(["desc", "asc"]);
 
 const slideVariants = {
   enter: (dir) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
   center: { x: 0, opacity: 1 },
-  exit: (dir) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+  exit:   (dir) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
 };
 
 export default function HighlightsTab() {
   const [searchParams, setSearchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
-  const mode = modeParam === "cumulative" ? "cumulative" : "games";
+  const aliased =
+    modeParam === "games" ? "performances" :
+    modeParam === "cumulative" ? "rankings" :
+    modeParam;
+  const mode = TABS.some((t) => t.id === aliased) ? aliased : "rankings";
 
-  // Direction tracking for slide animation — read synchronously during render.
-  const modeIdx = Math.max(0, MODES.findIndex((opt) => opt.id === mode));
+  const win      = ALLOWED_WINDOWS.has(searchParams.get("win"))   ? searchParams.get("win")   : "week";
+  const position = ALLOWED_POSITIONS.has(searchParams.get("pos")) ? searchParams.get("pos")   : "all";
+  const sort     = ALLOWED_SORTS.has(searchParams.get("sort"))    ? searchParams.get("sort")  : "desc";
+
+  const modeIdx = Math.max(0, TABS.findIndex((t) => t.id === mode));
   const prevModeIdxRef = useRef(modeIdx);
-  const modeDirRef = useRef(0);
+  const dirRef = useRef(0);
   if (prevModeIdxRef.current !== modeIdx) {
-    modeDirRef.current = modeIdx > prevModeIdxRef.current ? 1 : -1;
+    dirRef.current = modeIdx > prevModeIdxRef.current ? 1 : -1;
     prevModeIdxRef.current = modeIdx;
   }
 
-  // Sliding-pill indicator
   const navRef = useRef(null);
   const refs = useRef([]);
   const [bounds, setBounds] = useState(null);
-
   useLayoutEffect(() => {
-    const idx = MODES.findIndex((opt) => opt.id === mode);
+    const idx = TABS.findIndex((t) => t.id === mode);
     const btn = refs.current[idx];
     const nav = navRef.current;
     if (btn && nav) {
-      const btnRect = btn.getBoundingClientRect();
-      const navRect = nav.getBoundingClientRect();
-      setBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
+      const b = btn.getBoundingClientRect();
+      const n = nav.getBoundingClientRect();
+      setBounds({ left: b.left - n.left, width: b.width });
     }
   }, [mode]);
 
   function setMode(next) {
-    setSearchParams(
-      (prev) => {
-        const sp = new URLSearchParams(prev);
-        if (!next || next === "games") sp.delete("mode");
-        else sp.set("mode", next);
-        return sp;
-      },
-      { replace: true },
-    );
+    setSearchParams((prev) => {
+      const sp = new URLSearchParams(prev);
+      if (!next || next === "rankings") sp.delete("mode");
+      else sp.set("mode", next);
+      return sp;
+    }, { replace: true });
   }
 
   return (
     <div>
-      {/* Mode toggle (sliding pill) */}
       <div className="flex justify-center mb-3">
-        <div
-          ref={navRef}
-          className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1"
-        >
+        <div ref={navRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
           {bounds && (
             <m.div
               className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
@@ -72,38 +78,34 @@ export default function HighlightsTab() {
               transition={{ type: "spring", stiffness: 380, damping: 30 }}
             />
           )}
-          {MODES.map((opt, i) => (
+          {TABS.map((t, i) => (
             <button
-              key={opt.id}
+              key={t.id}
               ref={(el) => (refs.current[i] = el)}
-              onClick={() => setMode(opt.id)}
+              onClick={() => setMode(t.id)}
               className="relative px-4 py-1.5 rounded-full text-xs font-medium z-10 transition-colors duration-200"
-              style={{
-                color: mode === opt.id
-                  ? "var(--color-accent)"
-                  : "var(--color-text-secondary)",
-              }}
+              style={{ color: mode === t.id ? "var(--color-accent)" : "var(--color-text-secondary)" }}
             >
-              {opt.label}
+              {t.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Beta · NBA-only hint */}
       <p className="text-center text-[10px] uppercase tracking-widest text-text-tertiary mb-6">
         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 text-accent font-semibold mr-2">
           Beta
         </span>
-        NBA only · Last 7 days
+        NBA only
       </p>
 
-      {/* Mode swap with directional slide */}
+      <FilterBar window={win} position={position} sort={sort} />
+
       <div className="relative overflow-hidden">
-        <AnimatePresence mode="popLayout" custom={modeDirRef.current} initial={false}>
+        <AnimatePresence mode="popLayout" custom={dirRef.current} initial={false}>
           <m.div
-            key={`mode:${mode}`}
-            custom={modeDirRef.current}
+            key={`mode:${mode}:${win}:${sort}:${position}`}
+            custom={dirRef.current}
             variants={slideVariants}
             initial="enter"
             animate="center"
@@ -113,7 +115,9 @@ export default function HighlightsTab() {
               opacity: { duration: 0.18 },
             }}
           >
-            <TopPerformers league="nba" mode={mode} />
+            {mode === "rankings"     && <RankingsList     window={win} sort={sort} position={position} />}
+            {mode === "performances" && <PerformancesList window={win} sort={sort} position={position} />}
+            {mode === "plays"        && <PlaysList        window={win} sort={sort} position={position} />}
           </m.div>
         </AnimatePresence>
       </div>
