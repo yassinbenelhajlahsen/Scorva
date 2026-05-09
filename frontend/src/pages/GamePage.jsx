@@ -41,11 +41,17 @@ export default function GamePage() {
     await Promise.allSettled([refetch?.()]);
   };
 
-  const initialTab = new URLSearchParams(location.search).get("tab");
-  const [activeTab, setActiveTab] = useState(
-    GAME_TABS.some((t) => t.id === initialTab) ? initialTab : "overview",
-  );
+  const tabFromUrl = new URLSearchParams(location.search).get("tab");
+  const validTabFromUrl = GAME_TABS.some((t) => t.id === tabFromUrl) ? tabFromUrl : null;
+  const [activeTab, setActiveTab] = useState(validTabFromUrl || "overview");
   const hashScrolledRef = useRef(false);
+
+  // Keep activeTab in sync with `?tab=` so deep links to the same GamePage
+  // (e.g. clicking a player chip in PlayByPlay) actually switch tabs — without
+  // this, useState's initializer only runs at mount and the param is ignored.
+  useEffect(() => {
+    if (validTabFromUrl) setActiveTab(validTabFromUrl);
+  }, [validTabFromUrl]);
 
   useEffect(() => {
     hashScrolledRef.current = false;
@@ -59,18 +65,18 @@ export default function GamePage() {
     if (!gameData || !location.hash || hashScrolledRef.current) return;
 
     const id = location.hash.slice(1);
-    requestAnimationFrame(() => {
+
+    // Legacy fallback: hash-only URL (no ?tab=) with non-play hash → analysis.
+    const explicitTab = new URLSearchParams(location.search).get("tab");
+    if (!explicitTab && !id.startsWith("play-") && activeTab !== "analysis") {
+      handleTabChange("analysis");
+      return;
+    }
+
+    const tryScroll = () => {
+      if (hashScrolledRef.current) return true;
       const row = document.getElementById(id);
-      if (!row) {
-        // Only fall back to the analysis tab if the URL didn't explicitly select
-        // a tab and the hash doesn't look like a play anchor.
-        const explicitTab = new URLSearchParams(location.search).get("tab");
-        const hashId = location.hash.slice(1);
-        if (!explicitTab && !hashId.startsWith("play-") && activeTab !== "analysis") {
-          handleTabChange("analysis");
-        }
-        return;
-      }
+      if (!row) return false;
 
       hashScrolledRef.current = true;
       const link = row.querySelector("a");
@@ -79,18 +85,43 @@ export default function GamePage() {
       row.scrollIntoView({ behavior: "smooth", block: "center" });
       void row.offsetWidth;
 
-      row.classList.add("bg-accent/15");
+      row.classList.add("!bg-accent/15");
       link?.classList.add("!text-white");
 
       setTimeout(() => {
-        row.classList.remove("bg-accent/15");
+        row.classList.remove("!bg-accent/15");
         link?.classList.remove("!text-white");
         setTimeout(() => {
           row.classList.remove("transition-colors", "duration-300", "ease-in-out");
           link?.classList.remove("transition-colors", "duration-300", "ease-in-out");
         }, 300);
       }, 2000);
+      return true;
+    };
+
+    const cleanupRef = { current: null };
+    let frameId = requestAnimationFrame(() => {
+      frameId = 0;
+      if (tryScroll()) return;
+
+      // Target not in DOM yet — tab content (BoxScore, PlayByPlay) fetches its
+      // own data. Watch for the element to appear and scroll then.
+      const observer = new MutationObserver(() => {
+        if (tryScroll()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      const timeoutId = setTimeout(() => observer.disconnect(), 5000);
+
+      cleanupRef.current = () => {
+        observer.disconnect();
+        clearTimeout(timeoutId);
+      };
     });
+
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      cleanupRef.current?.();
+    };
   }, [gameData, location.hash, location.search, activeTab]);
 
   const gameObj = gameData?.json_build_object;
