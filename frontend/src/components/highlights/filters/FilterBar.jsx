@@ -40,11 +40,11 @@ export default function FilterBar({ window, position, sort }) {
 
 function Dropdown({ options, value, onChange }) {
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative inline-flex items-center rounded-xl focus-within:ring-2 focus-within:ring-accent/50 focus-within:ring-offset-0">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 pr-9 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:ring-1 focus:ring-accent/50"
+        className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 pr-9 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.id} value={o.id} className="bg-surface-primary">
