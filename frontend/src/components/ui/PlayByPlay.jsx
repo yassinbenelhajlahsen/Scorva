@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { usePlays } from "../../hooks/data/usePlays.js";
+import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
+import { playerSlug } from "../../utils/playerUrl.js";
 
 const DRIVE_RESULT_COLOR = {
   Touchdown: "text-win",
@@ -88,9 +91,54 @@ function PeriodHeader({ period, league }) {
   );
 }
 
+function formatRating(value) {
+  if (value == null) return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return `${num >= 0 ? "+" : "−"}${Math.abs(num).toFixed(1)}`;
+}
+
+// ─── Participant chip — avatar + name, links to box-score row ────────────────
+function ParticipantChip({ participant, league, gameId, dupeSlugs }) {
+  const params = useParams();
+  const resolvedGameId = gameId ?? params.gameId;
+  const slug = playerSlug(participant, dupeSlugs);
+  const ratingText = formatRating(participant.rating);
+  const ratingPositive = participant.rating != null && Number(participant.rating) >= 0;
+  return (
+    <Link
+      to={`/${league}/games/${resolvedGameId}?tab=analysis#${slug}`}
+      title={`${participant.name}${ratingText ? ` ${ratingText}` : ""}`}
+      className="group inline-flex items-center gap-1.5 pl-0.5 pr-2 py-0.5 rounded-full bg-surface-overlay hover:bg-white/[0.10] border border-white/[0.06] hover:border-white/[0.14] transition-colors duration-150 max-w-full"
+    >
+      {participant.image_url ? (
+        <img
+          src={participant.image_url}
+          alt=""
+          className="w-5 h-5 rounded-full object-cover bg-surface-base shrink-0"
+          loading="lazy"
+        />
+      ) : (
+        <span className="w-5 h-5 rounded-full bg-surface-base text-[9px] font-semibold text-text-tertiary inline-flex items-center justify-center shrink-0">
+          {participant.name?.[0] ?? "?"}
+        </span>
+      )}
+      <span className="text-[11px] text-text-secondary group-hover:text-text-primary truncate">
+        {participant.name}
+      </span>
+      {ratingText && (
+        <span className={`text-[10px] font-mono tabular-nums shrink-0 ${ratingPositive ? "text-win" : "text-loss"}`}>
+          {ratingText}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 // ─── Single play row ──────────────────────────────────────────────────────────
-function PlayRow({ play, isNew, highlightScoring, league }) {
+function PlayRow({ play, isNew, highlightScoring, league, gameId, dupeSlugs }) {
   const isScoring = highlightScoring && play.scoring_play;
+  const participants = Array.isArray(play.participants) ? play.participants : [];
   return (
     <m.div
       layout="position"
@@ -121,20 +169,36 @@ function PlayRow({ play, isNew, highlightScoring, league }) {
         {league === "nhl" && play.period <= 4 ? nhlClockToRemaining(play.clock, play.period) ?? "–" : play.clock ?? "–"}
       </span>
 
-      {/* Team logo + description */}
-      <div className="flex items-start gap-2 flex-1 min-w-0">
-        {play.team_logo ? (
-          <img
-            src={play.team_logo}
-            alt={play.team_short ?? ""}
-            className="w-4 h-4 object-contain mt-0.5 shrink-0"
-          />
-        ) : (
-          <div className="w-4 shrink-0" />
+      {/* Team logo + description + participants */}
+      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+        <div className="flex items-start gap-2 min-w-0">
+          {play.team_logo ? (
+            <img
+              src={play.team_logo}
+              alt={play.team_short ?? ""}
+              className="w-4 h-4 object-contain mt-0.5 shrink-0"
+            />
+          ) : (
+            <div className="w-4 shrink-0" />
+          )}
+          <span className={`text-sm leading-snug break-words ${isScoring ? "text-text-primary font-medium" : "text-text-secondary"}`}>
+            {play.description}
+          </span>
+        </div>
+
+        {participants.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pl-6">
+            {participants.map((pp) => (
+              <ParticipantChip
+                key={`${pp.id}-${pp.role}`}
+                participant={pp}
+                league={league}
+                gameId={gameId}
+                dupeSlugs={dupeSlugs}
+              />
+            ))}
+          </div>
         )}
-        <span className={`text-sm leading-snug break-words ${isScoring ? "text-text-primary font-medium" : "text-text-secondary"}`}>
-          {play.description}
-        </span>
       </div>
 
       {/* Running score */}
@@ -148,7 +212,7 @@ function PlayRow({ play, isNew, highlightScoring, league }) {
 }
 
 // ─── NFL drive group ──────────────────────────────────────────────────────────
-function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, league }) {
+function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, league, gameId, dupeSlugs }) {
   const [open, setOpen] = useState(false);
   const scoringPlay = plays.some((p) => p.scoring_play);
 
@@ -189,6 +253,8 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
                 isNew={newPlayIds.has(play.espn_play_id)}
                 highlightScoring={highlightScoring}
                 league={league}
+                gameId={gameId}
+                dupeSlugs={dupeSlugs}
               />
             ))}
           </m.div>
@@ -198,32 +264,63 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
   );
 }
 
-// ─── Play list with optional period grouping ─────────────────────────────────
-function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, league }) {
-  const reversed = useMemo(() => [...filteredPlays].reverse(), [filteredPlays]);
+function parseClockSeconds(clock) {
+  if (clock == null) return null;
+  const str = String(clock);
+  if (str.includes(":")) {
+    const [m, s] = str.split(":").map(Number);
+    if (!Number.isFinite(m) || !Number.isFinite(s)) return null;
+    return m * 60 + s;
+  }
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n : null;
+}
 
-  // Group all plays by period (Map merges non-contiguous runs), newest period first
+// Newest-first ordering inside a single period. NBA/NFL clocks count down
+// (lower remaining = later), NHL counts up (higher elapsed = later).
+function comparePlaysNewestFirst(a, b, league) {
+  const ca = parseClockSeconds(a.clock);
+  const cb = parseClockSeconds(b.clock);
+  if (ca != null && cb != null && ca !== cb) {
+    return league === "nhl" ? cb - ca : ca - cb;
+  }
+  if (ca == null && cb != null) return 1;
+  if (ca != null && cb == null) return -1;
+  return (b.sequence ?? 0) - (a.sequence ?? 0);
+}
+
+// ─── Play list with optional period grouping ─────────────────────────────────
+function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, league, gameId, dupeSlugs }) {
+  // Sort newest-first across all periods: period DESC, then clock-aware within period.
+  const sortedPlays = useMemo(() => {
+    return [...filteredPlays].sort((a, b) => {
+      if (a.period !== b.period) return (b.period ?? 0) - (a.period ?? 0);
+      return comparePlaysNewestFirst(a, b, league);
+    });
+  }, [filteredPlays, league]);
+
+  // Group by period preserving sortedPlays order within each period.
   const groups = useMemo(() => {
     const map = new Map();
-    for (const play of reversed) {
+    for (const play of sortedPlays) {
       if (!map.has(play.period)) map.set(play.period, []);
       map.get(play.period).push(play);
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => b - a)
-      .map(([period, plays]) => ({ period, plays }));
-  }, [reversed]);
+    return Array.from(map.entries()).map(([period, plays]) => ({ period, plays }));
+  }, [sortedPlays]);
 
   if (!showPeriodHeaders) {
     return (
       <div className="divide-y divide-white/[0.05]">
-        {reversed.map((play) => (
+        {sortedPlays.map((play) => (
           <PlayRow
             key={play.id ?? play.espn_play_id ?? play.sequence}
             play={play}
             isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
             highlightScoring={highlightScoring}
             league={league}
+            gameId={gameId}
+            dupeSlugs={dupeSlugs}
           />
         ))}
       </div>
@@ -243,6 +340,8 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
                 isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
                 highlightScoring={highlightScoring}
                 league={league}
+                gameId={gameId}
+                dupeSlugs={dupeSlugs}
               />
             ))}
           </div>
@@ -255,6 +354,7 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PlayByPlay({ league, gameId, isLive }) {
   const { plays: playsData, loading, error, retry } = usePlays(league, gameId, isLive);
+  const dupeSlugs = useDuplicatePlayerSlugs(league);
   const [activeFilter, setActiveFilter] = useState("all");
   const [prevPlayIds] = useState(() => new Set());
 
@@ -369,9 +469,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
       {/* Filter pills */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
         <FilterPill label="All" active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
-        {isLive && (
-          <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
-        )}
+        <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
         {periods.map((p) => (
           <FilterPill
             key={p}
@@ -395,8 +493,10 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 result={drive.result}
                 plays={drive.plays}
                 league={league}
+                gameId={gameId}
+                dupeSlugs={dupeSlugs}
                 newPlayIds={newPlayIds}
-                highlightScoring={isLive && activeFilter !== "scoring"}
+                highlightScoring={activeFilter !== "scoring"}
               />
             ))
           ) : (
@@ -408,8 +508,10 @@ export default function PlayByPlay({ league, gameId, isLive }) {
             filteredPlays={filteredPlays}
             showPeriodHeaders={activeFilter === "all" || activeFilter === "scoring"}
             newPlayIds={newPlayIds}
-            highlightScoring={isLive && activeFilter !== "scoring"}
+            highlightScoring={activeFilter !== "scoring"}
             league={league}
+            gameId={gameId}
+            dupeSlugs={dupeSlugs}
           />
         )}
       </div>

@@ -30,6 +30,13 @@ vi.mock("framer-motion", () => ({
 
 // ─── Hook mock ────────────────────────────────────────────────────────────────
 vi.mock("../../hooks/data/usePlays.js", () => ({ usePlays: vi.fn() }));
+vi.mock("../../hooks/data/useDuplicatePlayerSlugs.js", () => ({
+  useDuplicatePlayerSlugs: () => ({}),
+}));
+vi.mock("react-router-dom", () => ({
+  Link: ({ to, children, ...rest }) => <a href={typeof to === "string" ? to : "#"} {...rest}>{children}</a>,
+  useParams: () => ({ gameId: "1" }),
+}));
 
 const { usePlays } = await import("../../hooks/data/usePlays.js");
 const { default: PlayByPlay } = await import("../../components/ui/PlayByPlay.jsx");
@@ -124,10 +131,10 @@ describe("PlayByPlay", () => {
       expect(screen.getByText("Scoring")).toBeInTheDocument();
     });
 
-    it("hides the Scoring filter pill when not live", () => {
+    it("renders the Scoring filter pill for non-live games as well", () => {
       render(<PlayByPlay {...defaultProps} isLive={false} />);
       expect(screen.getByText("All")).toBeInTheDocument();
-      expect(screen.queryByText("Scoring")).not.toBeInTheDocument();
+      expect(screen.getByText("Scoring")).toBeInTheDocument();
     });
 
     it("renders period filter pills for each distinct period", () => {

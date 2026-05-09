@@ -1,5 +1,7 @@
 import { processEvent, clearPlayerCache } from "./eventProcessor.js";
 import upsertPlays from "../upsert/upsertPlays.js";
+import upsertPlayParticipants from "../upsert/upsertPlayParticipants.js";
+import { recomputeGame } from "../../services/games/ratingEngine.js";
 import { DateTime } from "luxon";
 import { invalidate, invalidatePattern, closeCache } from "../../cache/cache.js";
 import logger from "../../logger.js";
@@ -205,6 +207,26 @@ export async function tick(liveLeagues) {
                       const homeEspnId = parseInt(homeComp?.team?.id, 10);
                       const awayEspnId = parseInt(awayComp?.team?.id, 10);
                       await upsertPlays(client, gameId, pbpData, slug, hometeamid, awayteamid, homeEspnId, awayEspnId);
+
+                      // NBA only — keep participants + ratings fresh on the fast path
+                      // so play-by-play chips don't lag the 2-min full-update cycle.
+                      // Wrapped in a savepoint so a rating-engine failure can't poison
+                      // the plays write we just committed above.
+                      if (slug === "nba") {
+                        await client.query("SAVEPOINT live_rating_calc");
+                        try {
+                          await upsertPlayParticipants(client, gameId, pbpData, slug);
+                          await recomputeGame(client, gameId);
+                          await client.query("RELEASE SAVEPOINT live_rating_calc");
+                        } catch (err) {
+                          log.warn({ err, eventId, gameId }, "fast-path rating recompute failed; rolled back");
+                          try {
+                            await client.query("ROLLBACK TO SAVEPOINT live_rating_calc");
+                            await client.query("RELEASE SAVEPOINT live_rating_calc");
+                          } catch { /* ignore */ }
+                        }
+                      }
+
                       await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
                       newState.lastPlaysUpdate = now;
                     }
