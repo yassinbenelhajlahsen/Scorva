@@ -39,7 +39,10 @@ export function resolveWindow(window, opts = {}) {
   const startIdx = opts.startIdx ?? 1;
   switch (window) {
     case "today":
-      return { predicate: "g.date = (NOW() AT TIME ZONE 'America/New_York')::date", binds: [], nextIdx: startIdx };
+      // Rolling ~24h window: include yesterday + today (NY tz).
+      // Game dates are date-only, so we widen to cover any game finished
+      // within the last day even if its calendar date is yesterday.
+      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - 1", binds: [], nextIdx: startIdx };
     case "week":
       return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '7 days'", binds: [], nextIdx: startIdx };
     case "month":

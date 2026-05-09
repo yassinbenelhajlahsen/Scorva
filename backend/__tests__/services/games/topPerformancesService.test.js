@@ -90,14 +90,14 @@ describe("getTopPerformances", () => {
     await getTopPerformances({ league: "nba", days: 999, type: "games", limit: 5 });
     expect(mockQuery.mock.calls[0][0]).toMatch(/INTERVAL '30 days'/);
     await getTopPerformances({ league: "nba", days: 0, type: "games", limit: 5 });
-    expect(mockQuery.mock.calls[1][0]).toMatch(/g\.date = \(NOW\(\) AT TIME ZONE 'America\/New_York'\)::date/);
+    expect(mockQuery.mock.calls[1][0]).toMatch(/g\.date >= \(NOW\(\) AT TIME ZONE 'America\/New_York'\)::date - 1/);
   });
 });
 
 describe("resolveWindow", () => {
-  test("today → current NY date", () => {
+  test("today → rolling 24h window (yesterday + today, NY tz)", () => {
     const w = resolveWindow("today");
-    expect(w.predicate).toBe("g.date = (NOW() AT TIME ZONE 'America/New_York')::date");
+    expect(w.predicate).toBe("g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - 1");
     expect(w.binds).toEqual([]);
   });
   test("week → 7-day window", () => {
