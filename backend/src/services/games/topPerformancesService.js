@@ -1,6 +1,6 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
-import { currentSeasonForLeague } from "../../cache/seasons.js";
+import { getCurrentSeason } from "../../cache/seasons.js";
 import { gradeFromRaw } from "./ratingEngine.js";
 
 const TTL_BY_WINDOW = {
@@ -93,7 +93,7 @@ export async function getTopPerformances({
 
   return cached(key, ttl, async () => {
     const season = canonicalWindow === "season"
-      ? await currentSeasonForLeague(league)
+      ? await getCurrentSeason(league)
       : null;
     const ctx = { league, window: canonicalWindow, season, sort, position, limit: safeLimit };
     if (canonicalType === "performances") return queryPerformances(ctx);

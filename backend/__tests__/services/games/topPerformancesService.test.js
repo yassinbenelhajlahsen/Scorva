@@ -17,7 +17,7 @@ jest.unstable_mockModule(
 
 jest.unstable_mockModule(
   resolve(__dirname, "../../../src/cache/seasons.js"),
-  () => ({ currentSeasonForLeague: jest.fn().mockResolvedValue("2025-26") }),
+  () => ({ getCurrentSeason: jest.fn().mockResolvedValue("2025-26") }),
 );
 
 const { getTopPerformances, resolveWindow, positionPredicate } =
