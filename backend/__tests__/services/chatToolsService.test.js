@@ -121,6 +121,12 @@ jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/cl
 jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/playerAwards.js"), () => ({
   getPlayerAwards: jest.fn(),
 }));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/topRatedPerformers.js"), () => ({
+  getTopRatedPerformers: jest.fn(),
+}));
+jest.unstable_mockModule(resolve(__dirname, "../../src/services/ai/chat/tools/topRatedPlays.js"), () => ({
+  getTopRatedPlays: jest.fn(),
+}));
 
 const servicePath = resolve(__dirname, "../../src/services/ai/chat/toolsService.js");
 const { TOOL_DEFINITIONS, executeTool } = await import(servicePath);
@@ -134,7 +140,7 @@ describe("chatToolsService", () => {
   describe("TOOL_DEFINITIONS", () => {
     it("exports an array of tool definitions", () => {
       expect(Array.isArray(TOOL_DEFINITIONS)).toBe(true);
-      expect(TOOL_DEFINITIONS.length).toBe(24);
+      expect(TOOL_DEFINITIONS.length).toBe(26);
     });
 
     it("every definition has type 'function' and a function.name", () => {

@@ -1,5 +1,6 @@
 import pool from "../../../../db/db.js";
 import { MINUTES_FILTER_BY_LEAGUE } from "../../../../utils/statFilters.js";
+import { gradeFromRaw } from "../../../games/ratingEngine.js";
 
 const STAT_COLUMNS = {
   nba: {
@@ -68,6 +69,7 @@ export async function getTopSingleGamePerformances({
 
   const result = await pool.query(
     `SELECT s.${safeColumn} AS value,
+            s.rating,
             p.id AS player_id, p.name AS player_name,
             t.id AS team_id, t.shortname AS team,
             g.id AS game_id, g.date, g.season, g.type AS game_type,
@@ -85,11 +87,21 @@ export async function getTopSingleGamePerformances({
     params,
   );
 
+  const performances = result.rows.map((r) => {
+    const rating = r.rating != null ? Number(r.rating) : null;
+    const grade = rating == null ? null : gradeFromRaw(rating);
+    return {
+      ...r,
+      rating,
+      ratingGrade: grade == null ? null : Math.round(grade * 10) / 10,
+    };
+  });
+
   return {
     league,
     stat,
     seasonStart: seasonStart || null,
     seasonEnd: seasonEnd || null,
-    performances: result.rows,
+    performances,
   };
 }

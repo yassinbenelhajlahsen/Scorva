@@ -45,7 +45,11 @@ export const TOOL_DEFINITIONS = [
     function: {
       name: "get_game_detail",
       description:
-        "Get the full box score and game detail for a specific game ID. Returns quarter scores, player stats, team records.",
+        "Get the full box score and game detail for a specific game ID. Returns quarter scores, player stats, team records. " +
+        "For NBA games, each player includes a `rating` (raw score) and `ratingGrade` (calibrated 0-10 display) — " +
+        "Scorva's per-game player rating that combines box-score impact with win-probability-added on each play. " +
+        "Use the rating to identify the most impactful player when raw stats don't fully capture it (e.g. defensive/clutch contributions). " +
+        "Players are returned ordered by ratingGrade DESC for NBA games (capped to 8 per team).",
       parameters: {
         type: "object",
         properties: {
@@ -238,7 +242,11 @@ export const TOOL_DEFINITIONS = [
         "`retention` field ('all' or 'scoring_only'); when it is 'scoring_only', filters like " +
         "playType or searchText for non-scoring events will return little or nothing — tell the " +
         "user that non-scoring play-by-play data is not stored for completed games rather than " +
-        "guessing why results are sparse.",
+        "guessing why results are sparse. " +
+        "NBA plays include a `ratings` array (when available) listing contributors with their " +
+        "role and `weightedValue` (display-scaled ±10 per-play impact, factoring in win-probability " +
+        "added). Use this for 'biggest plays' or 'most impactful possession' questions — " +
+        "to RANK plays by impact across a game or season, prefer `get_top_rated_plays`.",
       parameters: {
         type: "object",
         properties: {
@@ -367,7 +375,10 @@ export const TOOL_DEFINITIONS = [
         "Data goes back to the 2015-16 season for all leagues. " +
         "Valid stats — NBA: points, assists, rebounds, steals, blocks, turnovers. " +
         "NFL: yds, td, interceptions. NHL: g, a, shots, saves, pim. " +
-        "Includes regular season AND playoff games.",
+        "Includes regular season AND playoff games. " +
+        "NBA results also include `rating` (raw) and `ratingGrade` (0-10 display) — Scorva's per-game " +
+        "player rating — so you can flag when a stat line was efficient/impactful vs. empty volume. " +
+        "For ranking by overall game impact instead of one stat, prefer `get_top_rated_performers`.",
       parameters: {
         type: "object",
         properties: {
@@ -560,6 +571,65 @@ export const TOOL_DEFINITIONS = [
           awardType: { type: "string", description: "Substring of award_type code (e.g. 'mvp', 'all_nba', 'vezina')." },
           limit: { type: "integer", description: "Default 50, max 100." },
         },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_top_rated_performers",
+      description:
+        "Rank players by Scorva's per-game rating — a calibrated impact score that combines box-score " +
+        "production with win-probability-added on each play. Use for 'best games this week', 'most impactful " +
+        "performance', 'who's been carrying his team', 'biggest stinker'. NBA-only (NFL/NHL ratings not yet " +
+        "available). " +
+        "type='performances' returns top single-game ratings (default). type='rankings' returns cumulative " +
+        "totals over the window with per-game average and best-game spotlight — use for 'best player over the " +
+        "last month'. " +
+        "window='today'|'week'|'month'|'season'|'all'. Use sort='asc' to find the WORST-rated performances. " +
+        "position filters NBA position groups (G/F/C).",
+      parameters: {
+        type: "object",
+        properties: {
+          league: { type: "string", enum: ["nba"] },
+          type: { type: "string", enum: ["performances", "rankings"], description: "Default 'performances'." },
+          window: {
+            type: "string",
+            enum: ["today", "week", "month", "season", "all"],
+            description: "Time window. Default 'week'.",
+          },
+          sort: { type: "string", enum: ["desc", "asc"], description: "Default 'desc'. Use 'asc' for worst-rated." },
+          position: { type: "string", enum: ["all", "G", "F", "C"], description: "NBA position group filter." },
+          limit: { type: "integer", description: "Default 10, max 25." },
+        },
+        required: ["league"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_top_rated_plays",
+      description:
+        "Rank individual plays by Scorva's per-play impact score (`weighted_value`, ±10 display scale). " +
+        "Combines role-specific base value (a contested 3 is worth more than an open one, an offensive rebound " +
+        "more than a defensive one, etc.) with win-probability swing. Use for 'biggest plays of the week', " +
+        "'most clutch shot', 'most impactful play in last night's game'. NBA-only. " +
+        "Use sort='asc' to find the WORST plays (turnovers in clutch moments, etc.).",
+      parameters: {
+        type: "object",
+        properties: {
+          league: { type: "string", enum: ["nba"] },
+          window: {
+            type: "string",
+            enum: ["today", "week", "month", "season", "all"],
+            description: "Time window. Default 'week'.",
+          },
+          sort: { type: "string", enum: ["desc", "asc"], description: "Default 'desc'. Use 'asc' for biggest blunders." },
+          position: { type: "string", enum: ["all", "G", "F", "C"], description: "NBA position group filter." },
+          limit: { type: "integer", description: "Default 10, max 25." },
+        },
+        required: ["league"],
       },
     },
   },

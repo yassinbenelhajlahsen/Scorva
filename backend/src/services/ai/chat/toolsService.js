@@ -21,6 +21,8 @@ import { getPlayoffBracket } from "./tools/playoffBracket.js";
 import { getAdvancedStats } from "./tools/advancedStats.js";
 import { getClutchPerformance } from "./tools/clutchPerformance.js";
 import { getPlayerAwards } from "./tools/playerAwards.js";
+import { getTopRatedPerformers } from "./tools/topRatedPerformers.js";
+import { getTopRatedPlays } from "./tools/topRatedPlays.js";
 import { getCurrentSeason } from "../../../cache/seasons.js";
 
 export { TOOL_DEFINITIONS } from "./toolDefinitions.js";
@@ -31,11 +33,22 @@ const gameDetailHandlers = {
   nhl: getNhlGame,
 };
 
-// Trim box score to top 8 players per team to keep tool result token-efficient
+// Trim box score to top 8 players per team to keep tool result token-efficient.
+// When ratings are present (NBA), sort by ratingGrade DESC first so the trim
+// keeps the most impactful players rather than whoever json_agg returned first.
 function trimGameDetail(data) {
   if (!data || typeof data !== "object") return data;
-  const trimPlayers = (players) =>
-    Array.isArray(players) ? players.slice(0, 8) : players;
+  const trimPlayers = (players) => {
+    if (!Array.isArray(players)) return players;
+    const hasRatings = players.some((p) => p?.ratingGrade != null);
+    const ordered = hasRatings
+      ? [...players].sort(
+          (a, b) =>
+            (b.ratingGrade ?? -Infinity) - (a.ratingGrade ?? -Infinity),
+        )
+      : players;
+    return ordered.slice(0, 8);
+  };
   if (data.homeTeam?.players) data.homeTeam.players = trimPlayers(data.homeTeam.players);
   if (data.awayTeam?.players) data.awayTeam.players = trimPlayers(data.awayTeam.players);
   return data;
@@ -43,6 +56,9 @@ function trimGameDetail(data) {
 
 // Tools that natively support multi-season ranges — do NOT auto-fill season,
 // since that would silently scope a "career" or "last 10 years" question to one year.
+// The two top-rated tools use a `window` enum (today/week/month/season/all)
+// instead of a season identifier; auto-filling season would attach a stale
+// arg the wrappers ignore.
 const RANGE_AWARE_TOOLS = new Set([
   "get_top_single_game_performances",
   "find_games",
@@ -52,6 +68,8 @@ const RANGE_AWARE_TOOLS = new Set([
   "get_advanced_stats",
   "get_clutch_performance",
   "get_player_awards",
+  "get_top_rated_performers",
+  "get_top_rated_plays",
 ]);
 
 export async function executeTool(name, args) {
@@ -121,6 +139,12 @@ export async function executeTool(name, args) {
 
     case "get_player_awards":
       return getPlayerAwards(args);
+
+    case "get_top_rated_performers":
+      return getTopRatedPerformers(args);
+
+    case "get_top_rated_plays":
+      return getTopRatedPlays(args);
 
     case "get_team_stats":
       return getTeamStats(args.league, args.teamId, args.season);

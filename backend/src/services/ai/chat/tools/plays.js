@@ -26,7 +26,7 @@ export async function getPlaysForAgent(args) {
 
   const [playsResult, statusResult] = await Promise.all([
     pool.query(
-      `SELECT p.sequence, p.period, p.clock, p.description,
+      `SELECT p.id AS play_id, p.sequence, p.period, p.clock, p.description,
               p.home_score, p.away_score, p.scoring_play, p.play_type,
               t.shortname AS team,
               g.id AS game_id, g.date,
@@ -72,6 +72,43 @@ export async function getPlaysForAgent(args) {
 
   const { rows } = playsResult;
 
+  // Per-play participant ratings (NBA only — play_ratings is NBA-only).
+  // Fetch in a second query keyed by play_id so the main query stays simple.
+  // Cap at 50 since safeLimit ≤ 50; this is bounded.
+  let ratingsByPlay = new Map();
+  if (league === "nba" && rows.length > 0) {
+    const playIds = rows.map((r) => r.play_id).filter((id) => id != null);
+    if (playIds.length > 0) {
+      const { rows: rateRows } = await pool.query(
+        `SELECT pr.play_id, pr.role, pr.weighted_value, pr.wpa_delta,
+                p.id AS player_id, p.name AS player_name
+           FROM play_ratings pr
+           JOIN players p ON p.id = pr.player_id
+          WHERE pr.play_id = ANY($1::int[])`,
+        [playIds],
+      );
+      for (const r of rateRows) {
+        if (!ratingsByPlay.has(r.play_id)) ratingsByPlay.set(r.play_id, []);
+        ratingsByPlay.get(r.play_id).push({
+          player: r.player_name,
+          role: r.role,
+          weightedValue:
+            r.weighted_value == null ? null : Math.round(Number(r.weighted_value) * 10) / 10,
+          wpaDelta:
+            r.wpa_delta == null ? null : Math.round(Number(r.wpa_delta) * 10000) / 10000,
+        });
+      }
+      // Sort each play's contributors by absolute weighted_value DESC so the
+      // most impactful contribution is first.
+      for (const arr of ratingsByPlay.values()) {
+        arr.sort(
+          (a, b) =>
+            Math.abs(b.weightedValue ?? 0) - Math.abs(a.weightedValue ?? 0),
+        );
+      }
+    }
+  }
+
   let retention;
   if (!singleGame) {
     retention = "scoring_only";
@@ -104,6 +141,14 @@ export async function getPlaysForAgent(args) {
       play.drive_number = r.drive_number;
       play.drive_description = r.drive_description;
       play.drive_result = r.drive_result;
+    }
+
+    // NBA per-play rating breakdown — list of contributors with weighted_value
+    // (display-scaled ±10) and wpa_delta. Useful for "biggest plays" or
+    // "who was the most impactful on this possession" questions.
+    const ratings = ratingsByPlay.get(r.play_id);
+    if (ratings && ratings.length > 0) {
+      play.ratings = ratings;
     }
 
     return play;
