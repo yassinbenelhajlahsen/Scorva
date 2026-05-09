@@ -68,22 +68,54 @@ describe("baseValue — NBA", () => {
   test("unknown role → 0", () => { expect(baseValue("mystery", {})).toBe(0); });
 });
 
-describe("wpaContribution", () => {
-  test("home participant on positive WPA shift", () => {
-    expect(wpaContribution(0.05, "home")).toBeCloseTo(1.5, 5);
+describe("wpaContribution (v2: role-aware, sqrt-compressed)", () => {
+  // Formula: ROLE_MULT × WPA_WEIGHT(18) × sign(delta) × sqrt(|delta|) × team_sign
+
+  test("scorer on +0.05 home → 1.0 × 18 × √0.05 × 1 ≈ 4.025", () => {
+    expect(wpaContribution(0.05, "home", "scorer", {})).toBeCloseTo(18 * Math.sqrt(0.05), 4);
   });
-  test("home participant on negative WPA shift (turnover, etc.)", () => {
-    expect(wpaContribution(-0.05, "home")).toBeCloseTo(-1.5, 5);
+
+  test("scorer on +0.05 away → sign flips to negative", () => {
+    expect(wpaContribution(0.05, "away", "scorer", {})).toBeCloseTo(-18 * Math.sqrt(0.05), 4);
   });
-  test("away participant — sign flips", () => {
-    expect(wpaContribution(0.05, "away")).toBeCloseTo(-1.5, 5);
-    expect(wpaContribution(-0.05, "away")).toBeCloseTo(1.5, 5);
+
+  test("assister on +0.4 home → 0.4 × 18 × √0.4 ≈ 4.555", () => {
+    expect(wpaContribution(0.4, "home", "assister", {})).toBeCloseTo(0.4 * 18 * Math.sqrt(0.4), 4);
   });
+
+  test("scorer on +0.4 home → 18 × √0.4 ≈ 11.4 (will clamp downstream)", () => {
+    expect(wpaContribution(0.4, "home", "scorer", {})).toBeCloseTo(18 * Math.sqrt(0.4), 4);
+  });
+
+  test("negative wpa_delta on home turnover → negative contribution", () => {
+    // turnover_committer mult 0.6, sign(-0.05) = -1, team_sign home = +1
+    expect(wpaContribution(-0.05, "home", "turnover_committer", {})).toBeCloseTo(
+      -0.6 * 18 * Math.sqrt(0.05), 4,
+    );
+  });
+
+  test("offensive rebounder uses 0.4 mult", () => {
+    expect(wpaContribution(0.05, "home", "rebounder", { offensive: true })).toBeCloseTo(
+      0.4 * 18 * Math.sqrt(0.05), 4,
+    );
+  });
+
+  test("defensive rebounder uses 0.25 mult", () => {
+    expect(wpaContribution(0.05, "home", "rebounder", { offensive: false })).toBeCloseTo(
+      0.25 * 18 * Math.sqrt(0.05), 4,
+    );
+  });
+
+  test("heave_attempter mult is 0 → zero WPA contribution", () => {
+    expect(wpaContribution(0.4, "home", "heave_attempter", {})).toBe(0);
+  });
+
   test("null wpa_delta returns 0", () => {
-    expect(wpaContribution(null, "home")).toBe(0);
+    expect(wpaContribution(null, "home", "scorer", {})).toBe(0);
   });
-  test("clutch shift of +0.30 from home → +9", () => {
-    expect(wpaContribution(0.30, "home")).toBeCloseTo(9.0, 5);
+
+  test("unknown role returns 0", () => {
+    expect(wpaContribution(0.1, "home", "mystery", {})).toBe(0);
   });
 });
 

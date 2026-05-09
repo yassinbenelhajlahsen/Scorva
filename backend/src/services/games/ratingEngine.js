@@ -74,10 +74,17 @@ export function displayValue(modelValue) {
   return modelValue * DISPLAY_SCALE;
 }
 
-export function wpaContribution(wpaDelta, side /* "home" | "away" */) {
+export function wpaContribution(wpaDelta, side, role, ctx = {}) {
   if (wpaDelta == null) return 0;
-  const sign = side === "home" ? 1 : -1;
-  return WPA_WEIGHT * Number(wpaDelta) * sign;
+  // Defensive rebounders get a smaller WPA multiplier than offensive rebounders.
+  const mult = role === "rebounder"
+    ? (ctx.offensive ? 0.4 : 0.25)
+    : (ROLE_WPA_MULT[role] ?? 0);
+  if (mult === 0) return 0;
+  const teamSign = side === "home" ? 1 : -1;
+  const delta = Number(wpaDelta);
+  const wpaSign = delta < 0 ? -1 : 1;
+  return mult * WPA_WEIGHT * wpaSign * Math.sqrt(Math.abs(delta)) * teamSign;
 }
 
 /**
