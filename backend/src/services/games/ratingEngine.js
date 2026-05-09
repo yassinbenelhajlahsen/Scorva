@@ -133,13 +133,16 @@ export async function recomputeGame(client, gameId) {
     [gameId],
   );
 
+  // Use COALESCE(stats.teamid, players.teamid) so traded players are attributed
+  // to the team they actually played for in this game — not their current team.
   const { rows: parts } = await client.query(
     `SELECT pp.play_id, pp.player_id, pp.role,
-            CASE WHEN pl.teamid = g.hometeamid THEN 'home' ELSE 'away' END AS team_side
+            CASE WHEN COALESCE(s.teamid, pl.teamid) = g.hometeamid THEN 'home' ELSE 'away' END AS team_side
        FROM play_participants pp
        JOIN plays p     ON p.id = pp.play_id
        JOIN players pl  ON pl.id = pp.player_id
        JOIN games g     ON g.id = p.gameid
+       LEFT JOIN stats s ON s.playerid = pp.player_id AND s.gameid = p.gameid
       WHERE p.gameid = $1`,
     [gameId],
   );
