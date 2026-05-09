@@ -2,6 +2,7 @@ import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 import { gradeFromRaw } from "./ratingEngine.js";
+import { getPlayerIdBySlug } from "../../utils/slugResolver.js";
 
 const TTL_BY_WINDOW = {
   today: 30,
@@ -73,7 +74,7 @@ export function positionPredicate(position) {
 }
 
 export async function getTopPerformances({
-  league, type, window, sort = "desc", position = "all", limit, days,
+  league, type, window, sort = "desc", position = "all", limit, days, playerId,
 }) {
   const canonicalType = TYPE_ALIASES[type] ?? type ?? "performances";
   if (!ALLOWED_TYPES.has(canonicalType)) {
@@ -91,21 +92,38 @@ export async function getTopPerformances({
   }
   const safeLimit = clamp(parseInt(limit, 10), 1, 25);
 
-  const key = `top-performances:${league}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}`;
+  let resolvedPlayerId = null;
+  if (playerId != null && playerId !== "") {
+    resolvedPlayerId = await getPlayerIdBySlug(playerId, league);
+    if (resolvedPlayerId == null) {
+      return { type: canonicalType, window: canonicalWindow, performances: [] };
+    }
+  }
+
+  const playerSuffix = resolvedPlayerId == null ? "" : `:p${resolvedPlayerId}`;
+  const key = `top-performances:${league}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}${playerSuffix}`;
   const ttl = TTL_BY_WINDOW[canonicalWindow] ?? 60;
 
   return cached(key, ttl, async () => {
     const season = canonicalWindow === "season"
       ? await getCurrentSeason(league)
       : null;
-    const ctx = { league, window: canonicalWindow, season, sort, position, limit: safeLimit };
+    const ctx = {
+      league,
+      window: canonicalWindow,
+      season,
+      sort,
+      position,
+      limit: safeLimit,
+      playerId: resolvedPlayerId,
+    };
     if (canonicalType === "performances") return queryPerformances(ctx);
     if (canonicalType === "rankings")     return queryRankings(ctx);
     return queryPlays(ctx);
   });
 }
 
-function buildFilters({ window, season, position }, startIdx) {
+function buildFilters({ window, season, position, playerId, playerColumn = "s.playerid" }, startIdx) {
   const parts = [];
   const binds = [];
   const w = resolveWindow(window, { season, startIdx });
@@ -113,17 +131,23 @@ function buildFilters({ window, season, position }, startIdx) {
     parts.push(w.predicate);
     binds.push(...w.binds);
   }
+  let nextIdx = w.nextIdx;
+  if (playerId != null) {
+    parts.push(`${playerColumn} = $${nextIdx}`);
+    binds.push(playerId);
+    nextIdx += 1;
+  }
   const pp = positionPredicate(position);
   if (pp) parts.push(pp);
   return {
     sql: parts.length ? " AND " + parts.join(" AND ") : "",
     binds,
-    nextIdx: w.nextIdx,
+    nextIdx,
   };
 }
 
-async function queryPerformances({ league, window, season, sort, position, limit }) {
-  const f = buildFilters({ window, season, position }, 3);
+async function queryPerformances({ league, window, season, sort, position, limit, playerId }) {
+  const f = buildFilters({ window, season, position, playerId, playerColumn: "s.playerid" }, 3);
   const { rows } = await pool.query(
     `SELECT s.playerid, s.gameid, s.rating,
             p.name, p.image_url, p.position,
@@ -152,8 +176,8 @@ async function queryPerformances({ league, window, season, sort, position, limit
   return { type: "performances", window, performances: rows.map(shapeGameRow) };
 }
 
-async function queryRankings({ league, window, season, sort, position, limit }) {
-  const f = buildFilters({ window, season, position }, 3);
+async function queryRankings({ league, window, season, sort, position, limit, playerId }) {
+  const f = buildFilters({ window, season, position, playerId, playerColumn: "s.playerid" }, 3);
   const { rows } = await pool.query(
     `SELECT s.playerid,
             SUM(s.rating)  AS total_rating,
@@ -183,8 +207,8 @@ async function queryRankings({ league, window, season, sort, position, limit }) 
   return { type: "rankings", window, performances: rows.map(shapeCumulativeRow) };
 }
 
-async function queryPlays({ league, window, season, sort, position, limit }) {
-  const f = buildFilters({ window, season, position }, 3);
+async function queryPlays({ league, window, season, sort, position, limit, playerId }) {
+  const f = buildFilters({ window, season, position, playerId, playerColumn: "pr.player_id" }, 3);
   const { rows } = await pool.query(
     `SELECT pr.play_id,
             pr.player_id,

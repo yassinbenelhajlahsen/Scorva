@@ -16,8 +16,9 @@ export function useTopPerformances(league, opts = {}) {
     sort = "desc",
     position = "all",
     limit = 25,
+    playerId,
   } = opts;
-  const key = { type, window, sort, position, limit };
+  const key = { type, window, sort, position, limit, playerId };
   return useQuery({
     queryKey: queryKeys.topPerformances(league, key),
     queryFn:  queryFns.topPerformances(league, key),

@@ -2,10 +2,12 @@ import { apiFetch } from "./client.js";
 
 export function getTopPerformances(
   league,
-  { type = "performances", window = "week", sort = "desc", position = "all", limit = 25, signal } = {},
+  { type = "performances", window = "week", sort = "desc", position = "all", limit = 25, playerId, signal } = {},
 ) {
+  const params = { type, window, sort, position, limit };
+  if (playerId) params.playerId = playerId;
   return apiFetch(`/api/${league}/top-performances`, {
     signal,
-    params: { type, window, sort, position, limit },
+    params,
   });
 }
