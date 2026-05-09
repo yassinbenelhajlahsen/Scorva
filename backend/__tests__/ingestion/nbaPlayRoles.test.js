@@ -215,6 +215,21 @@ describe("inferParticipantRoles", () => {
     ]);
   });
 
+  test("offensive charge with 'steals' word in text → still charge_drawer (not stealer)", () => {
+    // Defensive: a charge can't also be a steal, but verify the charge branch
+    // bypasses the steal-text check that lives in the turnover branch.
+    const play = {
+      type: { text: "Offensive Charge" },
+      text: "Player A offensive charge — Player B steals the moment",
+      scoringPlay: false,
+      participants: [{ athlete: { id: "111" } }, { athlete: { id: "222" } }],
+    };
+    expect(inferParticipantRoles(play)).toEqual([
+      { espnAthleteId: "111", role: "turnover_committer" },
+      { espnAthleteId: "222", role: "charge_drawer" },
+    ]);
+  });
+
   test("offensive foul turnover with both participants → committer + charge_drawer", () => {
     const play = {
       type: { text: "Offensive Foul Turnover" },

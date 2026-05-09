@@ -77,7 +77,7 @@ export function inferParticipantRoles(play) {
   }
 
   // Offensive Charge — possession swing (treated as turnover for committer + charge for drawer)
-  if (typeText === "offensive charge") {
+  if (typeText.startsWith("offensive charge")) {
     const out = [{ espnAthleteId: ids[0], role: "turnover_committer" }];
     if (ids[1]) out.push({ espnAthleteId: ids[1], role: "charge_drawer" });
     return out.filter((p) => p.espnAthleteId);
