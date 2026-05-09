@@ -96,7 +96,7 @@ export default function HighlightsTab() {
       <div className="relative overflow-hidden">
         <AnimatePresence mode="popLayout" custom={dirRef.current} initial={false}>
           <m.div
-            key={`mode:${mode}:${win}:${sort}:${position}`}
+            key={`mode:${mode}`}
             custom={dirRef.current}
             variants={slideVariants}
             initial="enter"

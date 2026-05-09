@@ -1,9 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { m } from "framer-motion";
 import { useTopPerformances } from "../../../hooks/data/useTopPerformances.js";
 import { queryKeys, queryFns } from "../../../lib/query.js";
 import HeroRow from "../rows/HeroRow.jsx";
 import CompactRow from "../rows/CompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
+import { listStaggerVariants, rowFadeVariants } from "../animations.js";
 
 export default function RankingsList({ league = "nba", window: win, sort, position }) {
   const { data, isLoading } = useTopPerformances(league, { type: "rankings", window: win, sort, position, limit: 25 });
@@ -20,7 +22,13 @@ export default function RankingsList({ league = "nba", window: win, sort, positi
   }
 
   return (
-    <ul className="flex flex-col gap-1">
+    <m.ul
+      key={`${win}:${sort}:${position}`}
+      className="flex flex-col gap-1"
+      variants={listStaggerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {items.map((it, i) => {
         const rank = i + 1;
         const slug = it.player.slug ?? it.player.id;
@@ -42,13 +50,13 @@ export default function RankingsList({ league = "nba", window: win, sort, positi
           },
         };
         return (
-          <li key={`${it.player.id}`}>
+          <m.li key={`${it.player.id}`} variants={rowFadeVariants}>
             {rank <= 3
               ? <HeroRow rank={rank} color={it.player.team?.primary_color} {...props} />
               : <CompactRow rank={rank} {...props} />}
-          </li>
+          </m.li>
         );
       })}
-    </ul>
+    </m.ul>
   );
 }

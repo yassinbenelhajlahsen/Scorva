@@ -1,9 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { m } from "framer-motion";
 import { useTopPerformances } from "../../../hooks/data/useTopPerformances.js";
 import { queryKeys, queryFns } from "../../../lib/query.js";
 import HeroRow from "../rows/HeroRow.jsx";
 import CompactRow from "../rows/CompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
+import { listStaggerVariants, rowFadeVariants } from "../animations.js";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
@@ -23,7 +25,13 @@ export default function PlaysList({ league = "nba", window: win, sort, position 
 
   const showDate = SHOW_DATE_FOR.has(win);
   return (
-    <ul className="flex flex-col gap-1">
+    <m.ul
+      key={`${win}:${sort}:${position}`}
+      className="flex flex-col gap-1"
+      variants={listStaggerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {items.map((it, i) => {
         const rank = i + 1;
         const to = `/${league}/games/${it.game.id}?tab=plays#play-${it.play.id}`;
@@ -49,14 +57,14 @@ export default function PlaysList({ league = "nba", window: win, sort, position 
           },
         };
         return (
-          <li key={`play-${it.play.id}`}>
+          <m.li key={`play-${it.play.id}`} variants={rowFadeVariants}>
             {rank <= 3
               ? <HeroRow rank={rank} color={it.player.team?.primary_color} {...props} />
               : <CompactRow rank={rank} {...props} />}
-          </li>
+          </m.li>
         );
       })}
-    </ul>
+    </m.ul>
   );
 }
 
