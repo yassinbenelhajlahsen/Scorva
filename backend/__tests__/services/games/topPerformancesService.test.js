@@ -41,7 +41,7 @@ describe("getTopPerformances", () => {
     expect(out.days).toBe(7);
     expect(out.performances).toHaveLength(1);
     expect(out.performances[0].rating).toBeCloseTo(34.4, 1);
-    expect(out.performances[0].ratingGrade).toBeCloseTo(8.6, 1);
+    expect(out.performances[0].ratingGrade).toBeCloseTo(5.4, 1);
     expect(out.performances[0].player.team.primary_color).toBe("#00538C");
     expect(mockCached).toHaveBeenCalledWith(
       "top-performances:nba:games:7:5",

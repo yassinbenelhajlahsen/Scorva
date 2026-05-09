@@ -138,11 +138,11 @@ describe("gameDetailService", () => {
       const home = result.json_build_object.homeTeam.players;
       const away = result.json_build_object.awayTeam.players;
       expect(home[0].rating).toBe(34.4);
-      expect(home[0].ratingGrade).toBeCloseTo(8.6, 1);
+      expect(home[0].ratingGrade).toBeCloseTo(5.4, 1);
       expect(home[1].rating).toBeNull();
       expect(home[1].ratingGrade).toBeNull();
       expect(away[0].rating).toBe(20.0);
-      expect(away[0].ratingGrade).toBeCloseTo(5.0, 1);
+      expect(away[0].ratingGrade).toBeCloseTo(4.1, 1);
     });
   });
 });

@@ -12,13 +12,18 @@ describe("gradeFromRaw", () => {
   });
   test("0 → 0.0", () => { expect(gradeFromRaw(0)).toBe(0); });
   test("negative raw floors at 0", () => { expect(gradeFromRaw(-3.1)).toBe(0); });
-  test("raw 4 → 1.0", () => { expect(gradeFromRaw(4)).toBe(1); });
-  test("raw 20 → 5.0", () => { expect(gradeFromRaw(20)).toBe(5); });
-  test("raw 35 → ~8.75 (p99 territory)", () => {
-    expect(gradeFromRaw(35)).toBeCloseTo(8.75, 2);
+  // Square-root curve calibrated against Real App: 0.92 × sqrt(raw)
+  test("raw ≈25 → ~4.6 (LeBron 24.9 → Real 4.6)", () => {
+    expect(gradeFromRaw(24.9)).toBeCloseTo(4.59, 1);
   });
-  test("raw above ~40 caps at 10.0", () => {
-    expect(gradeFromRaw(40)).toBe(10);
+  test("raw ≈48 → ~6.4 (Barnes 47.9 → Real 6.4)", () => {
+    expect(gradeFromRaw(47.9)).toBeCloseTo(6.37, 1);
+  });
+  test("raw 12 → ~3.2 (solid bench scoring night)", () => {
+    expect(gradeFromRaw(12)).toBeCloseTo(3.19, 1);
+  });
+  test("raw ≥120 caps at 10.0", () => {
+    expect(gradeFromRaw(120)).toBe(10);
     expect(gradeFromRaw(1000)).toBe(10);
   });
 });

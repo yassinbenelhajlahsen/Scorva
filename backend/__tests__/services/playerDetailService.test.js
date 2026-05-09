@@ -127,7 +127,7 @@ describe("playerDetailService", () => {
 
     it("shapes rating + ratingGrade on each game-log row", async () => {
       const row = {
-        json_build_object: {
+        player: {
           id: 1,
           name: "Player A",
           games: [
@@ -140,13 +140,13 @@ describe("playerDetailService", () => {
       mockPool.query.mockResolvedValueOnce({ rows: [row] });
 
       const result = await fn()(1, "2025-26");
-      const games = result.json_build_object.games;
+      const games = result.player.games;
       expect(games[0].rating).toBe(34.4);
-      expect(games[0].ratingGrade).toBeCloseTo(8.6, 1);
+      expect(games[0].ratingGrade).toBeCloseTo(5.4, 1);
       expect(games[1].rating).toBeNull();
       expect(games[1].ratingGrade).toBeNull();
       expect(games[2].rating).toBe(20.0);
-      expect(games[2].ratingGrade).toBeCloseTo(5.0, 1);
+      expect(games[2].ratingGrade).toBeCloseTo(4.1, 1);
     });
   });
 });
