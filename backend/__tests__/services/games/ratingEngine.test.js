@@ -117,6 +117,12 @@ describe("wpaContribution (v2: role-aware, sqrt-compressed)", () => {
   test("unknown role returns 0", () => {
     expect(wpaContribution(0.1, "home", "mystery", {})).toBe(0);
   });
+
+  test("non-finite wpaDelta (NaN, Infinity) returns 0", () => {
+    expect(wpaContribution(NaN, "home", "scorer", {})).toBe(0);
+    expect(wpaContribution(Infinity, "home", "scorer", {})).toBe(0);
+    expect(wpaContribution("garbage", "home", "scorer", {})).toBe(0);
+  });
 });
 
 describe("clampPlayValue (model space, ±6)", () => {

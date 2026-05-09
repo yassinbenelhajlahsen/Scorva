@@ -40,7 +40,7 @@ const ROLE_WPA_MULT = {
   charge_drawer:      0.5,
   turnover_committer: 0.6,
   foul_committer:     0.3,
-  rebounder:          0.4,
+  rebounder:          0.4,  // not read — see wpaContribution rebounder special case (off 0.4 / def 0.25)
   heave_attempter:    0,
 };
 
@@ -76,13 +76,14 @@ export function displayValue(modelValue) {
 
 export function wpaContribution(wpaDelta, side, role, ctx = {}) {
   if (wpaDelta == null) return 0;
+  const delta = Number(wpaDelta);
+  if (!Number.isFinite(delta)) return 0;
   // Defensive rebounders get a smaller WPA multiplier than offensive rebounders.
   const mult = role === "rebounder"
     ? (ctx.offensive ? 0.4 : 0.25)
     : (ROLE_WPA_MULT[role] ?? 0);
   if (mult === 0) return 0;
   const teamSign = side === "home" ? 1 : -1;
-  const delta = Number(wpaDelta);
   const wpaSign = delta < 0 ? -1 : 1;
   return mult * WPA_WEIGHT * wpaSign * Math.sqrt(Math.abs(delta)) * teamSign;
 }
