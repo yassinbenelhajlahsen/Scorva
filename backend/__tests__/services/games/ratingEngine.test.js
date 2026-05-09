@@ -346,4 +346,29 @@ describe("recomputeGame", () => {
     expect(finalUpdate).toMatch(/LEAST/);
     expect(finalUpdate).toMatch(/GREATEST\(8,\s*1\.5\s*\*\s*COALESCE\(stats\.minutes,\s*0\)\)/);
   });
+
+  test("ctxFromPlay heave detection: malformed multi-colon clock returns no heave", async () => {
+    // Defensive: parseClockSeconds rejects "1:2:3" so isHeave stays false.
+    mockGetWinProbability.mockResolvedValue(null);
+    const client = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [{ league: "nba", eventid: 999, status: "Final", hometeamid: 1, awayteamid: 2 }] })
+        .mockResolvedValueOnce({ rows: [
+          { id: 501, sequence: 1, period: 4, clock: "1:2:3", espn_play_id: "p1",
+            scoring_play: false, shot_distance_ft: 50, play_type: "Jump Shot",
+            team_id: 1, home_team_id: 1, away_team_id: 2, home_score: 0, away_score: 0 },
+        ]})
+        .mockResolvedValueOnce({ rows: [
+          { play_id: 501, player_id: 11, role: "shot_attempter", team_side: "home" },
+        ]})
+        .mockResolvedValueOnce({ rowCount: 0 })
+        .mockResolvedValueOnce({ rowCount: 1 })
+        .mockResolvedValueOnce({ rowCount: 0 })
+        .mockResolvedValueOnce({ rowCount: 1 }),
+    };
+    await recomputeGame(client, 100);
+    // role should be "shot_attempter" (not heave_attempter) since malformed clock = no heave
+    const insertArgs = client.query.mock.calls[4][1];
+    expect(insertArgs[3]).toEqual(["shot_attempter"]);
+  });
 });

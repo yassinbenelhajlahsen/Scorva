@@ -236,6 +236,8 @@ export async function recomputeGame(client, gameId) {
     const playerParts = partsByPlay.get(pl.id) || [];
     for (const pp of playerParts) {
       // Heave detection: swap shot_attempter → heave_attempter so it gets zero base + zero wpa.
+      // The swapped role is what gets stored in play_ratings.role — intentionally different
+      // from play_participants.role for these end-of-period heaves.
       const role = (pp.role === "shot_attempter" && meta.ctx.isHeave) ? "heave_attempter" : pp.role;
       const base = baseValue(role, contextForRole(role, meta.ctx));
       const wpa  = wpaContribution(meta.wpaDelta, pp.team_side, role, meta.ctx);
@@ -329,7 +331,9 @@ function parseClockSeconds(clock) {
   if (clock == null) return null;
   const s = String(clock);
   if (s.includes(":")) {
-    const [m, sec] = s.split(":").map(Number);
+    const parts = s.split(":");
+    if (parts.length !== 2) return null;
+    const [m, sec] = parts.map(Number);
     if (!Number.isFinite(m) || !Number.isFinite(sec)) return null;
     return m * 60 + sec;
   }
