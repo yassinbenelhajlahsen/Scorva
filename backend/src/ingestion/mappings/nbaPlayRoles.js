@@ -64,12 +64,22 @@ export function inferParticipantRoles(play) {
     return ids[0] ? [{ espnAthleteId: ids[0], role: "rebounder" }] : [];
   }
 
-  // Turnovers
+  // Turnovers (including offensive foul turnovers — possession lost)
   if (TURNOVER_KEYWORDS.some((k) => typeText.includes(k))) {
     const out = [{ espnAthleteId: ids[0], role: "turnover_committer" }];
     if (ids[1] && /\bsteals?\b/.test(text)) {
       out.push({ espnAthleteId: ids[1], role: "stealer" });
+    } else if (ids[1] && typeText.includes("offensive foul")) {
+      // Offensive foul turnover: secondary participant is the defender who drew the charge
+      out.push({ espnAthleteId: ids[1], role: "charge_drawer" });
     }
+    return out.filter((p) => p.espnAthleteId);
+  }
+
+  // Offensive Charge — possession swing (treated as turnover for committer + charge for drawer)
+  if (typeText === "offensive charge") {
+    const out = [{ espnAthleteId: ids[0], role: "turnover_committer" }];
+    if (ids[1]) out.push({ espnAthleteId: ids[1], role: "charge_drawer" });
     return out.filter((p) => p.espnAthleteId);
   }
 

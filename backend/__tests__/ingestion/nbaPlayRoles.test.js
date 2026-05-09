@@ -189,4 +189,42 @@ describe("inferParticipantRoles", () => {
     };
     expect(inferParticipantRoles(play)).toEqual([]);
   });
+
+  test("offensive charge with both participants → committer + charge_drawer", () => {
+    const play = {
+      type: { text: "Offensive Charge" },
+      text: "Player A offensive charge (Player B draws the foul)",
+      scoringPlay: false,
+      participants: [{ athlete: { id: "111" } }, { athlete: { id: "222" } }],
+    };
+    expect(inferParticipantRoles(play)).toEqual([
+      { espnAthleteId: "111", role: "turnover_committer" },
+      { espnAthleteId: "222", role: "charge_drawer" },
+    ]);
+  });
+
+  test("offensive charge with only one participant → committer only", () => {
+    const play = {
+      type: { text: "Offensive Charge" },
+      text: "Player A offensive charge",
+      scoringPlay: false,
+      participants: [{ athlete: { id: "111" } }],
+    };
+    expect(inferParticipantRoles(play)).toEqual([
+      { espnAthleteId: "111", role: "turnover_committer" },
+    ]);
+  });
+
+  test("offensive foul turnover with both participants → committer + charge_drawer", () => {
+    const play = {
+      type: { text: "Offensive Foul Turnover" },
+      text: "Player A offensive foul turnover",
+      scoringPlay: false,
+      participants: [{ athlete: { id: "111" } }, { athlete: { id: "222" } }],
+    };
+    expect(inferParticipantRoles(play)).toEqual([
+      { espnAthleteId: "111", role: "turnover_committer" },
+      { espnAthleteId: "222", role: "charge_drawer" },
+    ]);
+  });
 });
