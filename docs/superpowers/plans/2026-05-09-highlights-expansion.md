@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-09-highlights-expansion-design.md`
 
+**Task review-mode tags:** `[REVIEW]` = use subagent code review (per CLAUDE.md: >100 LOC, schema, or new external-data SQL). `[TRIVIAL]` = skip subagent review.
+
 ---
 
 ## File map
@@ -34,7 +36,6 @@
 - Create: `frontend/src/components/highlights/tabs/PlaysList.jsx`
 - Modify: `frontend/src/components/highlights/HighlightsTab.jsx` — host 3 tabs + filter bar.
 - Delete: `frontend/src/components/highlights/TopPerformers.jsx`
-- Modify: `frontend/src/components/skeletons/TopPerformersSkeleton.jsx` (rename or keep — used by all three lists).
 - Modify: `frontend/src/__tests__/components/TopPerformancesCard.test.jsx` — re-target to new components.
 
 **Deep-link wiring:**
@@ -50,7 +51,7 @@
 ## Conventions
 
 - Backend tests: Jest + ESM mocks via `jest.unstable_mockModule`; mock `db/db.js` (not `pg`); reset between tests.
-- Frontend tests: Vitest + Testing Library; wrap with `createWrapper()` for TQ hooks.
+- Frontend tests: Vitest + Testing Library; wrap with `renderWithProviders`.
 - Commit style: `feat(highlights): ...`, `refactor(top-performances): ...`, `test(...): ...`, `chore(cache): bump version`.
 - Run after each task: `cd backend && npm run lint && npm test -- <relevant>` (backend) or `cd frontend && npm test -- <relevant>` (frontend).
 
@@ -58,15 +59,16 @@
 
 ## Phase 1 — Backend service refactor
 
-### Task 1: Add database indexes (migration)
+### Task 1: Backend prep — index migration + CACHE_VERSION bump  [TRIVIAL]
 
 **Files:**
 - Create: `backend/prisma/migrations/20260509000000_add_highlights_indexes/migration.sql`
 - Modify: `backend/prisma/schema.prisma`
+- Modify: `backend/src/cache/cache.js`
 
 - [ ] **Step 1: Create migration SQL**
 
-Create `backend/prisma/migrations/20260509000000_add_highlights_indexes/migration.sql`:
+`backend/prisma/migrations/20260509000000_add_highlights_indexes/migration.sql`:
 
 ```sql
 -- Speeds ORDER BY rating DESC for top-performances queries.
@@ -80,21 +82,18 @@ CREATE INDEX IF NOT EXISTS play_ratings_weighted_desc_idx
 
 - [ ] **Step 2: Add matching `@@index` directives in schema.prisma**
 
-In `backend/prisma/schema.prisma`, add to the `stats` model block:
-
+In the `stats` model block, add:
 ```prisma
 @@index([rating(sort: Desc)], map: "stats_rating_desc_idx")
 ```
 
-In the `play_ratings` model block:
-
+In the `play_ratings` model block, add:
 ```prisma
 @@index([weighted_value(sort: Desc)], map: "play_ratings_weighted_desc_idx")
 ```
 
-- [ ] **Step 3: Apply migration manually (shadow DB has issues locally — see CLAUDE.md memory)**
+- [ ] **Step 3: Apply migration manually + regenerate client**
 
-Run:
 ```bash
 cd backend
 psql "$DATABASE_URL" -f prisma/migrations/20260509000000_add_highlights_indexes/migration.sql
@@ -102,11 +101,8 @@ node_modules/.bin/prisma migrate resolve --applied 20260509000000_add_highlights
 node_modules/.bin/prisma generate
 ```
 
-Expected: indexes created; `prisma generate` regenerates client without diff complaints.
-
 - [ ] **Step 4: Verify indexes exist**
 
-Run:
 ```bash
 psql "$DATABASE_URL" -c "\\d+ stats" | grep stats_rating_desc_idx
 psql "$DATABASE_URL" -c "\\d+ play_ratings" | grep play_ratings_weighted_desc_idx
@@ -114,51 +110,28 @@ psql "$DATABASE_URL" -c "\\d+ play_ratings" | grep play_ratings_weighted_desc_id
 
 Expected: both indexes present.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Bump CACHE_VERSION**
+
+In `backend/src/cache/cache.js`, change `export const CACHE_VERSION = 18;` to `export const CACHE_VERSION = 19;`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add backend/prisma/migrations/20260509000000_add_highlights_indexes backend/prisma/schema.prisma
-git commit -m "feat(db): add highlights leaderboard indexes (stats.rating, play_ratings.weighted_value)"
+git add backend/prisma backend/src/cache/cache.js
+git commit -m "feat(db): add highlights leaderboard indexes; bump CACHE_VERSION to 19"
 ```
 
 ---
 
-### Task 2: Bump CACHE_VERSION
-
-**Files:**
-- Modify: `backend/src/cache/cache.js`
-
-The top-performances cache key shape changes (new params). Bump version to invalidate old keys.
-
-- [ ] **Step 1: Bump version**
-
-In `backend/src/cache/cache.js`, change:
-```js
-export const CACHE_VERSION = 18;
-```
-to:
-```js
-export const CACHE_VERSION = 19;
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add backend/src/cache/cache.js
-git commit -m "chore(cache): bump CACHE_VERSION to 19 for top-performances key shape change"
-```
-
----
-
-### Task 3: Add window resolver + position predicate helpers (with tests)
+### Task 2: Refactor service — helpers + new params signature  [REVIEW]
 
 **Files:**
 - Modify: `backend/src/services/games/topPerformancesService.js`
 - Modify: `backend/__tests__/services/games/topPerformancesService.test.js`
 
-These pure helpers translate `window=today|week|month|season|all` into a SQL predicate fragment + bind values, and `position=all|G|F|C` into a regex predicate. Extracted so all three query functions share them.
+Adds `resolveWindow` + `positionPredicate` helpers, refactors `getTopPerformances` to accept `{type, window, sort, position, limit, days?}` with legacy aliases (`type=games|cumulative`, `days=N`). Renames internal queries to `queryPerformances` / `queryRankings`. Keeps response shapes 100% backward-compatible. `queryPlays` stub added; implementation in Task 3.
 
-- [ ] **Step 1: Write the failing test for `resolveWindow`**
+- [ ] **Step 1: Write failing tests for helpers**
 
 Append to `backend/__tests__/services/games/topPerformancesService.test.js` (top-level imports):
 
@@ -166,18 +139,17 @@ Append to `backend/__tests__/services/games/topPerformancesService.test.js` (top
 import { resolveWindow, positionPredicate } from "../../../src/services/games/topPerformancesService.js";
 ```
 
-Add a new `describe` block:
+Add new describe blocks:
 
 ```js
 describe("resolveWindow", () => {
-  test("today → date = current NY date", () => {
+  test("today → current NY date", () => {
     const w = resolveWindow("today");
     expect(w.predicate).toBe("g.date = (NOW() AT TIME ZONE 'America/New_York')::date");
     expect(w.binds).toEqual([]);
   });
   test("week → 7-day window", () => {
     const w = resolveWindow("week");
-    expect(w.predicate).toContain("g.date >=");
     expect(w.predicate).toContain("INTERVAL '7 days'");
   });
   test("month → 30-day window", () => {
@@ -214,100 +186,11 @@ describe("positionPredicate", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to confirm they fail**
+- [ ] **Step 2: Write failing tests for new service signature**
 
-```bash
-cd backend && npm test -- topPerformancesService
-```
-
-Expected: FAIL — `resolveWindow is not a function`.
-
-- [ ] **Step 3: Implement helpers**
-
-In `backend/src/services/games/topPerformancesService.js`, add (above `getTopPerformances`):
+Append:
 
 ```js
-const ALLOWED_WINDOWS = new Set(["today", "week", "month", "season", "all"]);
-const ALLOWED_POSITIONS = new Set(["all", "G", "F", "C"]);
-
-/**
- * Returns { predicate, binds } where predicate is a SQL fragment to AND into the
- * WHERE clause. Use $WIN1 placeholder; the caller substitutes the real $N once
- * it knows where the bind index lands. Empty predicate means "no date bound".
- */
-export function resolveWindow(window, opts = {}) {
-  if (!ALLOWED_WINDOWS.has(window)) {
-    const err = new Error(`invalid window: ${window}`);
-    err.status = 400;
-    throw err;
-  }
-  switch (window) {
-    case "today":
-      return { predicate: "g.date = (NOW() AT TIME ZONE 'America/New_York')::date", binds: [] };
-    case "week":
-      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '7 days'", binds: [] };
-    case "month":
-      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '30 days'", binds: [] };
-    case "season":
-      if (!opts.season) {
-        const err = new Error("season required for window=season");
-        err.status = 500;
-        throw err;
-      }
-      return { predicate: "g.season = $WIN1", binds: [opts.season] };
-    case "all":
-      return { predicate: "", binds: [] };
-  }
-}
-
-export function positionPredicate(position) {
-  if (!ALLOWED_POSITIONS.has(position)) {
-    const err = new Error(`invalid position: ${position}`);
-    err.status = 400;
-    throw err;
-  }
-  switch (position) {
-    case "all": return "";
-    case "G":   return "p.position ~* '^(PG|SG|G)'";
-    case "F":   return "p.position ~* '^(SF|PF|F)'";
-    case "C":   return "p.position ~* '^C'";
-  }
-}
-```
-
-- [ ] **Step 4: Run tests**
-
-```bash
-cd backend && npm test -- topPerformancesService
-```
-
-Expected: PASS for both new describes; existing tests still pass.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/src/services/games/topPerformancesService.js backend/__tests__/services/games/topPerformancesService.test.js
-git commit -m "feat(top-performances): add window resolver + position predicate helpers"
-```
-
----
-
-### Task 4: Refactor service signature + accept new params (with tests)
-
-**Files:**
-- Modify: `backend/src/services/games/topPerformancesService.js`
-- Modify: `backend/__tests__/services/games/topPerformancesService.test.js`
-
-Change `getTopPerformances` to accept `{ league, type, window, sort, position, limit, days? }`. Existing `days` + `type=games|cumulative` still work via aliases.
-
-Add `currentSeasonForLeague` import (already used elsewhere — see `backend/src/cache/seasons.js`). Refactor `queryGames` → `queryPerformances` and `queryCumulative` → `queryRankings`. Keep response shapes 100% backward-compatible (don't change field names).
-
-- [ ] **Step 1: Write failing tests for new signature**
-
-Append to `backend/__tests__/services/games/topPerformancesService.test.js`:
-
-```js
-// Mock seasons module so window=season has a deterministic season string.
 jest.unstable_mockModule(
   resolve(__dirname, "../../../src/cache/seasons.js"),
   () => ({ currentSeasonForLeague: jest.fn().mockResolvedValue("2025-26") }),
@@ -316,7 +199,7 @@ jest.unstable_mockModule(
 describe("getTopPerformances — new params", () => {
   beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
 
-  test("type=performances + window=week + sort=asc — orders ASC", async () => {
+  test("type=performances + window=week + sort=asc orders ASC", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     await getTopPerformances({
       league: "nba", type: "performances", window: "week",
@@ -327,17 +210,16 @@ describe("getTopPerformances — new params", () => {
     expect(sql).toMatch(/INTERVAL '7 days'/);
   });
 
-  test("type=rankings + position=G — injects position predicate", async () => {
+  test("type=rankings + position=G injects position predicate", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     await getTopPerformances({
       league: "nba", type: "rankings", window: "month",
       sort: "desc", position: "G", limit: 10,
     });
-    const sql = mockQuery.mock.calls[0][0];
-    expect(sql).toMatch(/p\.position ~\* '\^\(PG\|SG\|G\)'/);
+    expect(mockQuery.mock.calls[0][0]).toMatch(/p\.position ~\* '\^\(PG\|SG\|G\)'/);
   });
 
-  test("window=season — uses g.season binding", async () => {
+  test("window=season uses g.season binding", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     await getTopPerformances({
       league: "nba", type: "performances", window: "season",
@@ -349,7 +231,7 @@ describe("getTopPerformances — new params", () => {
     expect(binds).toContain("2025-26");
   });
 
-  test("window=all — no date predicate", async () => {
+  test("window=all → no date predicate", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     await getTopPerformances({
       league: "nba", type: "performances", window: "all",
@@ -360,14 +242,14 @@ describe("getTopPerformances — new params", () => {
     expect(sql).not.toMatch(/g\.season/);
   });
 
-  test("legacy: type=games + days=7 still works (alias)", async () => {
+  test("legacy: type=games + days=7 still works", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     const out = await getTopPerformances({ league: "nba", days: 7, type: "games", limit: 5 });
-    expect(out.type).toBe("performances");  // canonicalized
+    expect(out.type).toBe("performances");
     expect(mockQuery.mock.calls[0][0]).toMatch(/INTERVAL '7 days'/);
   });
 
-  test("cache key includes all filter params", async () => {
+  test("cache key includes all filters", async () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     await getTopPerformances({
       league: "nba", type: "performances", window: "week",
@@ -391,7 +273,7 @@ describe("getTopPerformances — new params", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to confirm they fail**
+- [ ] **Step 3: Run tests — confirm fail**
 
 ```bash
 cd backend && npm test -- topPerformancesService
@@ -399,9 +281,9 @@ cd backend && npm test -- topPerformancesService
 
 Expected: FAIL.
 
-- [ ] **Step 3: Refactor service**
+- [ ] **Step 4: Implement service refactor**
 
-Replace `backend/src/services/games/topPerformancesService.js` body with:
+Replace `backend/src/services/games/topPerformancesService.js`:
 
 ```js
 import pool from "../../db/db.js";
@@ -413,14 +295,13 @@ const TTL_BY_WINDOW = {
   today: 30,
   week: 60,
   month: 5 * 60,
-  season: 5 * 60,        // current-season; past-season collapses to season anyway
+  season: 5 * 60,
   all: 60 * 60,
 };
 
 const TYPE_ALIASES = { games: "performances", cumulative: "rankings" };
 const ALLOWED_TYPES = new Set(["performances", "rankings", "plays"]);
 const ALLOWED_SORTS = new Set(["desc", "asc"]);
-
 const ALLOWED_WINDOWS = new Set(["today", "week", "month", "season", "all"]);
 const ALLOWED_POSITIONS = new Set(["all", "G", "F", "C"]);
 
@@ -431,7 +312,6 @@ function clamp(n, lo, hi) {
   return n;
 }
 
-// Map legacy `days` to a window string when no window provided.
 function daysToWindow(days) {
   const d = parseInt(days, 10);
   if (Number.isNaN(d)) return null;
@@ -440,13 +320,42 @@ function daysToWindow(days) {
   return "month";
 }
 
-export function resolveWindow(window, opts = {}) { /* … as Task 3 … */ }
-export function positionPredicate(position) { /* … as Task 3 … */ }
+export function resolveWindow(window, opts = {}) {
+  if (!ALLOWED_WINDOWS.has(window)) {
+    const err = new Error(`invalid window: ${window}`); err.status = 400; throw err;
+  }
+  switch (window) {
+    case "today":
+      return { predicate: "g.date = (NOW() AT TIME ZONE 'America/New_York')::date", binds: [] };
+    case "week":
+      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '7 days'", binds: [] };
+    case "month":
+      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '30 days'", binds: [] };
+    case "season":
+      if (!opts.season) {
+        const err = new Error("season required for window=season"); err.status = 500; throw err;
+      }
+      return { predicate: "g.season = $WIN1", binds: [opts.season] };
+    case "all":
+      return { predicate: "", binds: [] };
+  }
+}
+
+export function positionPredicate(position) {
+  if (!ALLOWED_POSITIONS.has(position)) {
+    const err = new Error(`invalid position: ${position}`); err.status = 400; throw err;
+  }
+  switch (position) {
+    case "all": return "";
+    case "G":   return "p.position ~* '^(PG|SG|G)'";
+    case "F":   return "p.position ~* '^(SF|PF|F)'";
+    case "C":   return "p.position ~* '^C'";
+  }
+}
 
 export async function getTopPerformances({
   league, type, window, sort = "desc", position = "all", limit, days,
 }) {
-  // Type aliases for back-compat
   const canonicalType = TYPE_ALIASES[type] ?? type ?? "performances";
   if (!ALLOWED_TYPES.has(canonicalType)) {
     const err = new Error(`invalid type: ${type}`); err.status = 400; throw err;
@@ -454,7 +363,6 @@ export async function getTopPerformances({
   if (!ALLOWED_SORTS.has(sort)) {
     const err = new Error(`invalid sort: ${sort}`); err.status = 400; throw err;
   }
-  // Window: explicit > derived from days > "week" default
   const canonicalWindow = window ?? daysToWindow(days) ?? "week";
   if (!ALLOWED_WINDOWS.has(canonicalWindow)) {
     const err = new Error(`invalid window: ${canonicalWindow}`); err.status = 400; throw err;
@@ -474,23 +382,14 @@ export async function getTopPerformances({
     const ctx = { league, window: canonicalWindow, season, sort, position, limit: safeLimit };
     if (canonicalType === "performances") return queryPerformances(ctx);
     if (canonicalType === "rankings")     return queryRankings(ctx);
-    return queryPlays(ctx);   // Task 5
+    return queryPlays(ctx);
   });
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Build a `{sql, binds}` shaped fragment with the window predicate and position
- * predicate inlined and bind placeholders renumbered. Returns the SQL fragment
- * starting with " AND " when non-empty (or "") plus the resolved bind list
- * starting at $startIdx.
- */
 function buildFilters({ window, season, position }, startIdx) {
   const parts = [];
   const binds = [];
   let idx = startIdx;
-
   const w = resolveWindow(window, { season });
   if (w.predicate) {
     let frag = w.predicate;
@@ -503,7 +402,6 @@ function buildFilters({ window, season, position }, startIdx) {
   }
   const pp = positionPredicate(position);
   if (pp) parts.push(pp);
-
   return {
     sql: parts.length ? " AND " + parts.join(" AND ") : "",
     binds,
@@ -511,21 +409,19 @@ function buildFilters({ window, season, position }, startIdx) {
   };
 }
 
-// ─── Performances (single best/worst games) ──────────────────────────────────
-
 async function queryPerformances({ league, window, season, sort, position, limit }) {
-  const f = buildFilters({ window, season, position }, 3); // $1=league, $2=limit
+  const f = buildFilters({ window, season, position }, 3);
   const { rows } = await pool.query(
     `SELECT s.playerid, s.gameid, s.rating,
             p.name, p.image_url, p.position,
             g.date,
             g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
             s.points, s.rebounds, s.assists,
-            t.id   AS team_id,
+            t.id AS team_id,
             t.abbreviation, t.logo_url, t.primary_color,
-            ot.id  AS opp_id,
+            ot.id AS opp_id,
             ot.abbreviation AS opp_abbreviation,
-            ot.logo_url     AS opp_logo_url
+            ot.logo_url AS opp_logo_url
        FROM stats s
        JOIN games   g ON g.id = s.gameid
        JOIN players p ON p.id = s.playerid
@@ -540,14 +436,8 @@ async function queryPerformances({ league, window, season, sort, position, limit
       LIMIT $2`,
     [league, limit, ...f.binds],
   );
-  return {
-    type: "performances",
-    window,
-    performances: rows.map(shapeGameRow),
-  };
+  return { type: "performances", window, performances: rows.map(shapeGameRow) };
 }
-
-// ─── Rankings (cumulative leaderboard) ───────────────────────────────────────
 
 async function queryRankings({ league, window, season, sort, position, limit }) {
   const f = buildFilters({ window, season, position }, 3);
@@ -560,7 +450,7 @@ async function queryRankings({ league, window, season, sort, position, limit }) 
             MAX(s.rating)  AS best_game_rating,
             (ARRAY_AGG(ot.abbreviation ORDER BY s.rating DESC))[1] AS best_opp_abbreviation,
             p.name, p.image_url, p.position,
-            t.id           AS team_id,
+            t.id AS team_id,
             t.abbreviation, t.logo_url, t.primary_color
        FROM stats s
        JOIN games   g ON g.id = s.gameid
@@ -577,32 +467,82 @@ async function queryRankings({ league, window, season, sort, position, limit }) 
       LIMIT $2`,
     [league, limit, ...f.binds],
   );
-  return {
-    type: "rankings",
-    window,
-    performances: rows.map(shapeCumulativeRow),
-  };
+  return { type: "rankings", window, performances: rows.map(shapeCumulativeRow) };
 }
 
 async function queryPlays(_ctx) {
-  // Implemented in Task 5
   throw new Error("queryPlays not yet implemented");
 }
 
-// shapeGameRow, shapeCumulativeRow, round1, round2 — keep existing definitions verbatim.
+function shapeGameRow(r) {
+  const rating = Number(r.rating);
+  return {
+    player: {
+      id: r.playerid,
+      name: r.name,
+      imageUrl: r.image_url,
+      position: r.position,
+      team: {
+        id: r.team_id,
+        abbreviation: r.abbreviation,
+        logo: r.logo_url,
+        primary_color: r.primary_color,
+      },
+    },
+    game: {
+      id: r.gameid,
+      date: r.date,
+      opponent: { id: r.opp_id, abbreviation: r.opp_abbreviation, logo: r.opp_logo_url },
+      isHome: r.team_id === r.hometeamid,
+      result: r.homescore != null && r.awayscore != null
+        ? ((r.team_id === r.hometeamid && r.homescore > r.awayscore) ||
+           (r.team_id === r.awayteamid && r.awayscore > r.homescore) ? "W" : "L")
+        : null,
+    },
+    rating,
+    ratingGrade: round1(gradeFromRaw(rating)),
+    stats: { points: r.points, rebounds: r.rebounds, assists: r.assists },
+  };
+}
+
+function shapeCumulativeRow(r) {
+  return {
+    player: {
+      id: r.playerid,
+      name: r.name,
+      imageUrl: r.image_url,
+      position: r.position,
+      team: {
+        id: r.team_id,
+        abbreviation: r.abbreviation,
+        logo: r.logo_url,
+        primary_color: r.primary_color,
+      },
+    },
+    totalRating: Number(r.total_rating),
+    gamesPlayed: parseInt(r.games_played, 10),
+    avgPerGame: round2(Number(r.avg_per_game)),
+    bestGame: {
+      gameId: r.best_game_id,
+      rating: Number(r.best_game_rating),
+      opponentAbbreviation: r.best_opp_abbreviation,
+    },
+  };
+}
+
+function round1(n) { return n == null ? null : Math.round(n * 10) / 10; }
+function round2(n) { return n == null ? null : Math.round(n * 100) / 100; }
 ```
 
-(Keep `shapeGameRow`, `shapeCumulativeRow`, `round1`, `round2` from the original file.)
-
-- [ ] **Step 4: Run tests**
+- [ ] **Step 5: Run tests**
 
 ```bash
 cd backend && npm test -- topPerformancesService
 ```
 
-Expected: PASS for new tests AND existing tests (legacy params still work). The "type=plays" test will be added in Task 5.
+Expected: PASS for new tests + existing tests (legacy params still work).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add backend/src/services/games/topPerformancesService.js backend/__tests__/services/games/topPerformancesService.test.js
@@ -611,13 +551,13 @@ git commit -m "refactor(top-performances): accept window/sort/position params wi
 
 ---
 
-### Task 5: Implement `queryPlays` (with tests)
+### Task 3: Implement queryPlays  [REVIEW]
 
 **Files:**
 - Modify: `backend/src/services/games/topPerformancesService.js`
 - Modify: `backend/__tests__/services/games/topPerformancesService.test.js`
 
-Top plays leaderboard. Joins `play_ratings` → `plays` → `players` → `games` → `teams` (player team derived via `stats(s.playerid, s.gameid).teamid`, falling back to `players.teamid`). Returns play description, weighted_value, period, clock, plus the same player/team/game envelope.
+Joins `play_ratings` → `plays` → `players` → `games` → `teams` (player team via `LEFT JOIN stats`, falling back to `players.teamid`).
 
 - [ ] **Step 1: Write failing test**
 
@@ -634,7 +574,7 @@ describe("queryPlays (type=plays)", () => {
           play_id: 9001, player_id: 11, game_id: 100,
           weighted_value: "4.8", wpa_delta: "0.18",
           period: 4, clock: "0:32",
-          description: "Stephen Curry makes 27-foot three pointer (assist by Draymond Green)",
+          description: "Stephen Curry makes 27-foot three pointer",
           name: "Stephen Curry", image_url: "/curry.png", position: "G",
           date: new Date("2026-05-05"),
           hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
@@ -650,7 +590,6 @@ describe("queryPlays (type=plays)", () => {
     });
 
     expect(out.type).toBe("plays");
-    expect(out.performances).toHaveLength(1);
     const row = out.performances[0];
     expect(row.play.id).toBe(9001);
     expect(row.play.weightedValue).toBeCloseTo(4.8, 1);
@@ -682,13 +621,13 @@ cd backend && npm test -- topPerformancesService
 
 Expected: FAIL ("queryPlays not yet implemented").
 
-- [ ] **Step 3: Implement `queryPlays`**
+- [ ] **Step 3: Implement queryPlays + shapePlayRow**
 
-In `backend/src/services/games/topPerformancesService.js`, replace the `queryPlays` stub with:
+Replace the `queryPlays` stub in `backend/src/services/games/topPerformancesService.js`:
 
 ```js
 async function queryPlays({ league, window, season, sort, position, limit }) {
-  const f = buildFilters({ window, season, position }, 3); // $1=league, $2=limit
+  const f = buildFilters({ window, season, position }, 3);
   const { rows } = await pool.query(
     `SELECT pr.play_id,
             pr.player_id,
@@ -701,11 +640,11 @@ async function queryPlays({ league, window, season, sort, position, limit }) {
             p.name, p.image_url, p.position,
             g.date,
             g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
-            t.id            AS team_id,
+            t.id AS team_id,
             t.abbreviation, t.logo_url, t.primary_color,
-            ot.id           AS opp_id,
+            ot.id AS opp_id,
             ot.abbreviation AS opp_abbreviation,
-            ot.logo_url     AS opp_logo_url
+            ot.logo_url AS opp_logo_url
        FROM play_ratings pr
        JOIN plays    pl ON pl.id = pr.play_id
        JOIN players  p  ON p.id  = pr.player_id
@@ -722,11 +661,7 @@ async function queryPlays({ league, window, season, sort, position, limit }) {
       LIMIT $2`,
     [league, limit, ...f.binds],
   );
-  return {
-    type: "plays",
-    window,
-    performances: rows.map(shapePlayRow),
-  };
+  return { type: "plays", window, performances: rows.map(shapePlayRow) };
 }
 
 function shapePlayRow(r) {
@@ -784,20 +719,12 @@ git commit -m "feat(top-performances): add type=plays query branch"
 
 ---
 
-### Task 6: Update controller to forward new query params
+### Task 4: Update controller to forward new params  [TRIVIAL]
 
 **Files:**
 - Modify: `backend/src/controllers/games/topPerformancesController.js`
 
-- [ ] **Step 1: Read current controller**
-
-```bash
-cat backend/src/controllers/games/topPerformancesController.js
-```
-
-- [ ] **Step 2: Update controller**
-
-Replace contents with:
+- [ ] **Step 1: Replace controller body**
 
 ```js
 import { getTopPerformances } from "../../services/games/topPerformancesService.js";
@@ -819,27 +746,19 @@ export async function topPerformances(req, res, next) {
 }
 ```
 
-- [ ] **Step 3: Run lint + service-level tests**
+- [ ] **Step 2: Lint + manual smoke**
 
 ```bash
-cd backend && npm run lint && npm test -- topPerformances
-```
-
-Expected: pass.
-
-- [ ] **Step 4: Manual smoke test**
-
-```bash
-cd backend && npm run dev
-# in another shell:
-curl -s "http://localhost:3000/api/nba/top-performances?type=plays&window=week&sort=desc&position=all&limit=5" | jq '.performances | length, .[0].play'
+cd backend && npm run lint && npm run dev
+# In another shell:
+curl -s "http://localhost:3000/api/nba/top-performances?type=plays&window=week&sort=desc&limit=5" | jq '.performances | length, .[0].play'
 curl -s "http://localhost:3000/api/nba/top-performances?type=rankings&window=season&position=G&limit=5" | jq '.performances[0:2]'
 curl -s "http://localhost:3000/api/nba/top-performances?type=games&days=7&limit=5" | jq '.type'
 ```
 
-Expected: first returns up to 5 plays; second returns guards-only rankings for the season; third returns `"performances"` (canonicalized).
+Expected: first returns up to 5 plays; second returns guards-only rankings; third returns `"performances"` (canonicalized).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add backend/src/controllers/games/topPerformancesController.js
@@ -850,14 +769,14 @@ git commit -m "feat(top-performances): forward window/sort/position from control
 
 ## Phase 2 — Frontend wiring
 
-### Task 7: Update API + query.js + hook signatures
+### Task 5: Update API + query.js + hook  [TRIVIAL]
 
 **Files:**
 - Modify: `frontend/src/api/topPerformances.js`
 - Modify: `frontend/src/lib/query.js`
 - Modify: `frontend/src/hooks/data/useTopPerformances.js`
 
-- [ ] **Step 1: Update API client**
+- [ ] **Step 1: API client**
 
 Replace `frontend/src/api/topPerformances.js`:
 
@@ -875,9 +794,9 @@ export function getTopPerformances(
 }
 ```
 
-- [ ] **Step 2: Update query keys + fns**
+- [ ] **Step 2: query.js — keys + fns**
 
-In `frontend/src/lib/query.js`, replace the `topPerformances` entries:
+In `frontend/src/lib/query.js`, replace the `topPerformances` entries in both `queryKeys` and `queryFns`:
 
 ```js
 // queryKeys
@@ -889,7 +808,7 @@ topPerformances: (league, opts) =>
   ({ signal }) => getTopPerformances(league, { ...opts, signal }),
 ```
 
-- [ ] **Step 3: Update hook**
+- [ ] **Step 3: Hook**
 
 Replace `frontend/src/hooks/data/useTopPerformances.js`:
 
@@ -923,13 +842,13 @@ export function useTopPerformances(league, opts = {}) {
 }
 ```
 
-- [ ] **Step 4: Run frontend lint**
+- [ ] **Step 4: Lint**
 
 ```bash
 cd frontend && npm run lint
 ```
 
-Expected: passes (or only warnings about unused exports until Task 11 lands).
+Expected: passes (warnings about unused exports until later tasks land are OK).
 
 - [ ] **Step 5: Commit**
 
@@ -940,13 +859,12 @@ git commit -m "feat(highlights): extend topPerformances client/hook for new filt
 
 ---
 
-### Task 8: Extract shared `HeroRow` and `CompactRow`
+### Task 6: Frontend primitives — HeroRow + CompactRow + FilterBar  [TRIVIAL]
 
 **Files:**
 - Create: `frontend/src/components/highlights/rows/HeroRow.jsx`
 - Create: `frontend/src/components/highlights/rows/CompactRow.jsx`
-
-These are presentation-only — accept primitives + a `to` link target. Per-tab content variation is handled by the tab-list components passing primitive props.
+- Create: `frontend/src/components/highlights/filters/FilterBar.jsx`
 
 - [ ] **Step 1: Create `HeroRow.jsx`**
 
@@ -954,9 +872,9 @@ These are presentation-only — accept primitives + a `to` link target. Per-tab 
 import { Link } from "react-router-dom";
 
 const TIER_STYLES = {
-  1: { height: "h-[88px]", number: "text-3xl", value: "text-3xl",   img: "w-14 h-14 ring-2", margin: "mb-3" },
-  2: { height: "h-[72px]", number: "text-2xl", value: "text-2xl",   img: "w-12 h-12 ring-2", margin: "mb-2.5" },
-  3: { height: "h-[64px]", number: "text-xl",  value: "text-xl",    img: "w-10 h-10 ring-1", margin: "mb-2" },
+  1: { height: "h-[88px]", number: "text-3xl", value: "text-3xl", img: "w-14 h-14 ring-2", margin: "mb-3" },
+  2: { height: "h-[72px]", number: "text-2xl", value: "text-2xl", img: "w-12 h-12 ring-2", margin: "mb-2.5" },
+  3: { height: "h-[64px]", number: "text-xl",  value: "text-xl",  img: "w-10 h-10 ring-1", margin: "mb-2" },
 };
 
 export default function HeroRow({ rank, color = "#e8863a", to, imageUrl, name, meta, value, onMouseEnter }) {
@@ -1017,23 +935,7 @@ export default function CompactRow({ rank, to, imageUrl, name, meta, value, onMo
 }
 ```
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add frontend/src/components/highlights/rows
-git commit -m "feat(highlights): extract HeroRow + CompactRow shared row primitives"
-```
-
----
-
-### Task 9: Build `FilterBar`
-
-**Files:**
-- Create: `frontend/src/components/highlights/filters/FilterBar.jsx`
-
-URL-param driven. Two pill rails (Window, Position) + one toggle (Sort). Sort hidden via prop when caller doesn't want it (kept simple — but spec says all 3 tabs share filters, so always shown).
-
-- [ ] **Step 1: Create `FilterBar.jsx`**
+- [ ] **Step 3: Create `FilterBar.jsx`**
 
 ```jsx
 import { useSearchParams } from "react-router-dom";
@@ -1102,25 +1004,111 @@ function PillRow({ label, options, active, onSelect }) {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add frontend/src/components/highlights/filters
-git commit -m "feat(highlights): add FilterBar (window/position/sort)"
+git add frontend/src/components/highlights/rows frontend/src/components/highlights/filters
+git commit -m "feat(highlights): add HeroRow, CompactRow, FilterBar primitives"
 ```
 
 ---
 
-### Task 10: Build per-tab list components
+### Task 7: Lists (Rankings/Performances/Plays) + tests  [REVIEW]
 
 **Files:**
 - Create: `frontend/src/components/highlights/tabs/RankingsList.jsx`
 - Create: `frontend/src/components/highlights/tabs/PerformancesList.jsx`
 - Create: `frontend/src/components/highlights/tabs/PlaysList.jsx`
+- Modify: `frontend/src/__tests__/components/TopPerformancesCard.test.jsx`
 
-All three follow the same shape: call `useTopPerformances` with the right `type`, render top-3 as `HeroRow`, rest as `CompactRow`. Differ only in `to` link, `meta`, `value`.
+- [ ] **Step 1: Write failing tests first**
 
-- [ ] **Step 1: Create `RankingsList.jsx`**
+Replace `frontend/src/__tests__/components/TopPerformancesCard.test.jsx`:
+
+```jsx
+import { describe, test, expect, vi, beforeEach } from "vitest";
+import { screen } from "@testing-library/react";
+import { renderWithProviders } from "../helpers/testUtils.jsx";
+import RankingsList from "../../components/highlights/tabs/RankingsList.jsx";
+import PerformancesList from "../../components/highlights/tabs/PerformancesList.jsx";
+import PlaysList from "../../components/highlights/tabs/PlaysList.jsx";
+
+vi.mock("../../hooks/data/useTopPerformances.js", () => ({
+  useTopPerformances: vi.fn(),
+}));
+import { useTopPerformances } from "../../hooks/data/useTopPerformances.js";
+
+const player = (id, name = "Player " + id) => ({
+  id, name, slug: name.toLowerCase().replace(/\s+/g, "-"),
+  imageUrl: "/p.png", position: "G",
+  team: { id: 1, abbreviation: "GSW", primary_color: "#1D428A" },
+});
+const game = (id, opp = "LAL") => ({
+  id, date: "2026-05-08T00:00:00Z",
+  opponent: { id: 2, abbreviation: opp }, isHome: true, result: "W",
+});
+
+beforeEach(() => useTopPerformances.mockReset());
+
+describe("RankingsList", () => {
+  test("renders top 3 as heroes and rest as compact", () => {
+    useTopPerformances.mockReturnValue({
+      isLoading: false,
+      data: { performances: Array.from({ length: 5 }, (_, i) => ({
+        player: player(i + 1), totalRating: 100 - i, gamesPlayed: 5, avgPerGame: 20 - i,
+      })) },
+    });
+    renderWithProviders(<RankingsList window="week" sort="desc" position="all" />);
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.getByText("#3")).toBeInTheDocument();
+    expect(screen.getByText("4")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+  });
+});
+
+describe("PerformancesList", () => {
+  test("row links to ?tab=analysis#slug", () => {
+    useTopPerformances.mockReturnValue({
+      isLoading: false,
+      data: { performances: [{
+        player: player(1, "Curry"),
+        game: game(100),
+        ratingGrade: 9.5,
+        stats: { points: 40, rebounds: 5, assists: 7 },
+      }] },
+    });
+    renderWithProviders(<PerformancesList window="week" sort="desc" position="all" />);
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toMatch(/\/games\/100\?tab=analysis#curry$/);
+  });
+});
+
+describe("PlaysList", () => {
+  test("row links to ?tab=plays#play-<id>", () => {
+    useTopPerformances.mockReturnValue({
+      isLoading: false,
+      data: { performances: [{
+        player: player(1),
+        game: game(100),
+        play: { id: 9001, description: "Curry 3PT", period: 4, clock: "0:32", weightedValue: 4.8 },
+      }] },
+    });
+    renderWithProviders(<PlaysList window="week" sort="desc" position="all" />);
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toMatch(/\/games\/100\?tab=plays#play-9001$/);
+  });
+});
+```
+
+- [ ] **Step 2: Run tests — confirm fail**
+
+```bash
+cd frontend && npm test -- TopPerformancesCard
+```
+
+Expected: FAIL — list components don't exist yet.
+
+- [ ] **Step 3: Create `RankingsList.jsx`**
 
 ```jsx
 import { useQueryClient } from "@tanstack/react-query";
@@ -1130,13 +1118,19 @@ import HeroRow from "../rows/HeroRow.jsx";
 import CompactRow from "../rows/CompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
 
-export default function RankingsList({ league = "nba", window, sort, position }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "rankings", window, sort, position, limit: 25 });
+export default function RankingsList({ league = "nba", window: win, sort, position }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "rankings", window: win, sort, position, limit: 25 });
   const qc = useQueryClient();
 
   if (isLoading) return <TopPerformersSkeleton />;
   const items = data?.performances ?? [];
-  if (!items.length) return <Empty window={window} />;
+  if (!items.length) {
+    return (
+      <p className="text-center text-text-tertiary text-sm py-12">
+        {win === "today" ? "No final games today yet." : "No rankings for this window."}
+      </p>
+    );
+  }
 
   return (
     <ul className="flex flex-col gap-1">
@@ -1171,14 +1165,9 @@ export default function RankingsList({ league = "nba", window, sort, position })
     </ul>
   );
 }
-
-function Empty({ window }) {
-  const msg = window === "today" ? "No final games today yet." : "No rankings for this window.";
-  return <p className="text-center text-text-tertiary text-sm py-12">{msg}</p>;
-}
 ```
 
-- [ ] **Step 2: Create `PerformancesList.jsx`**
+- [ ] **Step 4: Create `PerformancesList.jsx`**
 
 ```jsx
 import { useQueryClient } from "@tanstack/react-query";
@@ -1191,15 +1180,21 @@ import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
-export default function PerformancesList({ league = "nba", window, sort, position }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "performances", window, sort, position, limit: 25 });
+export default function PerformancesList({ league = "nba", window: win, sort, position }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "performances", window: win, sort, position, limit: 25 });
   const qc = useQueryClient();
 
   if (isLoading) return <TopPerformersSkeleton />;
   const items = data?.performances ?? [];
-  if (!items.length) return <Empty window={window} />;
+  if (!items.length) {
+    return (
+      <p className="text-center text-text-tertiary text-sm py-12">
+        {win === "today" ? "No final games today yet." : "No performances for this window."}
+      </p>
+    );
+  }
 
-  const showDate = SHOW_DATE_FOR.has(window);
+  const showDate = SHOW_DATE_FOR.has(win);
   return (
     <ul className="flex flex-col gap-1">
       {items.map((it, i) => {
@@ -1234,11 +1229,6 @@ export default function PerformancesList({ league = "nba", window, sort, positio
   );
 }
 
-function Empty({ window }) {
-  const msg = window === "today" ? "No final games today yet." : "No performances for this window.";
-  return <p className="text-center text-text-tertiary text-sm py-12">{msg}</p>;
-}
-
 function formatDate(d) {
   const date = typeof d === "string" ? new Date(d) : d;
   if (Number.isNaN(date.getTime())) return "";
@@ -1246,7 +1236,7 @@ function formatDate(d) {
 }
 ```
 
-- [ ] **Step 3: Create `PlaysList.jsx`**
+- [ ] **Step 5: Create `PlaysList.jsx`**
 
 ```jsx
 import { useQueryClient } from "@tanstack/react-query";
@@ -1258,15 +1248,21 @@ import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
-export default function PlaysList({ league = "nba", window, sort, position }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "plays", window, sort, position, limit: 25 });
+export default function PlaysList({ league = "nba", window: win, sort, position }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "plays", window: win, sort, position, limit: 25 });
   const qc = useQueryClient();
 
   if (isLoading) return <TopPerformersSkeleton />;
   const items = data?.performances ?? [];
-  if (!items.length) return <Empty window={window} />;
+  if (!items.length) {
+    return (
+      <p className="text-center text-text-tertiary text-sm py-12">
+        {win === "today" ? "No plays from today yet." : "No plays for this window."}
+      </p>
+    );
+  }
 
-  const showDate = SHOW_DATE_FOR.has(window);
+  const showDate = SHOW_DATE_FOR.has(win);
   return (
     <ul className="flex flex-col gap-1">
       {items.map((it, i) => {
@@ -1303,11 +1299,6 @@ export default function PlaysList({ league = "nba", window, sort, position }) {
   );
 }
 
-function Empty({ window }) {
-  const msg = window === "today" ? "No plays from today yet." : "No plays for this window.";
-  return <p className="text-center text-text-tertiary text-sm py-12">{msg}</p>;
-}
-
 function truncate(s, n) {
   if (!s) return "";
   return s.length <= n ? s : s.slice(0, n - 1) + "…";
@@ -1320,16 +1311,24 @@ function formatDate(d) {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Run tests**
 
 ```bash
-git add frontend/src/components/highlights/tabs
-git commit -m "feat(highlights): add Rankings/Performances/Plays list components"
+cd frontend && npm test -- TopPerformancesCard
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add frontend/src/components/highlights/tabs frontend/src/__tests__/components/TopPerformancesCard.test.jsx
+git commit -m "feat(highlights): Rankings/Performances/Plays list components with tests"
 ```
 
 ---
 
-### Task 11: Refactor `HighlightsTab` to host 3 tabs + filter bar
+### Task 8: HighlightsTab — host 3 tabs + filter bar  [REVIEW]
 
 **Files:**
 - Modify: `frontend/src/components/highlights/HighlightsTab.jsx`
@@ -1365,17 +1364,16 @@ const slideVariants = {
 export default function HighlightsTab() {
   const [searchParams, setSearchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
-  // Aliases for back-compat with the old MVP URLs
-  const aliased = modeParam === "games" ? "performances"
-    : modeParam === "cumulative" ? "rankings"
-    : modeParam;
+  const aliased =
+    modeParam === "games" ? "performances" :
+    modeParam === "cumulative" ? "rankings" :
+    modeParam;
   const mode = TABS.some((t) => t.id === aliased) ? aliased : "rankings";
 
-  const window   = ALLOWED_WINDOWS.has(searchParams.get("win"))    ? searchParams.get("win")    : "week";
-  const position = ALLOWED_POSITIONS.has(searchParams.get("pos"))  ? searchParams.get("pos")    : "all";
-  const sort     = ALLOWED_SORTS.has(searchParams.get("sort"))     ? searchParams.get("sort")   : "desc";
+  const window   = ALLOWED_WINDOWS.has(searchParams.get("win"))   ? searchParams.get("win")   : "week";
+  const position = ALLOWED_POSITIONS.has(searchParams.get("pos")) ? searchParams.get("pos")   : "all";
+  const sort     = ALLOWED_SORTS.has(searchParams.get("sort"))    ? searchParams.get("sort")  : "desc";
 
-  // Direction tracking for slide
   const modeIdx = Math.max(0, TABS.findIndex((t) => t.id === mode));
   const prevModeIdxRef = useRef(modeIdx);
   const dirRef = useRef(0);
@@ -1384,7 +1382,6 @@ export default function HighlightsTab() {
     prevModeIdxRef.current = modeIdx;
   }
 
-  // Sliding pill indicator
   const navRef = useRef(null);
   const refs = useRef([]);
   const [bounds, setBounds] = useState(null);
@@ -1410,7 +1407,6 @@ export default function HighlightsTab() {
 
   return (
     <div>
-      {/* Tab pills */}
       <div className="flex justify-center mb-3">
         <div ref={navRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
           {bounds && (
@@ -1427,9 +1423,7 @@ export default function HighlightsTab() {
               ref={(el) => (refs.current[i] = el)}
               onClick={() => setMode(t.id)}
               className="relative px-4 py-1.5 rounded-full text-xs font-medium z-10 transition-colors duration-200"
-              style={{
-                color: mode === t.id ? "var(--color-accent)" : "var(--color-text-secondary)",
-              }}
+              style={{ color: mode === t.id ? "var(--color-accent)" : "var(--color-text-secondary)" }}
             >
               {t.label}
             </button>
@@ -1481,13 +1475,11 @@ git rm frontend/src/components/highlights/TopPerformers.jsx
 
 ```bash
 cd frontend && npm run dev
-# In a browser, visit http://localhost:5173/pulse
-# Click each of the 3 tabs, change window/sort/position. Watch URL update.
-# Click a Performances row → confirm GamePage opens analysis tab and scrolls to player.
-# Click a Plays row → confirm GamePage opens plays tab. Scroll/highlight will land in Task 13.
+# Visit http://localhost:5173/pulse
+# Tab through Rankings / Performances / Plays
+# Cycle filters (window/sort/position); URL updates
+# Click rows to verify navigation
 ```
-
-Expected: tabs render, filters work, URL stays in sync, rows navigate correctly. (Plays scroll-to-row may not yet land — that's Task 13.)
 
 - [ ] **Step 4: Commit**
 
@@ -1498,129 +1490,17 @@ git commit -m "feat(highlights): host 3 tabs (Rankings/Performances/Plays) + fil
 
 ---
 
-### Task 12: Update component tests
-
-**Files:**
-- Modify: `frontend/src/__tests__/components/TopPerformancesCard.test.jsx`
-
-The existing test file currently targets the old `TopPerformers` component. Re-target to verify each new list renders correctly.
-
-- [ ] **Step 1: Read existing test to understand patterns used**
-
-```bash
-cat frontend/src/__tests__/components/TopPerformancesCard.test.jsx | head -80
-```
-
-- [ ] **Step 2: Replace tests to cover the three list components**
-
-Replace the file with three `describe` blocks — one per list component. Use `renderWithProviders`, mock the hook with `vi.mock`, and assert:
-
-```jsx
-import { describe, test, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
-import { renderWithProviders } from "../helpers/testUtils.jsx";
-import RankingsList from "../../components/highlights/tabs/RankingsList.jsx";
-import PerformancesList from "../../components/highlights/tabs/PerformancesList.jsx";
-import PlaysList from "../../components/highlights/tabs/PlaysList.jsx";
-
-vi.mock("../../hooks/data/useTopPerformances.js", () => ({
-  useTopPerformances: vi.fn(),
-}));
-import { useTopPerformances } from "../../hooks/data/useTopPerformances.js";
-
-const player = (id, name = "Player " + id) => ({
-  id, name, slug: name.toLowerCase().replace(/\s+/g, "-"),
-  imageUrl: "/p.png", position: "G",
-  team: { id: 1, abbreviation: "GSW", primary_color: "#1D428A" },
-});
-const game = (id, opp = "LAL") => ({
-  id, date: "2026-05-08T00:00:00Z",
-  opponent: { id: 2, abbreviation: opp }, isHome: true, result: "W",
-});
-
-beforeEach(() => useTopPerformances.mockReset());
-
-describe("RankingsList", () => {
-  test("renders top 3 as heroes and rest as compact", () => {
-    useTopPerformances.mockReturnValue({
-      isLoading: false,
-      data: { performances: Array.from({ length: 5 }, (_, i) => ({
-        player: player(i + 1), totalRating: 100 - i, gamesPlayed: 5, avgPerGame: 20 - i,
-      })) },
-    });
-    renderWithProviders(<RankingsList window="week" sort="desc" position="all" />);
-    // Hero rows display "#1" "#2" "#3"
-    expect(screen.getByText("#1")).toBeInTheDocument();
-    expect(screen.getByText("#3")).toBeInTheDocument();
-    // Compact rows display 4 / 5
-    expect(screen.getByText("4")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-  });
-});
-
-describe("PerformancesList", () => {
-  test("Performances row links to ?tab=analysis#slug", () => {
-    useTopPerformances.mockReturnValue({
-      isLoading: false,
-      data: { performances: [{
-        player: player(1, "Curry"),
-        game: game(100),
-        ratingGrade: 9.5,
-        stats: { points: 40, rebounds: 5, assists: 7 },
-      }] },
-    });
-    renderWithProviders(<PerformancesList window="week" sort="desc" position="all" />);
-    const link = screen.getByRole("link");
-    expect(link.getAttribute("href")).toMatch(/\/games\/100\?tab=analysis#curry$/);
-  });
-});
-
-describe("PlaysList", () => {
-  test("Plays row links to ?tab=plays#play-<id>", () => {
-    useTopPerformances.mockReturnValue({
-      isLoading: false,
-      data: { performances: [{
-        player: player(1),
-        game: game(100),
-        play: { id: 9001, description: "Curry 3PT", period: 4, clock: "0:32", weightedValue: 4.8 },
-      }] },
-    });
-    renderWithProviders(<PlaysList window="week" sort="desc" position="all" />);
-    const link = screen.getByRole("link");
-    expect(link.getAttribute("href")).toMatch(/\/games\/100\?tab=plays#play-9001$/);
-  });
-});
-```
-
-- [ ] **Step 3: Run frontend tests**
-
-```bash
-cd frontend && npm test -- TopPerformancesCard
-```
-
-Expected: PASS.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add frontend/src/__tests__/components/TopPerformancesCard.test.jsx
-git commit -m "test(highlights): cover Rankings/Performances/Plays list components"
-```
-
----
-
 ## Phase 3 — Deep-link wiring
 
-### Task 13: Add row id to PlayByPlay rows
+### Task 9: PBP row id + GamePage tab fallback fix  [REVIEW]
 
 **Files:**
 - Modify: `frontend/src/components/ui/PlayByPlay.jsx`
+- Modify: `frontend/src/pages/GamePage.jsx`
 
-The existing GamePage hash-scroll effect already finds elements by `id`, scrolls them into view, and applies a 2s `bg-accent/15` highlight. We just need PBP rows to have `id="play-<id>"`.
+- [ ] **Step 1: Add row id to `PlayRow`**
 
-- [ ] **Step 1: Add id attribute to `PlayRow`'s wrapper `m.div`**
-
-In `frontend/src/components/ui/PlayByPlay.jsx`, locate the `PlayRow` function (~line 139). On the wrapping `<m.div ... >` (around line 143), add an `id` prop:
+In `frontend/src/components/ui/PlayByPlay.jsx`, locate `PlayRow` (~line 139). On the wrapping `<m.div>` (around line 143), add the `id` attribute as the first prop:
 
 ```jsx
 <m.div
@@ -1630,53 +1510,12 @@ In `frontend/src/components/ui/PlayByPlay.jsx`, locate the `PlayRow` function (~
   // ... rest unchanged
 ```
 
-- [ ] **Step 2: Verify in browser**
+- [ ] **Step 2: Update GamePage hash-scroll fallback**
 
-```bash
-cd frontend && npm run dev
-# Visit a final game's plays tab
-# In devtools console: document.querySelector('[id^="play-"]')?.id
-```
-
-Expected: returns something like `"play-12345"`.
-
-- [ ] **Step 3: Test hash scroll in browser**
-
-Visit a URL like `http://localhost:5173/nba/games/<id>?tab=plays#play-<playId>` directly. Expected: page loads on Plays tab, scrolls to the play, brief highlight pulse.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add frontend/src/components/ui/PlayByPlay.jsx
-git commit -m "feat(plays): expose row id for hash-anchor deep-linking"
-```
-
----
-
-### Task 14: Fix GamePage hash-scroll fallback so `?tab=plays` deep-links work
-
-**Files:**
-- Modify: `frontend/src/pages/GamePage.jsx`
-
-The current effect (lines 58–88) auto-switches to the `analysis` tab when the hash element isn't found. That's wrong when the URL explicitly carries `?tab=plays` and the play row is just not yet mounted (or when the hash points at a play, not a player slug).
-
-- [ ] **Step 1: Replace the fallback logic**
-
-In `frontend/src/pages/GamePage.jsx` around line 58, change the effect body. Replace:
+In `frontend/src/pages/GamePage.jsx`, locate the hash effect around line 58. Replace the `if (!row) { ... }` block with:
 
 ```jsx
 if (!row) {
-  if (activeTab !== "analysis") handleTabChange("analysis");
-  return;
-}
-```
-
-with:
-
-```jsx
-if (!row) {
-  // Only fall back to analysis if the hash looks like a player slug (no
-  // `play-` prefix) AND the URL didn't explicitly select a tab.
   const explicitTab = new URLSearchParams(location.search).get("tab");
   const hashId = location.hash.slice(1);
   if (!explicitTab && !hashId.startsWith("play-") && activeTab !== "analysis") {
@@ -1686,49 +1525,50 @@ if (!row) {
 }
 ```
 
-- [ ] **Step 2: Manual smoke test**
+- [ ] **Step 3: Manual smoke test**
 
 ```bash
 cd frontend && npm run dev
-# Visit /nba/games/<id>?tab=plays#play-<playId> — should land on Plays tab and scroll/highlight.
-# Visit /nba/games/<id>?tab=analysis#stephen-curry — should land on Analysis tab and scroll/highlight.
-# Visit /nba/games/<id>#stephen-curry — should fall back to Analysis tab (existing behavior).
+# /nba/games/<id>?tab=plays#play-<playId> → lands on Plays tab, scrolls + highlights play
+# /nba/games/<id>?tab=analysis#stephen-curry → lands on Analysis tab, scrolls + highlights player
+# /nba/games/<id>#stephen-curry → falls back to Analysis tab (existing behavior preserved)
+# /pulse → click a Plays row and a Performances row; both deep-link correctly
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add frontend/src/pages/GamePage.jsx
-git commit -m "fix(GamePage): respect ?tab= when hash target is missing on first paint"
+git add frontend/src/components/ui/PlayByPlay.jsx frontend/src/pages/GamePage.jsx
+git commit -m "feat(deep-link): PBP row ids + GamePage respects ?tab= when target id missing"
 ```
 
 ---
 
 ## Phase 4 — Docs + cleanup
 
-### Task 15: Update docs
+### Task 10: Docs updates  [TRIVIAL]
 
 **Files:**
 - Modify: `docs/api-reference.md`
 - Modify: `docs/file-map.md`
 
-- [ ] **Step 1: Update API reference**
+- [ ] **Step 1: API reference**
 
-In `docs/api-reference.md`, find the `top-performances` entry. Update its query-param table to:
+In `docs/api-reference.md`, find the `top-performances` entry. Replace its query-param table with:
 
 ```
-?type=rankings|performances|plays   (default: performances; aliases: cumulative→rankings, games→performances)
-?window=today|week|month|season|all (default: week; legacy: days=N)
-?sort=desc|asc                       (default: desc; ignored shape-wise on rankings but applies to ORDER BY)
-?position=all|G|F|C                  (default: all)
-?limit=N                             (capped at 25)
+?type=rankings|performances|plays    (default: performances; aliases: cumulative→rankings, games→performances)
+?window=today|week|month|season|all  (default: week; legacy: days=N)
+?sort=desc|asc                        (default: desc; applies to ORDER BY direction)
+?position=all|G|F|C                   (default: all)
+?limit=N                              (capped at 25)
 ```
 
-Add a one-line note: "Response includes a `play` object on rows when `type=plays` (`{id, description, period, clock, weightedValue, wpaDelta}`)."
+Add a note: "When `type=plays`, each row includes a `play` object: `{id, description, period, clock, weightedValue, wpaDelta}`."
 
-- [ ] **Step 2: Update file map**
+- [ ] **Step 2: File map**
 
-In `docs/file-map.md`, under the highlights section, replace the `TopPerformers.jsx` entry with the new tree:
+In `docs/file-map.md`, replace the `TopPerformers.jsx` entry with:
 
 ```
 frontend/src/components/highlights/
@@ -1750,7 +1590,7 @@ git commit -m "docs: document Highlights expansion (top-performances params, fil
 
 ---
 
-### Task 16: Final verify
+### Task 11: Final verify  [TRIVIAL]
 
 - [ ] **Step 1: Backend verify**
 
@@ -1768,21 +1608,18 @@ cd frontend && npm run verify
 
 Expected: lint + tests + build pass.
 
-- [ ] **Step 3: Final manual smoke pass**
+- [ ] **Step 3: Manual smoke**
 
 ```bash
 cd frontend && npm run dev
 ```
 
-- Visit `/pulse` (NBA pill active or no league pill).
-- Cycle through Rankings / Performances / Plays.
-- Cycle through windows including Season + All-time (verify cache + index responsiveness — not user-visible but confirm no obvious lag).
-- Toggle sort=Worst on Performances and Plays.
-- Filter by G / F / C.
-- Click a row in each tab and verify deep-link lands on the expected GamePage tab + scrolls + highlights.
-- On a touch-only device or in Chrome devtools mobile mode, verify no hover-prefetch fires.
+- Visit `/pulse`. Cycle Rankings / Performances / Plays.
+- Cycle windows (today/week/month/season/all); cycle sort + position.
+- Click a row in each tab; confirm correct deep-link.
+- On a touch-only device, confirm no hover-prefetch fires.
 
-- [ ] **Step 4: Push branch**
+- [ ] **Step 4: Push**
 
 ```bash
 git push origin HEAD
@@ -1790,23 +1627,21 @@ git push origin HEAD
 
 ---
 
-## Self-review (post-write)
+## Self-review
 
-Spec coverage check:
-- 3 tabs (Rankings/Performances/Plays): T11 ✓
-- Windows (today/week/month/season/all): T3 (resolveWindow), T4 (wired in service), T9 (FilterBar), T11 (URL parsing) ✓
-- Sort high/low on all 3 tabs: T4 (service), T9 (FilterBar), T11 ✓
-- Position filter (All/G/F/C): T3, T4, T9, T11 ✓
-- Top 3 heroes + 4–25 compact: T8, T10 ✓
-- Performances → `?tab=analysis#slug`: T10 (PerformancesList), T12 ✓
-- Plays → `?tab=plays#play-id` + PBP row id + GamePage fallback fix: T10, T13, T14 ✓
-- Rankings → PlayerPage: T10 ✓
-- Date column on today/week: T10 ✓
-- Cache TTLs per window: T4 ✓
-- Indexes: T1 ✓
-- CACHE_VERSION bump: T2 ✓
-- Legacy params (days, type=games|cumulative) still work: T4 (alias logic + test) ✓
-- NBA-only gate: existing controller check preserved in T6 ✓
-- PBP "isNew" collision: low risk, called out in spec; existing GamePage highlight logic owns the visual, isNew flash is short and orthogonal — no task needed unless observed in T16 smoke.
+Spec coverage:
+- 3 tabs (Rankings/Performances/Plays): T8 ✓
+- Windows (today/week/month/season/all): T2 (resolveWindow), T6 (FilterBar), T8 (URL parsing) ✓
+- Sort high/low across all 3 tabs: T2/T3 (service), T6 (FilterBar), T8 ✓
+- Position filter (All/G/F/C): T2, T6, T8 ✓
+- Top 3 heroes + 4–25 compact: T6 (HeroRow tier styles), T7 ✓
+- Performances → `?tab=analysis#slug`: T7 ✓
+- Plays → `?tab=plays#play-id` + PBP row id + GamePage fix: T7, T9 ✓
+- Rankings → PlayerPage: T7 ✓
+- Date column on today/week: T7 ✓
+- Cache TTLs per window: T2 ✓
+- Indexes + CACHE_VERSION bump: T1 ✓
+- Legacy params (days, type=games|cumulative) still work: T2 (alias logic + test) ✓
+- NBA-only gate preserved: T4 ✓
 
-No placeholders found. Type and function names consistent across tasks (`resolveWindow`, `positionPredicate`, `buildFilters`, `queryPerformances`, `queryRankings`, `queryPlays`, `shapePlayRow`).
+No placeholders. Type/function names consistent across tasks (`resolveWindow`, `positionPredicate`, `buildFilters`, `queryPerformances`, `queryRankings`, `queryPlays`, `shapePlayRow`).
