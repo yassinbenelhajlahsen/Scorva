@@ -1,16 +1,17 @@
 /**
  * NBA player rating engine — pure-function helpers + per-game recompute.
  *
- * Per-play rating model:
- *   weighted = clamp(base_value + wpa_contribution, -10.0, +10.0)
- *   base_value     = role-specific weight (see NBA_BASE_WEIGHTS)
- *   wpa_contribution = WPA_WEIGHT × wpa_delta × team_sign
+ * Per-play rating model (v2):
+ *   weighted = clamp(base_value + wpa_contribution, -MAX_PER_PLAY, +MAX_PER_PLAY)
+ *   base_value       = role-specific weight (see NBA_BASE_WEIGHTS)
+ *   wpa_contribution = WPA_WEIGHT × sqrt(|wpa_delta|) × sign(wpa_delta) × team_sign × role_mult
  *   team_sign = +1 if play helped player's team's win prob, -1 otherwise
  *
- * Per-game = sum of (player's plays clamped values), open-ended.
- * Per-display grade = clamp(0, 10, GRADE_COEFFICIENT × sqrt(raw)).
+ * Per-game raw = sum of weighted play values, open-ended.
+ * Per-display  = displayValue(raw) scales model ±MAX_PER_PLAY to user-facing ±10.
+ * Per-display grade = clamp(-10, 10, GRADE_COEFFICIENT × sqrt(|raw|) × sign).
  *
- * The square-root curve was calibrated against Real App's published grades
+ * The square-root grade curve was calibrated against Real App's published grades
  * (Barnes 47.9 raw → 6.4; LeBron 24.9 raw → 4.6) — fits both within ~0.05.
  * It lifts mid-range performances (a solid 15-pt bench game now reads ~3
  * instead of <1) and compresses the top so historic 50+ raw games hit 10
@@ -21,8 +22,26 @@
 
 import { getWinProbability } from "./winProbabilityService.js";
 
-const WPA_WEIGHT = 30;
+// v2: smaller weight + sqrt compression on wpa_delta
+const WPA_WEIGHT = 18;
 const GRADE_COEFFICIENT = 0.92;
+const MAX_PER_PLAY = 6;       // internal "model space" clamp
+const DISPLAY_SCALE = 10 / 6; // scale model values to user-facing ±10 range
+
+// Per-role share of the WPA contribution. Scorer is the primary credit-receiver;
+// secondary roles get a fraction so a clutch shooter and assister don't both cap.
+const ROLE_WPA_MULT = {
+  scorer:             1.0,
+  shot_attempter:     0.5,
+  assister:           0.4,
+  blocker:            0.5,
+  stealer:            0.5,
+  charge_drawer:      0.5,
+  turnover_committer: 0.6,
+  foul_committer:     0.3,
+  rebounder:          0.4,  // overridden to 0.25 for defensive in wpaContribution
+  heave_attempter:    0,
+};
 
 export function gradeFromRaw(raw) {
   if (raw == null) return null;
@@ -45,9 +64,13 @@ export function attachRatingGrade(obj) {
 }
 
 export function clampPlayValue(v) {
-  if (v > 10) return 10;
-  if (v < -10) return -10;
+  if (v > MAX_PER_PLAY) return MAX_PER_PLAY;
+  if (v < -MAX_PER_PLAY) return -MAX_PER_PLAY;
   return v;
+}
+
+export function displayValue(modelValue) {
+  return modelValue * DISPLAY_SCALE;
 }
 
 export function wpaContribution(wpaDelta, side /* "home" | "away" */) {

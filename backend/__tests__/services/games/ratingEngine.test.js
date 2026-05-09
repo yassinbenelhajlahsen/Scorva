@@ -3,6 +3,7 @@ import {
   baseValue,
   wpaContribution,
   clampPlayValue,
+  displayValue,
 } from "../../../src/services/games/ratingEngine.js";
 
 describe("gradeFromRaw", () => {
@@ -86,10 +87,19 @@ describe("wpaContribution", () => {
   });
 });
 
-describe("clampPlayValue", () => {
+describe("clampPlayValue (model space, ±6)", () => {
   test("normal range passes through", () => { expect(clampPlayValue(2.3)).toBe(2.3); });
-  test("clamps to +10", () => { expect(clampPlayValue(20)).toBe(10); });
-  test("clamps to -10", () => { expect(clampPlayValue(-25)).toBe(-10); });
+  test("clamps to +6", () => { expect(clampPlayValue(20)).toBe(6); });
+  test("clamps to -6", () => { expect(clampPlayValue(-25)).toBe(-6); });
+  test("boundary +6 stays +6", () => { expect(clampPlayValue(6)).toBe(6); });
+  test("boundary -6 stays -6", () => { expect(clampPlayValue(-6)).toBe(-6); });
+});
+
+describe("displayValue (10/6 scale)", () => {
+  test("0 stays 0", () => { expect(displayValue(0)).toBe(0); });
+  test("+6 → +10", () => { expect(displayValue(6)).toBeCloseTo(10, 5); });
+  test("-6 → -10", () => { expect(displayValue(-6)).toBeCloseTo(-10, 5); });
+  test("+3 → +5", () => { expect(displayValue(3)).toBeCloseTo(5, 5); });
 });
 
 import { jest } from "@jest/globals";
