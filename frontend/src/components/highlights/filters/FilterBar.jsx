@@ -18,7 +18,7 @@ const SORTS = [
   { id: "asc",  label: "Worst" },
 ];
 
-export default function FilterBar({ window, position, sort }) {
+export default function FilterBar({ window, position, sort, showPosition = true }) {
   const [, setSearchParams] = useSearchParams();
   const setParam = (key, defaultValue) => (next) => {
     setSearchParams((prev) => {
@@ -32,7 +32,9 @@ export default function FilterBar({ window, position, sort }) {
   return (
     <div className="flex flex-wrap gap-2 mb-6">
       <Dropdown options={WINDOWS}   value={window}   onChange={setParam("win", "week")} />
-      <Dropdown options={POSITIONS} value={position} onChange={setParam("pos", "all")} />
+      {showPosition && (
+        <Dropdown options={POSITIONS} value={position} onChange={setParam("pos", "all")} />
+      )}
       <Dropdown options={SORTS}     value={sort}     onChange={setParam("sort", "desc")} />
     </div>
   );

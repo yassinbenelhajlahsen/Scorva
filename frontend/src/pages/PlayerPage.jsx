@@ -12,7 +12,6 @@ import ErrorState from "../components/ui/ErrorState.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
-import PlayerAwardsCard from "../components/cards/PlayerAwardsCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
 import StreakBadge from "../components/ui/StreakBadge.jsx";
@@ -164,16 +163,27 @@ export default function PlayerPage() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-[1500px] mx-auto px-5 sm:px-8 py-8">
-      {/* Back link */}
-      <Link
-        to={buildSeasonUrl(`/${league}`, selectedSeason)}
-        className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 mb-8 text-sm"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        <span>{league?.toUpperCase()}</span>
-      </Link>
+      {/* Back link + view-more link */}
+      <div className="flex items-center justify-between mb-8">
+        <Link
+          to={buildSeasonUrl(`/${league}`, selectedSeason)}
+          className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 text-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>{league?.toUpperCase()}</span>
+        </Link>
+        <Link
+          to={buildSeasonUrl(`/${league}/players/${slug}/details`, selectedSeason)}
+          className="inline-flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors duration-200 text-sm"
+        >
+          <span>View more</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
 
       {/* Player header + info + sidebar */}
       <div className="flex flex-col lg:flex-row gap-8 mb-12">
@@ -278,9 +288,6 @@ export default function PlayerPage() {
         {/* Similar Players sidebar — hidden by default, slides in when players are available */}
         <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
       </div>
-
-      {/* Career Honors */}
-      <PlayerAwardsCard awards={playerData.awards} />
 
       {/* Recent Performances */}
       <div>

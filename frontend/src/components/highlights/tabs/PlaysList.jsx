@@ -7,8 +7,8 @@ import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
-export default function PlaysList({ league = "nba", window: win, sort, position }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "plays", window: win, sort, position, limit: 25 });
+export default function PlaysList({ league = "nba", window: win, sort, position, playerId }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "plays", window: win, sort, position, playerId, limit: 25 });
   const qc = useQueryClient();
 
   if (isLoading) return <TopPerformersSkeleton />;
