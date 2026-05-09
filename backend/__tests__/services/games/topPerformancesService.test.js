@@ -219,3 +219,51 @@ describe("getTopPerformances — new params", () => {
     expect(mockCached).toHaveBeenCalledWith(expect.any(String), 30, expect.any(Function));
   });
 });
+
+describe("queryPlays (type=plays)", () => {
+  beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
+
+  test("returns shaped play rows", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          play_id: 9001, player_id: 11, game_id: 100,
+          weighted_value: "4.8", wpa_delta: "0.18",
+          period: 4, clock: "0:32",
+          description: "Stephen Curry makes 27-foot three pointer",
+          name: "Stephen Curry", image_url: "/curry.png", position: "G",
+          date: new Date("2026-05-05"),
+          hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
+          team_id: 1, abbreviation: "GSW", logo_url: "/gsw.png", primary_color: "#1D428A",
+          opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+        },
+      ],
+    });
+
+    const out = await getTopPerformances({
+      league: "nba", type: "plays", window: "week",
+      sort: "desc", position: "all", limit: 10,
+    });
+
+    expect(out.type).toBe("plays");
+    const row = out.performances[0];
+    expect(row.play.id).toBe(9001);
+    expect(row.play.weightedValue).toBeCloseTo(4.8, 1);
+    expect(row.play.wpaDelta).toBeCloseTo(0.18, 2);
+    expect(row.play.description).toMatch(/Curry/);
+    expect(row.play.period).toBe(4);
+    expect(row.play.clock).toBe("0:32");
+    expect(row.player.name).toBe("Stephen Curry");
+    expect(row.game.id).toBe(100);
+    expect(row.game.opponent.abbreviation).toBe("LAL");
+  });
+
+  test("sort=asc orders by weighted_value ASC", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "plays", window: "week",
+      sort: "asc", position: "all", limit: 10,
+    });
+    expect(mockQuery.mock.calls[0][0]).toMatch(/ORDER BY pr\.weighted_value ASC/);
+  });
+});

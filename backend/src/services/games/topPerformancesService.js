@@ -180,11 +180,80 @@ async function queryRankings({ league, window, season, sort, position, limit }) 
   return { type: "rankings", window, performances: rows.map(shapeCumulativeRow) };
 }
 
-async function queryPlays(_ctx) {
-  const err = new Error("queryPlays not yet implemented");
-  err.status = 501;
-  throw err;
+async function queryPlays({ league, window, season, sort, position, limit }) {
+  const f = buildFilters({ window, season, position }, 3);
+  const { rows } = await pool.query(
+    `SELECT pr.play_id,
+            pr.player_id,
+            pr.game_id,
+            pr.weighted_value,
+            pr.wpa_delta,
+            pl.period,
+            pl.clock,
+            pl.description,
+            p.name, p.image_url, p.position,
+            g.date,
+            g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
+            t.id AS team_id,
+            t.abbreviation, t.logo_url, t.primary_color,
+            ot.id AS opp_id,
+            ot.abbreviation AS opp_abbreviation,
+            ot.logo_url AS opp_logo_url
+       FROM play_ratings pr
+       JOIN plays    pl ON pl.id = pr.play_id
+       JOIN players  p  ON p.id  = pr.player_id
+       JOIN games    g  ON g.id  = pr.game_id
+       LEFT JOIN stats s ON s.gameid = pr.game_id AND s.playerid = pr.player_id
+       JOIN teams    t  ON t.id  = COALESCE(s.teamid, p.teamid)
+       JOIN teams    ot ON ot.id = CASE WHEN t.id = g.hometeamid THEN g.awayteamid ELSE g.hometeamid END
+      WHERE g.league = $1
+        AND g.status ILIKE '%final%'
+        AND g.type IN ('regular','playoff','final','makeup')
+        AND pr.weighted_value IS NOT NULL
+        ${f.sql}
+      ORDER BY pr.weighted_value ${sort === "asc" ? "ASC" : "DESC"}, pr.play_id ASC
+      LIMIT $2`,
+    [league, limit, ...f.binds],
+  );
+  return { type: "plays", window, performances: rows.map(shapePlayRow) };
 }
+
+function shapePlayRow(r) {
+  return {
+    player: {
+      id: r.player_id,
+      name: r.name,
+      imageUrl: r.image_url,
+      position: r.position,
+      team: {
+        id: r.team_id,
+        abbreviation: r.abbreviation,
+        logo: r.logo_url,
+        primary_color: r.primary_color,
+      },
+    },
+    game: {
+      id: r.game_id,
+      date: r.date,
+      opponent: { id: r.opp_id, abbreviation: r.opp_abbreviation, logo: r.opp_logo_url },
+      isHome: r.team_id === r.hometeamid,
+      result: r.homescore != null && r.awayscore != null
+        ? ((r.team_id === r.hometeamid && r.homescore > r.awayscore) ||
+           (r.team_id === r.awayteamid && r.awayscore > r.homescore) ? "W" : "L")
+        : null,
+    },
+    play: {
+      id: r.play_id,
+      description: r.description,
+      period: r.period,
+      clock: r.clock,
+      weightedValue: round1(Number(r.weighted_value)),
+      wpaDelta: r.wpa_delta == null ? null : round4(Number(r.wpa_delta)),
+    },
+  };
+}
+
+function round4(n) { return n == null ? null : Math.round(n * 10000) / 10000; }
 
 function shapeGameRow(r) {
   const rating = Number(r.rating);
