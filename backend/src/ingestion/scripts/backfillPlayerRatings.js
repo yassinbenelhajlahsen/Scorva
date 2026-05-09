@@ -18,6 +18,14 @@ async function main() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    max: 5,
+    idleTimeoutMillis: 10000,
+    keepAlive: true,
+  });
+  // Idle clients can be dropped by NAT/firewalls during long backfills; swallow
+  // the error so the run continues — the next acquire will get a fresh client.
+  pool.on("error", (err) => {
+    log.warn({ err: err.message }, "idle pg client error (suppressed)");
   });
 
   // Pick current NBA season from games (latest games row for nba).
@@ -59,8 +67,14 @@ async function main() {
       fail++;
       continue;
     }
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
+      // Suppress 'error' events from this client (e.g. idle disconnects between
+      // statements) so they don't crash the process.
+      client.on("error", (err) => {
+        log.warn({ err: err.message, gameId: g.id }, "pg client error (suppressed)");
+      });
       await client.query("BEGIN");
       await upsertPlays(
         client, g.id, data, "nba",
@@ -73,11 +87,11 @@ async function main() {
       ok++;
       if (ok % 25 === 0) log.info({ ok, fail }, "progress");
     } catch (err) {
-      await client.query("ROLLBACK");
-      log.error({ err, gameId: g.id }, "backfill failed for game");
+      try { if (client) await client.query("ROLLBACK"); } catch { /* ignore */ }
+      log.error({ err: err.message, gameId: g.id }, "backfill failed for game");
       fail++;
     } finally {
-      client.release();
+      try { if (client) client.release(); } catch { /* ignore */ }
     }
     // Be polite to ESPN — small delay between games.
     await new Promise((r) => setTimeout(r, 250));
