@@ -90,12 +90,14 @@ export default function computeTopPlayers(_game, stats, league) {
   const players = stats
     .filter(p => p.stats && typeof p.stats === "object")
     .map(p => ({
-      id:       p.id,
-      name:     p.name,
-      position: p.position,
-      imageUrl:  p.imageUrl,
+      id:           p.id,
+      name:         p.name,
+      position:     p.position,
+      imageUrl:     p.imageUrl,
       league,
-      stats:    p.stats,
+      stats:        p.stats,
+      rating:       p.rating ?? null,
+      ratingGrade:  p.ratingGrade ?? null,
     }));
 
   if (players.length === 0) {
