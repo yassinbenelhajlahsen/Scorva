@@ -74,6 +74,14 @@ describe("baseValue — NBA v2", () => {
     expect(baseValue("scorer", { type: "made_ft" })).toBe(0.4);
   });
 
+  test("scorer: omitting assisted treats as unassisted (undefined → falsy)", () => {
+    // Defensive: ctxFromPlay (Task 5) explicitly sets assisted, but pre-Task-5
+    // intermediate state may omit the field entirely. Confirms `if (ctx.assisted)`
+    // truthy check works for undefined.
+    expect(baseValue("scorer", { type: "made_3pt", distance: 24 }))
+      .toBeCloseTo(1.52, 2);
+  });
+
   // SHOT ATTEMPTER & HEAVE
   test("missed shot", () => {
     expect(baseValue("shot_attempter", { type: "missed_3pt" })).toBe(-0.5);
@@ -113,6 +121,12 @@ describe("baseValue — NBA v2", () => {
   });
   test("flagrant 2 → -3.5", () => {
     expect(baseValue("foul_committer", { foulType: "flagrant2" })).toBe(-3.5);
+  });
+
+  test("flagrant 1 + shooting both set → foulType wins (foul severity priority)", () => {
+    // Defensive: confirms the nested switch returns -2.0 for flagrant1 even when
+    // ctx.shooting is also true. Should never AND the two signals.
+    expect(baseValue("foul_committer", { foulType: "flagrant1", shooting: true })).toBe(-2.0);
   });
 
   test("unknown role → 0", () => { expect(baseValue("mystery", {})).toBe(0); });
