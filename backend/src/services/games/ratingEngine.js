@@ -23,8 +23,10 @@
 
 import { getWinProbability } from "./winProbabilityService.js";
 
-// v2: smaller weight + sqrt compression on wpa_delta
-const WPA_WEIGHT = 18;
+// v2: smaller weight + sqrt compression on wpa_delta.
+// Tuned so 8+ display ratings need true late-game clutch (final 1–2 min, |wpa|>0.2);
+// mid-Q4 close-game makes rate ~6, buzzer-beaters cap at 10.
+const WPA_WEIGHT = 7;
 const GRADE_COEFFICIENT = 0.92;
 const MAX_PER_PLAY = 6;       // internal "model space" clamp
 const DISPLAY_SCALE = 10 / 6; // scale model values to user-facing ±10 range

@@ -133,40 +133,40 @@ describe("baseValue — NBA v2", () => {
 });
 
 describe("wpaContribution (v2: role-aware, sqrt-compressed)", () => {
-  // Formula: ROLE_MULT × WPA_WEIGHT(18) × sign(delta) × sqrt(|delta|) × team_sign
+  // Formula: ROLE_MULT × WPA_WEIGHT(7) × sign(delta) × sqrt(|delta|) × team_sign
 
-  test("scorer on +0.05 home → 1.0 × 18 × √0.05 × 1 ≈ 4.025", () => {
-    expect(wpaContribution(0.05, "home", "scorer", {})).toBeCloseTo(18 * Math.sqrt(0.05), 4);
+  test("scorer on +0.05 home → 1.0 × 7 × √0.05 × 1 ≈ 1.565", () => {
+    expect(wpaContribution(0.05, "home", "scorer", {})).toBeCloseTo(7 * Math.sqrt(0.05), 4);
   });
 
   test("scorer on +0.05 away → sign flips to negative", () => {
-    expect(wpaContribution(0.05, "away", "scorer", {})).toBeCloseTo(-18 * Math.sqrt(0.05), 4);
+    expect(wpaContribution(0.05, "away", "scorer", {})).toBeCloseTo(-7 * Math.sqrt(0.05), 4);
   });
 
-  test("assister on +0.4 home → 0.4 × 18 × √0.4 ≈ 4.555", () => {
-    expect(wpaContribution(0.4, "home", "assister", {})).toBeCloseTo(0.4 * 18 * Math.sqrt(0.4), 4);
+  test("assister on +0.4 home → 0.4 × 7 × √0.4 ≈ 1.771", () => {
+    expect(wpaContribution(0.4, "home", "assister", {})).toBeCloseTo(0.4 * 7 * Math.sqrt(0.4), 4);
   });
 
-  test("scorer on +0.4 home → 18 × √0.4 ≈ 11.4 (will clamp downstream)", () => {
-    expect(wpaContribution(0.4, "home", "scorer", {})).toBeCloseTo(18 * Math.sqrt(0.4), 4);
+  test("scorer on +0.4 home → 7 × √0.4 ≈ 4.43 (still under cap with WPA=7)", () => {
+    expect(wpaContribution(0.4, "home", "scorer", {})).toBeCloseTo(7 * Math.sqrt(0.4), 4);
   });
 
   test("negative wpa_delta on home turnover → negative contribution", () => {
     // turnover_committer mult 0.6, sign(-0.05) = -1, team_sign home = +1
     expect(wpaContribution(-0.05, "home", "turnover_committer", {})).toBeCloseTo(
-      -0.6 * 18 * Math.sqrt(0.05), 4,
+      -0.6 * 7 * Math.sqrt(0.05), 4,
     );
   });
 
   test("offensive rebounder uses 0.4 mult", () => {
     expect(wpaContribution(0.05, "home", "rebounder", { offensive: true })).toBeCloseTo(
-      0.4 * 18 * Math.sqrt(0.05), 4,
+      0.4 * 7 * Math.sqrt(0.05), 4,
     );
   });
 
   test("defensive rebounder uses 0.25 mult", () => {
     expect(wpaContribution(0.05, "home", "rebounder", { offensive: false })).toBeCloseTo(
-      0.25 * 18 * Math.sqrt(0.05), 4,
+      0.25 * 7 * Math.sqrt(0.05), 4,
     );
   });
 
