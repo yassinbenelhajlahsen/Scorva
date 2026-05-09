@@ -1,11 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
-export function useTopPerformances(league, { days = 7, type = "games", limit = 5 } = {}) {
+const TTL_BY_WINDOW = {
+  today:  30 * 1000,
+  week:   60 * 1000,
+  month:  5 * 60 * 1000,
+  season: 5 * 60 * 1000,
+  all:    60 * 60 * 1000,
+};
+
+export function useTopPerformances(league, opts = {}) {
+  const {
+    type = "performances",
+    window = "week",
+    sort = "desc",
+    position = "all",
+    limit = 25,
+  } = opts;
+  const key = { type, window, sort, position, limit };
   return useQuery({
-    queryKey: queryKeys.topPerformances(league, days, type, limit),
-    queryFn:  queryFns.topPerformances(league, days, type, limit),
-    staleTime: 30_000,
+    queryKey: queryKeys.topPerformances(league, key),
+    queryFn:  queryFns.topPerformances(league, key),
+    staleTime: TTL_BY_WINDOW[window] ?? 60 * 1000,
     enabled: !!league,
   });
 }

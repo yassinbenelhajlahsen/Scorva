@@ -35,8 +35,8 @@ export const queryKeys = {
   headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
   playoffs:       (league, season) => ["playoffs", league, season],
   duplicatePlayerSlugs: (league) => ["duplicatePlayerSlugs", league],
-  topPerformances: (league, days, type, limit) =>
-    ["top-performances", league, days, type, limit],
+  topPerformances: (league, { type, window, sort, position, limit }) =>
+    ["top-performances", league, type, window, sort, position, limit],
 };
 
 export const queryFns = {
@@ -59,8 +59,8 @@ export const queryFns = {
   headToHead: (league, type, ids) => () =>
     getHeadToHead(league, type, ids).then((d) => d.games),
   duplicatePlayerSlugs: (league) => ({ signal }) => getDuplicatePlayerSlugs(league, { signal }),
-  topPerformances: (league, days, type, limit) =>
-    ({ signal }) => getTopPerformances(league, { days, type, limit, signal }),
+  topPerformances: (league, opts) =>
+    ({ signal }) => getTopPerformances(league, { ...opts, signal }),
 };
 
 export function useDebouncedValue(value, delay = 200) {
