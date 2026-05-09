@@ -2,8 +2,9 @@
  * NBA player rating engine — pure-function helpers + per-game recompute.
  *
  * Per-play rating model (v2):
- *   weighted = clamp(base_value + wpa_contribution, -MAX_PER_PLAY, +MAX_PER_PLAY)
- *   base_value       = role-specific weight (see NBA_BASE_WEIGHTS)
+ *   model_value    = clamp(base_value + wpa_contribution, -MAX_PER_PLAY, +MAX_PER_PLAY)
+ *   weighted_value = displayValue(model_value)   // stored in play_ratings (display ±10 range)
+ *   base_value       = role-specific weight (see baseValue + ROLE_WPA_MULT)
  *   wpa_contribution = WPA_WEIGHT × sqrt(|wpa_delta|) × sign(wpa_delta) × team_sign × role_mult
  *   team_sign = +1 if play helped player's team's win prob, -1 otherwise
  *
@@ -39,7 +40,7 @@ const ROLE_WPA_MULT = {
   charge_drawer:      0.5,
   turnover_committer: 0.6,
   foul_committer:     0.3,
-  rebounder:          0.4,  // overridden to 0.25 for defensive in wpaContribution
+  rebounder:          0.4,
   heave_attempter:    0,
 };
 
