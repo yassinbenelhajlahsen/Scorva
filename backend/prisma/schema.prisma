@@ -142,6 +142,7 @@ model stats {
   @@id([gameid, playerid])
   @@index([playerid])
   @@index([teamid])
+  @@index([rating(sort: Desc)], map: "stats_rating_desc_idx")
 }
 
 model teams {
@@ -348,5 +349,6 @@ model play_ratings {
   @@unique([play_id, player_id, role], map: "play_ratings_unique")
   @@index([player_id, game_id], map: "play_ratings_player_game_idx")
   @@index([game_id, weighted_value(sort: Desc)], map: "play_ratings_game_value_idx")
+  @@index([weighted_value(sort: Desc)], map: "play_ratings_weighted_desc_idx")
 }
 
