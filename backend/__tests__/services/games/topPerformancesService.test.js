@@ -109,9 +109,15 @@ describe("resolveWindow", () => {
     expect(w.predicate).toContain("INTERVAL '30 days'");
   });
   test("season → bound on g.season", () => {
-    const w = resolveWindow("season", { season: "2025-26" });
-    expect(w.predicate).toBe("g.season = $WIN1");
+    const w = resolveWindow("season", { season: "2025-26", startIdx: 1 });
+    expect(w.predicate).toBe("g.season = $1");
     expect(w.binds).toEqual(["2025-26"]);
+    expect(w.nextIdx).toBe(2);
+  });
+  test("season honors startIdx for placeholder numbering", () => {
+    const w = resolveWindow("season", { season: "2025-26", startIdx: 5 });
+    expect(w.predicate).toBe("g.season = $5");
+    expect(w.nextIdx).toBe(6);
   });
   test("all → no predicate", () => {
     const w = resolveWindow("all");

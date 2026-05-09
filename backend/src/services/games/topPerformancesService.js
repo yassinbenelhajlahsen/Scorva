@@ -36,22 +36,23 @@ export function resolveWindow(window, opts = {}) {
   if (!ALLOWED_WINDOWS.has(window)) {
     const err = new Error(`invalid window: ${window}`); err.status = 400; throw err;
   }
+  const startIdx = opts.startIdx ?? 1;
   switch (window) {
     case "today":
-      return { predicate: "g.date = (NOW() AT TIME ZONE 'America/New_York')::date", binds: [] };
+      return { predicate: "g.date = (NOW() AT TIME ZONE 'America/New_York')::date", binds: [], nextIdx: startIdx };
     case "week":
-      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '7 days'", binds: [] };
+      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '7 days'", binds: [], nextIdx: startIdx };
     case "month":
-      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '30 days'", binds: [] };
+      return { predicate: "g.date >= (NOW() AT TIME ZONE 'America/New_York')::date - INTERVAL '30 days'", binds: [], nextIdx: startIdx };
     case "season":
       if (!opts.season) {
         const err = new Error("season required for window=season"); err.status = 500; throw err;
       }
-      return { predicate: "g.season = $WIN1", binds: [opts.season] };
+      return { predicate: `g.season = $${startIdx}`, binds: [opts.season], nextIdx: startIdx + 1 };
     case "all":
-      return { predicate: "", binds: [] };
+      return { predicate: "", binds: [], nextIdx: startIdx };
     default:
-      return { predicate: "", binds: [] };
+      return { predicate: "", binds: [], nextIdx: startIdx };
   }
 }
 
@@ -104,23 +105,17 @@ export async function getTopPerformances({
 function buildFilters({ window, season, position }, startIdx) {
   const parts = [];
   const binds = [];
-  let idx = startIdx;
-  const w = resolveWindow(window, { season });
+  const w = resolveWindow(window, { season, startIdx });
   if (w.predicate) {
-    let frag = w.predicate;
-    for (let i = 0; i < w.binds.length; i++) {
-      frag = frag.replace("$WIN" + (i + 1), "$" + idx);
-      binds.push(w.binds[i]);
-      idx += 1;
-    }
-    parts.push(frag);
+    parts.push(w.predicate);
+    binds.push(...w.binds);
   }
   const pp = positionPredicate(position);
   if (pp) parts.push(pp);
   return {
     sql: parts.length ? " AND " + parts.join(" AND ") : "",
     binds,
-    nextIdx: idx,
+    nextIdx: w.nextIdx,
   };
 }
 
@@ -186,7 +181,9 @@ async function queryRankings({ league, window, season, sort, position, limit }) 
 }
 
 async function queryPlays(_ctx) {
-  throw new Error("queryPlays not yet implemented");
+  const err = new Error("queryPlays not yet implemented");
+  err.status = 501;
+  throw err;
 }
 
 function shapeGameRow(r) {
