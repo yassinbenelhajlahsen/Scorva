@@ -776,3 +776,58 @@ Queries the `plays` table directly — no embeddings. Handles both single-game a
 Both injury tools (`get_injuries`, `get_player_status`) read from `players.status`, `players.status_description`, `players.status_updated_at` populated by `ingestion/syncInjuries.js` (ESPN league-wide feed). DB is the source of truth — `web_search` is reserved for return timelines, trade rumors, reporter context.
 
 **Cache keys:** `injuries:team:{league}:{teamId}:{season}` 120s, `injuries:league:{league}:{status|all}:{minPop}:{limit}` 120s, `injuries:player:{league}:{playerId}` 60s.
+
+## Player Rating System (NBA only in v1)
+
+Per-play, WPA-weighted player performance rating that aggregates to per-game `stats.rating` and feeds the homepage "Top Performances" component (`TopPerformancesCard`) plus the rating chips on `StatCard` and `TopPerformerCard`. NFL and NHL are deferred to later phases — NHL specifically needs a synthesized winprob model since ESPN doesn't ship one for hockey.
+
+### Data flow
+
+```
+ESPN summary endpoint → upsertPlays (writes plays + shot_distance_ft from coords)
+                       → upsertPlayParticipants (resolves participants[].athleteId
+                          → players.id, infers role from play.type.text + text;
+                          NBA only)
+                       → ratingEngine.recomputeGame (idempotent: DELETE play_ratings
+                          → INSERT from plays + participants + winprob → reset
+                          stats.rating to NULL → UPDATE stats.rating from SUM)
+```
+
+`recomputeGame` runs inside the per-game transaction in `eventProcessor.js`, wrapped in a Postgres `SAVEPOINT rating_calc` so a recompute failure rolls back ONLY the rating work, not the surrounding plays/stats writes.
+
+### Formula (per play, per participant)
+
+```
+weighted = clamp(base_value + WPA_WEIGHT × wpa_delta × team_sign, -10.0, +10.0)
+```
+
+- `base_value` from a switch in `ratingEngine.js`. Examples: made 3pt = `1.5 + 0.02 × max(0, distance-23)` capped at 3.0; turnover = -1.0; steal = +1.0; assist = +0.7.
+- `WPA_WEIGHT = 30`. `wpa_delta = currentPlay.homeWinPercentage − previousPlay.homeWinPercentage` (sourced from ESPN's `winprobability[]` via `winProbabilityService`, joined by `playId`).
+- `team_sign = +1` if the play moved the participant's team's win prob up, `-1` otherwise.
+- Per-game `stats.rating` = sum of all clamped per-play `weighted_value`s for that player (open-ended; can be negative for genuinely bad games).
+- Display grade computed at API/UI layer via `gradeFromRaw(raw) = max(0, min(10, raw / GRADE_DIVISOR))`. **`GRADE_DIVISOR = 4.0`** — tuned from backfill data (p99=34.9 → grade 8.7; max=61.8 → clamps at 10).
+
+### Display rules
+
+- `StatCard` chip (top-left): grade only, e.g. `8.6`. No `/10` suffix, no raw shown.
+- `TopPerformerCard` chip (right column): grade only, large, with vertical divider from stats.
+- `TopPerformancesCard` Best Games tab: grade only on each row.
+- `TopPerformancesCard` Last 7 Days tab: cumulative raw sum (the only place raw is shown to users).
+- Negative raw → grade floors at 0; chip never shows negative.
+
+### Storage
+
+| Table | Purpose |
+|---|---|
+| `stats.rating NUMERIC(6,1)` | Per-game raw open-ended sum. Denormalized for fast 7-day leaderboard SUM aggregation. |
+| `plays.shot_distance_ft SMALLINT` | Coordinate-derived shot distance (basket at `(25, 0)`); NBA only; null for FT and non-shots. |
+| `play_participants(play_id, player_id, role, espn_athlete_id)` | Per-play, per-participant attribution. Roles: scorer / shot_attempter / assister / rebounder / stealer / blocker / turnover_committer / foul_committer. Cascade-deletes from plays. |
+| `play_ratings(play_id, player_id, game_id, role, base_value, wpa_delta, weighted_value)` | Per-play computed rating breakdown. Unlocks future "biggest plays of the night" and tooltip "why this rating?" features. Cascade-deletes from plays. |
+
+### Caveats / gotchas
+
+- `cleanupNonScoringPlays` in `ingestion/cleanup/cleanupPlays.js` was **removed** from the upsert pipeline. The function file is retained for possible league-scoped reuse later. Existing deployments must redeploy to pick up this change — until then, prod will keep wiping non-scoring plays after each cycle, which cascades to deleting `play_participants` and `play_ratings` (but NOT `stats.rating`, which is denormalized).
+- `play_participants[0]` is always the primary actor of the play (matches `team.id`). `participants[1]` is the secondary actor whose role is read from text content (`(X assists)` → assister; `blocks` → blocker; `(X steals)` → stealer). Verified against 462 plays in a real NBA game.
+- Live-game ratings update each `liveSync` cycle as plays come in; the 7-day leaderboard query filters `g.status ILIKE '%final%'` so live games don't churn the leaderboard.
+- Backfill is one-shot via `node src/ingestion/scripts/backfillPlayerRatings.js`; idempotent (re-running re-rates without state corruption); ESPN polite at 250ms/game with 15s timeout. Pool is configured with `keepAlive` + bounded `max=5` + suppressed idle-client errors so long runs against the Railway proxy don't crash on idle disconnects.
+- Spec: [`docs/superpowers/specs/2026-05-08-player-rating-system-design.md`](./superpowers/specs/2026-05-08-player-rating-system-design.md). Plan: [`docs/superpowers/plans/2026-05-08-player-rating-system.md`](./superpowers/plans/2026-05-08-player-rating-system.md).

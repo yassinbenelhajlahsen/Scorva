@@ -28,14 +28,16 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 
 | What                    | Where                                                           |
 | ----------------------- | --------------------------------------------------------------- |
-| Routes                  | `backend/src/routes/games/` (games, gameDetail, prediction, plays, live) |
-| Controllers             | `backend/src/controllers/games/` (games, gameDates, gameDetail, prediction, plays, live) |
+| Routes                  | `backend/src/routes/games/` (games, gameDetail, prediction, plays, live, topPerformances) |
+| Controllers             | `backend/src/controllers/games/` (games, gameDates, gameDetail, prediction, plays, live, topPerformances) |
 | Games service           | `backend/src/services/games/gamesService.js`                    |
 | Game detail service     | `backend/src/services/games/gameDetailService.js`               |
 | Game detail query builder | `backend/src/services/games/gameDetailQueryBuilder.js`        |
 | Win probability service | `backend/src/services/games/winProbabilityService.js`           |
 | Prediction service      | `backend/src/services/games/predictionService.js`               |
 | Plays service           | `backend/src/services/games/playsService.js`                    |
+| Top performances service | `backend/src/services/games/topPerformancesService.js`         |
+| Rating engine (NBA)     | `backend/src/services/games/ratingEngine.js` (`gradeFromRaw`, `attachRatingGrade`, `recomputeGame`) |
 
 ## Backend — Domain: Players
 
@@ -148,7 +150,10 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | Historical upsert             | `backend/src/ingestion/pipeline/historicalUpsert.js`     |
 | Common stat mappings          | `backend/src/ingestion/mappings/commonMappings.js`       |
 | Stats → schema mapper         | `backend/src/ingestion/mappings/mapStatsToSchema.js`     |
-| Upsert functions              | `backend/src/ingestion/upsert/` (Game, Team, Player, Stat, Plays) |
+| NBA shot distance extractor   | `backend/src/ingestion/mappings/nbaPlayDistance.js`      |
+| NBA participant role inference | `backend/src/ingestion/mappings/nbaPlayRoles.js`        |
+| Upsert functions              | `backend/src/ingestion/upsert/` (Game, Team, Player, Stat, Plays, PlayParticipants) |
+| Backfill — player ratings     | `backend/src/ingestion/scripts/backfillPlayerRatings.js` |
 | Player cache manager          | `backend/src/ingestion/playerCacheManager.js`            |
 | Player similarity embeddings  | `backend/src/ingestion/computePlayerEmbeddings.js`       |
 | Popularity refresh            | `backend/src/ingestion/refreshPopularity.js`             |
@@ -302,6 +307,15 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | StreakBadge component   | `frontend/src/components/ui/StreakBadge.jsx`                   |
 | PlayerStatusBadge       | `frontend/src/components/player/PlayerStatusBadge.jsx`         |
 | TeamComparison          | `frontend/src/components/game/TeamComparison.jsx` (rendered in AnalysisTab on GamePage) |
+
+## Frontend — Top Performances (Homepage)
+
+| What                    | Where                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Top Performances API    | `frontend/src/api/topPerformances.js`                          |
+| Top Performances hook   | `frontend/src/hooks/data/useTopPerformances.js`                |
+| Top Performances card   | `frontend/src/components/cards/TopPerformancesCard.jsx`        |
+| Skeleton                | `frontend/src/components/skeletons/TopPerformancesCardSkeleton.jsx` |
 
 ## Frontend — News
 
