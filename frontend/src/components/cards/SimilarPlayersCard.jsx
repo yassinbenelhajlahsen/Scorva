@@ -20,17 +20,17 @@ export default function SimilarPlayersCard({ league, slug, season }) {
       {show && (
         <m.div
           key="similar-players"
-          className="overflow-hidden flex flex-col lg:shrink-0"
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: "auto" }}
-          exit={{ opacity: 0, width: 0 }}
+          className="flex flex-col w-full lg:w-[400px] lg:shrink-0"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="w-full lg:w-65 bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-5 h-full flex flex-col">
+          <div className="w-full bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-5 h-full flex flex-col">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary mb-3">
               Similar Players
             </h3>
-            <div className="flex flex-col flex-1 justify-between gap-4 lg:gap-0">
+            <div className="flex flex-col flex-1 justify-between gap-4">
               {players.map((player) => {
                 const slug = playerSlug(player, dupeSlugs);
                 return (

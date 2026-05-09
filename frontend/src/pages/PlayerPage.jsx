@@ -1,11 +1,9 @@
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { m, AnimatePresence } from "framer-motion";
 import { usePlayer } from "../hooks/data/usePlayer.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import buildSeasonUrl from "../utils/buildSeasonUrl.js";
-import { queryKeys, queryFns } from "../lib/query.js";
 import { monthSlideVariants, monthSlideItemVariants } from "../utils/motion.js";
 import PlayerPageSkeleton from "../components/skeletons/PlayerPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
@@ -15,11 +13,9 @@ import { SwipeableTabs } from "../components/ui/SwipeableTabs.jsx";
 import PlayerAvgCard from "../components/cards/PlayerAvgCard.jsx";
 import PlayerAwardsCard from "../components/cards/PlayerAwardsCard.jsx";
 import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
-import PlayerStatusBadge from "../components/player/PlayerStatusBadge.jsx";
+import PlayerHero from "../components/player/PlayerHero.jsx";
 import PlayerRatingsSection from "../components/player/PlayerRatingsSection.jsx";
-import StreakBadge from "../components/ui/StreakBadge.jsx";
 import { useStreak } from "../hooks/data/useStreak.js";
-import teamUrl from "../utils/teamUrl.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
@@ -96,7 +92,6 @@ export default function PlayerPage() {
   const urlSeason = searchParams.get("season") || null;
   const tabParam = searchParams.get("tab");
   const tab = ALLOWED_TABS.has(tabParam) ? tabParam : "profile";
-  const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [monthDirection, setMonthDirection] = useState(0);
   const { playerData, loading, seasonLoading, error, retry, refetch } = usePlayer(league, slug, urlSeason);
@@ -201,36 +196,25 @@ export default function PlayerPage() {
 
   const profileContent = (
     <div>
-      {/* Status badges + compare/season-selector row */}
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-        {viewingCurrentSeason ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <PlayerStatusBadge
-              status={status}
-              title={statusDescription || undefined}
-            />
-            <StreakBadge streak={streak} />
-          </div>
-        ) : <span />}
-        <div className="flex gap-2 ml-auto">
-          <Link
-            to={`/compare`}
-            state={{ league, type: "players", id1: slug }}
-            className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
-            aria-label="Compare player"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-            Compare
-          </Link>
-          <SeasonSelector
-            league={league}
-            selectedSeason={selectedSeason}
-            onSeasonChange={setSelectedSeason}
-            seasons={playerData.availableSeasons}
-          />
-        </div>
+      {/* Compare + season-selector row */}
+      <div className="flex justify-end gap-2 mb-4">
+        <Link
+          to={`/compare`}
+          state={{ league, type: "players", id1: slug }}
+          className="inline-flex items-center gap-1.5 appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay"
+          aria-label="Compare player"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          Compare
+        </Link>
+        <SeasonSelector
+          league={league}
+          selectedSeason={selectedSeason}
+          onSeasonChange={setSelectedSeason}
+          seasons={playerData.availableSeasons}
+        />
       </div>
       {viewingCurrentSeason && status && statusDescription && (
         <p className="text-xs text-text-secondary leading-snug mb-4 break-words">
@@ -238,42 +222,13 @@ export default function PlayerPage() {
         </p>
       )}
 
-      {/* Info card + similar players sidebar */}
+      {/* Averages + similar players sidebar */}
       <div className="flex flex-col lg:flex-row gap-8 mb-12">
-        <div className="flex-1 flex flex-col gap-6 min-w-0">
-          <div
-            className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
-            style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
-          >
-            <div className="grid grid-cols-[max-content_auto] gap-x-10 gap-y-3">
-              <span className="text-sm text-text-tertiary">Height / Weight</span>
-              <span className="text-sm font-medium text-text-primary">{height} / {weight}</span>
-              <span className="text-sm text-text-tertiary">Position</span>
-              <span className="text-sm font-medium text-text-primary">{position}</span>
-              <span className="text-sm text-text-tertiary">Jersey</span>
-              <span className="text-sm font-semibold text-text-primary">#{jerseyNumber}</span>
-              <span className="text-sm text-text-tertiary">Birthdate</span>
-              <span className="text-sm font-medium text-text-primary">{formatDate(dob)}</span>
-              <span className="text-sm text-text-tertiary">Draft</span>
-              <span className="text-sm font-medium text-text-primary">{draftInfo}</span>
-              <span className="text-sm text-text-tertiary">Team</span>
-              <Link
-                to={buildSeasonUrl(teamUrl(league, team), selectedSeason)}
-                className="text-sm font-semibold text-accent hover:text-accent-hover transition-colors duration-200"
-                onMouseEnter={() => {
-                  if (window.matchMedia("(hover: hover)").matches) {
-                    queryClient.prefetchQuery({ queryKey: queryKeys.team(league, teamUrl(league, team).split("/").pop()), queryFn: queryFns.team(league, teamUrl(league, team).split("/").pop()), staleTime: 10_000 });
-                  }
-                }}
-              >
-                {team.name}
-              </Link>
-            </div>
-          </div>
-
-          <div style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}>
-            <PlayerAvgCard league={league} averages={seasonAverages} season={selectedSeason || apiSeason} />
-          </div>
+        <div
+          className="flex-1 min-w-0"
+          style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
+        >
+          <PlayerAvgCard league={league} averages={seasonAverages} season={selectedSeason || apiSeason} />
         </div>
 
         <SimilarPlayersCard league={league} slug={slug} season={selectedSeason || apiSeason} />
@@ -358,11 +313,11 @@ export default function PlayerPage() {
   );
 
   const highlightsContent = (
-    <div>
-      <PlayerAwardsCard awards={playerData.awards} />
+    <div className="flex flex-col gap-12">
       {ratingsAvailable && (
         <PlayerRatingsSection league={league} playerId={slug} />
       )}
+      <PlayerAwardsCard awards={playerData.awards} />
     </div>
   );
 
@@ -380,28 +335,25 @@ export default function PlayerPage() {
         <span>{league?.toUpperCase()}</span>
       </Link>
 
-      {/* Static header: name + image + favorite (persists across tabs) */}
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 mb-8">
-        <img
-          src={imageUrl || "/images/placeholder.png"}
-          alt={name}
-          className="w-40 h-40 md:w-48 md:h-48 object-cover rounded-3xl ring-1 ring-white/[0.08]"
-        />
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text-primary text-center md:text-left">
-            {name}
-          </h1>
-          <button
-            onClick={() => session ? toggle() : openAuthModal("favorites")}
-            aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-            className="touch-target transition-all duration-200 hover:scale-110 active:scale-95"
-          >
-            <svg className={`w-7 h-7 ${isFavorited ? "fill-yellow-400 text-yellow-400" : "fill-none text-text-tertiary hover:text-yellow-400"}`} stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      <PlayerHero
+        league={league}
+        name={name}
+        imageUrl={imageUrl}
+        team={team}
+        jerseyNumber={jerseyNumber}
+        position={position}
+        height={height}
+        weight={weight}
+        dob={dob}
+        draftInfo={draftInfo}
+        status={status}
+        statusDescription={statusDescription}
+        streak={streak}
+        showStatus={viewingCurrentSeason}
+        isFavorited={isFavorited}
+        onToggleFavorite={() => (session ? toggle() : openAuthModal("favorites"))}
+        selectedSeason={selectedSeason}
+      />
 
       {/* Tab strip with sliding underline */}
       <div ref={tabNavRef} className="relative flex border-b border-white/[0.06] mb-8">
