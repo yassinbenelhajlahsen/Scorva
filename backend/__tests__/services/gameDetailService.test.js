@@ -120,14 +120,14 @@ describe("gameDetailService", () => {
           homeTeam: {
             info: { id: 1 },
             players: [
-              { id: 11, name: "Player A", rating: 47.3, stats: { PTS: 32 } },
+              { id: 11, name: "Player A", rating: 34.4, stats: { PTS: 32 } },
               { id: 12, name: "Player B", rating: null, stats: { PTS: 0 } },
             ],
           },
           awayTeam: {
             info: { id: 2 },
             players: [
-              { id: 21, name: "Player C", rating: "27.5", stats: { PTS: 18 } },
+              { id: 21, name: "Player C", rating: "20.0", stats: { PTS: 18 } },
             ],
           },
         },
@@ -137,11 +137,11 @@ describe("gameDetailService", () => {
       const result = await fn()(1);
       const home = result.json_build_object.homeTeam.players;
       const away = result.json_build_object.awayTeam.players;
-      expect(home[0].rating).toBe(47.3);
+      expect(home[0].rating).toBe(34.4);
       expect(home[0].ratingGrade).toBeCloseTo(8.6, 1);
       expect(home[1].rating).toBeNull();
       expect(home[1].ratingGrade).toBeNull();
-      expect(away[0].rating).toBe(27.5);
+      expect(away[0].rating).toBe(20.0);
       expect(away[0].ratingGrade).toBeCloseTo(5.0, 1);
     });
   });

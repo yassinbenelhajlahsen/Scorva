@@ -24,7 +24,7 @@ describe("getTopPerformances", () => {
     mockQuery.mockResolvedValueOnce({
       rows: [
         {
-          playerid: 11, gameid: 100, rating: "47.3",
+          playerid: 11, gameid: 100, rating: "34.4",
           name: "Luka Dončić", image_url: "/luka.png", position: "G",
           date: new Date("2026-05-05"),
           hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
@@ -40,7 +40,7 @@ describe("getTopPerformances", () => {
     expect(out.type).toBe("games");
     expect(out.days).toBe(7);
     expect(out.performances).toHaveLength(1);
-    expect(out.performances[0].rating).toBeCloseTo(47.3, 1);
+    expect(out.performances[0].rating).toBeCloseTo(34.4, 1);
     expect(out.performances[0].ratingGrade).toBeCloseTo(8.6, 1);
     expect(out.performances[0].player.team.primary_color).toBe("#00538C");
     expect(mockCached).toHaveBeenCalledWith(

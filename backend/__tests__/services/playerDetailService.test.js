@@ -131,9 +131,9 @@ describe("playerDetailService", () => {
           id: 1,
           name: "Player A",
           games: [
-            { gameid: 100, rating: 47.3 },
+            { gameid: 100, rating: 34.4 },
             { gameid: 101, rating: null },
-            { gameid: 102, rating: "27.5" },
+            { gameid: 102, rating: "20.0" },
           ],
         },
       };
@@ -141,11 +141,11 @@ describe("playerDetailService", () => {
 
       const result = await fn()(1, "2025-26");
       const games = result.json_build_object.games;
-      expect(games[0].rating).toBe(47.3);
+      expect(games[0].rating).toBe(34.4);
       expect(games[0].ratingGrade).toBeCloseTo(8.6, 1);
       expect(games[1].rating).toBeNull();
       expect(games[1].ratingGrade).toBeNull();
-      expect(games[2].rating).toBe(27.5);
+      expect(games[2].rating).toBe(20.0);
       expect(games[2].ratingGrade).toBeCloseTo(5.0, 1);
     });
   });

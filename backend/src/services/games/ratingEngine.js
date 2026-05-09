@@ -16,7 +16,7 @@
 import { getWinProbability } from "./winProbabilityService.js";
 
 const WPA_WEIGHT = 30;
-const GRADE_DIVISOR = 5.5;
+const GRADE_DIVISOR = 4.0;
 
 export function gradeFromRaw(raw) {
   if (raw == null) return null;

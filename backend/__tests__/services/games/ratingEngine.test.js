@@ -12,13 +12,13 @@ describe("gradeFromRaw", () => {
   });
   test("0 → 0.0", () => { expect(gradeFromRaw(0)).toBe(0); });
   test("negative raw floors at 0", () => { expect(gradeFromRaw(-3.1)).toBe(0); });
-  test("raw 5.5 → 1.0", () => { expect(gradeFromRaw(5.5)).toBe(1); });
-  test("raw 27.5 → 5.0", () => { expect(gradeFromRaw(27.5)).toBe(5); });
-  test("raw 47.3 → ~8.6", () => {
-    expect(gradeFromRaw(47.3)).toBeCloseTo(8.6, 1);
+  test("raw 4 → 1.0", () => { expect(gradeFromRaw(4)).toBe(1); });
+  test("raw 20 → 5.0", () => { expect(gradeFromRaw(20)).toBe(5); });
+  test("raw 35 → ~8.75 (p99 territory)", () => {
+    expect(gradeFromRaw(35)).toBeCloseTo(8.75, 2);
   });
-  test("raw above ~55 caps at 10.0", () => {
-    expect(gradeFromRaw(60)).toBe(10);
+  test("raw above ~40 caps at 10.0", () => {
+    expect(gradeFromRaw(40)).toBe(10);
     expect(gradeFromRaw(1000)).toBe(10);
   });
 });
