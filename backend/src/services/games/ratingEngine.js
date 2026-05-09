@@ -221,6 +221,13 @@ export async function recomputeGame(client, gameId) {
     partsByPlay.get(p.play_id).push(p);
   }
 
+  // Mark each play's ctx.assisted based on whether any participant is an assister.
+  for (const [playId, playParts] of partsByPlay.entries()) {
+    const meta = playMeta.get(playId);
+    if (!meta) continue;
+    meta.ctx.assisted = playParts.some((p) => p.role === "assister");
+  }
+
   // Build INSERT row arrays
   const insPlay = [], insPlayer = [], insGame = [], insRole = [], insBase = [], insWpa = [], insWeighted = [];
 
@@ -228,13 +235,16 @@ export async function recomputeGame(client, gameId) {
     const meta = playMeta.get(pl.id);
     const playerParts = partsByPlay.get(pl.id) || [];
     for (const pp of playerParts) {
-      const base = baseValue(pp.role, contextForRole(pp.role, meta.ctx));
-      const wpa  = wpaContribution(meta.wpaDelta, pp.team_side);
-      const weighted = clampPlayValue(base + wpa);
+      // Heave detection: swap shot_attempter → heave_attempter so it gets zero base + zero wpa.
+      const role = (pp.role === "shot_attempter" && meta.ctx.isHeave) ? "heave_attempter" : pp.role;
+      const base = baseValue(role, contextForRole(role, meta.ctx));
+      const wpa  = wpaContribution(meta.wpaDelta, pp.team_side, role, meta.ctx);
+      const modelValue = clampPlayValue(base + wpa);
+      const weighted = displayValue(modelValue);
       insPlay.push(pl.id);
       insPlayer.push(pp.player_id);
       insGame.push(gameId);
-      insRole.push(pp.role);
+      insRole.push(role);
       insBase.push(round1(base));
       insWpa.push(meta.wpaDelta == null ? null : round4(meta.wpaDelta));
       insWeighted.push(round1(weighted));
@@ -263,7 +273,10 @@ export async function recomputeGame(client, gameId) {
   await client.query(`UPDATE stats SET rating = NULL WHERE gameid = $1`, [gameId]);
 
   await client.query(
-    `UPDATE stats SET rating = sub.total
+    `UPDATE stats SET rating = sign(sub.total) * LEAST(
+       abs(sub.total),
+       GREATEST(8, 1.5 * COALESCE(stats.minutes, 0))
+     )
        FROM (
          SELECT player_id, SUM(weighted_value) AS total
            FROM play_ratings
@@ -279,19 +292,49 @@ function ctxFromPlay(pl) {
   const t = (pl.play_type || "").toLowerCase().replace(/\s+/g, " ").trim();
   const isFT = t.startsWith("free throw");
   const made = !!pl.scoring_play;
-  // 3-point detection: most NBA shot types include "three" in their text only
-  // when they're 3pt; otherwise infer from distance ≥ 22 ft (the corner 3 line).
+  // 3-point detection: most NBA shot types include "three" only when 3pt; otherwise infer
+  // from distance ≥ 22 ft (the corner 3 line).
   const is3pt = t.includes("three") || (pl.shot_distance_ft != null && pl.shot_distance_ft >= 22 && !isFT);
   let type = null;
   if (isFT) type = made ? "made_ft" : "missed_ft";
   else if (made) type = is3pt ? "made_3pt" : "made_2pt";
   else type = is3pt ? "missed_3pt" : "missed_2pt";
+
+  // Foul severity classification — read from play_type text.
+  let foulType = null;
+  if (t.includes("flagrant foul type 2")) foulType = "flagrant2";
+  else if (t.includes("flagrant foul type 1") || t.includes("flagrant")) foulType = "flagrant1";
+  else if (t.includes("technical")) foulType = "technical";
+
+  // Heave detection: long-range attempt at end of period.
+  // play.clock is a string like "M:SS" or "S.S"; parse seconds.
+  const clockSec = parseClockSeconds(pl.clock);
+  const isHeave = !made && !isFT
+    && pl.shot_distance_ft != null && pl.shot_distance_ft >= 35
+    && clockSec != null && clockSec <= 3.0;
+
   return {
     type,
     distance: pl.shot_distance_ft,
-    offensive: t.includes("offensive"),         // for rebounder
-    shooting: t.includes("shooting") && t.includes("foul"),  // for foul_committer
+    offensive: t.includes("offensive"),
+    shooting: t.includes("shooting") && t.includes("foul"),
+    foulType,
+    isHeave,
+    // assisted is filled in by recomputeGame after participants are loaded
+    assisted: false,
   };
+}
+
+function parseClockSeconds(clock) {
+  if (clock == null) return null;
+  const s = String(clock);
+  if (s.includes(":")) {
+    const [m, sec] = s.split(":").map(Number);
+    if (!Number.isFinite(m) || !Number.isFinite(sec)) return null;
+    return m * 60 + sec;
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
 }
 
 function contextForRole(role, ctx) {

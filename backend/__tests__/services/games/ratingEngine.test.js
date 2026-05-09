@@ -277,7 +277,7 @@ describe("recomputeGame", () => {
     expect(insertArgs[1]).toEqual([11, 11, 22]);     // player_ids
     expect(insertArgs[2]).toEqual([100, 100, 100]);  // game_ids
     expect(insertArgs[3]).toEqual(["scorer", "turnover_committer", "stealer"]); // roles
-    // weighted_value array should be all in [-10, 10]
+    // weighted_value is stored in display space (±10) after model-space clamp at ±6 then × 10/6
     insertArgs[6].forEach((v) => {
       expect(v).toBeGreaterThanOrEqual(-10);
       expect(v).toBeLessThanOrEqual(10);
@@ -307,8 +307,8 @@ describe("recomputeGame", () => {
     const insertArgs = client.query.mock.calls[4][1];
     // wpa_delta column array should be all null
     expect(insertArgs[5]).toEqual([null]);
-    // weighted_value should equal base_value (made 3pt at 24ft = 1.52, rounded to NUMERIC(4,1) = 1.5)
-    expect(insertArgs[6][0]).toBeCloseTo(1.5, 1);
+    // Unassisted made 3pt at 24ft: base = 1.52 (model space) → × 10/6 ≈ 2.53 (display space)
+    expect(insertArgs[6][0]).toBeCloseTo(1.52 * (10 / 6), 1);
   });
 
   test("non-NBA league early-exits without writes", async () => {
@@ -319,5 +319,31 @@ describe("recomputeGame", () => {
     };
     await recomputeGame(client, 100);
     expect(client.query).toHaveBeenCalledTimes(1);
+  });
+
+  test("final UPDATE applies minutes-aware cap to stats.rating", async () => {
+    mockGetWinProbability.mockResolvedValue(null);
+    const client = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [{ league: "nba", eventid: 999, status: "Final", hometeamid: 1, awayteamid: 2 }] })
+        .mockResolvedValueOnce({ rows: [
+          { id: 501, sequence: 1, period: 1, clock: "10:00", espn_play_id: "p1",
+            scoring_play: false, shot_distance_ft: null, play_type: "Personal Foul",
+            team_id: 1, home_team_id: 1, away_team_id: 2, home_score: 0, away_score: 0 },
+        ]})
+        .mockResolvedValueOnce({ rows: [
+          { play_id: 501, player_id: 11, role: "foul_committer", team_side: "home" },
+        ]})
+        .mockResolvedValueOnce({ rowCount: 0 })
+        .mockResolvedValueOnce({ rowCount: 1 })
+        .mockResolvedValueOnce({ rowCount: 0 })
+        .mockResolvedValueOnce({ rowCount: 1 }),
+    };
+    await recomputeGame(client, 100);
+    // Final UPDATE statement should reference sign(...) * LEAST(...) with COALESCE on minutes
+    const finalUpdate = client.query.mock.calls[6][0];
+    expect(finalUpdate).toMatch(/sign\(sub\.total\)/);
+    expect(finalUpdate).toMatch(/LEAST/);
+    expect(finalUpdate).toMatch(/GREATEST\(8,\s*1\.5\s*\*\s*COALESCE\(stats\.minutes,\s*0\)\)/);
   });
 });
