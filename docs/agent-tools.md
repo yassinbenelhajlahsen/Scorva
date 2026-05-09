@@ -1,6 +1,6 @@
 # Agent tools
 
-Reference for the 24 tools available to **Sid** (the chat agent) defined in `backend/src/services/ai/chat/`.
+Reference for the 26 tools available to **Sid** (the chat agent) defined in `backend/src/services/ai/chat/`.
 
 - **Schemas** (OpenAI function definitions): [`chat/toolDefinitions.js`](../backend/src/services/ai/chat/toolDefinitions.js)
 - **Dispatch** (name → handler): [`chat/toolsService.js`](../backend/src/services/ai/chat/toolsService.js)
@@ -61,6 +61,7 @@ Recent / upcoming games slate, prioritized live → final → upcoming. Up to 12
 #### `get_game_detail`
 Full box score for a single game (top 8 players per team to keep payload small). Quarter scores, team records, plays.
 - **Args**: `{ league, gameId }`
+- **NBA ratings**: each player includes `rating` (raw) and `ratingGrade` (0-10 calibrated display). Players are sorted by `ratingGrade` DESC before the 8-player trim, so the most impactful players are kept regardless of `json_agg` order.
 - Service: [`services/games/gameDetailService.js`](../backend/src/services/games/gameDetailService.js)
 
 #### `find_games`
@@ -79,6 +80,7 @@ Recent head-to-head game history between two teams.
 Search the `plays` table — single-game or cross-game.
 - **Args**: `{ league, gameId?, playerName?, teamId?, period?, scoringOnly?, playType?, searchText?, limit? }` (default 30, hard cap 50)
 - **Retention caveat**: For Final games, only scoring plays are retained. Cross-game queries (no `gameId`) only include Final games, so they are effectively scoring-only. Live and pre-game games retain all plays. Response includes `retention: 'all' | 'scoring_only'`.
+- **NBA per-play ratings**: each play includes a `ratings` array (when populated) listing contributors with `{ player, role, weightedValue (±10), wpaDelta }`, sorted by absolute impact. For ranking plays across a game/season, use `get_top_rated_plays`.
 - Tool: [`tools/plays.js`](../backend/src/services/ai/chat/tools/plays.js)
 
 ---
@@ -108,6 +110,7 @@ Top single-game stat lines for a stat across one or more seasons.
 - **Stats**: NBA `points|assists|rebounds|steals|blocks|turnovers`; NFL `yds|td|interceptions`; NHL `g|a|shots|saves|pim`.
 - **Use for**: "highest-scoring games", "60+ point nights", "career nights".
 - **Includes regular + playoff** games.
+- **NBA `rating` + `ratingGrade`**: each result also includes the player's per-game rating (raw + 0-10 grade) so the agent can flag efficient/impactful stat lines vs. empty volume. To rank by overall impact instead of one stat, use `get_top_rated_performers`.
 - Tool: [`tools/topSingleGame.js`](../backend/src/services/ai/chat/tools/topSingleGame.js)
 
 #### `get_stat_leaders`
@@ -150,6 +153,26 @@ Clutch SCORING plays for a player.
 - **Window**: NBA last 5:00 of Q4/OT within 5 pts; NHL last 5:00 of P3/OT within 1 goal; NFL last 5:00 of Q4/OT within 8 pts.
 - **CRITICAL caveat**: Final-game plays retain only scoring rows — clutch FG%, missed clutch shots, clutch turnovers, etc. **CANNOT** be computed historically. Tool only returns clutch makes. Filter is name-based (last name in `description`), so namesakes can produce false positives. Caveat is in every response so Sid surfaces it.
 - Tool: [`tools/clutchPerformance.js`](../backend/src/services/ai/chat/tools/clutchPerformance.js)
+
+---
+
+### Player ratings (NBA only)
+
+Scorva's per-game player rating combines box-score impact with win-probability-added on each play. See `services/games/ratingEngine.js` for the formula. The `stats.rating` (raw, open-ended) and per-play `play_ratings.weighted_value` (±10 display scale) columns are populated by `recomputeGame`. Currently NBA-only.
+
+#### `get_top_rated_performers`
+Rank players by per-game rating, single-game or cumulative.
+- **Args**: `{ league: "nba", type?, window?, sort?, position?, limit? }` (default `type=performances, window=week, sort=desc, limit=10, max 25`)
+- **`type`**: `performances` (default — top single-game ratings) | `rankings` (cumulative totals over the window with avg/best-game).
+- **`window`**: `today | week | month | season | all`.
+- **Use for**: "best games this week", "who's been carrying his team", "biggest stinker" (`sort=asc`), "best stretch this month" (`type=rankings`).
+- Tool: [`tools/topRatedPerformers.js`](../backend/src/services/ai/chat/tools/topRatedPerformers.js) → wraps [`services/games/topPerformancesService.js`](../backend/src/services/games/topPerformancesService.js)
+
+#### `get_top_rated_plays`
+Rank individual plays by per-play impact (`weighted_value`, ±10 display scale).
+- **Args**: `{ league: "nba", window?, sort?, position?, limit? }` (default `window=week, sort=desc, limit=10, max 25`)
+- **Use for**: "biggest play of the night", "most clutch shot", "biggest blunder" (`sort=asc`).
+- Tool: [`tools/topRatedPlays.js`](../backend/src/services/ai/chat/tools/topRatedPlays.js) → wraps [`services/games/topPerformancesService.js`](../backend/src/services/games/topPerformancesService.js) with `type=plays`
 
 ---
 

@@ -4,6 +4,7 @@ import logger from "../../logger.js";
 import { embedGameSummary } from "./embeddingService.js";
 import { getPlays } from "../games/playsService.js";
 import { parseClockToSeconds, nhlClockToRemaining } from "../../utils/clock.js";
+import { gradeFromRaw } from "../games/ratingEngine.js";
 
 function periodLabel(period, league) {
   const isHockey = league === "NHL";
@@ -392,6 +393,7 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
   const filteredGameWinner = isBlowout ? null : gameWinningPlay;
 
   const topPerformers = getTopPerformers(stats, league);
+  const topByRating = league === "NBA" ? getTopByRating(stats) : null;
 
   const homeStats = calculateTeamStats(
     stats.filter((s) => s.team_short === game.home_team_short),
@@ -447,6 +449,7 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
     hadOT,
     quarterByQuarter,
     topPerformers,
+    ...(topByRating && topByRating.length > 0 ? { topByRating } : {}),
     teamStats: {
       home: homeStats,
       away: awayStats,
@@ -460,6 +463,25 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
     ...(filteredClutchPlays.length > 0 ? { clutchPlays: filteredClutchPlays } : {}),
     ...(filteredGameWinner ? { gameWinningPlay: filteredGameWinner } : {}),
   };
+}
+
+// NBA-only: top 3 players by Scorva's per-game rating (impact score that
+// blends box-score with WPA). Surfaces players who shaped the result through
+// non-scoring contributions (defense, rebounding, late-game stops) — these
+// often differ from the points leaders.
+export function getTopByRating(stats) {
+  const rated = stats
+    .filter((s) => s.rating != null)
+    .map((s) => ({ s, raw: Number(s.rating) }))
+    .filter((r) => Number.isFinite(r.raw));
+  if (rated.length === 0) return [];
+  rated.sort((a, b) => b.raw - a.raw);
+  return rated.slice(0, 3).map(({ s, raw }) => ({
+    name: s.player_name,
+    team: s.team_short,
+    stats: `${s.points || 0} PTS, ${s.rebounds || 0} REB, ${s.assists || 0} AST`,
+    ratingGrade: Math.round(gradeFromRaw(raw) * 10) / 10,
+  }));
 }
 
 export function getTopPerformers(stats, league) {
@@ -484,11 +506,16 @@ export function getTopPerformers(stats, league) {
     }
 
     performers.push(
-      ...[...picked.values()].slice(0, 3).map((s) => ({
-        name: s.player_name,
-        team: s.team_short,
-        stats: `${s.points} PTS, ${s.rebounds || 0} REB, ${s.assists || 0} AST`,
-      }))
+      ...[...picked.values()].slice(0, 3).map((s) => {
+        const rating = s.rating != null ? Number(s.rating) : null;
+        const grade = rating == null ? null : gradeFromRaw(rating);
+        return {
+          name: s.player_name,
+          team: s.team_short,
+          stats: `${s.points} PTS, ${s.rebounds || 0} REB, ${s.assists || 0} AST`,
+          ...(grade != null ? { ratingGrade: Math.round(grade * 10) / 10 } : {}),
+        };
+      })
     );
   } else if (league === "NFL") {
     const topPerformers = stats
@@ -727,6 +754,10 @@ export function buildPrompt(gameData, league) {
     ? `\n- benchPointsSwing.diff is the bench-scoring differential — this number is the SWING, not one team's total. Use it precisely (e.g. "${gameData.benchPointsSwing.team}'s bench outscored the opposition by ${gameData.benchPointsSwing.diff}").`
     : "";
 
+  const ratingRule = gameData.topByRating?.length
+    ? `\n- topByRating shows the top players by Scorva's per-game player rating (0-10 scale, NBA only) — an impact score combining box-score with win-probability swing. If a player ranks high here but is NOT in topPerformers (the points-based list), their impact came from defense, rebounding, or late-game stops, not scoring — call this out in one bullet rather than just listing volume scorers. Don't quote the numeric grade in the bullet (it's an internal signal, not user-facing).`
+    : "";
+
   const winningPlayRule = gameData.gameWinningPlay
     ? "\n- gameWinningPlay shows the decisive late moment — the game was within one possession in the clutch. Reference it by player name in one bullet; placement is up to you, and you can combine it with other context (a performer's night, a defensive sequence, etc.) when natural."
     : gameData.clutchPlays
@@ -742,7 +773,7 @@ Rules:
 - Do NOT restate the final score as a bullet — the reader already knows it
 - Anchor each bullet to something specific in the game data: a player performance, a period swing, a statistical gap, a late-game play, or context (series, injuries, streaks)
 - Vary the structure — don't follow a fixed template (e.g. series-then-performer-then-final-play). Combine ideas across bullets when they reinforce each other, and skip a category entirely if forcing it would produce filler
-- Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist${winningPlayRule}${injuryRule}${streakRule}${benchRule}
+- Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist${winningPlayRule}${ratingRule}${injuryRule}${streakRule}${benchRule}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;

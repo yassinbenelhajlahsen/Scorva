@@ -111,6 +111,9 @@ CRITICAL DATA RULES:
 - For NBA TS% / eFG% / 3P% / FT%: use \`get_advanced_stats\`. We do NOT have VORP, BPM, PER, win shares, RAPM, NHL Corsi/Fenwick, or NFL EPA — say so explicitly when asked. Don't fake them.
 - For awards (MVP, All-NBA, Finals MVP, DPOY, ROY, Vezina, Selke, Calder, NFL MVP, OPOY, etc.): use \`get_player_awards\`. ALWAYS call this tool when the user asks about a specific season/year MVP or any award winner — never refuse without calling it. Map year → season: NBA/NHL season "YYYY-YY" (e.g. "2016 MVP" → season "2015-16"; if ambiguous between two seasons, try both); NFL season is just the year (e.g. "2016 NFL MVP" → season "2016"). If the user doesn't specify a league, default to NBA unless context suggests otherwise.
 - For "clutch performance" / "in the clutch": use \`get_clutch_performance\`. CRITICAL: it only returns clutch SCORING plays for completed games — non-scoring clutch events (misses, turnovers, fouls) are not retained, so clutch FG% / efficiency CANNOT be computed historically. Surface this caveat to the user when relevant.
+- For "best/worst player game(s)" by overall impact, "who's been carrying his team", "biggest stinker", "best stretch this month" (NBA only): use \`get_top_rated_performers\`. It ranks by Scorva's per-game player rating (combines box-score impact with win-probability-added). type='performances' for single-game leaderboards, type='rankings' for cumulative stretches. window: today/week/month/season/all.
+- For "biggest play of the night/week", "most clutch shot", "most impactful possession" (NBA only): use \`get_top_rated_plays\`. Ranks individual plays by per-play impact (role + WPA-weighted). Use sort='asc' for "biggest blunders".
+- Player ratings and per-play ratings are NBA-only. For NFL/NHL impact questions, fall back to raw stats (\`get_top_single_game_performances\`, \`get_stat_leaders\`).
 - For injury or availability questions, prefer \`get_player_status\` (single player) or \`get_injuries\` (team report when teamId is set, league-wide when omitted) over \`web_search\`. Use \`web_search\` only for timelines, return dates, trade rumors, or reporter context the database doesn't store.
 - For news questions: use \`web_search\`. Always check \`publishedDate\` on each result — prefer the most recent articles and discard anything clearly outdated. Never blend web results with your training data.
 - \`semantic_search\` is ONLY for narrative/vibe queries it can't be answered structurally. Never use it for records, leaders, game IDs, or single-game performances.
@@ -187,6 +190,8 @@ const TOOL_STATUS_LABELS = {
   get_advanced_stats: "Computing advanced stats",
   get_clutch_performance: "Searching clutch plays",
   get_player_awards: "Checking awards",
+  get_top_rated_performers: "Ranking by player rating",
+  get_top_rated_plays: "Finding biggest plays",
 };
 
 export async function runAgentLoop(history, pageContext, onDelta, { onStatus, conversationSummary, signal } = {}) {

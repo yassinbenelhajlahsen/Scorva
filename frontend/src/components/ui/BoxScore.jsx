@@ -30,6 +30,21 @@ function parseStatValue(val) {
   return isNaN(n) ? -Infinity : n;
 }
 
+// Special column key for the RTG (rating grade) column. Lives on
+// player.ratingGrade rather than player.stats[*], so it needs its own lookup.
+const RTG_KEY = "__rating__";
+
+function ratingValue(player) {
+  return player?.ratingGrade == null ? -Infinity : Number(player.ratingGrade);
+}
+
+function formatRating(grade) {
+  if (grade == null) return "-";
+  const n = Number(grade);
+  if (!Number.isFinite(n)) return "-";
+  return n.toFixed(1);
+}
+
 // ---------------------------------------------------------------------------
 // Default (league) sort
 // ---------------------------------------------------------------------------
@@ -89,6 +104,11 @@ function columnSort(players, key, dir) {
     if (key === "__name__") {
       const cmp = (a.name || "").localeCompare(b.name || "");
       return dir === "asc" ? cmp : -cmp;
+    }
+    if (key === RTG_KEY) {
+      const av = ratingValue(a);
+      const bv = ratingValue(b);
+      return dir === "asc" ? av - bv : bv - av;
     }
     const av = parseStatValue(a.stats?.[key]);
     const bv = parseStatValue(b.stats?.[key]);
@@ -186,6 +206,11 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
     ]),
   ];
 
+  const hasAnyRating =
+    [...(homeTeam.players || []), ...(awayTeam.players || [])].some(
+      (p) => p?.ratingGrade != null,
+    );
+
   if (statHeaders.length === 0) {
     return (
       <div className="text-center text-text-tertiary text-sm mt-8">
@@ -207,7 +232,7 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
             className="touch-target flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors duration-150"
           >
             <span>
-              {sortKey === "__name__" ? "Player" : sortKey}
+              {sortKey === "__name__" ? "Player" : sortKey === RTG_KEY ? "RTG" : sortKey}
               {" "}
               {sortDir === "desc" ? "↓" : "↑"}
             </span>
@@ -237,6 +262,22 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
                   <SortArrow active={sortKey === "__name__"} dir={sortDir} />
                 </button>
               </th>
+
+              {hasAnyRating && (
+                <th key={RTG_KEY} className="py-2.5 px-3 font-medium">
+                  <button
+                    onClick={() => handleHeaderClick(RTG_KEY)}
+                    className={`group flex items-center justify-end w-full text-[10px] uppercase tracking-widest transition-colors duration-150 ${
+                      sortKey === RTG_KEY
+                        ? "text-accent"
+                        : "text-text-tertiary hover:text-text-secondary"
+                    }`}
+                  >
+                    RTG
+                    <SortArrow active={sortKey === RTG_KEY} dir={sortDir} />
+                  </button>
+                </th>
+              )}
 
               {statHeaders.map((stat) => (
                 <th key={stat} className="py-2.5 px-3 font-medium">
@@ -278,6 +319,19 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
                     {p.name}
                   </Link>
                 </td>
+
+                {hasAnyRating && (
+                  <td
+                    key={RTG_KEY}
+                    className={`py-2.5 px-3 text-right text-sm whitespace-nowrap tabular-nums transition-colors duration-150 ${
+                      sortKey === RTG_KEY
+                        ? "text-text-primary bg-accent/[0.04]"
+                        : "text-text-secondary"
+                    }`}
+                  >
+                    {formatRating(p.ratingGrade)}
+                  </td>
+                )}
 
                 {statHeaders.map((stat) => (
                   <td
