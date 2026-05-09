@@ -1,12 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { m } from "framer-motion";
 import { useTopPerformances } from "../../../hooks/data/useTopPerformances.js";
 import { queryKeys, queryFns } from "../../../lib/query.js";
 import slugify from "../../../utils/slugify.js";
 import HeroRow from "../rows/HeroRow.jsx";
 import CompactRow from "../rows/CompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
-import { listStaggerVariants, rowFadeVariants } from "../animations.js";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
@@ -26,13 +24,7 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
 
   const showDate = SHOW_DATE_FOR.has(win);
   return (
-    <m.ul
-      key={`${win}:${sort}:${position}`}
-      className="flex flex-col gap-1"
-      variants={listStaggerVariants}
-      initial="hidden"
-      animate="show"
-    >
+    <ul className="flex flex-col gap-1">
       {items.map((it, i) => {
         const rank = i + 1;
         const to = `/${league}/games/${it.game.id}?tab=analysis#${slugify(it.player.name)}`;
@@ -54,14 +46,14 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
           },
         };
         return (
-          <m.li key={`${it.player.id}:${it.game.id}`} variants={rowFadeVariants}>
+          <li key={`${it.player.id}:${it.game.id}`}>
             {rank <= 3
               ? <HeroRow rank={rank} color={it.player.team?.primary_color} {...props} />
               : <CompactRow rank={rank} {...props} />}
-          </m.li>
+          </li>
         );
       })}
-    </m.ul>
+    </ul>
   );
 }
 

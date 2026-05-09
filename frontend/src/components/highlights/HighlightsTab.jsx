@@ -104,12 +104,22 @@ export default function HighlightsTab() {
             exit="exit"
             transition={{
               x: { type: "spring", stiffness: 350, damping: 32 },
-              opacity: { duration: 0.18 },
+              opacity: { duration: 0.1 },
             }}
           >
-            {mode === "rankings"     && <RankingsList     window={win} sort={sort} position={position} />}
-            {mode === "performances" && <PerformancesList window={win} sort={sort} position={position} />}
-            {mode === "plays"        && <PlaysList        window={win} sort={sort} position={position} />}
+            <AnimatePresence mode="wait" initial={false}>
+              <m.div
+                key={`filters:${win}:${sort}:${position}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                {mode === "rankings"     && <RankingsList     window={win} sort={sort} position={position} />}
+                {mode === "performances" && <PerformancesList window={win} sort={sort} position={position} />}
+                {mode === "plays"        && <PlaysList        window={win} sort={sort} position={position} />}
+              </m.div>
+            </AnimatePresence>
           </m.div>
         </AnimatePresence>
       </div>
