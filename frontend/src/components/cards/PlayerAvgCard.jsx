@@ -3,11 +3,11 @@ export default function PlayerAvgCard({ league, averages, season }) {
 
   if (!averages || Object.keys(averages).length === 0 || averages == null) {
     return (
-      <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-fit overflow-hidden">
+      <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full h-full overflow-hidden flex flex-col">
         <div className="bg-accent/10 text-accent text-center text-xs font-semibold uppercase tracking-widest py-2.5 px-6 border-b border-white/[0.06]">
           {season} Regular Season
         </div>
-        <div className="p-5">
+        <div className="p-5 flex-1 flex items-center justify-center">
           <p className="text-sm text-center text-text-tertiary">No stats available.</p>
         </div>
       </div>
@@ -36,17 +36,17 @@ export default function PlayerAvgCard({ league, averages, season }) {
   }
 
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full overflow-hidden">
+    <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full h-full overflow-hidden flex flex-col">
       {/* Tinted header */}
       <div className="bg-accent/10 text-accent text-center text-xs font-semibold uppercase tracking-widest py-2.5 px-6 border-b border-white/[0.06]">
         {season} Regular Season
       </div>
 
       {/* Stat row */}
-      <div className="p-6">
-        <ul className="flex flex-wrap gap-y-6 gap-x-10 justify-center">
+      <div className="p-6 flex-1 flex items-center">
+        <ul className="flex flex-wrap gap-y-6 justify-around w-full">
           {statsToDisplay.map((stat, i) => (
-            <li key={i} className="flex flex-col items-center min-w-[72px]">
+            <li key={i} className="flex flex-col items-center flex-1 min-w-[72px]">
               <span className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium">{stat.label}</span>
               <span className="font-bold text-3xl sm:text-4xl mt-1 text-text-primary tabular-nums">
                 {stat.value ?? "--"}
