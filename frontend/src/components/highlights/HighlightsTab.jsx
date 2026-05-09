@@ -91,14 +91,6 @@ export default function HighlightsTab() {
           ))}
         </div>
       </div>
-
-      <p className="text-center text-[10px] uppercase tracking-widest text-text-tertiary mb-6">
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 text-accent font-semibold mr-2">
-          Beta
-        </span>
-        NBA only
-      </p>
-
       <FilterBar window={win} position={position} sort={sort} />
 
       <div className="relative overflow-hidden">

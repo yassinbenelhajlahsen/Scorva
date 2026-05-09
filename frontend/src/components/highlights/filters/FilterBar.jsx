@@ -8,10 +8,10 @@ const WINDOWS = [
   { id: "all",    label: "All-time" },
 ];
 const POSITIONS = [
-  { id: "all", label: "All" },
-  { id: "G",   label: "G" },
-  { id: "F",   label: "F" },
-  { id: "C",   label: "C" },
+  { id: "all", label: "All positions" },
+  { id: "G",   label: "Guards" },
+  { id: "F",   label: "Forwards" },
+  { id: "C",   label: "Centers" },
 ];
 const SORTS = [
   { id: "desc", label: "Best" },
@@ -30,35 +30,36 @@ export default function FilterBar({ window, position, sort }) {
   };
 
   return (
-    <div className="flex flex-col gap-2 mb-6">
-      <PillRow label="Window"   options={WINDOWS}   active={window}   onSelect={setParam("win", "week")} />
-      <PillRow label="Position" options={POSITIONS} active={position} onSelect={setParam("pos", "all")} />
-      <PillRow label="Sort"     options={SORTS}     active={sort}     onSelect={setParam("sort", "desc")} />
+    <div className="flex flex-wrap gap-2 mb-6">
+      <Dropdown options={WINDOWS}   value={window}   onChange={setParam("win", "week")} />
+      <Dropdown options={POSITIONS} value={position} onChange={setParam("pos", "all")} />
+      <Dropdown options={SORTS}     value={sort}     onChange={setParam("sort", "desc")} />
     </div>
   );
 }
 
-function PillRow({ label, options, active, onSelect }) {
+function Dropdown({ options, value, onChange }) {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium w-16 shrink-0">{label}</span>
-      {options.map((o) => {
-        const isActive = o.id === active;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onSelect(o.id)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
-              isActive
-                ? "bg-accent text-white border-accent"
-                : "bg-surface-elevated text-text-secondary border-white/[0.08] hover:border-white/[0.14] hover:text-text-primary"
-            }`}
-          >
+    <div className="relative inline-flex items-center">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 pr-9 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:ring-1 focus:ring-accent/50"
+      >
+        {options.map((o) => (
+          <option key={o.id} value={o.id} className="bg-surface-primary">
             {o.label}
-          </button>
-        );
-      })}
+          </option>
+        ))}
+      </select>
+      <svg
+        className="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-text-tertiary"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
     </div>
   );
 }
