@@ -15,12 +15,18 @@ jest.unstable_mockModule(
   () => ({ cached: mockCached }),
 );
 
-const { getTopPerformances } = await import("../../../src/services/games/topPerformancesService.js");
+jest.unstable_mockModule(
+  resolve(__dirname, "../../../src/cache/seasons.js"),
+  () => ({ currentSeasonForLeague: jest.fn().mockResolvedValue("2025-26") }),
+);
+
+const { getTopPerformances, resolveWindow, positionPredicate } =
+  await import("../../../src/services/games/topPerformancesService.js");
 
 beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
 
 describe("getTopPerformances", () => {
-  test("type=games — returns shaped rows with ratingGrade computed", async () => {
+  test("type=games (legacy) — returns shaped rows with ratingGrade computed", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [
         {
@@ -37,20 +43,20 @@ describe("getTopPerformances", () => {
 
     const out = await getTopPerformances({ league: "nba", days: 7, type: "games", limit: 5 });
 
-    expect(out.type).toBe("games");
-    expect(out.days).toBe(7);
+    expect(out.type).toBe("performances");
+    expect(out.window).toBe("week");
     expect(out.performances).toHaveLength(1);
     expect(out.performances[0].rating).toBeCloseTo(34.4, 1);
     expect(out.performances[0].ratingGrade).toBeCloseTo(5.4, 1);
     expect(out.performances[0].player.team.primary_color).toBe("#00538C");
     expect(mockCached).toHaveBeenCalledWith(
-      "top-performances:nba:games:7:5",
+      "top-performances:nba:performances:week:desc:all:5",
       60,
       expect.any(Function),
     );
   });
 
-  test("type=cumulative — group by player, totalRating + bestGame", async () => {
+  test("type=cumulative (legacy) — group by player, totalRating + bestGame", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [
         {
@@ -64,7 +70,7 @@ describe("getTopPerformances", () => {
 
     const out = await getTopPerformances({ league: "nba", days: 7, type: "cumulative", limit: 5 });
 
-    expect(out.type).toBe("cumulative");
+    expect(out.type).toBe("rankings");
     expect(out.performances[0].totalRating).toBeCloseTo(234.7, 1);
     expect(out.performances[0].gamesPlayed).toBe(5);
     expect(out.performances[0].avgPerGame).toBeCloseTo(46.94, 2);
@@ -79,11 +85,131 @@ describe("getTopPerformances", () => {
     ).rejects.toThrow(/type/);
   });
 
-  test("days clamped to [1, 30]", async () => {
+  test("legacy days param maps to window", async () => {
     mockQuery.mockResolvedValue({ rows: [] });
     await getTopPerformances({ league: "nba", days: 999, type: "games", limit: 5 });
-    expect(mockQuery.mock.calls[0][1][1]).toBe(30);
+    expect(mockQuery.mock.calls[0][0]).toMatch(/INTERVAL '30 days'/);
     await getTopPerformances({ league: "nba", days: 0, type: "games", limit: 5 });
-    expect(mockQuery.mock.calls[1][1][1]).toBe(1);
+    expect(mockQuery.mock.calls[1][0]).toMatch(/g\.date = \(NOW\(\) AT TIME ZONE 'America\/New_York'\)::date/);
+  });
+});
+
+describe("resolveWindow", () => {
+  test("today → current NY date", () => {
+    const w = resolveWindow("today");
+    expect(w.predicate).toBe("g.date = (NOW() AT TIME ZONE 'America/New_York')::date");
+    expect(w.binds).toEqual([]);
+  });
+  test("week → 7-day window", () => {
+    const w = resolveWindow("week");
+    expect(w.predicate).toContain("INTERVAL '7 days'");
+  });
+  test("month → 30-day window", () => {
+    const w = resolveWindow("month");
+    expect(w.predicate).toContain("INTERVAL '30 days'");
+  });
+  test("season → bound on g.season", () => {
+    const w = resolveWindow("season", { season: "2025-26" });
+    expect(w.predicate).toBe("g.season = $WIN1");
+    expect(w.binds).toEqual(["2025-26"]);
+  });
+  test("all → no predicate", () => {
+    const w = resolveWindow("all");
+    expect(w.predicate).toBe("");
+    expect(w.binds).toEqual([]);
+  });
+  test("invalid window throws", () => {
+    expect(() => resolveWindow("garbage")).toThrow(/window/);
+  });
+});
+
+describe("positionPredicate", () => {
+  test.each([
+    ["all", ""],
+    ["G",   "p.position ~* '^(PG|SG|G)'"],
+    ["F",   "p.position ~* '^(SF|PF|F)'"],
+    ["C",   "p.position ~* '^C'"],
+  ])("%s", (pos, expected) => {
+    expect(positionPredicate(pos)).toBe(expected);
+  });
+  test("invalid throws", () => {
+    expect(() => positionPredicate("Q")).toThrow(/position/);
+  });
+});
+
+describe("getTopPerformances — new params", () => {
+  beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
+
+  test("type=performances + window=week + sort=asc orders ASC", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "week",
+      sort: "asc", position: "all", limit: 10,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    expect(sql).toMatch(/ORDER BY s\.rating ASC/);
+    expect(sql).toMatch(/INTERVAL '7 days'/);
+  });
+
+  test("type=rankings + position=G injects position predicate", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "rankings", window: "month",
+      sort: "desc", position: "G", limit: 10,
+    });
+    expect(mockQuery.mock.calls[0][0]).toMatch(/p\.position ~\* '\^\(PG\|SG\|G\)'/);
+  });
+
+  test("window=season uses g.season binding", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "season",
+      sort: "desc", position: "all", limit: 10,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    const binds = mockQuery.mock.calls[0][1];
+    expect(sql).toMatch(/g\.season = \$\d/);
+    expect(binds).toContain("2025-26");
+  });
+
+  test("window=all → no date predicate", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "all",
+      sort: "desc", position: "all", limit: 10,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    expect(sql).not.toMatch(/g\.date >=/);
+    expect(sql).not.toMatch(/g\.date =/);
+    expect(sql).not.toMatch(/g\.season =/);
+  });
+
+  test("legacy: type=games + days=7 still works", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    const out = await getTopPerformances({ league: "nba", days: 7, type: "games", limit: 5 });
+    expect(out.type).toBe("performances");
+    expect(mockQuery.mock.calls[0][0]).toMatch(/INTERVAL '7 days'/);
+  });
+
+  test("cache key includes all filters", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "week",
+      sort: "desc", position: "G", limit: 10,
+    });
+    expect(mockCached).toHaveBeenCalledWith(
+      "top-performances:nba:performances:week:desc:G:10",
+      expect.any(Number),
+      expect.any(Function),
+    );
+  });
+
+  test("today TTL is 30s", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "today",
+      sort: "desc", position: "all", limit: 10,
+    });
+    expect(mockCached).toHaveBeenCalledWith(expect.any(String), 30, expect.any(Function));
   });
 });
