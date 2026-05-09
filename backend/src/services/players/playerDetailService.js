@@ -5,7 +5,9 @@ import { attachRatingGrade } from "../games/ratingEngine.js";
 
 function shapeRatings(row) {
   if (!row) return row;
-  const player = row.json_build_object;
+  // playerDetailService SQL aliases the JSON object as `player`, not `json_build_object`
+  // (compare to gameDetailService which uses the bare default `json_build_object` alias).
+  const player = row.player;
   if (!player || !Array.isArray(player.games)) return row;
   for (const g of player.games) attachRatingGrade(g);
   return row;
