@@ -62,9 +62,25 @@ async function getStoredPlays(gameId, league) {
            p.drive_description,
            p.drive_result,
            t.logo_url AS team_logo,
-           t.shortname AS team_short
+           t.shortname AS team_short,
+           pr_agg.participants
          FROM plays p
          LEFT JOIN teams t ON t.id = p.team_id
+         LEFT JOIN LATERAL (
+           SELECT jsonb_agg(
+                    jsonb_build_object(
+                      'id',         pl.id,
+                      'name',       pl.name,
+                      'image_url',  pl.image_url,
+                      'role',       pr.role,
+                      'rating',     pr.weighted_value
+                    )
+                    ORDER BY ABS(pr.weighted_value) DESC
+                  ) AS participants
+             FROM play_ratings pr
+             JOIN players pl ON pl.id = pr.player_id
+            WHERE pr.play_id = p.id
+         ) pr_agg ON TRUE
          WHERE p.gameid = $1
          ORDER BY p.sequence ASC`,
         [gameId],
@@ -96,9 +112,25 @@ async function getStoredPlaysLive(gameId) {
        p.drive_description,
        p.drive_result,
        t.logo_url AS team_logo,
-       t.shortname AS team_short
+       t.shortname AS team_short,
+       pr_agg.participants
      FROM plays p
      LEFT JOIN teams t ON t.id = p.team_id
+     LEFT JOIN LATERAL (
+       SELECT jsonb_agg(
+                jsonb_build_object(
+                  'id',         pl.id,
+                  'name',       pl.name,
+                  'image_url',  pl.image_url,
+                  'role',       pr.role,
+                  'rating',     pr.weighted_value
+                )
+                ORDER BY ABS(pr.weighted_value) DESC
+              ) AS participants
+         FROM play_ratings pr
+         JOIN players pl ON pl.id = pr.player_id
+        WHERE pr.play_id = p.id
+     ) pr_agg ON TRUE
      WHERE p.gameid = $1
      ORDER BY p.sequence ASC`,
     [gameId],
