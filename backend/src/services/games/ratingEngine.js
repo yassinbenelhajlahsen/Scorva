@@ -26,8 +26,10 @@ const GRADE_COEFFICIENT = 0.92;
 
 export function gradeFromRaw(raw) {
   if (raw == null) return null;
-  const r = Math.max(0, Number(raw));
-  return Math.max(0, Math.min(10, GRADE_COEFFICIENT * Math.sqrt(r)));
+  const r = Number(raw);
+  const sign = r < 0 ? -1 : 1;
+  const magnitude = GRADE_COEFFICIENT * Math.sqrt(Math.abs(r));
+  return Math.max(-10, Math.min(10, sign * magnitude));
 }
 
 /**

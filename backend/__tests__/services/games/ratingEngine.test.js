@@ -11,7 +11,14 @@ describe("gradeFromRaw", () => {
     expect(gradeFromRaw(undefined)).toBeNull();
   });
   test("0 → 0.0", () => { expect(gradeFromRaw(0)).toBe(0); });
-  test("negative raw floors at 0", () => { expect(gradeFromRaw(-3.1)).toBe(0); });
+  test("negative raw → signed grade (mirror of positive curve)", () => {
+    expect(gradeFromRaw(-3.1)).toBeCloseTo(-1.62, 1);
+    expect(gradeFromRaw(-12)).toBeCloseTo(-3.19, 1);
+  });
+  test("raw ≤ -120 caps at -10.0", () => {
+    expect(gradeFromRaw(-120)).toBe(-10);
+    expect(gradeFromRaw(-1000)).toBe(-10);
+  });
   // Square-root curve calibrated against Real App: 0.92 × sqrt(raw)
   test("raw ≈25 → ~4.6 (LeBron 24.9 → Real 4.6)", () => {
     expect(gradeFromRaw(24.9)).toBeCloseTo(4.59, 1);
