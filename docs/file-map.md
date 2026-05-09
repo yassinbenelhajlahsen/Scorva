@@ -298,8 +298,13 @@ For architecture context see [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 | What                    | Where                                                          |
 | ----------------------- | -------------------------------------------------------------- |
 | Pulse page              | `frontend/src/pages/PulsePage.jsx` (route `/pulse`; `/reports` redirects here) |
-| Highlights tab          | `frontend/src/components/highlights/HighlightsTab.jsx` (mode toggle + Beta hint + section composition; rendered inside Pulse Highlights sub-tab) |
-| Top performers          | `frontend/src/components/highlights/TopPerformers.jsx` (props: `league`, `mode`; leaderboard list) |
+| Highlights tab          | `frontend/src/components/highlights/HighlightsTab.jsx` (3-tab host: Rankings / Performances / Plays; rendered inside Pulse Highlights sub-tab) |
+| Filter bar              | `frontend/src/components/highlights/filters/FilterBar.jsx` (Window/Position/Sort pill rails) |
+| Hero row                | `frontend/src/components/highlights/rows/HeroRow.jsx` (top-3 hero rendering) |
+| Compact row             | `frontend/src/components/highlights/rows/CompactRow.jsx` (rank 4–25 row) |
+| Rankings tab            | `frontend/src/components/highlights/tabs/RankingsList.jsx` (cumulative leaderboard) |
+| Performances tab        | `frontend/src/components/highlights/tabs/PerformancesList.jsx` (best/worst single games) |
+| Plays tab               | `frontend/src/components/highlights/tabs/PlaysList.jsx` (best/worst single plays) |
 | Top performers skeleton | `frontend/src/components/skeletons/TopPerformersSkeleton.jsx` |
 | Top performances hook   | `frontend/src/hooks/data/useTopPerformances.js`                |
 | Reports API             | `frontend/src/api/reports.js`                                  |
