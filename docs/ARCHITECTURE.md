@@ -805,7 +805,7 @@ weighted = clamp(base_value + WPA_WEIGHT × wpa_delta × team_sign, -10.0, +10.0
 - `WPA_WEIGHT = 30`. `wpa_delta = currentPlay.homeWinPercentage − previousPlay.homeWinPercentage` (sourced from ESPN's `winprobability[]` via `winProbabilityService`, joined by `playId`).
 - `team_sign = +1` if the play moved the participant's team's win prob up, `-1` otherwise.
 - Per-game `stats.rating` = sum of all clamped per-play `weighted_value`s for that player (open-ended; can be negative for genuinely bad games).
-- Display grade computed at API/UI layer via `gradeFromRaw(raw) = max(0, min(10, raw / GRADE_DIVISOR))`. **`GRADE_DIVISOR = 4.0`** — tuned from backfill data (p99=34.9 → grade 8.7; max=61.8 → clamps at 10).
+- Display grade computed at API/UI layer via `gradeFromRaw(raw) = max(0, min(10, GRADE_COEFFICIENT × sqrt(max(0, raw))))`. **`GRADE_COEFFICIENT = 0.92`** — square-root curve calibrated against Real App's published grades (Barnes 47.9 raw → 6.4 grade matches Real exactly; LeBron 24.9 raw → 4.6 matches). Lifts mid-range performances (a solid 15-pt bench game reads ~3 instead of <1) and prevents multiple top players from bunching at the 10.0 cap.
 
 ### Display rules
 
@@ -830,4 +830,5 @@ weighted = clamp(base_value + WPA_WEIGHT × wpa_delta × team_sign, -10.0, +10.0
 - `play_participants[0]` is always the primary actor of the play (matches `team.id`). `participants[1]` is the secondary actor whose role is read from text content (`(X assists)` → assister; `blocks` → blocker; `(X steals)` → stealer). Verified against 462 plays in a real NBA game.
 - Live-game ratings update each `liveSync` cycle as plays come in; the 7-day leaderboard query filters `g.status ILIKE '%final%'` so live games don't churn the leaderboard.
 - Backfill is one-shot via `node src/ingestion/scripts/backfillPlayerRatings.js`; idempotent (re-running re-rates without state corruption); ESPN polite at 250ms/game with 15s timeout. Pool is configured with `keepAlive` + bounded `max=5` + suppressed idle-client errors so long runs against the Railway proxy don't crash on idle disconnects.
+- **Known calibration gap vs Real App**: triple-double-style + clutch performances match Real grades exactly (verified: Barnes 6.4, LeBron 4.6). High-volume inefficient scoring (e.g., Embiid 34/12/6 with 11 missed shots, Brunson 35-pt blowout) reads ~1.0-1.5 grade points below Real because our engine penalizes missed shots more aggressively than Real seems to. Tunable in a future iteration by reducing `shot_attempter` base value (currently -0.5/-0.3) and re-running the backfill. Documented and accepted for v1.
 - Spec: [`docs/superpowers/specs/2026-05-08-player-rating-system-design.md`](./superpowers/specs/2026-05-08-player-rating-system-design.md). Plan: [`docs/superpowers/plans/2026-05-08-player-rating-system.md`](./superpowers/plans/2026-05-08-player-rating-system.md).
