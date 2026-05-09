@@ -141,6 +141,7 @@ function PlayRow({ play, isNew, highlightScoring, league, gameId, dupeSlugs }) {
   const participants = Array.isArray(play.participants) ? play.participants : [];
   return (
     <m.div
+      id={play.id != null ? `play-${play.id}` : undefined}
       layout="position"
       initial={isNew ? { opacity: 0, y: -14 } : false}
       animate={{ opacity: 1, y: 0 }}

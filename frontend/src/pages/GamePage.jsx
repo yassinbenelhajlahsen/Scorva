@@ -62,7 +62,13 @@ export default function GamePage() {
     requestAnimationFrame(() => {
       const row = document.getElementById(id);
       if (!row) {
-        if (activeTab !== "analysis") handleTabChange("analysis");
+        // Only fall back to the analysis tab if the URL didn't explicitly select
+        // a tab and the hash doesn't look like a play anchor.
+        const explicitTab = new URLSearchParams(location.search).get("tab");
+        const hashId = location.hash.slice(1);
+        if (!explicitTab && !hashId.startsWith("play-") && activeTab !== "analysis") {
+          handleTabChange("analysis");
+        }
         return;
       }
 
