@@ -47,11 +47,10 @@ async function main() {
        FROM games g
        LEFT JOIN teams ht ON ht.id = g.hometeamid
        LEFT JOIN teams at ON at.id = g.awayteamid
-      WHERE g.league = 'nba' AND g.season = $1
+      WHERE g.league = 'nba' AND g.season = '2025-26'
         AND g.status ILIKE '%final%'
         AND g.eventid IS NOT NULL
       ORDER BY g.date ASC`,
-    [season],
   );
   log.info({ count: games.length }, "Final NBA games to backfill");
 
