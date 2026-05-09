@@ -36,35 +36,85 @@ describe("gradeFromRaw", () => {
   });
 });
 
-describe("baseValue — NBA", () => {
-  test("made 3pt at 24ft", () => {
-    expect(baseValue("scorer", { type: "made_3pt", distance: 24 }))
-      .toBeCloseTo(1.5 + 0.02, 2);  // distance bonus = 0.02 × max(0, 24-23) = 0.02
+describe("baseValue — NBA v2", () => {
+  // SCORER: assisted vs unassisted differential
+  test("unassisted made 3pt at 24ft → 1.5 + 0.02 = 1.52", () => {
+    expect(baseValue("scorer", { type: "made_3pt", distance: 24, assisted: false }))
+      .toBeCloseTo(1.52, 2);
   });
-  test("made 3pt at 30ft", () => {
-    // 1.5 + 0.02 × 7 = 1.64
-    expect(baseValue("scorer", { type: "made_3pt", distance: 30 })).toBeCloseTo(1.64, 2);
+  test("assisted made 3pt at 24ft → 1.2 + 0.02 = 1.22", () => {
+    expect(baseValue("scorer", { type: "made_3pt", distance: 24, assisted: true }))
+      .toBeCloseTo(1.22, 2);
   });
-  test("made 3pt at >>23ft caps at 3.0", () => {
-    expect(baseValue("scorer", { type: "made_3pt", distance: 100 })).toBe(3.0);
+  test("unassisted made 3pt at 30ft → 1.5 + 0.14 = 1.64", () => {
+    expect(baseValue("scorer", { type: "made_3pt", distance: 30, assisted: false }))
+      .toBeCloseTo(1.64, 2);
   });
-  test("made 2pt at 8ft", () => {
-    expect(baseValue("scorer", { type: "made_2pt", distance: 8 })).toBeCloseTo(1.16, 2);
+  test("unassisted made 3pt caps at 3.0", () => {
+    expect(baseValue("scorer", { type: "made_3pt", distance: 100, assisted: false })).toBe(3.0);
   });
-  test("made 2pt caps at 2.0", () => {
-    expect(baseValue("scorer", { type: "made_2pt", distance: 100 })).toBe(2.0);
+  test("assisted made 3pt caps at 2.4", () => {
+    expect(baseValue("scorer", { type: "made_3pt", distance: 100, assisted: true })).toBe(2.4);
   });
-  test("made FT", () => { expect(baseValue("scorer", { type: "made_ft" })).toBe(0.4); });
-  test("missed shot", () => { expect(baseValue("shot_attempter", { type: "missed_3pt" })).toBe(-0.5); });
-  test("missed FT", () => { expect(baseValue("shot_attempter", { type: "missed_ft" })).toBe(-0.3); });
+  test("unassisted made 2pt at 8ft → 1.16", () => {
+    expect(baseValue("scorer", { type: "made_2pt", distance: 8, assisted: false }))
+      .toBeCloseTo(1.16, 2);
+  });
+  test("assisted made 2pt at 8ft → 0.86", () => {
+    expect(baseValue("scorer", { type: "made_2pt", distance: 8, assisted: true }))
+      .toBeCloseTo(0.86, 2);
+  });
+  test("unassisted made 2pt caps at 2.0", () => {
+    expect(baseValue("scorer", { type: "made_2pt", distance: 100, assisted: false })).toBe(2.0);
+  });
+  test("assisted made 2pt caps at 1.5", () => {
+    expect(baseValue("scorer", { type: "made_2pt", distance: 100, assisted: true })).toBe(1.5);
+  });
+  test("made FT (assisted is irrelevant)", () => {
+    expect(baseValue("scorer", { type: "made_ft" })).toBe(0.4);
+  });
+
+  // SHOT ATTEMPTER & HEAVE
+  test("missed shot", () => {
+    expect(baseValue("shot_attempter", { type: "missed_3pt" })).toBe(-0.5);
+  });
+  test("missed FT", () => {
+    expect(baseValue("shot_attempter", { type: "missed_ft" })).toBe(-0.3);
+  });
+  test("heave_attempter base = 0 (no penalty)", () => {
+    expect(baseValue("heave_attempter", {})).toBe(0);
+  });
+
+  // ASSISTER, REBOUNDER, STEALER, BLOCKER unchanged
   test("assister", () => { expect(baseValue("assister", {})).toBe(0.7); });
-  test("offensive rebound", () => { expect(baseValue("rebounder", { offensive: true })).toBe(0.6); });
-  test("defensive rebound", () => { expect(baseValue("rebounder", { offensive: false })).toBe(0.3); });
+  test("offensive rebound", () => {
+    expect(baseValue("rebounder", { offensive: true })).toBe(0.6);
+  });
+  test("defensive rebound", () => {
+    expect(baseValue("rebounder", { offensive: false })).toBe(0.3);
+  });
   test("steal", () => { expect(baseValue("stealer", {})).toBe(1.0); });
   test("block", () => { expect(baseValue("blocker", {})).toBe(0.7); });
   test("turnover", () => { expect(baseValue("turnover_committer", {})).toBe(-1.0); });
-  test("shooting foul", () => { expect(baseValue("foul_committer", { shooting: true })).toBe(-0.5); });
-  test("non-shooting foul", () => { expect(baseValue("foul_committer", { shooting: false })).toBe(-0.2); });
+  test("charge_drawer base = 1.0", () => { expect(baseValue("charge_drawer", {})).toBe(1.0); });
+
+  // FOUL SEVERITY
+  test("shooting foul (no foulType)", () => {
+    expect(baseValue("foul_committer", { shooting: true })).toBe(-0.5);
+  });
+  test("non-shooting personal foul", () => {
+    expect(baseValue("foul_committer", { shooting: false })).toBe(-0.2);
+  });
+  test("technical foul → -1.5", () => {
+    expect(baseValue("foul_committer", { foulType: "technical" })).toBe(-1.5);
+  });
+  test("flagrant 1 → -2.0", () => {
+    expect(baseValue("foul_committer", { foulType: "flagrant1" })).toBe(-2.0);
+  });
+  test("flagrant 2 → -3.5", () => {
+    expect(baseValue("foul_committer", { foulType: "flagrant2" })).toBe(-3.5);
+  });
+
   test("unknown role → 0", () => { expect(baseValue("mystery", {})).toBe(0); });
 });
 

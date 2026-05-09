@@ -91,11 +91,13 @@ export function wpaContribution(wpaDelta, side, role, ctx = {}) {
 /**
  * Compute base_value for a (role, ctx) combination.
  *
- * ctx fields:
+ * ctx fields (only relevant ones consumed per role):
  *   - type: "made_3pt" | "made_2pt" | "made_ft" | "missed_3pt" | "missed_2pt" | "missed_ft"
  *   - distance: number | null  (only for shooter roles)
+ *   - assisted: boolean (only for scorer made_3pt / made_2pt — drops base when set)
  *   - offensive: boolean (only for rebounder)
- *   - shooting:  boolean (only for foul_committer)
+ *   - shooting:  boolean (only for foul_committer fallback path)
+ *   - foulType:  "technical" | "flagrant1" | "flagrant2" | null (only for foul_committer)
  */
 export function baseValue(role, ctx = {}) {
   switch (role) {
@@ -103,10 +105,12 @@ export function baseValue(role, ctx = {}) {
       switch (ctx.type) {
         case "made_3pt": {
           const d = Math.max(0, (ctx.distance ?? 0) - 23);
+          if (ctx.assisted) return Math.min(2.4, 1.2 + 0.02 * d);
           return Math.min(3.0, 1.5 + 0.02 * d);
         }
         case "made_2pt": {
           const d = Math.max(0, ctx.distance ?? 0);
+          if (ctx.assisted) return Math.min(1.5, 0.7 + 0.02 * d);
           return Math.min(2.0, 1.0 + 0.02 * d);
         }
         case "made_ft":  return 0.4;
@@ -115,6 +119,8 @@ export function baseValue(role, ctx = {}) {
     }
     case "shot_attempter":
       return ctx.type === "missed_ft" ? -0.3 : -0.5;
+    case "heave_attempter":
+      return 0;
     case "assister":
       return 0.7;
     case "rebounder":
@@ -123,10 +129,18 @@ export function baseValue(role, ctx = {}) {
       return 1.0;
     case "blocker":
       return 0.7;
+    case "charge_drawer":
+      return 1.0;
     case "turnover_committer":
       return -1.0;
-    case "foul_committer":
-      return ctx.shooting ? -0.5 : -0.2;
+    case "foul_committer": {
+      switch (ctx.foulType) {
+        case "technical": return -1.5;
+        case "flagrant1": return -2.0;
+        case "flagrant2": return -3.5;
+        default:          return ctx.shooting ? -0.5 : -0.2;
+      }
+    }
     default:
       return 0;
   }
