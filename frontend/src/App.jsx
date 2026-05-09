@@ -24,7 +24,6 @@ import { resolveLeagueFilter } from "./utils/slateDate.js";
 const About        = lazy(() => import("./pages/About.jsx"));
 const LeaguePage   = lazy(() => import("./pages/LeaguePage.jsx"));
 const PlayerPage   = lazy(() => import("./pages/PlayerPage.jsx"));
-const PlayerDetailPage = lazy(() => import("./pages/PlayerDetailPage.jsx"));
 const TeamPage     = lazy(() => import("./pages/TeamPage.jsx"));
 const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
 const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
@@ -142,14 +141,6 @@ function AnimatedRoutes() {
           element={
             <PageWrapper>
               <PlayerPage />
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/:league/players/:playerId/details"
-          element={
-            <PageWrapper>
-              <PlayerDetailPage />
             </PageWrapper>
           }
         />
