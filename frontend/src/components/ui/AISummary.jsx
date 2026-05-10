@@ -20,7 +20,6 @@ export default function AISummary({ gameId }) {
 
   const handleDevClear = async () => {
     if (!session || clearing) return;
-    if (!window.confirm(`Clear cached AI summary for game ${gameId}?`)) return;
     setClearing(true);
     try {
       await clearAISummary(gameId, { token: session.access_token });
