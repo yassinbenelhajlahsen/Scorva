@@ -11,3 +11,7 @@ export function getSimilarPlayers(league, slug, { season, signal } = {}) {
 export function getDuplicatePlayerSlugs(league, { signal } = {}) {
   return apiFetch(`/api/${league}/players/duplicate-slugs`, { signal });
 }
+
+export function getPlayerRankings(league, slug, { signal } = {}) {
+  return apiFetch(`/api/${league}/players/${slug}/rankings`, { signal });
+}
