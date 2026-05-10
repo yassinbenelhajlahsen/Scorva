@@ -16,6 +16,7 @@ import SimilarPlayersCard from "../components/cards/SimilarPlayersCard.jsx";
 import PlayerHero from "../components/player/PlayerHero.jsx";
 import PlayerRatingsSection from "../components/player/PlayerRatingsSection.jsx";
 import { useStreak } from "../hooks/data/useStreak.js";
+import { usePlayerRankings } from "../hooks/data/usePlayerRankings.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
@@ -143,6 +144,7 @@ export default function PlayerPage() {
   const { streak } = useStreak(league, "player", playerData?.id, {
     enabled: viewingCurrentSeason,
   });
+  const rankings = usePlayerRankings(league, slug);
 
   // Tab pill sliding-underline indicator
   const tabNavRef = useRef(null);
@@ -353,6 +355,7 @@ export default function PlayerPage() {
         isFavorited={isFavorited}
         onToggleFavorite={() => (session ? toggle() : openAuthModal("favorites"))}
         selectedSeason={selectedSeason}
+        rankings={rankings}
       />
 
       {/* Tab strip with sliding underline */}

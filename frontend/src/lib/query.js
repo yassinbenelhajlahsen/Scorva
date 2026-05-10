@@ -35,6 +35,7 @@ export const queryKeys = {
   headToHead:     (league, type, ids) => ["headToHead", league, type, ...ids],
   playoffs:       (league, season) => ["playoffs", league, season],
   duplicatePlayerSlugs: (league) => ["duplicatePlayerSlugs", league],
+  playerRankings: (league, slug) => ["playerRankings", league, slug],
   topPerformances: (league, { type, window, sort, position, limit, playerId, fallback }) =>
     ["top-performances", league, type, window, sort, position, limit, playerId ?? null, fallback ? "fb" : "nofb"],
 };
