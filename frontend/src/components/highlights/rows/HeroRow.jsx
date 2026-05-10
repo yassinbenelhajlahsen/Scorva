@@ -6,7 +6,7 @@ const TIER_STYLES = {
   3: { height: "h-[64px]", number: "text-xl",  value: "text-xl",  img: "w-10 h-10 ring-1", margin: "mb-2" },
 };
 
-export default function HeroRow({ rank, color = "#e8863a", to, imageUrl, name, meta, value, onMouseEnter }) {
+export default function HeroRow({ rank, color = "#e8863a", to, imageUrl, name, meta, value, onMouseEnter, isLive = false }) {
   const t = TIER_STYLES[rank] ?? TIER_STYLES[1];
   return (
     <Link
@@ -27,10 +27,22 @@ export default function HeroRow({ rank, color = "#e8863a", to, imageUrl, name, m
         onError={(e) => { e.target.onerror = null; e.target.src = "/defaultPhoto.webp"; }}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-base font-bold text-text-primary truncate">{name}</div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base font-bold text-text-primary truncate">{name}</span>
+          {isLive && <LivePill />}
+        </div>
         <div className="text-xs text-text-tertiary truncate">{meta}</div>
       </div>
       <span className={`text-accent font-black ${t.value} tabular-nums leading-none shrink-0`}>{value}</span>
     </Link>
+  );
+}
+
+function LivePill() {
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-live/15 text-live ring-1 ring-live/30 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-live animate-pulse" />
+      LIVE
+    </span>
   );
 }

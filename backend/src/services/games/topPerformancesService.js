@@ -18,6 +18,9 @@ const ALLOWED_SORTS = new Set(["desc", "asc"]);
 const ALLOWED_WINDOWS = new Set(["today", "week", "month", "season", "all"]);
 const ALLOWED_POSITIONS = new Set(["all", "G", "F", "C"]);
 
+const LIVE_STATUS_SQL = `(g.status ILIKE '%In Progress%' OR g.status ILIKE '%End of Period%' OR g.status ILIKE '%Halftime%')`;
+const RATEABLE_STATUS_SQL = `(g.status ILIKE '%final%' OR ${LIVE_STATUS_SQL})`;
+
 function clamp(n, lo, hi) {
   if (Number.isNaN(n) || n == null) return lo;
   if (n < lo) return lo;
@@ -153,6 +156,7 @@ async function queryPerformances({ league, window, season, sort, position, limit
             p.name, p.image_url, p.position,
             g.date,
             g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
+            ${LIVE_STATUS_SQL} AS is_live,
             s.points, s.rebounds, s.assists,
             t.id AS team_id,
             t.abbreviation, t.logo_url, t.primary_color,
@@ -165,7 +169,7 @@ async function queryPerformances({ league, window, season, sort, position, limit
        JOIN teams   t ON t.id = COALESCE(s.teamid, p.teamid)
        JOIN teams   ot ON ot.id = CASE WHEN t.id = g.hometeamid THEN g.awayteamid ELSE g.hometeamid END
       WHERE g.league = $1
-        AND g.status ILIKE '%final%'
+        AND ${RATEABLE_STATUS_SQL}
         AND g.type IN ('regular','playoff','final','makeup')
         AND s.rating IS NOT NULL
         ${f.sql}
@@ -195,7 +199,7 @@ async function queryRankings({ league, window, season, sort, position, limit, pl
        JOIN teams   t ON t.id = COALESCE(s.teamid, p.teamid)
        JOIN teams   ot ON ot.id = CASE WHEN t.id = g.hometeamid THEN g.awayteamid ELSE g.hometeamid END
       WHERE g.league = $1
-        AND g.status ILIKE '%final%'
+        AND ${RATEABLE_STATUS_SQL}
         AND g.type IN ('regular','playoff','final','makeup')
         AND s.rating IS NOT NULL
         ${f.sql}
@@ -221,6 +225,7 @@ async function queryPlays({ league, window, season, sort, position, limit, playe
             p.name, p.image_url, p.position,
             g.date,
             g.hometeamid, g.awayteamid, g.homescore, g.awayscore,
+            ${LIVE_STATUS_SQL} AS is_live,
             t.id AS team_id,
             t.abbreviation, t.logo_url, t.primary_color,
             ot.id AS opp_id,
@@ -234,7 +239,7 @@ async function queryPlays({ league, window, season, sort, position, limit, playe
        JOIN teams    t  ON t.id  = COALESCE(s.teamid, p.teamid)
        JOIN teams    ot ON ot.id = CASE WHEN t.id = g.hometeamid THEN g.awayteamid ELSE g.hometeamid END
       WHERE g.league = $1
-        AND g.status ILIKE '%final%'
+        AND ${RATEABLE_STATUS_SQL}
         AND g.type IN ('regular','playoff','final','makeup')
         AND pr.weighted_value IS NOT NULL
         ${f.sql}
@@ -246,6 +251,7 @@ async function queryPlays({ league, window, season, sort, position, limit, playe
 }
 
 function shapePlayRow(r) {
+  const isLive = !!r.is_live;
   return {
     player: {
       id: r.player_id,
@@ -264,10 +270,15 @@ function shapePlayRow(r) {
       date: r.date,
       opponent: { id: r.opp_id, abbreviation: r.opp_abbreviation, logo: r.opp_logo_url },
       isHome: r.team_id === r.hometeamid,
-      result: r.homescore != null && r.awayscore != null
-        ? ((r.team_id === r.hometeamid && r.homescore > r.awayscore) ||
-           (r.team_id === r.awayteamid && r.awayscore > r.homescore) ? "W" : "L")
-        : null,
+      isLive,
+      homeScore: r.homescore,
+      awayScore: r.awayscore,
+      result: isLive
+        ? null
+        : (r.homescore != null && r.awayscore != null
+            ? (((r.team_id === r.hometeamid && r.homescore > r.awayscore) ||
+                (r.team_id === r.awayteamid && r.awayscore > r.homescore)) ? "W" : "L")
+            : null),
     },
     play: {
       id: r.play_id,
@@ -284,6 +295,7 @@ function round4(n) { return n == null ? null : Math.round(n * 10000) / 10000; }
 
 function shapeGameRow(r) {
   const rating = Number(r.rating);
+  const isLive = !!r.is_live;
   return {
     player: {
       id: r.playerid,
@@ -302,10 +314,15 @@ function shapeGameRow(r) {
       date: r.date,
       opponent: { id: r.opp_id, abbreviation: r.opp_abbreviation, logo: r.opp_logo_url },
       isHome: r.team_id === r.hometeamid,
-      result: r.homescore != null && r.awayscore != null
-        ? ((r.team_id === r.hometeamid && r.homescore > r.awayscore) ||
-           (r.team_id === r.awayteamid && r.awayscore > r.homescore) ? "W" : "L")
-        : null,
+      isLive,
+      homeScore: r.homescore,
+      awayScore: r.awayscore,
+      result: isLive
+        ? null
+        : (r.homescore != null && r.awayscore != null
+            ? (((r.team_id === r.hometeamid && r.homescore > r.awayscore) ||
+                (r.team_id === r.awayteamid && r.awayscore > r.homescore)) ? "W" : "L")
+            : null),
     },
     rating,
     ratingGrade: round1(gradeFromRaw(rating)),

@@ -344,7 +344,7 @@ For `type=cumulative`: same `WHERE`, `GROUP BY s.playerid`, `ORDER BY SUM(s.rati
 - `s.rating IS NOT NULL` excludes games we haven't rated yet (pre-rollout backfill incomplete; non-NBA leagues until those phases land).
 - `g.type` filter excludes preseason/exhibition; matches existing `gamesService` convention.
 - Date filter uses ET (matching `slateDate.js` convention). The 7-day window is consistent with how Scorva already thinks about "today".
-- Live games are excluded from `top-performances` via `WHERE g.status ILIKE '%final%'` (Final-only leaderboard, agreed). Live ratings still appear on `StatCard` and `TopPerformerCard` directly via game-detail.
+- Live games are excluded from `top-performances` via `WHERE g.status ILIKE '%final%'` (Final-only leaderboard, agreed). Live ratings still appear on `StatCard` and `TopPerformerCard` directly via game-detail. **Superseded 2026-05-09:** live games are now included in `/:league/top-performances` across all three types (`performances`, `rankings`, `plays`). Rows expose `game.isLive`, `game.homeScore`, `game.awayScore`; `result` is forced `null` for live rows so a provisional W/L isn't shown. Frontend rows render a `LIVE` pill in place of the W/L badge. See `docs/ARCHITECTURE.md` §Player Ratings caveats.
 
 ## UI surfaces
 
