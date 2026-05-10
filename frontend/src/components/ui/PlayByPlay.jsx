@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { usePlays } from "../../hooks/data/usePlays.js";
@@ -53,13 +53,20 @@ function FilterPill({ label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`touch-target px-3 py-1 rounded-full text-xs font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
+      className={`touch-target relative px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors duration-150 ${
         active
-          ? "bg-accent text-white"
+          ? "text-white"
           : "bg-surface-overlay text-text-secondary hover:text-text-primary hover:bg-white/[0.08]"
       }`}
     >
-      {label}
+      {active && (
+        <m.div
+          layoutId="activePlayFilterPill"
+          className="absolute inset-0 bg-accent rounded-full"
+          transition={{ type: "spring", stiffness: 240, damping: 28, mass: 0.9 }}
+        />
+      )}
+      <span className="relative z-10">{label}</span>
     </button>
   );
 }
@@ -368,6 +375,11 @@ export default function PlayByPlay({ league, gameId, isLive }) {
   const dupeSlugs = useDuplicatePlayerSlugs(league);
   const [activeFilter, setActiveFilter] = useState("all");
   const [prevPlayIds] = useState(() => new Set());
+  const [playerQuery, setPlayerQuery] = useState("");
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [highlightedIdx, setHighlightedIdx] = useState(0);
+  const searchBoxRef = useRef(null);
 
   const plays = useMemo(() => playsData?.plays ?? [], [playsData]);
   const isNfl = league === "nfl";
@@ -426,13 +438,89 @@ export default function PlayByPlay({ league, gameId, isLive }) {
     return map;
   }, [plays, league]);
 
-  // Filter logic
+  // Unique players across all plays (for the autocomplete suggestions).
+  const allPlayers = useMemo(() => {
+    const map = new Map();
+    for (const play of plays) {
+      if (!Array.isArray(play.participants)) continue;
+      for (const pp of play.participants) {
+        if (pp.id == null || map.has(pp.id)) continue;
+        map.set(pp.id, { id: pp.id, name: pp.name, image_url: pp.image_url });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name ?? "").localeCompare(b.name ?? ""),
+    );
+  }, [plays]);
+
+  const playerSuggestions = useMemo(() => {
+    const q = playerQuery.trim().toLowerCase();
+    if (!q) return [];
+    return allPlayers
+      .filter((p) => p.name?.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [allPlayers, playerQuery]);
+
+  // Reset suggestion highlight when the candidate list changes.
+  useEffect(() => {
+    setHighlightedIdx(0);
+  }, [playerQuery]);
+
+  // Close suggestions on outside click.
+  useEffect(() => {
+    if (!suggestionsOpen) return;
+    const onClick = (e) => {
+      if (!searchBoxRef.current?.contains(e.target)) setSuggestionsOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [suggestionsOpen]);
+
+  function pickPlayer(player) {
+    setSelectedPlayer(player);
+    setPlayerQuery("");
+    setSuggestionsOpen(false);
+  }
+
+  function clearPlayer() {
+    setSelectedPlayer(null);
+    setPlayerQuery("");
+    setSuggestionsOpen(false);
+  }
+
+  function onSearchKeyDown(e) {
+    if (e.key === "Escape") {
+      setSuggestionsOpen(false);
+      return;
+    }
+    if (!playerSuggestions.length) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIdx((i) => (i + 1) % playerSuggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIdx((i) => (i - 1 + playerSuggestions.length) % playerSuggestions.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pickPlayer(playerSuggestions[highlightedIdx]);
+    }
+  }
+
+  // Filter logic — period/scoring filter combines with optional player filter.
   const filteredPlays = useMemo(() => {
-    if (activeFilter === "scoring") return plays.filter((p) => p.scoring_play);
-    if (activeFilter === "all") return plays;
-    const period = parseInt(activeFilter, 10);
-    return plays.filter((p) => p.period === period);
-  }, [plays, activeFilter]);
+    let result = plays;
+    if (activeFilter === "scoring") result = result.filter((p) => p.scoring_play);
+    else if (activeFilter !== "all") {
+      const period = parseInt(activeFilter, 10);
+      result = result.filter((p) => p.period === period);
+    }
+    if (selectedPlayer) {
+      result = result.filter((p) =>
+        Array.isArray(p.participants) && p.participants.some((pp) => pp.id === selectedPlayer.id),
+      );
+    }
+    return result;
+  }, [plays, activeFilter, selectedPlayer]);
 
   // For NFL, group by drive
   const driveGroups = useMemo(() => {
@@ -505,18 +593,134 @@ export default function PlayByPlay({ league, gameId, isLive }) {
         </div>
       </div>
 
-      {/* Filter pills */}
-      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
-        <FilterPill label="All" active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
-        <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
-        {periods.map((p) => (
-          <FilterPill
-            key={p}
-            label={periodLabel(p, league)}
-            active={activeFilter === String(p)}
-            onClick={() => setActiveFilter(String(p))}
-          />
-        ))}
+      {/* Filters on top; on desktop search sits to their right, on mobile it stacks below */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none min-w-0">
+          <FilterPill label="All" active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
+          <FilterPill label="Scoring" active={activeFilter === "scoring"} onClick={() => setActiveFilter("scoring")} />
+          {periods.map((p) => (
+            <FilterPill
+              key={p}
+              label={periodLabel(p, league)}
+              active={activeFilter === String(p)}
+              onClick={() => setActiveFilter(String(p))}
+            />
+          ))}
+        </div>
+
+        <div ref={searchBoxRef} className="relative w-full sm:w-56 sm:shrink-0 h-9">
+          <AnimatePresence initial={false}>
+            {selectedPlayer ? (
+              <m.div
+                key="chip"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-full pl-1 pr-1.5"
+              >
+                {selectedPlayer.image_url ? (
+                  <img
+                    src={selectedPlayer.image_url}
+                    alt=""
+                    className="w-6 h-6 rounded-full object-cover bg-surface-base shrink-0"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="w-6 h-6 rounded-full bg-surface-base text-[10px] font-semibold text-text-tertiary inline-flex items-center justify-center shrink-0">
+                    {selectedPlayer.name?.[0] ?? "?"}
+                  </span>
+                )}
+                <span className="text-xs text-text-primary truncate flex-1 min-w-0">{selectedPlayer.name}</span>
+                <button
+                  type="button"
+                  onClick={clearPlayer}
+                  aria-label="Clear player filter"
+                  className="touch-target shrink-0 text-text-tertiary hover:text-text-primary transition-colors duration-150"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </m.div>
+            ) : (
+              <m.div
+                key="input"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 flex items-center"
+              >
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={playerQuery}
+                  onChange={(e) => {
+                    setPlayerQuery(e.target.value);
+                    setSuggestionsOpen(true);
+                  }}
+                  onFocus={() => setSuggestionsOpen(true)}
+                  onKeyDown={onSearchKeyDown}
+                  placeholder="Filter by player…"
+                  aria-label="Filter plays by player"
+                  className="w-full bg-surface-overlay border border-white/[0.08] rounded-full text-xs text-text-primary placeholder:text-text-tertiary pl-9 pr-3 py-2 focus:outline-none focus:border-accent/40 focus:bg-surface-overlay focus:shadow-[0_0_0_3px_rgba(232,134,58,0.08)] transition-all duration-150"
+                />
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {!selectedPlayer && suggestionsOpen && playerSuggestions.length > 0 && (
+              <m.ul
+                key="suggestions"
+                role="listbox"
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformOrigin: "top center" }}
+                className="absolute z-20 left-0 right-0 top-full mt-1 bg-surface-elevated border border-white/[0.08] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] max-h-64 overflow-y-auto"
+              >
+                {playerSuggestions.map((p, i) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={i === highlightedIdx}
+                      onClick={() => pickPlayer(p)}
+                      onMouseEnter={() => setHighlightedIdx(i)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors duration-100 ${
+                        i === highlightedIdx ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"
+                      }`}
+                    >
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt=""
+                          className="w-6 h-6 rounded-full object-cover bg-surface-base shrink-0"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="w-6 h-6 rounded-full bg-surface-base text-[10px] font-semibold text-text-tertiary inline-flex items-center justify-center shrink-0">
+                          {p.name?.[0] ?? "?"}
+                        </span>
+                      )}
+                      <span className="text-xs text-text-primary truncate">{p.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </m.ul>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Play list */}
@@ -542,6 +746,16 @@ export default function PlayByPlay({ league, gameId, isLive }) {
           ) : (
             <p className="text-center text-text-tertiary text-sm py-8">No plays for this filter.</p>
           )
+        ) : filteredPlays.length === 0 ? (
+          <m.p
+            key="empty"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="text-center text-text-tertiary text-sm py-8"
+          >
+            {selectedPlayer ? `No plays for ${selectedPlayer.name}.` : "No plays for this filter."}
+          </m.p>
         ) : (
           // NBA / NHL: newest play at top, grouped by period when not filtered
           <PlayList
