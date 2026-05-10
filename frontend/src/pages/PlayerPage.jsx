@@ -159,7 +159,7 @@ export default function PlayerPage() {
       const n = nav.getBoundingClientRect();
       setTabBounds({ left: b.left - n.left, width: b.width });
     }
-  }, [tab]);
+  }, [tab, loading]);
 
   function setTab(next) {
     setSearchParams(
