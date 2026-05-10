@@ -18,6 +18,7 @@ import PlayerRatingsSection from "../components/player/PlayerRatingsSection.jsx"
 import { useStreak } from "../hooks/data/useStreak.js";
 import { usePlayerRankings } from "../hooks/data/usePlayerRankings.js";
 import { useTeamNextGame } from "../hooks/data/useTeamNextGame.js";
+import { usePlayerLiveGames } from "../hooks/data/usePlayerLiveGames.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
@@ -158,6 +159,7 @@ export default function PlayerPage() {
   const { nextGame } = useTeamNextGame(league, playerData?.team?.id, {
     enabled: viewingCurrentSeason && isPlayerAvailable,
   });
+  const liveGameUpdates = usePlayerLiveGames(league, playerData?.games);
 
   // Tab pill sliding-underline indicator
   const tabNavRef = useRef(null);
@@ -280,6 +282,7 @@ export default function PlayerPage() {
                     label,
                     value: game[statKey] ?? "0",
                   }));
+                  const live = liveGameUpdates[game.gameid];
                   return (
                     <m.div key={i} variants={monthSlideItemVariants}>
                       <StatCard
@@ -291,11 +294,15 @@ export default function PlayerPage() {
                         isHome={game.ishome}
                         opponentLogo={game.opponentlogo}
                         result={game.result}
-                        status={game.status}
+                        status={live?.status ?? game.status}
                         playerName={name}
                         gameType={game.type}
                         gameLabel={game.game_label}
                         ratingGrade={game.ratingGrade}
+                        homeScore={live?.homescore ?? game.homescore}
+                        awayScore={live?.awayscore ?? game.awayscore}
+                        currentPeriod={live?.current_period ?? game.current_period}
+                        clock={live?.clock ?? game.clock}
                       />
                     </m.div>
                   );
