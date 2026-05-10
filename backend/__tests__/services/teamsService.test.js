@@ -15,7 +15,7 @@ jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
 const cachePath = resolve(__dirname, "../../src/cache/cache.js");
 jest.unstable_mockModule(cachePath, () => ({ cached: mockCached }));
 
-const { getTeamsByLeague } = await import(
+const { getTeamsByLeague, getTeamNextGame } = await import(
   resolve(__dirname, "../../src/services/teams/teamsService.js")
 );
 
@@ -105,5 +105,94 @@ describe("getTeamsByLeague", () => {
     mockPool.query.mockRejectedValueOnce(new Error("DB error"));
 
     await expect(getTeamsByLeague("nba")).rejects.toThrow("DB error");
+  });
+});
+
+describe("getTeamNextGame", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
+  });
+
+  it("returns null when no upcoming scheduled games exist", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    const result = await getTeamNextGame("nba", 1);
+
+    expect(result).toBeNull();
+  });
+
+  it("returns the next game with opponent set to away team when player team is home", async () => {
+    mockPool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 99,
+          league: "nba",
+          date: "2026-05-12",
+          start_time: "7:30 PM",
+          status: "Scheduled",
+          hometeamid: 1,
+          awayteamid: 2,
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        },
+      ],
+    });
+
+    const result = await getTeamNextGame("nba", 1);
+
+    expect(result).toEqual({
+      id: 99,
+      league: "nba",
+      date: "2026-05-12",
+      startTime: "7:30 PM",
+      status: "Scheduled",
+      isHome: true,
+      opponent: { id: 2, shortname: "BOS", logoUrl: "https://example.com/bos.png" },
+    });
+  });
+
+  it("flips opponent to home team when player team is away", async () => {
+    mockPool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 100,
+          league: "nba",
+          date: "2026-05-12",
+          start_time: null,
+          status: "Scheduled",
+          hometeamid: 2,
+          awayteamid: 1,
+          home_shortname: "BOS",
+          home_logo: "https://example.com/bos.png",
+          away_shortname: "LAL",
+          away_logo: "https://example.com/lal.png",
+        },
+      ],
+    });
+
+    const result = await getTeamNextGame("nba", 1);
+
+    expect(result.isHome).toBe(false);
+    expect(result.opponent).toEqual({
+      id: 2,
+      shortname: "BOS",
+      logoUrl: "https://example.com/bos.png",
+    });
+  });
+
+  it("queries with team id and Scheduled status filter", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    await getTeamNextGame("nba", 7);
+
+    const [sql, params] = mockPool.query.mock.calls[0];
+    expect(sql).toContain("g.status = 'Scheduled'");
+    expect(sql).toContain("ORDER BY g.date ASC, g.id ASC");
+    expect(sql).toContain("LIMIT 1");
+    expect(params[0]).toBe("nba");
+    expect(params[1]).toBe(7);
   });
 });

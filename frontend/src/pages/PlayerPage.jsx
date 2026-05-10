@@ -17,6 +17,7 @@ import PlayerHero from "../components/player/PlayerHero.jsx";
 import PlayerRatingsSection from "../components/player/PlayerRatingsSection.jsx";
 import { useStreak } from "../hooks/data/useStreak.js";
 import { usePlayerRankings } from "../hooks/data/usePlayerRankings.js";
+import { useTeamNextGame } from "../hooks/data/useTeamNextGame.js";
 import formatDate from "../utils/formatDate.js";
 import StatCard from "../components/cards/StatCard.jsx";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
@@ -151,6 +152,12 @@ export default function PlayerPage() {
     enabled: viewingCurrentSeason,
   });
   const rankings = usePlayerRankings(league, slug);
+  const playerStatus = playerData?.status;
+  const isPlayerAvailable =
+    !playerStatus || playerStatus === "available" || playerStatus === "active";
+  const { nextGame } = useTeamNextGame(league, playerData?.team?.id, {
+    enabled: viewingCurrentSeason && isPlayerAvailable,
+  });
 
   // Tab pill sliding-underline indicator
   const tabNavRef = useRef(null);
@@ -349,6 +356,7 @@ export default function PlayerPage() {
         status={status}
         statusDescription={statusDescription}
         streak={streak}
+        nextGame={nextGame}
         showStatus={viewingCurrentSeason}
         isFavorited={isFavorited}
         onToggleFavorite={() => (session ? toggle() : openAuthModal("favorites"))}

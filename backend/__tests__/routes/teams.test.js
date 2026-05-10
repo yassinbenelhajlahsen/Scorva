@@ -99,3 +99,66 @@ describe("Teams Route - GET /:league/teams", () => {
     expect(response.body).toEqual(mockTeams);
   });
 });
+
+describe("Teams Route - GET /:league/teams/:teamId/next-game", () => {
+  let app;
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use("/api", teamsRouter);
+    jest.clearAllMocks();
+  });
+
+  it("returns the next scheduled game shaped for the player hero", async () => {
+    mockPool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 99,
+          league: "nba",
+          date: "2026-05-12",
+          start_time: "7:30 PM",
+          status: "Scheduled",
+          hometeamid: 1,
+          awayteamid: 2,
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        },
+      ],
+    });
+
+    const response = await request(app).get("/api/nba/teams/1/next-game");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: 99,
+      isHome: true,
+      opponent: { id: 2, shortname: "BOS" },
+    });
+  });
+
+  it("returns null when no upcoming game exists", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app).get("/api/nba/teams/1/next-game");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toBeNull();
+  });
+
+  it("rejects invalid team ids", async () => {
+    const response = await request(app).get("/api/nba/teams/notanumber/next-game");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/team id/i);
+  });
+
+  it("rejects unsupported leagues", async () => {
+    const response = await request(app).get("/api/mlb/teams/1/next-game");
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/league/i);
+  });
+});
