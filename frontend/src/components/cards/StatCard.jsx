@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import slugify from "../../utils/slugify.js";
@@ -35,12 +36,21 @@ export default function StatCard({
   currentPeriod,
   clock,
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const isFinal = status?.includes("Final");
   const inProgress =
     status?.includes("In Progress") ||
     status?.includes("Halftime") ||
     status?.includes("End of Period");
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleOtherExpand = (e) => {
+      if (e.detail.id !== gameId) setIsExpanded(false);
+    };
+    window.addEventListener("statcard:expand", handleOtherExpand);
+    return () => window.removeEventListener("statcard:expand", handleOtherExpand);
+  }, [gameId]);
 
   const teamScore = isHome ? homeScore : awayScore;
   const opponentScore = isHome ? awayScore : homeScore;
@@ -143,7 +153,11 @@ export default function StatCard({
           </div>
         )}
 
-        <ul className="flex flex-wrap justify-center gap-8 max-h-[500px] [@media(hover:hover)]:max-h-18 [@media(hover:hover)]:group-hover:max-h-[500px] overflow-hidden transition-[max-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
+        <ul
+          className={`flex flex-wrap justify-center gap-8 max-h-18 overflow-hidden transition-[max-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] [@media(hover:hover)]:group-hover:max-h-[500px] ${
+            isExpanded ? "[@media(hover:none)]:max-h-[500px]" : ""
+          }`}
+        >
           {stats.map((stat, i) => (
             <li key={i} className="flex flex-col items-center min-w-[52px]">
               <span className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium">{stat.label}</span>
@@ -162,6 +176,33 @@ export default function StatCard({
             </span>
           </div>
         )}
+
+        {/* Mobile-only expand button — desktop uses hover instead. */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded((v) => {
+              const next = !v;
+              if (next) {
+                window.dispatchEvent(
+                  new CustomEvent("statcard:expand", { detail: { id: gameId } }),
+                );
+              }
+              return next;
+            });
+          }}
+          aria-label={isExpanded ? "Hide stat breakdown" : "Show stat breakdown"}
+          className="touch-target [@media(hover:hover)]:!hidden mt-3 mx-auto inline-flex items-center gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
+        >
+          <svg
+            className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+          {isExpanded ? "Hide" : "Breakdown"}
+        </button>
       </div>
     </Link>
   );
