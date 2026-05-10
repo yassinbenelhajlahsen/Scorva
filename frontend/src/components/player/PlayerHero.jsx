@@ -7,6 +7,7 @@ import { queryKeys, queryFns } from "../../lib/query.js";
 import PlayerStatusBadge from "./PlayerStatusBadge.jsx";
 import StreakBadge from "../ui/StreakBadge.jsx";
 import PlayerRankings from "./PlayerRankings.jsx";
+import NextGameCard from "./NextGameCard.jsx";
 
 export default function PlayerHero({
   league,
@@ -23,6 +24,7 @@ export default function PlayerHero({
   statusDescription,
   streak,
   showStatus,
+  nextGame,
   isFavorited,
   onToggleFavorite,
   selectedSeason,
@@ -78,6 +80,7 @@ export default function PlayerHero({
   );
 
   const rowJustify = hasRankings ? "justify-start" : "justify-center md:justify-start";
+  const isAvailable = !status || status === "available" || status === "active";
 
   const detailsBlock = (
     <div className="flex flex-col gap-3 items-start min-w-0 flex-1">
@@ -140,14 +143,19 @@ export default function PlayerHero({
         </div>
       )}
 
-      {showStatus && (status || streak) && (
-        <div className="flex flex-col gap-1">
+      {showStatus && (
+        <div className="flex flex-col gap-2">
           <div className={`flex flex-wrap items-center ${rowJustify} gap-2`}>
             <PlayerStatusBadge status={status} />
             <StreakBadge streak={streak} />
           </div>
           {statusDescription && (
-            <p className="text-xs text-text-secondary leading-snug mt-2">{statusDescription}</p>
+            <p className="text-xs text-text-secondary leading-snug">{statusDescription}</p>
+          )}
+          {isAvailable && nextGame && (
+            <div className={`flex ${rowJustify}`}>
+              <NextGameCard league={league} game={nextGame} />
+            </div>
           )}
         </div>
       )}
@@ -213,14 +221,17 @@ export default function PlayerHero({
               {draftInfo && <span><span className="text-text-secondary">{draftInfo}</span></span>}
             </div>
           )}
-          {showStatus && (status || streak) && (
-            <div className="flex flex-col gap-1">
+          {showStatus && (
+            <div className="flex flex-col gap-2 items-center md:items-start">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                 <PlayerStatusBadge status={status} />
                 <StreakBadge streak={streak} />
               </div>
               {statusDescription && (
                 <p className="text-xs text-text-secondary leading-snug">{statusDescription}</p>
+              )}
+              {isAvailable && nextGame && (
+                <NextGameCard league={league} game={nextGame} />
               )}
             </div>
           )}

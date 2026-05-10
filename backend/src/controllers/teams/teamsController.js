@@ -2,10 +2,26 @@ import {
   getTeamsByLeague,
   getTeamAvailableSeasons,
   getTeamRoster as getTeamRosterService,
+  getTeamNextGame as getTeamNextGameService,
 } from "../../services/teams/teamsService.js";
 import logger from "../../logger.js";
 
 const VALID_LEAGUES = ["nba", "nfl", "nhl"];
+
+export async function getTeamNextGame(req, res) {
+  const league = String(req.params.league || "").toLowerCase();
+  const teamId = parseInt(req.params.teamId, 10);
+  if (!VALID_LEAGUES.includes(league)) return res.status(400).json({ error: "Invalid league" });
+  if (!Number.isInteger(teamId)) return res.status(400).json({ error: "Invalid team ID" });
+
+  try {
+    const nextGame = await getTeamNextGameService(league, teamId);
+    res.json(nextGame);
+  } catch (err) {
+    logger.error({ err }, "Error fetching team next game");
+    res.status(500).send("Server error");
+  }
+}
 
 export async function getTeamSeasons(req, res) {
   const league = String(req.params.league || "").toLowerCase();

@@ -1,6 +1,53 @@
 import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
+import { DateTime } from "luxon";
+import pgDateToString from "../../utils/pgDateToString.js";
+
+export async function getTeamNextGame(league, teamId) {
+  const todayEST = DateTime.now().setZone("America/New_York").toFormat("yyyy-MM-dd");
+  const key = `nextGame:${league}:${teamId}:${todayEST}`;
+  return cached(key, 300, async () => {
+    const { rows } = await pool.query(
+      `SELECT
+         g.id,
+         g.league,
+         g.date,
+         g.start_time,
+         g.status,
+         g.hometeamid,
+         g.awayteamid,
+         th.shortname AS home_shortname,
+         th.logo_url  AS home_logo,
+         ta.shortname AS away_shortname,
+         ta.logo_url  AS away_logo
+       FROM games g
+       JOIN teams th ON g.hometeamid = th.id
+       JOIN teams ta ON g.awayteamid = ta.id
+       WHERE g.league = $1
+         AND ($2::integer IN (g.hometeamid, g.awayteamid))
+         AND g.date >= $3::date
+         AND g.status = 'Scheduled'
+       ORDER BY g.date ASC, g.id ASC
+       LIMIT 1`,
+      [league, teamId, todayEST]
+    );
+    if (rows.length === 0) return null;
+    const g = rows[0];
+    const isHome = g.hometeamid === teamId;
+    return {
+      id: g.id,
+      league: g.league,
+      date: pgDateToString(g.date),
+      startTime: g.start_time,
+      status: g.status,
+      isHome,
+      opponent: isHome
+        ? { id: g.awayteamid, shortname: g.away_shortname, logoUrl: g.away_logo }
+        : { id: g.hometeamid, shortname: g.home_shortname, logoUrl: g.home_logo },
+    };
+  });
+}
 
 export async function getTeamAvailableSeasons(league, teamId) {
   const { rows } = await pool.query(
