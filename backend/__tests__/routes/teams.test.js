@@ -111,16 +111,50 @@ describe("Teams Route - GET /:league/teams/:teamId/next-game", () => {
   });
 
   it("returns the next scheduled game shaped for the player hero", async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] }) // no live game
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 99,
+            league: "nba",
+            date: "2026-05-12",
+            start_time: "7:30 PM",
+            status: "Scheduled",
+            hometeamid: 1,
+            awayteamid: 2,
+            home_shortname: "LAL",
+            home_logo: "https://example.com/lal.png",
+            away_shortname: "BOS",
+            away_logo: "https://example.com/bos.png",
+          },
+        ],
+      });
+
+    const response = await request(app).get("/api/nba/teams/1/next-game");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      kind: "next",
+      id: 99,
+      isHome: true,
+      opponent: { id: 2, shortname: "BOS" },
+    });
+  });
+
+  it("returns the live game with score, period, and clock when team is currently playing", async () => {
     mockPool.query.mockResolvedValueOnce({
       rows: [
         {
-          id: 99,
+          id: 555,
           league: "nba",
-          date: "2026-05-12",
-          start_time: "7:30 PM",
-          status: "Scheduled",
+          status: "In Progress - Q3",
           hometeamid: 1,
           awayteamid: 2,
+          homescore: 78,
+          awayscore: 72,
+          current_period: 3,
+          clock: "4:21",
           home_shortname: "LAL",
           home_logo: "https://example.com/lal.png",
           away_shortname: "BOS",
@@ -133,14 +167,19 @@ describe("Teams Route - GET /:league/teams/:teamId/next-game", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
-      id: 99,
-      isHome: true,
-      opponent: { id: 2, shortname: "BOS" },
+      kind: "live",
+      id: 555,
+      teamScore: 78,
+      opponentScore: 72,
+      currentPeriod: 3,
+      clock: "4:21",
     });
   });
 
-  it("returns null when no upcoming game exists", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
+  it("returns null when no live or upcoming game exists", async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
 
     const response = await request(app).get("/api/nba/teams/1/next-game");
 

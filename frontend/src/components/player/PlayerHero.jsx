@@ -8,6 +8,13 @@ import PlayerStatusBadge from "./PlayerStatusBadge.jsx";
 import StreakBadge from "../ui/StreakBadge.jsx";
 import PlayerRankings from "./PlayerRankings.jsx";
 import NextGameCard from "./NextGameCard.jsx";
+import LiveGameCard from "./LiveGameCard.jsx";
+
+function GameStatusCard({ league, game }) {
+  if (!game) return null;
+  if (game.kind === "live") return <LiveGameCard league={league} game={game} />;
+  return <NextGameCard league={league} game={game} />;
+}
 
 export default function PlayerHero({
   league,
@@ -154,7 +161,7 @@ export default function PlayerHero({
           )}
           {isAvailable && nextGame && (
             <div className={`flex ${rowJustify}`}>
-              <NextGameCard league={league} game={nextGame} />
+              <GameStatusCard league={league} game={nextGame} />
             </div>
           )}
         </div>
@@ -231,7 +238,7 @@ export default function PlayerHero({
                 <p className="text-xs text-text-secondary leading-snug">{statusDescription}</p>
               )}
               {isAvailable && nextGame && (
-                <NextGameCard league={league} game={nextGame} />
+                <GameStatusCard league={league} game={nextGame} />
               )}
             </div>
           )}
