@@ -4,9 +4,11 @@ import { queryKeys, queryFns } from "../../../lib/query.js";
 import HeroRow from "../rows/HeroRow.jsx";
 import CompactRow from "../rows/CompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
+import { useWindowSync } from "../useWindowSync.js";
 
-export default function RankingsList({ league = "nba", window: win, sort, position }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "rankings", window: win, sort, position, limit: 25 });
+export default function RankingsList({ league = "nba", window: win, sort, position, fallback = false }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "rankings", window: win, sort, position, limit: 25, fallback });
+  useWindowSync(fallback ? data?.actualWindow : null, win);
   const qc = useQueryClient();
 
   if (isLoading) return <TopPerformersSkeleton />;

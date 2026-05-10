@@ -349,6 +349,156 @@ describe("live games", () => {
   });
 });
 
+describe("fallback cascade", () => {
+  beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
+
+  test("widens week → month when week is empty", async () => {
+    // week (empty) → month (one row)
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            playerid: 11, gameid: 100, rating: "34.4",
+            name: "Luka Dončić", image_url: "/luka.png", position: "G",
+            date: new Date("2026-04-15"),
+            hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
+            points: 32, rebounds: 12, assists: 9,
+            team_id: 1, abbreviation: "DAL", logo_url: "/dal.png", primary_color: "#00538C",
+            opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+          },
+        ],
+      });
+
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "week",
+      sort: "desc", position: "all", limit: 10, fallback: true,
+    });
+
+    expect(out.actualWindow).toBe("month");
+    expect(out.performances).toHaveLength(1);
+    // week SQL fired first, then month SQL
+    expect(mockQuery.mock.calls[0][0]).toMatch(/INTERVAL '7 days'/);
+    expect(mockQuery.mock.calls[1][0]).toMatch(/INTERVAL '30 days'/);
+  });
+
+  test("respects starting index — window=month skips today/week", async () => {
+    // month (empty) → season (one row)
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            playerid: 11, gameid: 100, rating: "12.0",
+            name: "X", image_url: "/x.png", position: "G",
+            date: new Date("2026-01-15"),
+            hometeamid: 1, awayteamid: 2, homescore: 100, awayscore: 90,
+            points: 20, rebounds: 5, assists: 3,
+            team_id: 1, abbreviation: "DAL", logo_url: "/dal.png", primary_color: "#00538C",
+            opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+          },
+        ],
+      });
+
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "month",
+      sort: "desc", position: "all", limit: 10, fallback: true,
+    });
+
+    expect(out.actualWindow).toBe("season");
+    expect(mockQuery).toHaveBeenCalledTimes(2);
+    expect(mockQuery.mock.calls[0][0]).toMatch(/INTERVAL '30 days'/);
+    expect(mockQuery.mock.calls[1][0]).toMatch(/g\.season = /);
+  });
+
+  test("returns first non-empty without probing further windows", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          playerid: 11, gameid: 100, rating: "30.0",
+          name: "X", image_url: "/x.png", position: "G",
+          date: new Date("2026-05-09"),
+          hometeamid: 1, awayteamid: 2, homescore: 100, awayscore: 90,
+          points: 20, rebounds: 5, assists: 3,
+          team_id: 1, abbreviation: "DAL", logo_url: "/dal.png", primary_color: "#00538C",
+          opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+        },
+      ],
+    });
+
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "week",
+      sort: "desc", position: "all", limit: 10, fallback: true,
+    });
+
+    expect(out.actualWindow).toBe("week");
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+  });
+
+  test("all windows empty → returns actualWindow=all with []", async () => {
+    // today, week, month, season, all all empty (5 calls)
+    mockQuery.mockResolvedValue({ rows: [] });
+
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "today",
+      sort: "desc", position: "all", limit: 10, fallback: true,
+    });
+
+    expect(out.actualWindow).toBe("all");
+    expect(out.performances).toEqual([]);
+    expect(mockQuery).toHaveBeenCalledTimes(5);
+  });
+
+  test("fallback=false (default) → no actualWindow, single query", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "week",
+      sort: "desc", position: "all", limit: 10,
+    });
+
+    expect(out.actualWindow).toBeUndefined();
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+  });
+
+  test("cascade reuses per-window cache keys", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            playerid: 11, gameid: 100, rating: "34.4",
+            name: "X", image_url: "/x.png", position: "G",
+            date: new Date("2026-04-15"),
+            hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
+            points: 32, rebounds: 12, assists: 9,
+            team_id: 1, abbreviation: "DAL", logo_url: "/dal.png", primary_color: "#00538C",
+            opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+          },
+        ],
+      });
+
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "week",
+      sort: "desc", position: "all", limit: 10, fallback: true,
+    });
+
+    // Two cache lookups, one per probed window — same key shape as non-cascade calls
+    expect(mockCached).toHaveBeenNthCalledWith(
+      1,
+      "top-performances:nba:performances:week:desc:all:10",
+      60,
+      expect.any(Function),
+    );
+    expect(mockCached).toHaveBeenNthCalledWith(
+      2,
+      "top-performances:nba:performances:month:desc:all:10",
+      5 * 60,
+      expect.any(Function),
+    );
+  });
+});
+
 describe("queryPlays (type=plays)", () => {
   beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
 

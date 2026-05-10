@@ -115,9 +115,9 @@ export default function HighlightsTab() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
-                {mode === "rankings"     && <RankingsList     window={win} sort={sort} position={position} />}
-                {mode === "performances" && <PerformancesList window={win} sort={sort} position={position} />}
-                {mode === "plays"        && <PlaysList        window={win} sort={sort} position={position} />}
+                {mode === "rankings"     && <RankingsList     window={win} sort={sort} position={position} fallback />}
+                {mode === "performances" && <PerformancesList window={win} sort={sort} position={position} fallback />}
+                {mode === "plays"        && <PlaysList        window={win} sort={sort} position={position} fallback />}
               </m.div>
             </AnimatePresence>
           </m.div>

@@ -113,10 +113,10 @@ export default function PlayerRatingsSection({ league, playerId }) {
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 {mode === "games" && (
-                  <PerformancesList league={league} window={win} sort={sort} playerId={playerId} limit={10} />
+                  <PerformancesList league={league} window={win} sort={sort} playerId={playerId} limit={10} fallback />
                 )}
                 {mode === "plays" && (
-                  <PlaysList league={league} window={win} sort={sort} playerId={playerId} limit={10} />
+                  <PlaysList league={league} window={win} sort={sort} playerId={playerId} limit={10} fallback />
                 )}
               </m.div>
             </AnimatePresence>

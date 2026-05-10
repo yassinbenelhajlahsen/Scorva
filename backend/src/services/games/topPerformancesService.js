@@ -17,6 +17,7 @@ const ALLOWED_TYPES = new Set(["performances", "rankings", "plays"]);
 const ALLOWED_SORTS = new Set(["desc", "asc"]);
 const ALLOWED_WINDOWS = new Set(["today", "week", "month", "season", "all"]);
 const ALLOWED_POSITIONS = new Set(["all", "G", "F", "C"]);
+const WINDOW_CASCADE = ["today", "week", "month", "season", "all"];
 
 const LIVE_STATUS_SQL = `(g.status ILIKE '%In Progress%' OR g.status ILIKE '%End of Period%' OR g.status ILIKE '%Halftime%')`;
 const RATEABLE_STATUS_SQL = `(g.status ILIKE '%final%' OR ${LIVE_STATUS_SQL})`;
@@ -77,7 +78,7 @@ export function positionPredicate(position) {
 }
 
 export async function getTopPerformances({
-  league, type, window, sort = "desc", position = "all", limit, days, playerId,
+  league, type, window, sort = "desc", position = "all", limit, days, playerId, fallback,
 }) {
   const canonicalType = TYPE_ALIASES[type] ?? type ?? "performances";
   if (!ALLOWED_TYPES.has(canonicalType)) {
@@ -99,10 +100,40 @@ export async function getTopPerformances({
   if (playerId != null && playerId !== "") {
     resolvedPlayerId = await getPlayerIdBySlug(playerId, league);
     if (resolvedPlayerId == null) {
-      return { type: canonicalType, window: canonicalWindow, performances: [] };
+      const empty = { type: canonicalType, window: canonicalWindow, performances: [] };
+      return fallback === true ? { ...empty, actualWindow: canonicalWindow } : empty;
     }
   }
 
+  const ctxBase = {
+    league,
+    type: canonicalType,
+    sort,
+    position,
+    limit: safeLimit,
+    resolvedPlayerId,
+  };
+
+  if (fallback !== true) {
+    return runForWindow(ctxBase, canonicalWindow);
+  }
+
+  const startIdx = WINDOW_CASCADE.indexOf(canonicalWindow);
+  let lastResult = null;
+  for (let i = startIdx; i < WINDOW_CASCADE.length; i++) {
+    const w = WINDOW_CASCADE[i];
+    const result = await runForWindow(ctxBase, w);
+    if (result.performances.length > 0) {
+      return { ...result, actualWindow: w };
+    }
+    lastResult = result;
+  }
+  const finalWindow = WINDOW_CASCADE[WINDOW_CASCADE.length - 1];
+  return { ...lastResult, actualWindow: finalWindow };
+}
+
+async function runForWindow(ctxBase, canonicalWindow) {
+  const { league, type: canonicalType, sort, position, limit: safeLimit, resolvedPlayerId } = ctxBase;
   const playerSuffix = resolvedPlayerId == null ? "" : `:p${resolvedPlayerId}`;
   const key = `top-performances:${league}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}${playerSuffix}`;
   const ttl = TTL_BY_WINDOW[canonicalWindow] ?? 60;

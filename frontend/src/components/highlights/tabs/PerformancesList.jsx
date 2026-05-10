@@ -7,11 +7,13 @@ import CompactRow from "../rows/CompactRow.jsx";
 import PlayerHeroRow from "../rows/PlayerHeroRow.jsx";
 import PlayerCompactRow from "../rows/PlayerCompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
+import { useWindowSync } from "../useWindowSync.js";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
-export default function PerformancesList({ league = "nba", window: win, sort, position, playerId, limit = 25 }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "performances", window: win, sort, position, playerId, limit });
+export default function PerformancesList({ league = "nba", window: win, sort, position, playerId, limit = 25, fallback = false }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "performances", window: win, sort, position, playerId, limit, fallback });
+  useWindowSync(fallback ? data?.actualWindow : null, win);
   const qc = useQueryClient();
 
   if (isLoading) return <TopPerformersSkeleton />;
