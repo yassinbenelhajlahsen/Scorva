@@ -218,11 +218,7 @@ export default function PlayerPage() {
           seasons={playerData.availableSeasons}
         />
       </div>
-      {viewingCurrentSeason && status && statusDescription && (
-        <p className="text-xs text-text-secondary leading-snug mb-4 break-words">
-          {statusDescription}
-        </p>
-      )}
+
 
       {/* Averages + similar players sidebar */}
       <div className="flex flex-col lg:flex-row gap-8 mb-12">
@@ -359,7 +355,7 @@ export default function PlayerPage() {
       />
 
       {/* Tab strip with sliding underline */}
-      <div ref={tabNavRef} className="relative flex border-b border-white/[0.06] mb-8">
+      <div ref={tabNavRef} className="relative flex border-b border-white/[0.06] mb-2">
         {tabBounds && (
           <m.div
             className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
