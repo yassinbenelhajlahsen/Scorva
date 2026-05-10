@@ -220,6 +220,135 @@ describe("getTopPerformances — new params", () => {
   });
 });
 
+describe("live games", () => {
+  beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
+
+  test("queryPerformances includes live + final via RATEABLE_STATUS predicate", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "today",
+      sort: "desc", position: "all", limit: 10,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    // Final and live status both accepted
+    expect(sql).toMatch(/g\.status ILIKE '%final%'/);
+    expect(sql).toMatch(/g\.status ILIKE '%In Progress%'/);
+    expect(sql).toMatch(/g\.status ILIKE '%End of Period%'/);
+    expect(sql).toMatch(/g\.status ILIKE '%Halftime%'/);
+    // is_live exposed in SELECT
+    expect(sql).toMatch(/AS is_live/);
+  });
+
+  test("queryRankings sums live + final ratings", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "rankings", window: "today",
+      sort: "desc", position: "all", limit: 10,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    expect(sql).toMatch(/g\.status ILIKE '%In Progress%'/);
+    expect(sql).toMatch(/g\.status ILIKE '%final%'/);
+  });
+
+  test("queryPlays includes live + final via RATEABLE_STATUS predicate", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "plays", window: "today",
+      sort: "desc", position: "all", limit: 10,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    expect(sql).toMatch(/g\.status ILIKE '%In Progress%'/);
+    expect(sql).toMatch(/AS is_live/);
+  });
+
+  test("shapeGameRow on live game: isLive=true, result=null, scores included", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          playerid: 11, gameid: 100, rating: "18.2",
+          name: "Anthony Edwards", image_url: "/ant.png", position: "G",
+          date: new Date("2026-05-09"),
+          hometeamid: 1, awayteamid: 2, homescore: 64, awayscore: 58,
+          is_live: true,
+          points: 22, rebounds: 5, assists: 4,
+          team_id: 1, abbreviation: "MIN", logo_url: "/min.png", primary_color: "#0C2340",
+          opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+        },
+      ],
+    });
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "today", limit: 5,
+    });
+    const row = out.performances[0];
+    expect(row.game.isLive).toBe(true);
+    expect(row.game.result).toBeNull();
+    expect(row.game.homeScore).toBe(64);
+    expect(row.game.awayScore).toBe(58);
+  });
+
+  test("shapeGameRow on final game: isLive=false, result computed", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          playerid: 11, gameid: 100, rating: "34.4",
+          name: "Luka Dončić", image_url: "/luka.png", position: "G",
+          date: new Date("2026-05-05"),
+          hometeamid: 1, awayteamid: 2, homescore: 110, awayscore: 105,
+          is_live: false,
+          points: 32, rebounds: 12, assists: 9,
+          team_id: 1, abbreviation: "DAL", logo_url: "/dal.png", primary_color: "#00538C",
+          opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+        },
+      ],
+    });
+    const out = await getTopPerformances({
+      league: "nba", type: "performances", window: "today", limit: 5,
+    });
+    const row = out.performances[0];
+    expect(row.game.isLive).toBe(false);
+    expect(row.game.result).toBe("W");
+    expect(row.game.homeScore).toBe(110);
+    expect(row.game.awayScore).toBe(105);
+  });
+
+  test("shapePlayRow on live game: isLive=true, result=null", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          play_id: 9001, player_id: 11, game_id: 100,
+          weighted_value: "4.8", wpa_delta: "0.18",
+          period: 2, clock: "5:32",
+          description: "Stephen Curry makes 27-foot three pointer",
+          name: "Stephen Curry", image_url: "/curry.png", position: "G",
+          date: new Date("2026-05-09"),
+          hometeamid: 1, awayteamid: 2, homescore: 48, awayscore: 51,
+          is_live: true,
+          team_id: 1, abbreviation: "GSW", logo_url: "/gsw.png", primary_color: "#1D428A",
+          opp_id: 2, opp_abbreviation: "LAL", opp_logo_url: "/lal.png",
+        },
+      ],
+    });
+    const out = await getTopPerformances({
+      league: "nba", type: "plays", window: "today", limit: 5,
+    });
+    const row = out.performances[0];
+    expect(row.game.isLive).toBe(true);
+    expect(row.game.result).toBeNull();
+    expect(row.game.homeScore).toBe(48);
+    expect(row.game.awayScore).toBe(51);
+  });
+
+  test("scheduled game still excluded by g.type filter", async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+    await getTopPerformances({
+      league: "nba", type: "performances", window: "today", limit: 5,
+    });
+    const sql = mockQuery.mock.calls[0][0];
+    // Scheduled status is neither final nor live — predicate excludes it
+    expect(sql).not.toMatch(/Scheduled/i);
+  });
+});
+
 describe("queryPlays (type=plays)", () => {
   beforeEach(() => { mockQuery.mockReset(); mockCached.mockClear(); });
 

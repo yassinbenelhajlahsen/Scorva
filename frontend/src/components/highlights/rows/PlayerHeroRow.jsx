@@ -16,6 +16,7 @@ export default function PlayerHeroRow({
   meta,
   value,
   onMouseEnter,
+  isLive = false,
 }) {
   const t = TIER_STYLES[rank] ?? TIER_STYLES[1];
   const opponentName = opponent?.name || opponent?.abbreviation || "Opponent";
@@ -47,7 +48,7 @@ export default function PlayerHeroRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base font-bold text-text-primary truncate">{matchup}</span>
-          {result && <ResultPill result={result} />}
+          {isLive ? <LivePill /> : (result && <ResultPill result={result} />)}
         </div>
         <div className="text-xs text-text-tertiary truncate">{meta}</div>
       </div>
@@ -55,6 +56,15 @@ export default function PlayerHeroRow({
         {value}
       </span>
     </Link>
+  );
+}
+
+function LivePill() {
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-live/15 text-live ring-1 ring-live/30 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-live animate-pulse" />
+      LIVE
+    </span>
   );
 }
 

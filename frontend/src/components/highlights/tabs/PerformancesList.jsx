@@ -19,7 +19,7 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
   if (!items.length) {
     return (
       <p className="text-center text-text-tertiary text-sm py-12">
-        {win === "today" ? "No final games today yet." : "No performances for this window."}
+        {win === "today" ? "No games today yet." : "No performances for this window."}
       </p>
     );
   }
@@ -42,11 +42,17 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
           }
         };
         const value = it.ratingGrade.toFixed(1);
+        const isLive = !!it.game.isLive;
+        const statLine = `${it.stats.points}/${it.stats.rebounds}/${it.stats.assists}`;
+        const scoreStr = isLive
+          ? `${it.game.homeScore ?? 0}-${it.game.awayScore ?? 0}`
+          : "";
 
         if (isPlayerView) {
           const dateStr = it.game.date ? formatDate(it.game.date) : "";
-          const statLine = `${it.stats.points}/${it.stats.rebounds}/${it.stats.assists}`;
-          const meta = [statLine, dateStr].filter(Boolean).join(" · ");
+          const meta = isLive
+            ? [scoreStr, statLine].filter(Boolean).join(" · ")
+            : [statLine, dateStr].filter(Boolean).join(" · ");
           const props = {
             to,
             opponent: it.game.opponent,
@@ -55,6 +61,7 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
             meta,
             value,
             onMouseEnter,
+            isLive,
           };
           return (
             <li key={`${it.player.id}:${it.game.id}`}>
@@ -66,13 +73,18 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
         }
 
         const datePart = showDate && it.game.date ? ` · ${formatDate(it.game.date)}` : "";
+        const opp = `${it.game.isHome ? "vs" : "@"} ${it.game.opponent.abbreviation}`;
+        const meta = isLive
+          ? `${scoreStr} ${opp} · ${statLine}`
+          : `${statLine} · ${opp}${datePart}`;
         const props = {
           to,
           imageUrl: it.player.imageUrl,
           name: it.player.name,
-          meta: `${it.stats.points}/${it.stats.rebounds}/${it.stats.assists} · ${it.game.isHome ? "vs" : "@"} ${it.game.opponent.abbreviation}${datePart}`,
+          meta,
           value,
           onMouseEnter,
+          isLive,
         };
         return (
           <li key={`${it.player.id}:${it.game.id}`}>

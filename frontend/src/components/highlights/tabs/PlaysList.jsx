@@ -18,7 +18,7 @@ export default function PlaysList({ league = "nba", window: win, sort, position,
   if (!items.length) {
     return (
       <p className="text-center text-text-tertiary text-sm py-12">
-        {win === "today" ? "No plays from today yet." : "No plays for this window."}
+        {win === "today" ? "No plays today yet." : "No plays for this window."}
       </p>
     );
   }
@@ -34,6 +34,7 @@ export default function PlaysList({ league = "nba", window: win, sort, position,
         const time = formatGameClock(it.play.period, it.play.clock);
         const action = simplifyDesc(it.play.description, it.player.name);
         const value = it.play.weightedValue.toFixed(1);
+        const isLive = !!it.game.isLive;
         const onMouseEnter = () => {
           if (window.matchMedia?.("(hover: hover)").matches) {
             qc.prefetchQuery({
@@ -46,7 +47,8 @@ export default function PlaysList({ league = "nba", window: win, sort, position,
 
         if (isPlayerView) {
           const dateStr = it.game.date ? formatDate(it.game.date) : "";
-          const meta = [time, action, dateStr].filter(Boolean).join(" · ");
+          const tail = isLive ? "" : dateStr;
+          const meta = [time, action, tail].filter(Boolean).join(" · ");
           const props = {
             to,
             opponent: it.game.opponent,
@@ -55,6 +57,7 @@ export default function PlaysList({ league = "nba", window: win, sort, position,
             meta,
             value,
             onMouseEnter,
+            isLive,
           };
           return (
             <li key={`play-${it.play.id}`}>
@@ -65,7 +68,7 @@ export default function PlaysList({ league = "nba", window: win, sort, position,
           );
         }
 
-        const datePart = showDate && it.game.date ? ` · ${formatDate(it.game.date)}` : "";
+        const datePart = showDate && !isLive && it.game.date ? ` · ${formatDate(it.game.date)}` : "";
         const opp = `${it.game.isHome ? "vs" : "@"} ${it.game.opponent.abbreviation}`;
         const meta = [time, action, opp].filter(Boolean).join(" · ") + datePart;
         const props = {
@@ -75,6 +78,7 @@ export default function PlaysList({ league = "nba", window: win, sort, position,
           meta,
           value,
           onMouseEnter,
+          isLive,
         };
         return (
           <li key={`play-${it.play.id}`}>

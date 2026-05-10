@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export default function CompactRow({ rank, to, imageUrl, name, meta, value, onMouseEnter }) {
+export default function CompactRow({ rank, to, imageUrl, name, meta, value, onMouseEnter, isLive = false }) {
   return (
     <Link
       to={to}
@@ -16,10 +16,22 @@ export default function CompactRow({ rank, to, imageUrl, name, meta, value, onMo
         onError={(e) => { e.target.onerror = null; e.target.src = "/defaultPhoto.webp"; }}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-text-primary truncate">{name}</div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-medium text-text-primary truncate">{name}</span>
+          {isLive && <LivePill />}
+        </div>
         <div className="text-text-tertiary text-[11px] truncate">{meta}</div>
       </div>
       <span className="text-accent font-bold text-sm tabular-nums w-12 text-right shrink-0">{value}</span>
     </Link>
+  );
+}
+
+function LivePill() {
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-live/15 text-live ring-1 ring-live/30 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-live animate-pulse" />
+      LIVE
+    </span>
   );
 }

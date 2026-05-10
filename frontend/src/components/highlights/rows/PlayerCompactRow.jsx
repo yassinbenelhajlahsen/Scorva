@@ -9,6 +9,7 @@ export default function PlayerCompactRow({
   meta,
   value,
   onMouseEnter,
+  isLive = false,
 }) {
   const opponentName = opponent?.name || opponent?.abbreviation || "Opponent";
   const matchup = `${isHome ? "vs" : "@"} ${opponentName}`;
@@ -35,7 +36,7 @@ export default function PlayerCompactRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-sm font-medium text-text-primary truncate">{matchup}</span>
-          {result && <ResultPill result={result} />}
+          {isLive ? <LivePill /> : (result && <ResultPill result={result} />)}
         </div>
         <div className="text-text-tertiary text-[11px] truncate">{meta}</div>
       </div>
@@ -43,6 +44,15 @@ export default function PlayerCompactRow({
         {value}
       </span>
     </Link>
+  );
+}
+
+function LivePill() {
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-live/15 text-live ring-1 ring-live/30 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-live animate-pulse" />
+      LIVE
+    </span>
   );
 }
 
