@@ -114,36 +114,41 @@ describe("getTeamNextGame", () => {
     mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
   });
 
-  it("returns null when no upcoming scheduled games exist", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
+  it("returns null when no live or upcoming scheduled games exist", async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] }) // live check
+      .mockResolvedValueOnce({ rows: [] }); // scheduled fallback
 
     const result = await getTeamNextGame("nba", 1);
 
     expect(result).toBeNull();
   });
 
-  it("returns the next game with opponent set to away team when player team is home", async () => {
-    mockPool.query.mockResolvedValueOnce({
-      rows: [
-        {
-          id: 99,
-          league: "nba",
-          date: "2026-05-12",
-          start_time: "7:30 PM",
-          status: "Scheduled",
-          hometeamid: 1,
-          awayteamid: 2,
-          home_shortname: "LAL",
-          home_logo: "https://example.com/lal.png",
-          away_shortname: "BOS",
-          away_logo: "https://example.com/bos.png",
-        },
-      ],
-    });
+  it("returns the next scheduled game tagged with kind=next when no live game", async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] }) // live check
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 99,
+            league: "nba",
+            date: "2026-05-12",
+            start_time: "7:30 PM",
+            status: "Scheduled",
+            hometeamid: 1,
+            awayteamid: 2,
+            home_shortname: "LAL",
+            home_logo: "https://example.com/lal.png",
+            away_shortname: "BOS",
+            away_logo: "https://example.com/bos.png",
+          },
+        ],
+      });
 
     const result = await getTeamNextGame("nba", 1);
 
     expect(result).toEqual({
+      kind: "next",
       id: 99,
       league: "nba",
       date: "2026-05-12",
@@ -155,23 +160,25 @@ describe("getTeamNextGame", () => {
   });
 
   it("flips opponent to home team when player team is away", async () => {
-    mockPool.query.mockResolvedValueOnce({
-      rows: [
-        {
-          id: 100,
-          league: "nba",
-          date: "2026-05-12",
-          start_time: null,
-          status: "Scheduled",
-          hometeamid: 2,
-          awayteamid: 1,
-          home_shortname: "BOS",
-          home_logo: "https://example.com/bos.png",
-          away_shortname: "LAL",
-          away_logo: "https://example.com/lal.png",
-        },
-      ],
-    });
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 100,
+            league: "nba",
+            date: "2026-05-12",
+            start_time: null,
+            status: "Scheduled",
+            hometeamid: 2,
+            awayteamid: 1,
+            home_shortname: "BOS",
+            home_logo: "https://example.com/bos.png",
+            away_shortname: "LAL",
+            away_logo: "https://example.com/lal.png",
+          },
+        ],
+      });
 
     const result = await getTeamNextGame("nba", 1);
 
@@ -183,16 +190,99 @@ describe("getTeamNextGame", () => {
     });
   });
 
-  it("queries with team id and Scheduled status filter", async () => {
-    mockPool.query.mockResolvedValueOnce({ rows: [] });
+  it("queries scheduled games with the Scheduled status filter when no live game", async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
 
     await getTeamNextGame("nba", 7);
 
-    const [sql, params] = mockPool.query.mock.calls[0];
-    expect(sql).toContain("g.status = 'Scheduled'");
-    expect(sql).toContain("ORDER BY g.date ASC, g.id ASC");
-    expect(sql).toContain("LIMIT 1");
-    expect(params[0]).toBe("nba");
-    expect(params[1]).toBe(7);
+    const [scheduledSql, scheduledParams] = mockPool.query.mock.calls[1];
+    expect(scheduledSql).toContain("g.status = 'Scheduled'");
+    expect(scheduledSql).toContain("ORDER BY g.date ASC, g.id ASC");
+    expect(scheduledSql).toContain("LIMIT 1");
+    expect(scheduledParams[0]).toBe("nba");
+    expect(scheduledParams[1]).toBe(7);
+  });
+
+  it("returns the live game tagged with kind=live and skips the scheduled query", async () => {
+    mockPool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 555,
+          league: "nba",
+          status: "In Progress - Q3",
+          hometeamid: 1,
+          awayteamid: 2,
+          homescore: 78,
+          awayscore: 72,
+          current_period: 3,
+          clock: "4:21",
+          home_shortname: "LAL",
+          home_logo: "https://example.com/lal.png",
+          away_shortname: "BOS",
+          away_logo: "https://example.com/bos.png",
+        },
+      ],
+    });
+
+    const result = await getTeamNextGame("nba", 1);
+
+    expect(result).toEqual({
+      kind: "live",
+      id: 555,
+      league: "nba",
+      status: "In Progress - Q3",
+      isHome: true,
+      opponent: { id: 2, shortname: "BOS", logoUrl: "https://example.com/bos.png" },
+      teamScore: 78,
+      opponentScore: 72,
+      currentPeriod: 3,
+      clock: "4:21",
+    });
+    expect(mockPool.query).toHaveBeenCalledTimes(1);
+  });
+
+  it("flips team/opponent score when the player's team is away in a live game", async () => {
+    mockPool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 556,
+          league: "nba",
+          status: "In Progress - Q1",
+          hometeamid: 2,
+          awayteamid: 1,
+          homescore: 20,
+          awayscore: 25,
+          current_period: 1,
+          clock: "5:00",
+          home_shortname: "BOS",
+          home_logo: "https://example.com/bos.png",
+          away_shortname: "LAL",
+          away_logo: "https://example.com/lal.png",
+        },
+      ],
+    });
+
+    const result = await getTeamNextGame("nba", 1);
+
+    expect(result.kind).toBe("live");
+    expect(result.isHome).toBe(false);
+    expect(result.teamScore).toBe(25);
+    expect(result.opponentScore).toBe(20);
+    expect(result.opponent.shortname).toBe("BOS");
+  });
+
+  it("live query filters on In Progress / Halftime / End of Period statuses", async () => {
+    mockPool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await getTeamNextGame("nba", 7);
+
+    const [liveSql] = mockPool.query.mock.calls[0];
+    expect(liveSql).toContain("In Progress");
+    expect(liveSql).toContain("Halftime");
+    expect(liveSql).toContain("End of Period");
   });
 });
