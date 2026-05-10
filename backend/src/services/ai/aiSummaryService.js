@@ -755,7 +755,7 @@ export function buildPrompt(gameData, league) {
     : "";
 
   const benchRule = gameData.benchPointsSwing
-    ? `\n- benchPointsSwing.diff is the bench-scoring differential — this number is the SWING, not one team's total. Use it precisely (e.g. "${gameData.benchPointsSwing.team}'s bench outscored the opposition by ${gameData.benchPointsSwing.diff}").`
+    ? `\n- A bench-scoring differential is provided — the number represents the SWING (the gap between the two benches), not one team's total. Use it precisely as a margin (e.g. "${gameData.benchPointsSwing.team}'s bench outscored the opposition by ${gameData.benchPointsSwing.diff}"), and never name the field itself in the bullet.`
     : "";
 
   const ratingRule = gameData.topByRating?.length
@@ -776,6 +776,7 @@ Rules:
 - Start each bullet with a dash (-)
 - Do NOT restate the final score as a bullet — the reader already knows it
 - Anchor each bullet to something specific in the game data: a player performance, a period swing, a statistical gap, a late-game play, or context (series, injuries, streaks)
+- Never echo input field names in the bullets (e.g. "benchPointsSwing," "storyType," "topByRating," "seriesState," "gameWinningPlay," "enteringStreaks," "topPerformers," "inGameInjuries"). They are internal labels — translate them into natural sportswriter language
 - Vary the structure — don't follow a fixed template (e.g. series-then-performer-then-final-play). Combine ideas across bullets when they reinforce each other, and skip a category entirely if forcing it would produce filler
 - Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist${winningPlayRule}${ratingRule}${injuryRule}${streakRule}${benchRule}
 
