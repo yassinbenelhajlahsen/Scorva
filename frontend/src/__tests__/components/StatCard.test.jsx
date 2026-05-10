@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 
 vi.mock("react-router-dom", () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
@@ -142,5 +142,70 @@ describe("StatCard — with stats", () => {
       />
     );
     expect(screen.queryByText(/^Rating$/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("StatCard — mobile breakdown button", () => {
+  it("renders the Breakdown button in collapsed state", () => {
+    render(
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" />
+    );
+    expect(screen.getByRole("button", { name: /show stat breakdown/i })).toHaveTextContent(
+      "Breakdown",
+    );
+  });
+
+  it("toggles label to Hide and dispatches statcard:expand when clicked", () => {
+    const handler = vi.fn();
+    window.addEventListener("statcard:expand", handler);
+
+    render(
+      <StatCard stats={mockStats} league="nba" gameId={42} playerName="LeBron James" status="Final" />
+    );
+
+    const button = screen.getByRole("button", { name: /show stat breakdown/i });
+    fireEvent.click(button);
+
+    expect(
+      screen.getByRole("button", { name: /hide stat breakdown/i }),
+    ).toHaveTextContent("Hide");
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0][0].detail).toEqual({ id: 42 });
+
+    window.removeEventListener("statcard:expand", handler);
+  });
+
+  it("collapses when another StatCard dispatches statcard:expand", () => {
+    render(
+      <StatCard stats={mockStats} league="nba" gameId={1} playerName="LeBron James" status="Final" />
+    );
+    const button = screen.getByRole("button", { name: /show stat breakdown/i });
+    fireEvent.click(button);
+    expect(screen.getByRole("button", { name: /hide stat breakdown/i })).toBeInTheDocument();
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("statcard:expand", { detail: { id: 999 } }),
+      );
+    });
+
+    expect(screen.getByRole("button", { name: /show stat breakdown/i })).toHaveTextContent(
+      "Breakdown",
+    );
+  });
+
+  it("stays expanded when its own gameId is in the event detail", () => {
+    render(
+      <StatCard stats={mockStats} league="nba" gameId={7} playerName="LeBron James" status="Final" />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /show stat breakdown/i }));
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("statcard:expand", { detail: { id: 7 } }),
+      );
+    });
+
+    expect(screen.getByRole("button", { name: /hide stat breakdown/i })).toBeInTheDocument();
   });
 });
