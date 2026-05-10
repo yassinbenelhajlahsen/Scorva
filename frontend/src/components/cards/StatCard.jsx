@@ -3,6 +3,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import { m } from "framer-motion";
 import slugify from "../../utils/slugify.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
+import { getPeriodLabel } from "../../utils/formatDate.js";
+
+function liveClockLabel(currentPeriod, clock, status, league) {
+  if (status?.includes("Halftime")) return "Halftime";
+  const period = getPeriodLabel(currentPeriod, league);
+  if (!period) return null;
+  if (status?.includes("End of Period") || (clock != null && parseFloat(clock) === 0)) {
+    return `End ${period}`;
+  }
+  if (!clock) return period;
+  return `${period} ${clock}`;
+}
 
 export default function StatCard({
   stats = [],
@@ -18,6 +30,10 @@ export default function StatCard({
   gameType = "regular",
   gameLabel,
   ratingGrade,
+  homeScore,
+  awayScore,
+  currentPeriod,
+  clock,
 }) {
   const isFinal = status?.includes("Final");
   const inProgress =
@@ -25,6 +41,14 @@ export default function StatCard({
     status?.includes("Halftime") ||
     status?.includes("End of Period");
   const queryClient = useQueryClient();
+
+  const teamScore = isHome ? homeScore : awayScore;
+  const opponentScore = isHome ? awayScore : homeScore;
+  const hasLiveScore =
+    inProgress && teamScore != null && opponentScore != null;
+  const periodClock = inProgress
+    ? liveClockLabel(currentPeriod, clock, status, league)
+    : null;
 
   const isPlayoff = gameType === "playoff" || gameType === "final";
   const isChampionship = gameType === "final";
@@ -97,7 +121,24 @@ export default function StatCard({
                 />
               )}
               {opponent}
-              {date && <> · {date}</>}
+              {hasLiveScore ? (
+                <>
+                  <span aria-hidden> · </span>
+                  <span className="font-bold tabular-nums text-text-primary">
+                    {teamScore}-{opponentScore}
+                  </span>
+                </>
+              ) : (
+                date && <> · {date}</>
+              )}
+              {periodClock && (
+                <>
+                  <span aria-hidden> · </span>
+                  <span className="text-live/80 font-medium tabular-nums">
+                    {periodClock}
+                  </span>
+                </>
+              )}
             </span>
           </div>
         )}

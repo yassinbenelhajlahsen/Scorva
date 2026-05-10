@@ -125,6 +125,18 @@ describe("playerDetailService", () => {
       expect(sql).toContain("s2.rating");
     });
 
+    it("SQL selects live game fields (score, period, clock) in the game-log subquery", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      await fn()(1, "2025-26");
+
+      const [sql] = mockPool.query.mock.calls[0];
+      expect(sql).toContain("g.homescore");
+      expect(sql).toContain("g.awayscore");
+      expect(sql).toContain("g.current_period");
+      expect(sql).toContain("g.clock");
+    });
+
     it("shapes rating + ratingGrade on each game-log row", async () => {
       const row = {
         player: {
