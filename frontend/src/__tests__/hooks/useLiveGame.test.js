@@ -9,6 +9,7 @@ vi.mock("../../api/games.js", () => ({
 
 const { getLiveGameUrl, getGameById } = await import("../../api/games.js");
 const { useLiveGame } = await import("../../hooks/live/useLiveGame.js");
+const { __resetForTests } = await import("../../hooks/live/sharedSSE.js");
 
 // ---------------------------------------------------------------------------
 // Mock EventSource
@@ -47,6 +48,7 @@ beforeEach(() => {
   MockEventSource.reset();
   vi.stubGlobal("EventSource", MockEventSource);
   vi.clearAllMocks();
+  __resetForTests();
 });
 
 afterEach(() => {
@@ -211,5 +213,29 @@ describe("useLiveGame", () => {
 
     removeDoc.mockRestore();
     removeWin.mockRestore();
+  });
+
+  it("shares a single EventSource across multiple hooks for the same (league, gameId)", () => {
+    renderHook(() => useLiveGame("nba", "1", true));
+    renderHook(() => useLiveGame("nba", "1", true));
+    expect(MockEventSource.instances).toHaveLength(1);
+  });
+
+  it("keeps EventSource open when one subscriber disables (enabled flips false)", () => {
+    const a = renderHook(
+      ({ enabled }) => useLiveGame("nba", "1", enabled),
+      { initialProps: { enabled: true } },
+    );
+    const b = renderHook(() => useLiveGame("nba", "1", true));
+    const es = MockEventSource.instances[0];
+    expect(MockEventSource.instances).toHaveLength(1);
+
+    // Subscriber A flips enabled=false — must not close the shared ES,
+    // since subscriber B still has it open.
+    a.rerender({ enabled: false });
+    expect(es.closed).toBeUndefined();
+
+    b.unmount();
+    expect(es.closed).toBe(true);
   });
 });

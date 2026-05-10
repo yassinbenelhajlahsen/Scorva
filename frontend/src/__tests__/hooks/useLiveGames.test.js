@@ -9,6 +9,7 @@ vi.mock("../../api/games.js", () => ({
 
 const { getLiveGamesUrl, getLeagueGames } = await import("../../api/games.js");
 const { useLiveGames } = await import("../../hooks/live/useLiveGames.js");
+const { __resetForTests } = await import("../../hooks/live/sharedSSE.js");
 
 // ---------------------------------------------------------------------------
 // Mock EventSource
@@ -47,6 +48,7 @@ beforeEach(() => {
   MockEventSource.reset();
   vi.stubGlobal("EventSource", MockEventSource);
   vi.clearAllMocks();
+  __resetForTests();
 });
 
 afterEach(() => {
@@ -203,5 +205,64 @@ describe("useLiveGames", () => {
 
     removeDoc.mockRestore();
     removeWin.mockRestore();
+  });
+
+  it("shares a single EventSource across multiple hooks for the same league", () => {
+    renderHook(() => useLiveGames("nba"));
+    renderHook(() => useLiveGames("nba"));
+    renderHook(() => useLiveGames("nba"));
+    expect(MockEventSource.instances).toHaveLength(1);
+  });
+
+  it("opens separate EventSources for different leagues", () => {
+    renderHook(() => useLiveGames("nba"));
+    renderHook(() => useLiveGames("nhl"));
+    renderHook(() => useLiveGames("nfl"));
+    expect(MockEventSource.instances).toHaveLength(3);
+  });
+
+  it("keeps EventSource open when one of multiple subscribers unmounts", () => {
+    const a = renderHook(() => useLiveGames("nba"));
+    const b = renderHook(() => useLiveGames("nba"));
+    const es = MockEventSource.instances[0];
+    expect(MockEventSource.instances).toHaveLength(1);
+
+    a.unmount();
+    expect(es.closed).toBeUndefined();
+
+    b.unmount();
+    expect(es.closed).toBe(true);
+  });
+
+  it("fans out a single message to all subscribers", async () => {
+    vi.useFakeTimers();
+    const mockGames = [{ id: 1, status: "In Progress" }];
+    const a = renderHook(() => useLiveGames("nba"));
+    const b = renderHook(() => useLiveGames("nba"));
+
+    await act(async () => {
+      MockEventSource.instances[0].dispatchMessage(mockGames);
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(a.result.current.liveGames).toEqual(mockGames);
+    expect(b.result.current.liveGames).toEqual(mockGames);
+    vi.useRealTimers();
+  });
+
+  it("replays cached snapshot to late subscribers synchronously", async () => {
+    vi.useFakeTimers();
+    const mockGames = [{ id: 1, status: "In Progress" }];
+
+    renderHook(() => useLiveGames("nba"));
+    await act(async () => {
+      MockEventSource.instances[0].dispatchMessage(mockGames);
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    // Late subscriber should see the cached payload immediately.
+    const late = renderHook(() => useLiveGames("nba"));
+    expect(late.result.current.liveGames).toEqual(mockGames);
+    vi.useRealTimers();
   });
 });
