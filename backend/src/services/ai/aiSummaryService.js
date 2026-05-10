@@ -476,12 +476,16 @@ export function getTopByRating(stats) {
     .filter((r) => Number.isFinite(r.raw));
   if (rated.length === 0) return [];
   rated.sort((a, b) => b.raw - a.raw);
-  return rated.slice(0, 3).map(({ s, raw }) => ({
-    name: s.player_name,
-    team: s.team_short,
-    stats: `${s.points || 0} PTS, ${s.rebounds || 0} REB, ${s.assists || 0} AST`,
-    ratingGrade: Math.round(gradeFromRaw(raw) * 10) / 10,
-  }));
+  return rated.slice(0, 3).map(({ s, raw }) => {
+    const pm = s.plusminus;
+    const pmStr = pm == null ? "0" : `${pm > 0 ? "+" : ""}${pm}`;
+    return {
+      name: s.player_name,
+      team: s.team_short,
+      stats: `${s.points || 0} PTS, ${s.rebounds || 0} REB, ${s.assists || 0} AST, ${s.steals || 0} STL, ${s.blocks || 0} BLK, ${pmStr} +/-, ${s.minutes || 0} MIN`,
+      ratingGrade: Math.round(gradeFromRaw(raw) * 10) / 10,
+    };
+  });
 }
 
 export function getTopPerformers(stats, league) {
@@ -755,7 +759,7 @@ export function buildPrompt(gameData, league) {
     : "";
 
   const ratingRule = gameData.topByRating?.length
-    ? `\n- topByRating shows the top players by Scorva's per-game player rating (0-10 scale, NBA only) — an impact score combining box-score with win-probability swing. If a player ranks high here but is NOT in topPerformers (the points-based list), their impact came from defense, rebounding, or late-game stops, not scoring — call this out in one bullet rather than just listing volume scorers. Don't quote the numeric grade in the bullet (it's an internal signal, not user-facing).`
+    ? `\n- topByRating is an INTERNAL scouting signal that points to high-impact players (combines box-score with win-probability swing, NBA only). Use it to spot anyone who ranks high here but is absent from topPerformers — that player shaped the game without scoring much. If you reference such a player, anchor the observation in their concrete box-score line from the topByRating entry (e.g. "+18 in 31 minutes with 4 steals and 9 assists"), not in vague impact language. NEVER mention the rating, "Scorva," "ratings list," "impact score," "high mark/grade," or any meta-phrase about the data — the reader sees a basketball observation, not a reference to your inputs. Avoid filler like "factored into late stops," "non-scoring impact," or "helped close possessions"; if you can't cite something concrete from the data, drop the angle entirely. Don't force this into any specific bullet — only surface it when the non-scorer is actually one of the three most distinctive observations of the game.`
     : "";
 
   const winningPlayRule = gameData.gameWinningPlay
