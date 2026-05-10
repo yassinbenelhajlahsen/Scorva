@@ -81,21 +81,27 @@ const nflStatsByPosition = {
   SAF: ["INT"],
 };
 
-const TABS = [
-  { id: "profile",    label: "Profile" },
-  { id: "highlights", label: "Highlights" },
-];
-const ALLOWED_TABS = new Set(TABS.map((t) => t.id));
-
 export default function PlayerPage() {
   const { league, playerId: slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
-  const tabParam = searchParams.get("tab");
-  const tab = ALLOWED_TABS.has(tabParam) ? tabParam : "profile";
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [monthDirection, setMonthDirection] = useState(0);
   const { playerData, loading, seasonLoading, error, retry, refetch } = usePlayer(league, slug, urlSeason);
+
+  const ratingsAvailable = league?.toLowerCase() === "nba";
+  const hasAwards = (playerData?.awards?.length ?? 0) > 0;
+
+  const tabs = useMemo(() => {
+    const out = [{ id: "profile", label: "Profile" }];
+    if (ratingsAvailable) out.push({ id: "highlights", label: "Highlights" });
+    if (hasAwards) out.push({ id: "awards", label: "Awards" });
+    return out;
+  }, [ratingsAvailable, hasAwards]);
+
+  const allowedTabs = useMemo(() => new Set(tabs.map((t) => t.id)), [tabs]);
+  const tabParam = searchParams.get("tab");
+  const tab = allowedTabs.has(tabParam) ? tabParam : "profile";
 
   const handleMonthChange = (newMonth) => {
     setMonthDirection(newMonth > selectedMonth ? 1 : -1);
@@ -151,7 +157,7 @@ export default function PlayerPage() {
   const tabRefs = useRef([]);
   const [tabBounds, setTabBounds] = useState(null);
   useLayoutEffect(() => {
-    const idx = TABS.findIndex((t) => t.id === tab);
+    const idx = tabs.findIndex((t) => t.id === tab);
     const btn = tabRefs.current[idx];
     const nav = tabNavRef.current;
     if (btn && nav) {
@@ -159,7 +165,7 @@ export default function PlayerPage() {
       const n = nav.getBoundingClientRect();
       setTabBounds({ left: b.left - n.left, width: b.width });
     }
-  }, [tab, loading]);
+  }, [tab, loading, tabs]);
 
   function setTab(next) {
     setSearchParams(
@@ -194,7 +200,6 @@ export default function PlayerPage() {
   }
 
   const { name, position, jerseyNumber, height, weight, imageUrl, seasonAverages, team, dob, draftInfo, status, statusDescription } = playerData;
-  const ratingsAvailable = league?.toLowerCase() === "nba";
 
   const profileContent = (
     <div>
@@ -311,13 +316,10 @@ export default function PlayerPage() {
   );
 
   const highlightsContent = (
-    <div className="flex flex-col gap-12">
-      {ratingsAvailable && (
-        <PlayerRatingsSection league={league} playerId={slug} />
-      )}
-      <PlayerAwardsCard awards={playerData.awards} />
-    </div>
+    <PlayerRatingsSection league={league} playerId={slug} />
   );
+
+  const awardsContent = <PlayerAwardsCard awards={playerData.awards} />;
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -363,7 +365,7 @@ export default function PlayerPage() {
             transition={{ type: "spring", stiffness: 500, damping: 35 }}
           />
         )}
-        {TABS.map((t, i) => {
+        {tabs.map((t, i) => {
           const isActive = tab === t.id;
           return (
             <button
@@ -385,8 +387,9 @@ export default function PlayerPage() {
         activeId={tab}
         onChange={setTab}
         tabs={[
-          { id: "profile",    content: profileContent },
-          { id: "highlights", content: highlightsContent },
+          { id: "profile", content: profileContent },
+          ...(ratingsAvailable ? [{ id: "highlights", content: highlightsContent }] : []),
+          ...(hasAwards ? [{ id: "awards", content: awardsContent }] : []),
         ]}
         className="py-1"
       />

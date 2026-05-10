@@ -3,111 +3,84 @@ import { m, AnimatePresence } from "framer-motion";
 import { containerVariants, itemVariants, EASE_OUT_EXPO } from "../../utils/motion.js";
 import { groupAwards } from "../../utils/awardTiers.js";
 
-const COMMON_BUTTON =
-  "transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+const TIER_STYLES = {
+  legendary: {
+    name: "text-sm font-semibold text-text-primary",
+    count: "text-[22px] font-semibold text-accent leading-none tabular-nums tracking-[-0.02em]",
+  },
+  major: {
+    name: "text-[13px] font-medium text-text-primary",
+    count: "text-base font-medium text-text-primary leading-none tabular-nums",
+  },
+  selection: {
+    name: "text-xs text-text-secondary",
+    count: "text-[13px] font-medium text-text-secondary leading-none tabular-nums",
+  },
+};
 
-function ariaLabel(award) {
-  return `${award.label}, ${award.count} time${award.count === 1 ? "" : "s"}`;
+const ROW_BASE =
+  "flex items-baseline justify-between gap-4 py-2.5 border-b border-white/[0.06] last:border-b-0";
+const ROW_INTERACTIVE =
+  "w-full text-left appearance-none bg-transparent cursor-pointer hover:bg-white/[0.02] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:rounded";
+
+function yearsColumnText(award) {
+  if (!award.seasons?.length) return null;
+  if (award.count <= 4) return award.seasons.join(", ");
+  const earliest = award.seasons[award.seasons.length - 1];
+  const latest = award.seasons[0];
+  return earliest === latest ? latest : `${earliest} – ${latest}`;
 }
 
-function LegendaryChip({ award, active, onClick }) {
-  return (
-    <m.button
-      type="button"
-      variants={itemVariants}
-      onClick={onClick}
-      aria-expanded={active}
-      aria-label={ariaLabel(award)}
-      data-award-chip
-      className={`relative flex flex-col items-start gap-2 px-5 py-5
-        bg-gradient-to-br from-[rgba(212,175,55,0.07)] to-[rgba(212,175,55,0.01)]
-        border rounded-2xl text-left
-        ${active ? "border-[rgba(212,175,55,0.45)] shadow-[0_0_28px_rgba(212,175,55,0.18)]" : "border-[rgba(212,175,55,0.18)]"}
-        hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.32)]
-        hover:shadow-[0_0_28px_rgba(212,175,55,0.16)] ${COMMON_BUTTON}`}
-    >
-      <span aria-hidden="true" className="absolute top-3 right-3 text-[#d4af37] text-sm leading-none">★</span>
-      <span className="text-5xl font-semibold tabular-nums leading-none text-[#d4af37]">
-        {award.count}
-      </span>
-      <span className="text-[11px] uppercase tracking-[0.14em] text-text-secondary leading-tight">
-        {award.label}
-      </span>
-    </m.button>
-  );
-}
+function AwardRow({ award, tier, expandable, expanded, onToggle }) {
+  const styles = TIER_STYLES[tier];
+  const yearsText = yearsColumnText(award);
 
-function MajorChip({ award, active, onClick }) {
-  return (
-    <m.button
-      type="button"
-      variants={itemVariants}
-      onClick={onClick}
-      aria-expanded={active}
-      aria-label={ariaLabel(award)}
-      data-award-chip
-      className={`flex flex-col items-start gap-1 px-4 py-3
-        bg-surface-overlay border rounded-xl text-left
-        ${active ? "border-accent/60 shadow-[0_0_18px_rgba(232,134,58,0.18)]" : "border-white/[0.08]"}
-        hover:-translate-y-0.5 hover:border-white/[0.14] ${COMMON_BUTTON}`}
-    >
-      <span className="text-2xl font-semibold tabular-nums leading-none text-text-primary">
-        {award.count}
-      </span>
-      <span className="text-[10px] uppercase tracking-[0.1em] text-text-tertiary leading-tight">
-        {award.label}
-      </span>
-    </m.button>
-  );
-}
+  const Tag = expandable ? m.button : m.div;
+  const interactiveProps = expandable
+    ? {
+        type: "button",
+        onClick: onToggle,
+        "aria-expanded": expanded,
+        "aria-label": `${award.label}, ${award.count} time${award.count === 1 ? "" : "s"}`,
+      }
+    : {};
 
-function SelectionPill({ award, active, onClick }) {
   return (
-    <m.button
-      type="button"
+    <Tag
       variants={itemVariants}
-      onClick={onClick}
-      aria-expanded={active}
-      aria-label={ariaLabel(award)}
-      data-award-chip
-      className={`inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs whitespace-nowrap
-        bg-white/[0.04] border
-        ${active ? "border-accent/60 bg-white/[0.08]" : "border-white/[0.06]"}
-        hover:bg-white/[0.08] hover:border-white/[0.12] ${COMMON_BUTTON}`}
+      data-testid="award-row"
+      data-award-type={award.type}
+      className={expandable ? `${ROW_BASE} ${ROW_INTERACTIVE}` : ROW_BASE}
+      {...interactiveProps}
     >
-      <span className="text-text-secondary uppercase tracking-[0.06em]">{award.label}</span>
-      <span className="text-text-primary font-semibold tabular-nums">{award.count}</span>
-    </m.button>
+      <span className={styles.name}>{award.label}</span>
+      <span className={`flex-1 min-w-0 text-[11px] tabular-nums text-right truncate ${expandable && expanded ? "text-text-secondary" : "text-text-tertiary"}`}>
+        {yearsText}
+      </span>
+      <span className={`${styles.count} min-w-[2rem] text-right shrink-0`}>{award.count}</span>
+    </Tag>
   );
 }
 
 function DetailStrip({ award }) {
   return (
     <m.div
-      key={award.type}
       role="status"
       aria-live="polite"
-      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-      animate={{ opacity: 1, height: "auto", marginTop: 24 }}
-      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.22, ease: EASE_OUT_EXPO }}
       className="overflow-hidden"
     >
-      <div className="bg-surface-overlay border border-white/[0.08] rounded-xl px-4 py-3">
-        <div className="flex items-baseline justify-between gap-3 mb-1.5">
-          <span className="text-[11px] uppercase tracking-[0.14em] text-text-tertiary">
-            {award.label}
-          </span>
-        </div>
-        <p className="text-sm tabular-nums text-text-primary leading-snug break-words">
-          {award.seasons.join(", ")}
-        </p>
-      </div>
+      <p className="text-xs text-text-secondary leading-relaxed py-2 pl-1 pr-1 break-words tabular-nums">
+        {award.seasons.join(", ")}
+      </p>
     </m.div>
   );
 }
 
-function Section({ title, awards, ChipComponent, gridClass, activeType, onToggle }) {
+function Section({ title, awards, tier, activeType, onToggle }) {
   if (awards.length === 0) return null;
   return (
     <div>
@@ -118,16 +91,26 @@ function Section({ title, awards, ChipComponent, gridClass, activeType, onToggle
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className={gridClass}
+        className="flex flex-col"
       >
-        {awards.map((award) => (
-          <ChipComponent
-            key={award.type}
-            award={award}
-            active={activeType === award.type}
-            onClick={() => onToggle(award.type)}
-          />
-        ))}
+        {awards.map((award) => {
+          const expandable = award.count > 4;
+          const expanded = activeType === award.type;
+          return (
+            <div key={award.type}>
+              <AwardRow
+                award={award}
+                tier={tier}
+                expandable={expandable}
+                expanded={expanded}
+                onToggle={() => onToggle(award.type)}
+              />
+              <AnimatePresence initial={false}>
+                {expanded && expandable && <DetailStrip award={award} />}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </m.div>
     </div>
   );
@@ -165,14 +148,10 @@ export default function PlayerAwardsCard({ awards }) {
 
   if (!awards || awards.length === 0) return null;
 
-  const activeAward = activeType
-    ? [...groups.legendary, ...groups.major, ...groups.selection].find((a) => a.type === activeType)
-    : null;
-
   return (
     <div
       ref={cardRef}
-      className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-12"
+      className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
     >
       <div className="text-xs uppercase tracking-[0.14em] text-text-tertiary mb-6">
         Career Honors
@@ -181,31 +160,25 @@ export default function PlayerAwardsCard({ awards }) {
         <Section
           title="Legendary"
           awards={groups.legendary}
-          ChipComponent={LegendaryChip}
-          gridClass="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+          tier="legendary"
           activeType={activeType}
           onToggle={handleToggle}
         />
         <Section
           title="Major Honors"
           awards={groups.major}
-          ChipComponent={MajorChip}
-          gridClass="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"
+          tier="major"
           activeType={activeType}
           onToggle={handleToggle}
         />
         <Section
           title="Selections"
           awards={groups.selection}
-          ChipComponent={SelectionPill}
-          gridClass="flex flex-wrap gap-1.5"
+          tier="selection"
           activeType={activeType}
           onToggle={handleToggle}
         />
       </div>
-      <AnimatePresence initial={false}>
-        {activeAward && <DetailStrip award={activeAward} />}
-      </AnimatePresence>
     </div>
   );
 }
