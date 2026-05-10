@@ -24,7 +24,7 @@ export default function PlayerRatingsSection({ league, playerId }) {
   const modeParam = searchParams.get("mode");
   const mode = TABS.some((t) => t.id === modeParam) ? modeParam : "games";
 
-  const win  = ALLOWED_WINDOWS.has(searchParams.get("win"))  ? searchParams.get("win")  : "season";
+  const win  = ALLOWED_WINDOWS.has(searchParams.get("win"))  ? searchParams.get("win")  : "week";
   const sort = ALLOWED_SORTS.has(searchParams.get("sort"))   ? searchParams.get("sort") : "desc";
 
   const modeIdx = Math.max(0, TABS.findIndex((t) => t.id === mode));
