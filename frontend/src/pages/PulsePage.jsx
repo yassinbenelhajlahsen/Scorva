@@ -99,7 +99,8 @@ export default function PulsePage() {
   const leagueIdx = Math.max(0, LEAGUE_PILLS.findIndex((p) => p.id === league));
   const prevLeagueIdxRef = useRef(leagueIdx);
   const leagueDirRef = useRef(0);
-  if (prevLeagueIdxRef.current !== leagueIdx) {
+  const leagueJustChanged = prevLeagueIdxRef.current !== leagueIdx;
+  if (leagueJustChanged) {
     leagueDirRef.current = leagueIdx > prevLeagueIdxRef.current ? 1 : -1;
     prevLeagueIdxRef.current = leagueIdx;
   }
@@ -120,7 +121,7 @@ export default function PulsePage() {
     }
   }, [league]);
 
-  const showHighlights = league === undefined || league === "nba";
+  const showHighlights = league === "nba";
   // Keep the underlying tabs array stable so SwipeableTabs's direction tracking
   // (based on index transitions) gives the correct direction when the league
   // pill change forces a sub-tab swap. The pill strip renders `visibleSubTabs`
@@ -390,6 +391,7 @@ export default function PulsePage() {
         onChange={setSubTab}
         tabs={swipeableTabs}
         className="py-1"
+        directionOverride={leagueJustChanged ? leagueDirRef.current : null}
       />
     </div>
   );
