@@ -115,9 +115,16 @@ function GameCard({ game }) {
     >
       <div className="group relative transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer hover:bg-white/[0.04] hover:-translate-y-0.5 max-w-md mx-auto">
         <div className={`absolute left-0 top-0 bottom-0 ${rail}`} />
-        {(inProgress || isChampionship) && (
-          <div className={`absolute inset-0 bg-gradient-to-r ${inProgress ? "from-live/[0.05]" : "from-accent/[0.06]"} to-transparent pointer-events-none`} />
-        )}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: inProgress
+              ? "radial-gradient(ellipse at center, rgba(255,69,58,0.08) 0%, transparent 65%)"
+              : isChampionship
+                ? "radial-gradient(ellipse at center, rgba(232,134,58,0.09) 0%, transparent 65%)"
+                : "radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, transparent 65%)",
+          }}
+        />
         <div className="relative p-5 text-center">
 
             {/* Teams & Scores */}
@@ -306,7 +313,7 @@ function GameCard({ game }) {
               </div>
             )}
 
-            {/* Breakdown toggle — touch fallback for hover expand; shown on all devices */}
+            {/* Breakdown toggle — mobile-only; desktop relies on hover-driven expand */}
             {(isFinal || inProgress) && (
               <button
                 type="button"
@@ -320,7 +327,7 @@ function GameCard({ game }) {
                   });
                 }}
                 aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
-                className="touch-target mt-3 mx-auto inline-flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+                className="touch-target [@media(hover:hover)]:!hidden mt-3 mx-auto inline-flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
               >
                 <svg
                   className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}

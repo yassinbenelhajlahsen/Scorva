@@ -104,6 +104,10 @@ export default function StatCard({
     >
       <div className="group relative transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer max-w-sm mx-auto hover:bg-white/[0.04] hover:-translate-y-0.5">
         <div className={`absolute left-0 top-0 bottom-0 ${rail}`} />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at center, rgba(232,134,58,0.08) 0%, transparent 65%)" }}
+        />
         <div className="relative flex items-stretch">
         <div className="flex-1 min-w-0 p-5 text-center">
 

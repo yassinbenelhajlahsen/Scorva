@@ -87,7 +87,7 @@ export default function NewsSection() {
       ) : (
         <m.div
           key="compact"
-          className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-6 sm:divide-x sm:divide-white/[0.04]"
+          className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x sm:divide-white/[0.04]"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -102,7 +102,7 @@ export default function NewsSection() {
               </m.div>
             ))}
           </div>
-          <div className="flex flex-col divide-y divide-white/[0.04] sm:pl-6">
+          <div className="flex flex-col divide-y divide-white/[0.04]">
             {visible.slice(Math.ceil(visible.length / 2)).map((article, i) => (
               <m.div key={`${article.league}-${i}`} variants={itemVariants}>
                 <NewsCardCompact
