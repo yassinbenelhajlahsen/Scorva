@@ -51,7 +51,7 @@ export default function NewsSection() {
   return (
     <div className="mb-14">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold">
+        <h2 className="text-[10px] uppercase tracking-[0.22em] text-text-secondary font-semibold">
           Headlines
         </h2>
         {!loading && articles.length > 0 && (
@@ -87,19 +87,31 @@ export default function NewsSection() {
       ) : (
         <m.div
           key="compact"
-          className="bg-white/[0.06] border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-px"
+          className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-6 sm:divide-x sm:divide-white/[0.04]"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          {visible.map((article, i) => (
-            <m.div key={`${article.league}-${i}`} variants={itemVariants} className="bg-surface-elevated">
-              <NewsCardCompact
-                article={article}
-                onClick={() => setSelected(article)}
-              />
-            </m.div>
-          ))}
+          <div className="flex flex-col divide-y divide-white/[0.04]">
+            {visible.slice(0, Math.ceil(visible.length / 2)).map((article, i) => (
+              <m.div key={`${article.league}-${i}`} variants={itemVariants}>
+                <NewsCardCompact
+                  article={article}
+                  onClick={() => setSelected(article)}
+                />
+              </m.div>
+            ))}
+          </div>
+          <div className="flex flex-col divide-y divide-white/[0.04] sm:pl-6">
+            {visible.slice(Math.ceil(visible.length / 2)).map((article, i) => (
+              <m.div key={`${article.league}-${i}`} variants={itemVariants}>
+                <NewsCardCompact
+                  article={article}
+                  onClick={() => setSelected(article)}
+                />
+              </m.div>
+            ))}
+          </div>
         </m.div>
       )}
 

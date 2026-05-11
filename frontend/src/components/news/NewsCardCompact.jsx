@@ -5,8 +5,9 @@ export default function NewsCardCompact({ article, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-150 hover:bg-surface-overlay focus-visible:bg-surface-overlay focus:outline-none"
+      className="group relative w-full text-left flex items-center gap-3 pl-4 pr-4 py-3 cursor-pointer transition-colors duration-150 hover:bg-white/[0.03] focus:outline-none"
     >
+      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200" />
       <div className="shrink-0 w-6 h-6 flex items-center justify-center">
         <img
           src={leagueData[article.league]?.logo}

@@ -11,8 +11,9 @@ export default function NewsCard({ article, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full h-full text-left flex flex-col bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5"
+      className="group relative w-full h-full text-left flex flex-col rounded-2xl overflow-hidden cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.04] hover:-translate-y-0.5"
     >
+      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200 z-10" />
       <div className="aspect-[16/9] overflow-hidden">
         {article.imageUrl ? (
           <img

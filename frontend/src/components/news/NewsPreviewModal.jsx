@@ -43,12 +43,13 @@ export default function NewsPreviewModal({ article, onClose }) {
 
           {/* Modal */}
           <m.div
-            className="relative w-full max-w-lg bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+            className="relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden ring-1 ring-white/[0.08] bg-surface-elevated shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60 z-10" />
             {/* Close button */}
             <button
               onClick={onClose}
