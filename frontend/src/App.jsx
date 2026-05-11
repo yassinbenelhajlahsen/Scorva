@@ -30,6 +30,7 @@ const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
 const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
 const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
 const PulsePage    = lazy(() => import("./pages/PulsePage.jsx"));
+const MockCards    = lazy(() => import("./pages/MockCards.jsx"));
 
 function useBlockEdgeSwipe() {
   useEffect(() => {
@@ -136,6 +137,14 @@ function AnimatedRoutes() {
           }
         />
         <Route path="/reports" element={<Navigate to="/pulse" replace />} />
+        <Route
+          path="/_mocks/cards"
+          element={
+            <PageWrapper>
+              <MockCards />
+            </PageWrapper>
+          }
+        />
         <Route
           path="/:league/players/:playerId"
           element={
