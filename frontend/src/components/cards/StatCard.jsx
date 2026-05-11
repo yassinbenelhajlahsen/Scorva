@@ -87,16 +87,9 @@ export default function StatCard({
         }
       }}
     >
-      <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:z-10 cursor-pointer max-w-sm mx-auto overflow-hidden">
+      <div className="bg-surface-elevated border border-white/[0.08] mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:z-10 cursor-pointer max-w-sm mx-auto overflow-hidden flex items-stretch">
 
-        {ratingGrade != null && (
-          <div className="absolute top-3 left-3 flex flex-col items-start">
-            <span className="text-[9px] uppercase tracking-widest text-text-tertiary font-medium">Rating</span>
-            <span className="text-accent font-bold text-2xl tabular-nums leading-none">
-              {ratingGrade.toFixed(1)}
-            </span>
-          </div>
-        )}
+        <div className="flex-1 min-w-0 p-5 text-center">
 
         {/* Game info */}
         {(opponent || date) && (
@@ -203,6 +196,18 @@ export default function StatCard({
           </svg>
           {isExpanded ? "Hide" : "Breakdown"}
         </button>
+        </div>
+
+        {ratingGrade != null && (
+          <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center border-l border-white/[0.08]">
+            <span className="text-accent font-bold text-3xl tabular-nums leading-none">
+              {ratingGrade.toFixed(1)}
+            </span>
+            <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium">
+              Rating
+            </span>
+          </div>
+        )}
       </div>
     </Link>
   );
