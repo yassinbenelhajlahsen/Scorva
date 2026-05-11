@@ -435,7 +435,8 @@ async function queryTeamPerformances({ league, window, season, sort, limit, team
             t.name, t.abbreviation, t.logo_url, t.primary_color,
             g.date, g.hometeamid, g.awayteamid, g.homescore, g.awayscore, g.status,
             ${LIVE_STATUS_SQL} AS is_live,
-            ot.id AS opp_id, ot.abbreviation AS opp_abbreviation, ot.logo_url AS opp_logo_url
+            ot.id AS opp_id, ot.name AS opp_name, ot.abbreviation AS opp_abbreviation,
+            ot.logo_url AS opp_logo_url, ot.primary_color AS opp_primary_color
        FROM team_games tg
        JOIN teams t  ON t.id = tg.team_id
        JOIN games g  ON g.id = tg.gameid
@@ -540,7 +541,13 @@ function shapeTeamGameRow(r) {
     },
     game: {
       id: r.gameid, date: r.date,
-      opponent: { id: r.opp_id, abbreviation: r.opp_abbreviation, logo: r.opp_logo_url },
+      opponent: {
+        id: r.opp_id,
+        name: r.opp_name,
+        abbreviation: r.opp_abbreviation,
+        logo: r.opp_logo_url,
+        primary_color: r.opp_primary_color,
+      },
       isHome: teamId === r.hometeamid,
       isLive,
       homeScore: r.homescore, awayScore: r.awayscore,

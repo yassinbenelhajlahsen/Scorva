@@ -39,25 +39,33 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
   }
 
   if (entity === "team") {
+    const isTeamScoped = teamId != null;
     return (
       <ul className="flex flex-col gap-1">
         {items.map((it, i) => {
           const rank = i + 1;
           const to = `/${league}/games/${it.game.id}`;
-          const meta = formatTeamMeta(it, win);
+          const subject = isTeamScoped ? it.game.opponent : it.team;
+          const subjectName = isTeamScoped
+            ? (it.game.opponent.name ?? it.game.opponent.abbreviation)
+            : it.team.name;
+          const subjectAbbr = isTeamScoped ? it.game.opponent.abbreviation : it.team.abbr;
+          const subjectLogo = isTeamScoped ? it.game.opponent.logo : it.team.logo;
+          const subjectColor = isTeamScoped ? it.game.opponent.primary_color : it.team.primary_color;
+          const meta = isTeamScoped ? formatOpponentMeta(it, win) : formatTeamMeta(it, win);
           const props = {
             to,
-            logo: it.team.logo,
-            name: it.team.name,
-            abbr: it.team.abbr,
+            logo: subjectLogo,
+            name: subjectName,
+            abbr: subjectAbbr,
             meta,
             value: it.ratingGrade.toFixed(1),
             onMouseEnter: () => prefetchGame(qc, league, it.game.id),
-            color: it.team.primary_color,
+            color: subjectColor,
             isLive: it.game.isLive,
           };
           return (
-            <li key={`${it.team.id}:${it.game.id}`}>
+            <li key={`${subject.id}:${it.game.id}`}>
               {rank <= 3 ? <TeamHeroRow rank={rank} {...props} /> : <TeamCompactRow rank={rank} {...props} />}
             </li>
           );
@@ -168,6 +176,18 @@ function formatTeamMeta(it, win) {
     : (it.game.homeScore != null && it.game.awayScore != null ? `${it.game.homeScore}-${it.game.awayScore}` : "");
   const dateStr = it.game.date && SHOW_DATE_FOR.has(win) ? ` · ${formatDate(it.game.date)}` : "";
   return `${opp}${result}${score ? " · " + score : ""}${dateStr}`;
+}
+
+// Same data, opponent-centric: opponent is the visual subject of the row, so
+// we lead with location (vs/@) + result + score instead of repeating "vs OPP".
+function formatOpponentMeta(it, win) {
+  const loc = it.game.isHome ? "vs" : "@";
+  const result = it.game.result ?? "";
+  const score = it.game.isLive
+    ? `${it.game.homeScore ?? 0}-${it.game.awayScore ?? 0}`
+    : (it.game.homeScore != null && it.game.awayScore != null ? `${it.game.homeScore}-${it.game.awayScore}` : "");
+  const dateStr = it.game.date ? formatDate(it.game.date) : "";
+  return [loc, result, score, dateStr].filter(Boolean).join(" · ").replace(/^· /, "");
 }
 
 function prefetchGame(qc, league, gameId) {
