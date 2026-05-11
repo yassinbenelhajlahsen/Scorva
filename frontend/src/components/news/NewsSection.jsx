@@ -5,6 +5,7 @@ import { containerVariants, itemVariants } from "../../utils/motion.js";
 import NewsCard from "./NewsCard.jsx";
 import NewsCardCompact from "./NewsCardCompact.jsx";
 import NewsCardSkeleton from "../skeletons/NewsCardSkeleton.jsx";
+import Skeleton from "../ui/Skeleton.jsx";
 import NewsPreviewModal from "./NewsPreviewModal.jsx";
 
 const MOBILE_COLLAPSED_COUNT = 4;
@@ -65,11 +66,27 @@ export default function NewsSection() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <NewsCardSkeleton key={i} />
-          ))}
-        </div>
+        isMobile && !expanded ? (
+          /* Compact mobile loading — match hairline-divided 1-col layout */
+          <div className="flex flex-col divide-y divide-white/[0.04]">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <Skeleton className="w-6 h-6 rounded-full shrink-0" />
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <Skeleton className="h-3.5 w-full" />
+                  <Skeleton className="h-3.5 w-3/4" />
+                </div>
+                <Skeleton className="h-3 w-10 shrink-0" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <NewsCardSkeleton key={i} />
+            ))}
+          </div>
+        )
       ) : expanded ? (
         <m.div
           key="expanded"
