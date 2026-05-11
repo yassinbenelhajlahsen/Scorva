@@ -223,6 +223,7 @@ export default function GamePage() {
           topPlayers={topPlayers}
           winProbData={winProbData}
           scoreMargin={scoreMargin}
+          gameRating={game?.rating ?? null}
         />
       ),
     },

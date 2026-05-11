@@ -1,6 +1,7 @@
 import GameChart from "../ui/GameChart.jsx";
 import TopPerformerCard from "../cards/TopPerformerCard.jsx";
 import PredictionCard from "../cards/PredictionCard.jsx";
+import GameRatingCard from "./GameRatingCard.jsx";
 
 export default function OverviewTab({
   game,
@@ -20,11 +21,19 @@ export default function OverviewTab({
   topPlayers,
   winProbData,
   scoreMargin,
+  gameRating,
 }) {
   const { topPerformer, topScorer, impactPlayer } = topPlayers;
 
   return (
     <>
+      {!isPreGame && gameRating && (
+        <GameRatingCard
+          rating={gameRating}
+          homeTeam={{ abbr: homeTeam.info.abbreviation, primary_color: homeTeam.info.color }}
+          awayTeam={{ abbr: awayTeam.info.abbreviation, primary_color: awayTeam.info.color }}
+        />
+      )}
       {/* Quarter-by-quarter */}
       {(isFinal || inProgress) && (
         <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-6">

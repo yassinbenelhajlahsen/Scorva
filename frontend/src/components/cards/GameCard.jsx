@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatDateShort, getPeriodLabel } from "../../utils/formatDate";
 import { scoreUpdateVariants } from "../../utils/motion.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
+import GameRatingPill from "./GameRatingPill.jsx";
 
 function useScoreAnimKey(score) {
   const prev = useRef(undefined);
@@ -78,6 +79,12 @@ function GameCard({ game }) {
       onMouseLeave={() => { if (window.matchMedia("(hover: hover)").matches) setIsExpanded(false); }}
     >
       <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">
+
+        {game.grade != null && (
+          <div className="absolute top-3 right-3 z-10">
+            <GameRatingPill grade={game.grade} />
+          </div>
+        )}
 
         {/* Teams & Scores */}
         <div className="flex items-center justify-between gap-4 h-[120px]">
@@ -298,5 +305,6 @@ export default memo(GameCard, (prev, next) => {
   return p.id === n.id && p.homescore === n.homescore && p.awayscore === n.awayscore &&
     p.status === n.status && p.clock === n.clock && p.current_period === n.current_period &&
     p.winnerid === n.winnerid &&
-    p.home_series_wins === n.home_series_wins && p.away_series_wins === n.away_series_wins;
+    p.home_series_wins === n.home_series_wins && p.away_series_wins === n.away_series_wins &&
+    p.grade === n.grade;
 });
