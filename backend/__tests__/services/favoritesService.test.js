@@ -65,21 +65,23 @@ describe("favoritesService", () => {
   // ─── getFavorites ──────────────────────────────────────────────────────────
 
   describe("getFavorites", () => {
-    it("runs 4 parallel queries via Promise.all", async () => {
-      // All 4 queries resolve in parallel
+    it("runs 5 parallel queries via Promise.all", async () => {
+      // All 5 queries resolve in parallel
       mockPool.query
         .mockResolvedValueOnce({ rows: [] }) // players
         .mockResolvedValueOnce({ rows: [] }) // player stats
         .mockResolvedValueOnce({ rows: [] }) // teams
-        .mockResolvedValueOnce({ rows: [] }); // team games
+        .mockResolvedValueOnce({ rows: [] }) // team games
+        .mockResolvedValueOnce({ rows: [] }); // next games
 
       await getFavorites("user-1");
 
-      expect(mockPool.query).toHaveBeenCalledTimes(4);
+      expect(mockPool.query).toHaveBeenCalledTimes(5);
     });
 
     it("returns { players, teams } shape", async () => {
       mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
@@ -101,6 +103,7 @@ describe("favoritesService", () => {
         .mockResolvedValueOnce({ rows: [player] })
         .mockResolvedValueOnce({ rows: [stat] })
         .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] });
 
       const result = await getFavorites("user-1");
@@ -116,11 +119,105 @@ describe("favoritesService", () => {
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [team] })
-        .mockResolvedValueOnce({ rows: [game] });
+        .mockResolvedValueOnce({ rows: [game] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const result = await getFavorites("user-1");
 
       expect(result.teams[0].recentGames).toEqual([game]);
+    });
+
+    it("attaches nextGame to each favorite team", async () => {
+      const team = { id: 5, name: "Lakers" };
+      const nextGameRow = {
+        team_id: 5,
+        id: 200,
+        league: "nba",
+        date: "2026-05-12",
+        start_time: "7:30 PM",
+        status: "Scheduled",
+        hometeamid: 5,
+        awayteamid: 6,
+        home_shortname: "LAL",
+        home_logo: "lal.png",
+        away_shortname: "BOS",
+        away_logo: "bos.png",
+      };
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [team] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [nextGameRow] });
+
+      const result = await getFavorites("user-1");
+
+      expect(result.teams[0].nextGame).toMatchObject({
+        id: 200,
+        hometeamid: 5,
+        away_shortname: "BOS",
+      });
+      expect(result.teams[0].nextGame.team_id).toBeUndefined();
+    });
+
+    it("attaches nextGame to each favorite player via their team_id", async () => {
+      const player = { id: 10, name: "LeBron", team_id: 5 };
+      const nextGameRow = {
+        team_id: 5,
+        id: 201,
+        league: "nba",
+        date: "2026-05-12",
+        start_time: "7:30 PM",
+        status: "Scheduled",
+        hometeamid: 5,
+        awayteamid: 6,
+        home_shortname: "LAL",
+        home_logo: "lal.png",
+        away_shortname: "BOS",
+        away_logo: "bos.png",
+      };
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [player] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [nextGameRow] });
+
+      const result = await getFavorites("user-1");
+
+      expect(result.players[0].nextGame).toMatchObject({ id: 201 });
+    });
+
+    it("player with no team_id gets nextGame=null", async () => {
+      const player = { id: 11, name: "FA", team_id: null };
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [player] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const result = await getFavorites("user-1");
+
+      expect(result.players[0].nextGame).toBeNull();
+    });
+
+    it("team with no upcoming game gets nextGame=null", async () => {
+      const team = { id: 7, name: "Suns" };
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [team] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const result = await getFavorites("user-1");
+
+      expect(result.teams[0].nextGame).toBeNull();
     });
 
     it("player with no recent stats gets empty recentStats array", async () => {
@@ -129,6 +226,7 @@ describe("favoritesService", () => {
       mockPool.query
         .mockResolvedValueOnce({ rows: [player] })
         .mockResolvedValueOnce({ rows: [] }) // no stats for this player
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] });
 
@@ -139,6 +237,7 @@ describe("favoritesService", () => {
 
     it("selects player injury status columns", async () => {
       mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
@@ -153,6 +252,7 @@ describe("favoritesService", () => {
 
     it("passes userId to all queries", async () => {
       mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] })

@@ -9,6 +9,15 @@ import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
+function isLiveStatus(status) {
+  if (!status) return false;
+  return (
+    status.includes("In Progress") ||
+    status.includes("Halftime") ||
+    status.includes("End of Period")
+  );
+}
+
 const statKeysForLeague = {
   nba: [
     { key: "points", label: "PTS" },
@@ -38,6 +47,16 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
           const statKeys = statKeysForLeague[player.league] || statKeysForLeague.nba;
           const slug = playerSlug(player, dupeSlugsByLeague[player.league]);
           const recentStats = compact ? player.recentStats.slice(0, 3) : player.recentStats;
+          const hasLive = compact && recentStats.some((s) => isLiveStatus(s.status));
+          const showNext = compact && !hasLive && player.nextGame;
+          const nextGame = player.nextGame;
+          const nextIsHome = nextGame ? nextGame.hometeamid === player.team_id : false;
+          const nextOpponentShort = nextGame
+            ? nextIsHome ? nextGame.away_shortname : nextGame.home_shortname
+            : null;
+          const nextOpponentLogo = nextGame
+            ? nextIsHome ? nextGame.away_logo : nextGame.home_logo
+            : null;
 
           return (
             <m.div
@@ -92,45 +111,68 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
 
               {compact ? (
                 <div className="flex flex-col gap-1.5">
-                  {recentStats.length === 0 ? (
+                  {recentStats.length === 0 && !showNext ? (
                     <p className="text-text-tertiary text-xs">No recent games</p>
                   ) : (
-                    recentStats.map((stat) => {
-                      const isHome = stat.hometeamid === player.team_id;
-                      const opponent = isHome ? stat.away_shortname : stat.home_shortname;
-                      const opponentLogo = isHome ? stat.away_logo : stat.home_logo;
-                      const result = stat.winnerid
-                        ? stat.winnerid === (isHome ? stat.hometeamid : stat.awayteamid) ? "W" : "L"
-                        : null;
-                      const statsInline = statKeys
-                        .map((s) => ({ label: s.label, value: stat[s.key] }))
-                        .filter((s) => s.value != null && s.value !== "-");
+                    <>
+                      {recentStats.map((stat) => {
+                        const isHome = stat.hometeamid === player.team_id;
+                        const opponent = isHome ? stat.away_shortname : stat.home_shortname;
+                        const opponentLogo = isHome ? stat.away_logo : stat.home_logo;
+                        const result = stat.winnerid
+                          ? stat.winnerid === (isHome ? stat.hometeamid : stat.awayteamid) ? "W" : "L"
+                          : null;
+                        const statsInline = statKeys
+                          .map((s) => ({ label: s.label, value: stat[s.key] }))
+                          .filter((s) => s.value != null && s.value !== "-");
 
-                      return (
+                        return (
+                          <Link
+                            key={stat.game_id}
+                            to={`/${player.league}/games/${stat.game_id}?tab=analysis#${slug}`}
+                            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
+                          >
+                            {result && (
+                              <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 ${result === "W" ? "text-win bg-win/10" : "text-loss bg-loss/10"}`}>
+                                {result}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1.5 text-text-secondary shrink-0">
+                              {isHome ? "vs" : "@"}
+                              {opponentLogo && (
+                                <img src={opponentLogo} alt="" className="w-4 h-4 object-contain" />
+                              )}
+                              {opponent}
+                            </span>
+                            <span className="text-text-tertiary shrink-0">{formatDateShort(stat.date)}</span>
+                            <span className="ml-auto text-text-primary font-medium whitespace-nowrap">
+                              {statsInline.map((s) => `${s.value} ${s.label}`).join(" · ")}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                      {showNext && (
                         <Link
-                          key={stat.game_id}
-                          to={`/${player.league}/games/${stat.game_id}?tab=analysis#${slug}`}
+                          to={`/${player.league}/games/${nextGame.id}`}
                           className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
                         >
-                          {result && (
-                            <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 ${result === "W" ? "text-win bg-win/10" : "text-loss bg-loss/10"}`}>
-                              {result}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1.5 text-text-secondary shrink-0">
-                            {isHome ? "vs" : "@"}
-                            {opponentLogo && (
-                              <img src={opponentLogo} alt="" className="w-4 h-4 object-contain" />
-                            )}
-                            {opponent}
+                          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-tertiary shrink-0">
+                            Next
                           </span>
-                          <span className="text-text-tertiary shrink-0">{formatDateShort(stat.date)}</span>
-                          <span className="ml-auto text-text-primary font-medium whitespace-nowrap">
-                            {statsInline.map((s) => `${s.value} ${s.label}`).join(" · ")}
+                          <span className="flex items-center gap-1.5 text-text-secondary shrink-0">
+                            {nextIsHome ? "vs" : "@"}
+                            {nextOpponentLogo && (
+                              <img src={nextOpponentLogo} alt="" className="w-4 h-4 object-contain" />
+                            )}
+                            {nextOpponentShort}
+                          </span>
+                          <span className="ml-auto text-text-tertiary whitespace-nowrap">
+                            {formatDateShort(nextGame.date)}
+                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
                           </span>
                         </Link>
-                      );
-                    })
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
