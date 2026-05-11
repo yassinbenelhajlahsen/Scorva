@@ -94,6 +94,62 @@ describe("gamesService", () => {
     });
   });
 
+  // ─── getLiveGamePartial ──────────────────────────────────────────────────
+
+  describe("getLiveGamePartial", () => {
+    it("returns the volatile fields for the matching (league, eventid)", async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          id: 42,
+          status: "In Progress - Q3",
+          homescore: 88,
+          awayscore: 91,
+          current_period: 3,
+          clock: "5:42",
+        }],
+      });
+
+      const { getLiveGamePartial } = await import(
+        resolve(__dirname, "../../src/services/games/gamesService.js")
+      );
+
+      const partial = await getLiveGamePartial("nba", "401705234");
+      expect(partial).toEqual({
+        id: 42,
+        status: "In Progress - Q3",
+        homescore: 88,
+        awayscore: 91,
+        current_period: 3,
+        clock: "5:42",
+      });
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("WHERE league = $1 AND eventid = $2"),
+        ["nba", "401705234"],
+      );
+    });
+
+    it("returns null when no row matches (cross-league or unknown eventid)", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      const { getLiveGamePartial } = await import(
+        resolve(__dirname, "../../src/services/games/gamesService.js")
+      );
+      const partial = await getLiveGamePartial("nhl", "999999999");
+      expect(partial).toBeNull();
+    });
+
+    it("selects only the volatile fields (no team joins, no series wins)", async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      const { getLiveGamePartial } = await import(
+        resolve(__dirname, "../../src/services/games/gamesService.js")
+      );
+      await getLiveGamePartial("nba", "1");
+
+      const sql = mockPool.query.mock.calls[0][0];
+      expect(sql).toMatch(/SELECT\s+id,\s*status,\s*homescore,\s*awayscore,\s*current_period,\s*clock\s+FROM\s+games/);
+      expect(sql).not.toMatch(/JOIN/);
+    });
+  });
+
   // ─── getGames — teamId / season branch ────────────────────────────────────
 
   describe("getGames — teamId branch", () => {
