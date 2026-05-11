@@ -63,7 +63,7 @@ describe("useLiveGames", () => {
   it("does nothing when league is null", () => {
     const { result } = renderHook(() => useLiveGames(null));
     expect(MockEventSource.instances).toHaveLength(0);
-    expect(result.current.liveGames).toBeNull();
+    expect(result.current.liveGamesMap).toBeNull();
   });
 
   it("opens EventSource with correct URL when league provided", () => {
@@ -72,17 +72,30 @@ describe("useLiveGames", () => {
     expect(getLiveGamesUrl).toHaveBeenCalledWith("nba");
   });
 
-  it("updates liveGames state on message event", async () => {
+  it("accumulates partials into liveGamesMap on message events", async () => {
     vi.useFakeTimers();
-    const mockGames = [{ id: 1, status: "In Progress" }];
     const { result } = renderHook(() => useLiveGames("nba"));
 
     await act(async () => {
-      MockEventSource.instances[0].dispatchMessage(mockGames);
+      MockEventSource.instances[0].dispatchMessage({ id: 1, status: "In Progress", homescore: 10, awayscore: 8 });
       await vi.advanceTimersByTimeAsync(1000);
     });
+    expect(result.current.liveGamesMap).toBeInstanceOf(Map);
+    expect(result.current.liveGamesMap.get(1)).toMatchObject({ id: 1, status: "In Progress", homescore: 10 });
 
-    expect(result.current.liveGames).toEqual(mockGames);
+    await act(async () => {
+      MockEventSource.instances[0].dispatchMessage({ id: 2, status: "In Progress", homescore: 0, awayscore: 0 });
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.liveGamesMap.size).toBe(2);
+    expect(result.current.liveGamesMap.get(2).status).toBe("In Progress");
+
+    // Subsequent partial for id=1 merges in (not replaces wholesale).
+    await act(async () => {
+      MockEventSource.instances[0].dispatchMessage({ id: 1, homescore: 12 });
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.liveGamesMap.get(1)).toMatchObject({ id: 1, status: "In Progress", homescore: 12, awayscore: 8 });
     vi.useRealTimers();
   });
 
@@ -99,41 +112,41 @@ describe("useLiveGames", () => {
     });
   });
 
-  it("falls back to REST polling after 3 consecutive errors", async () => {
+  it("projects fetchFallback Game[] into liveGamesMap on REST polling fallback", async () => {
     vi.useFakeTimers();
-    const mockGames = [{ id: 1, status: "In Progress" }];
-    getLeagueGames.mockResolvedValue(mockGames);
+    const fallbackGames = [{
+      id: 1, status: "In Progress", homescore: 10, awayscore: 8, current_period: 2, clock: "5:00", date: "2026-05-10",
+    }];
+    getLeagueGames.mockResolvedValue(fallbackGames);
 
     const { result } = renderHook(() => useLiveGames("nba"));
     const es = MockEventSource.instances[0];
 
     await act(async () => {
-      es.dispatchError();
-      es.dispatchError();
-      es.dispatchError();
+      es.dispatchError(); es.dispatchError(); es.dispatchError();
     });
-
-    // Don't use waitFor with fake timers — check state directly after act
     expect(result.current.streamError).toBe(true);
 
     await act(() => vi.advanceTimersByTimeAsync(30_000));
     await act(async () => {});
 
     expect(getLeagueGames).toHaveBeenCalledWith("nba");
-
+    expect(result.current.liveGamesMap).toBeInstanceOf(Map);
+    expect(result.current.liveGamesMap.get(1)).toMatchObject({
+      id: 1, status: "In Progress", homescore: 10, awayscore: 8, current_period: 2, clock: "5:00",
+    });
     vi.useRealTimers();
   });
 
   it("resets failure count on successful message", async () => {
-    const mockGames = [{ id: 1, status: "In Progress" }];
+    const partial = { id: 1, status: "In Progress" };
     renderHook(() => useLiveGames("nba"));
     const es = MockEventSource.instances[0];
 
-    // Two errors then a success — should NOT trigger fallback
     act(() => {
       es.dispatchError();
       es.dispatchError();
-      es.dispatchMessage(mockGames);
+      es.dispatchMessage(partial);
       es.dispatchError(); // failure count resets so this is only 1
     });
 
@@ -234,35 +247,35 @@ describe("useLiveGames", () => {
     expect(es.closed).toBe(true);
   });
 
-  it("fans out a single message to all subscribers", async () => {
+  it("fans out a single partial to all subscribers", async () => {
     vi.useFakeTimers();
-    const mockGames = [{ id: 1, status: "In Progress" }];
+    const partial = { id: 1, status: "In Progress" };
     const a = renderHook(() => useLiveGames("nba"));
     const b = renderHook(() => useLiveGames("nba"));
 
     await act(async () => {
-      MockEventSource.instances[0].dispatchMessage(mockGames);
+      MockEventSource.instances[0].dispatchMessage(partial);
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    expect(a.result.current.liveGames).toEqual(mockGames);
-    expect(b.result.current.liveGames).toEqual(mockGames);
+    expect(a.result.current.liveGamesMap.get(1)).toMatchObject(partial);
+    expect(b.result.current.liveGamesMap.get(1)).toMatchObject(partial);
     vi.useRealTimers();
   });
 
-  it("replays cached snapshot to late subscribers synchronously", async () => {
+  it("replays accumulated map to late subscribers synchronously", async () => {
     vi.useFakeTimers();
-    const mockGames = [{ id: 1, status: "In Progress" }];
+    const partial = { id: 1, status: "In Progress" };
 
     renderHook(() => useLiveGames("nba"));
     await act(async () => {
-      MockEventSource.instances[0].dispatchMessage(mockGames);
+      MockEventSource.instances[0].dispatchMessage(partial);
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    // Late subscriber should see the cached payload immediately.
     const late = renderHook(() => useLiveGames("nba"));
-    expect(late.result.current.liveGames).toEqual(mockGames);
+    expect(late.result.current.liveGamesMap).toBeInstanceOf(Map);
+    expect(late.result.current.liveGamesMap.get(1)).toMatchObject(partial);
     vi.useRealTimers();
   });
 });
