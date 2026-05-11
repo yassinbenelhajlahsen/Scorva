@@ -26,21 +26,22 @@ export default function SimilarPlayersCard({ league, slug, season }) {
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="w-full bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-5 h-full flex flex-col">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary mb-3">
+          <div className="w-full max-w-sm">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-text-tertiary mb-3 pl-3">
               Similar Players
             </h3>
-            <div className="flex flex-col flex-1 justify-between gap-4">
-              {players.map((player) => {
+            <div className="flex flex-col">
+              {players.map((player, idx) => {
                 const slug = playerSlug(player, dupeSlugs);
                 return (
                   <Link
                     key={player.id}
                     to={buildSeasonUrl(`/${league}/players/${slug}`, urlSeason)}
                     onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slug, urlSeason), queryFn: queryFns.player(league, slug, urlSeason), staleTime: 10_000 })}
-                    className="flex items-center gap-3 group transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:translate-x-0.5"
+                    className={`group relative flex items-center gap-3 pl-3 pr-3 py-3 transition-colors duration-200 hover:bg-white/[0.03] ${idx < players.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-overlay border border-white/[0.08] shrink-0">
+                    <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200" />
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-overlay/40 border border-white/[0.06] shrink-0">
                       {player.imageUrl ? (
                         <img
                           src={player.imageUrl}
