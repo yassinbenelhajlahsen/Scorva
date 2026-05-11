@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import Skeleton from "../ui/Skeleton.jsx";
 import { SkeletonCard } from "./_chrome.jsx";
 import { TopPerformerCardSkeleton } from "./TopPerformersSkeleton.jsx";
+import PredictionCardSkeleton from "./PredictionCardSkeleton.jsx";
 
 function TeamSideSkeleton() {
   return (
@@ -67,6 +68,12 @@ export default function GamePageSkeleton({ scheduled = false }) {
           </div>
         ))}
       </div>
+
+      {scheduled && (
+        <div className="mb-10">
+          <PredictionCardSkeleton />
+        </div>
+      )}
 
       {/* Overview tab content */}
       {!scheduled && (

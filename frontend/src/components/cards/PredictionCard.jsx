@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import PlayerStatusBadge from "../player/PlayerStatusBadge.jsx";
 import { playerSlug } from "../../utils/playerUrl.js";
 import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
+import { PredictionCardInner } from "../skeletons/PredictionCardSkeleton.jsx";
 
 const DEFAULT_HOME_COLOR = "#e8863a";
 const DEFAULT_AWAY_COLOR = "#60A5FA";
@@ -240,44 +241,6 @@ function StatRow({ label, homeVal, awayVal, homeColor, awayColor }) {
   );
 }
 
-function LoadingSkeleton() {
-  return (
-    <div className="animate-pulse space-y-5">
-      {/* Team header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/[0.06]" />
-          <div className="space-y-1.5">
-            <div className="h-3.5 w-14 bg-white/[0.06] rounded-full" />
-            <div className="h-2.5 w-10 bg-white/[0.04] rounded-full" />
-          </div>
-        </div>
-        <div className="h-8 w-8 bg-white/[0.04] rounded-full" />
-        <div className="flex items-center gap-3">
-          <div className="space-y-1.5 items-end flex flex-col">
-            <div className="h-3.5 w-14 bg-white/[0.06] rounded-full" />
-            <div className="h-2.5 w-10 bg-white/[0.04] rounded-full" />
-          </div>
-          <div className="w-10 h-10 rounded-full bg-white/[0.06]" />
-        </div>
-      </div>
-      {/* Probability bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <div className="h-6 w-10 bg-white/[0.08] rounded" />
-          <div className="h-6 w-10 bg-white/[0.08] rounded" />
-        </div>
-        <div className="h-3 bg-white/[0.06] rounded-full" />
-      </div>
-      {/* Stats */}
-      <div className="space-y-2 pt-2">
-        <div className="h-3 bg-white/[0.05] rounded-full" />
-        <div className="h-3 bg-white/[0.05] rounded-full" />
-      </div>
-    </div>
-  );
-}
-
 function formatRecord(record, league) {
   if (!record) return "—";
   const { wins, losses, otl } = record;
@@ -344,7 +307,7 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
         )}
         <div className="p-5 sm:p-6">
           {loading ? (
-            <LoadingSkeleton />
+            <PredictionCardInner />
           ) : prediction ? (
             <>
               {/* ── Team header row ── */}
