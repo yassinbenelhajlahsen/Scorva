@@ -25,6 +25,12 @@ jest.unstable_mockModule(seasonsPath, () => ({
   getCurrentSeason: jest.fn().mockResolvedValue("2025-26"),
 }));
 
+// Mock ratingAggregates so attachRatings doesn't consume extra pool.query mocks
+const ratingAggregatesPath = resolve(__dirname, "../../src/services/games/ratingAggregates.js");
+jest.unstable_mockModule(ratingAggregatesPath, () => ({
+  ratingsForGames: jest.fn().mockResolvedValue(new Map()),
+}));
+
 // Now import the modules that depend on db
 const routerPath = resolve(__dirname, "../../src/routes/games/games.js");
 const { default: express } = await import("express");

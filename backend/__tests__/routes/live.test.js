@@ -38,6 +38,12 @@ jest.unstable_mockModule(dbPath, () => ({
   default: mockPool,
 }));
 
+// Mock ratingAggregates so live partial + gameDetail don't consume extra pool.query mocks
+const ratingAggregatesPath = resolve(__dirname, "../../src/services/games/ratingAggregates.js");
+jest.unstable_mockModule(ratingAggregatesPath, () => ({
+  ratingsForGames: jest.fn().mockResolvedValue(new Map()),
+}));
+
 const controllerPath = resolve(
   __dirname,
   "../../src/controllers/games/liveController.js"

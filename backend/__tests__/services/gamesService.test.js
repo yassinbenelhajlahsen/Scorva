@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 
 const mockPool = createMockPool();
 const mockGetCurrentSeason = jest.fn().mockResolvedValue("2025-26");
+const mockRatingsForGames = jest.fn().mockResolvedValue(new Map());
 
 const dbPath = resolve(__dirname, "../../src/db/db.js");
 jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
@@ -15,6 +16,11 @@ jest.unstable_mockModule(dbPath, () => ({ default: mockPool }));
 const seasonsPath = resolve(__dirname, "../../src/cache/seasons.js");
 jest.unstable_mockModule(seasonsPath, () => ({
   getCurrentSeason: mockGetCurrentSeason,
+}));
+
+const ratingAggregatesPath = resolve(__dirname, "../../src/services/games/ratingAggregates.js");
+jest.unstable_mockModule(ratingAggregatesPath, () => ({
+  ratingsForGames: mockRatingsForGames,
 }));
 
 // cache is a no-op without Redis — it calls the queryFn directly
@@ -38,6 +44,7 @@ describe("gamesService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetCurrentSeason.mockResolvedValue("2025-26");
+    mockRatingsForGames.mockResolvedValue(new Map());
   });
 
   // ─── getGameDates ──────────────────────────────────────────────────────────
@@ -121,6 +128,8 @@ describe("gamesService", () => {
         awayscore: 91,
         current_period: 3,
         clock: "5:42",
+        rating: null,
+        grade: null,
       });
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining("WHERE league = $1 AND eventid = $2"),

@@ -3,6 +3,20 @@ import { DateTime } from "luxon";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 import pgDateToString from "../../utils/pgDateToString.js";
+import { ratingsForGames } from "./ratingAggregates.js";
+
+async function attachRatings(league, rows) {
+  if (league !== "nba" || !Array.isArray(rows) || rows.length === 0) return rows;
+  const ids = rows.map((r) => r.id).filter((id) => id != null);
+  if (ids.length === 0) return rows;
+  const map = await ratingsForGames(pool, ids);
+  for (const r of rows) {
+    const b = map.get(r.id);
+    r.rating = b?.gameRating ?? null;
+    r.grade  = b?.gameGrade  ?? null;
+  }
+  return rows;
+}
 
 async function getSeasonForDate(league, date) {
   // Look up which season this date belongs to
@@ -108,7 +122,7 @@ export async function getGames(league, { teamId, season, date, live } = {}) {
         ({ rows } = await pool.query(dateQuery, [league, resolvedSeason, resolvedDate]));
       }
 
-      return { games: rows, resolvedDate, resolvedSeason };
+      return { games: await attachRatings(league, rows), resolvedDate, resolvedSeason };
     });
   }
 
@@ -131,7 +145,7 @@ export async function getGames(league, { teamId, season, date, live } = {}) {
       query += ` ORDER BY g.date DESC`;
       if (!teamId) query += ` LIMIT 12`;
       const { rows } = await pool.query(query, params);
-      return rows;
+      return attachRatings(league, rows);
     });
   }
 
@@ -228,10 +242,10 @@ export async function getGames(league, { teamId, season, date, live } = {}) {
         LIMIT 12
       `;
       const { rows: fallbackRows } = await pool.query(fallbackQuery, [league, season || null]);
-      return fallbackRows;
+      return attachRatings(league, fallbackRows);
     }
 
-    return rows;
+    return attachRatings(league, rows);
   });
 }
 
@@ -241,7 +255,15 @@ export async function getLiveGamePartial(league, eventid) {
      FROM games WHERE league = $1 AND eventid = $2`,
     [league, eventid]
   );
-  return rows[0] ?? null;
+  const partial = rows[0] ?? null;
+  if (!partial) return null;
+  if (league === "nba") {
+    const map = await ratingsForGames(pool, [partial.id]);
+    const b = map.get(partial.id);
+    partial.rating = b?.gameRating ?? null;
+    partial.grade  = b?.gameGrade  ?? null;
+  }
+  return partial;
 }
 
 export async function getGameDates(league, season) {
