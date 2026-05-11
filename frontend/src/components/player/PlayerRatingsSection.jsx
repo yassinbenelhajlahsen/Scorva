@@ -64,28 +64,27 @@ export default function PlayerRatingsSection({ league, playerId, season }) {
         Player Ratings
       </h2>
 
-      <div className="flex justify-center mb-3">
-        <div ref={navRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-          {bounds && (
-            <m.div
-              className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
-              initial={{ left: bounds.left, width: bounds.width }}
-              animate={{ left: bounds.left, width: bounds.width }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            />
-          )}
-          {TABS.map((t, i) => (
-            <button
-              key={t.id}
-              ref={(el) => (refs.current[i] = el)}
-              onClick={() => setMode(t.id)}
-              className="relative px-4 py-1.5 rounded-full text-xs font-medium z-10 transition-colors duration-200"
-              style={{ color: mode === t.id ? "var(--color-accent)" : "var(--color-text-secondary)" }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <div ref={navRef} className="relative flex gap-0 border-b border-white/[0.06] mb-3">
+        {bounds && (
+          <m.div
+            className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
+            initial={{ left: bounds.left, width: bounds.width }}
+            animate={{ left: bounds.left, width: bounds.width }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+          />
+        )}
+        {TABS.map((t, i) => (
+          <button
+            key={t.id}
+            ref={(el) => (refs.current[i] = el)}
+            onClick={() => setMode(t.id)}
+            className={`touch-target relative px-4 pt-2 pb-2.5 -mb-px text-sm font-medium transition-colors duration-200 ${
+              mode === t.id ? "text-accent" : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <FilterBar window={win} sort={sort} showPosition={false} />
