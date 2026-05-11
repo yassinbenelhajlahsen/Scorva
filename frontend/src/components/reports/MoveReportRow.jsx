@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { RowChrome } from "./RowChrome.jsx";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import NRBadge from "./NRBadge.jsx";
 import { relativeTime } from "../../utils/relativeTime.js";
@@ -22,7 +23,7 @@ function TeamBadge({ team, league, navigate }) {
       <img
         src={team.logoUrl}
         alt={team.name}
-        className="w-6 h-6 rounded-full object-contain bg-surface-overlay border border-white/[0.08]"
+        className="w-6 h-6 rounded-full object-contain bg-surface-overlay/40 ring-1 ring-white/[0.06]"
         loading="lazy"
       />
     </button>
@@ -35,10 +36,7 @@ export default function MoveReportRow({ report }) {
   const navigate = useNavigate();
 
   return (
-    <Link
-      to={playerHref}
-      className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200"
-    >
+    <RowChrome to={playerHref}>
       <PlayerAvatar player={player} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-text-primary">
@@ -54,6 +52,6 @@ export default function MoveReportRow({ report }) {
         </div>
       </div>
       <span className="text-xs text-text-tertiary shrink-0">{relativeTime(date)}</span>
-    </Link>
+    </RowChrome>
   );
 }

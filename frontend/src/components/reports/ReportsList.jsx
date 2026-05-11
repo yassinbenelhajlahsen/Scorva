@@ -13,7 +13,7 @@ function dateKey(iso) {
 export default function ReportsList({ reports, groupByDate = false, loading = false, skeletonCount = 5 }) {
   if (loading) {
     return (
-      <div className="rounded-2xl overflow-hidden bg-surface-elevated border border-white/[0.08] divide-y divide-white/[0.04]">
+      <div className="flex flex-col divide-y divide-white/[0.04]">
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <div key={i} data-testid="report-skeleton">
             <ReportRowSkeleton />
@@ -27,7 +27,7 @@ export default function ReportsList({ reports, groupByDate = false, loading = fa
 
   if (!groupByDate) {
     return (
-      <div className="rounded-2xl overflow-hidden bg-surface-elevated border border-white/[0.08] divide-y divide-white/[0.04]">
+      <div className="flex flex-col divide-y divide-white/[0.04]">
         {reports.map((r) => <ReportRow key={r.id} report={r} />)}
       </div>
     );
@@ -46,10 +46,12 @@ export default function ReportsList({ reports, groupByDate = false, loading = fa
     <div className="space-y-4">
       {groups.map((g) => (
         <div key={g.key}>
-          <h3 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold px-1 mb-2">
-            {dateHeader(g.items[0].date)}
-          </h3>
-          <div className="rounded-2xl overflow-hidden bg-surface-elevated border border-white/[0.08] divide-y divide-white/[0.04]">
+          <div className="flex items-baseline justify-between pl-4 pr-3 pb-1.5">
+            <h3 className="text-[10px] uppercase tracking-[0.22em] text-text-secondary font-semibold">
+              {dateHeader(g.items[0].date)}
+            </h3>
+          </div>
+          <div className="flex flex-col divide-y divide-white/[0.04]">
             {g.items.map((r) => <ReportRow key={r.id} report={r} />)}
           </div>
         </div>

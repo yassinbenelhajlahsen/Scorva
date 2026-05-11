@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { RowChrome } from "./RowChrome.jsx";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import { relativeTime } from "../../utils/relativeTime.js";
 import teamUrl from "../../utils/teamUrl.js";
@@ -9,7 +9,7 @@ function TeamLogo({ team }) {
       <img
         src={team.logoUrl}
         alt={team.name}
-        className="w-9 h-9 rounded-full object-contain bg-surface-overlay border border-white/[0.08] shrink-0"
+        className="w-9 h-9 rounded-full object-contain bg-surface-overlay/40 ring-1 ring-white/[0.06] shrink-0"
         loading="lazy"
       />
     );
@@ -18,7 +18,7 @@ function TeamLogo({ team }) {
     .slice(0, 3)
     .toUpperCase();
   return (
-    <div className="w-9 h-9 rounded-full bg-surface-overlay border border-white/[0.08] flex items-center justify-center text-[10px] font-semibold text-text-tertiary shrink-0">
+    <div className="w-9 h-9 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06] flex items-center justify-center text-[10px] font-semibold text-text-tertiary shrink-0">
       {initials}
     </div>
   );
@@ -30,10 +30,7 @@ export default function StreakReportRow({ report }) {
   if (report.team) {
     const team = report.team;
     return (
-      <Link
-        to={teamUrl(team.league, team)}
-        className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200"
-      >
+      <RowChrome to={teamUrl(team.league, team)}>
         <TeamLogo team={team} />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-text-primary">{team.name}</div>
@@ -42,17 +39,14 @@ export default function StreakReportRow({ report }) {
           </div>
         </div>
         <span className="text-xs text-text-tertiary shrink-0">{relativeTime(date)}</span>
-      </Link>
+      </RowChrome>
     );
   }
 
   const player = report.player;
   const playerHref = `/${player.league}/players/${player.slug}`;
   return (
-    <Link
-      to={playerHref}
-      className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200"
-    >
+    <RowChrome to={playerHref}>
       <PlayerAvatar player={player} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-text-primary">{player.name}</div>
@@ -61,6 +55,6 @@ export default function StreakReportRow({ report }) {
         </div>
       </div>
       <span className="text-xs text-text-tertiary shrink-0">{relativeTime(date)}</span>
-    </Link>
+    </RowChrome>
   );
 }

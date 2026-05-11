@@ -4,7 +4,7 @@ export default function PlayerAvatar({ player }) {
       <img
         src={player.imageUrl}
         alt={player.name}
-        className="w-9 h-9 rounded-full object-cover bg-surface-overlay border border-white/[0.08] shrink-0"
+        className="w-9 h-9 rounded-full object-cover bg-surface-overlay/40 ring-1 ring-white/[0.06] shrink-0"
         loading="lazy"
       />
     );
@@ -17,7 +17,7 @@ export default function PlayerAvatar({ player }) {
     .join("")
     .toUpperCase();
   return (
-    <div className="w-9 h-9 rounded-full bg-surface-overlay border border-white/[0.08] flex items-center justify-center text-[10px] font-semibold text-text-tertiary shrink-0">
+    <div className="w-9 h-9 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06] flex items-center justify-center text-[10px] font-semibold text-text-tertiary shrink-0">
       {initials}
     </div>
   );

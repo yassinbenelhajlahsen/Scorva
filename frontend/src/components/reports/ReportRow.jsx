@@ -3,6 +3,8 @@ import MoveReportRow from "./MoveReportRow.jsx";
 import BirthdayReportRow from "./BirthdayReportRow.jsx";
 import StreakReportRow from "./StreakReportRow.jsx";
 
+export { RowChrome } from "./RowChrome.jsx";
+
 export default function ReportRow({ report }) {
   switch (report.type) {
     case "injury":   return <InjuryReportRow report={report} />;

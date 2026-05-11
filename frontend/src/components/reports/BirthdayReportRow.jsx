@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { RowChrome } from "./RowChrome.jsx";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import { relativeTime } from "../../utils/relativeTime.js";
 
@@ -13,10 +13,7 @@ export default function BirthdayReportRow({ report }) {
   const playerHref = `/${player.league}/players/${player.slug}`;
 
   return (
-    <Link
-      to={playerHref}
-      className="flex items-start gap-3 px-3.5 py-3 hover:bg-surface-overlay transition-colors duration-200"
-    >
+    <RowChrome to={playerHref}>
       <PlayerAvatar player={player} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-text-primary">
@@ -27,6 +24,6 @@ export default function BirthdayReportRow({ report }) {
         </div>
       </div>
       <span className="text-xs text-text-tertiary shrink-0">{relativeTime(date)}</span>
-    </Link>
+    </RowChrome>
   );
 }
