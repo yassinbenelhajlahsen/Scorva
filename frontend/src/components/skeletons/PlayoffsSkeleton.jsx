@@ -39,7 +39,7 @@ function TeamRowSkeleton() {
 
 function SeriesSkeleton({ projected = false }) {
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+    <div className="border border-white/[0.08] rounded-xl overflow-hidden">
       <TeamRowSkeleton />
       <div className="h-px bg-white/[0.05]" />
       <TeamRowSkeleton />
