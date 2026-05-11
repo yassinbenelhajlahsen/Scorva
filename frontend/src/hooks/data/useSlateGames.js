@@ -43,7 +43,7 @@ export function useSlateGames(league, { enabled = true } = {}) {
   const { liveGamesMap } = useLiveGames(sseLeague);
 
   useEffect(() => {
-    if (!liveGamesMap || !sseLeague) return;
+    if (!liveGamesMap || liveGamesMap.size === 0 || !sseLeague) return;
     queryClient.setQueryData(
       queryKeys.leagueGames(league, null, slateDate),
       (prev) => {
