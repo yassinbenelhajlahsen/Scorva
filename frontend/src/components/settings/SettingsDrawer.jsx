@@ -111,8 +111,11 @@ export default function SettingsDrawer({ onClose }) {
       style={{ touchAction: "none" }}
       className="fixed top-0 right-0 bottom-0 z-[80] w-full max-w-md bg-surface-elevated border-l border-white/[0.08] shadow-[-40px_0_80px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
     >
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-accent/60 z-[1]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent z-0" />
+
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pb-3.5 pt-[max(0.875rem,calc(0.875rem+env(safe-area-inset-top)))] border-b border-white/[0.06] flex-shrink-0">
+      <div className="relative flex items-center justify-between px-5 pb-3.5 pt-[max(0.875rem,calc(0.875rem+env(safe-area-inset-top)))] border-b border-white/[0.06] flex-shrink-0">
         <span className="text-base font-semibold text-text-primary tracking-tight">Settings</span>
         <button
           onClick={onClose}
@@ -130,7 +133,7 @@ export default function SettingsDrawer({ onClose }) {
       <div ref={tabNavRef} className="relative flex border-b border-white/[0.06] px-5 flex-shrink-0 mt-1">
         {indicatorBounds && (
           <m.div
-            className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
+            className="absolute bottom-0 h-[2px] bg-accent pointer-events-none"
             animate={{ left: indicatorBounds.left, width: indicatorBounds.width }}
             transition={{ type: "spring", stiffness: 500, damping: 35 }}
           />
@@ -155,7 +158,7 @@ export default function SettingsDrawer({ onClose }) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto px-5 py-5" style={{ touchAction: "pan-y" }}>
+      <div className="relative flex-1 overflow-y-auto px-5 py-5" style={{ touchAction: "pan-y" }}>
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <m.div
             key={activeTab}
@@ -172,7 +175,7 @@ export default function SettingsDrawer({ onClose }) {
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 px-5 pt-2 pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom)))] text-center">
+      <div className="relative flex-shrink-0 px-5 pt-2 pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom)))] text-center">
         <Link
           to="/privacy"
           onClick={onClose}

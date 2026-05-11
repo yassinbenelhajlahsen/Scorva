@@ -1901,6 +1901,208 @@ function DateNavVariantC() {
   );
 }
 
+// ---------------- Drawers (refresh exploration) ----------------
+
+function MockCloseButton() {
+  return (
+    <button className="touch-target rounded-lg text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <line x1="4" y1="4" x2="16" y2="16" />
+        <line x1="16" y1="4" x2="4" y2="16" />
+      </svg>
+    </button>
+  );
+}
+
+function RefreshedSettingsDrawer() {
+  return (
+    <div className="relative w-full max-w-md bg-surface-elevated ring-1 ring-white/[0.08] rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-[600px]">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60 z-10" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent z-0" />
+
+      <div className="relative flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0 z-10">
+        <span className="text-base font-semibold text-text-primary tracking-tight">Settings</span>
+        <MockCloseButton />
+      </div>
+
+      <div className="relative flex border-b border-white/[0.06] px-5 mt-1 flex-shrink-0 z-10">
+        <div className="absolute bottom-0 left-5 h-[2px] w-[68px] bg-accent" />
+        <button className="touch-target px-3 pb-2.5 pt-2 text-sm font-medium text-accent">Favorites</button>
+        <button className="touch-target px-3 pb-2.5 pt-2 text-sm font-medium text-text-secondary">Account</button>
+      </div>
+
+      <div className="relative flex-1 overflow-y-auto px-5 py-5 z-10 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-text-tertiary font-semibold mb-3">Favorite Players</p>
+          <div className="flex flex-col gap-1">
+            {[
+              { name: "LeBron James", meta: "F · LAL · #23" },
+              { name: "Jayson Tatum", meta: "F · BOS · #0" },
+            ].map((p) => (
+              <div key={p.name} className="group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-200">
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200" />
+                <div className="w-9 h-9 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06] flex-shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-text-primary truncate">{p.name}</span>
+                  <span className="text-[11px] text-text-tertiary truncate">{p.meta}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-text-tertiary font-semibold mb-3">Favorite Teams</p>
+          <div className="flex flex-col gap-1">
+            {[{ name: "Los Angeles Lakers", meta: "NBA · Pacific" }].map((t) => (
+              <div key={t.name} className="group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-200">
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200" />
+                <div className="w-9 h-9 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06] flex-shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-text-primary truncate">{t.name}</span>
+                  <span className="text-[11px] text-text-tertiary truncate">{t.meta}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative flex-shrink-0 px-5 pt-2 pb-3 text-center z-10">
+        <span className="text-[11px] text-text-tertiary/50">Privacy Policy</span>
+      </div>
+    </div>
+  );
+}
+
+function RefreshedChatPanelMock() {
+  return (
+    <div className="relative w-full max-w-[380px] bg-surface-elevated ring-1 ring-white/[0.08] rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-[600px]">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60 z-10" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent z-0" />
+
+      <div className="relative flex items-center justify-between px-4 border-b border-white/[0.06] flex-shrink-0 py-3 z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-accent/[0.08] ring-1 ring-accent/15 flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </div>
+          <span className="text-sm font-semibold text-text-primary tracking-tight">Sid</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <button className="touch-target rounded-lg text-text-tertiary hover:text-text-secondary hover:bg-white/[0.06] transition-all duration-200">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+          <MockCloseButton />
+        </div>
+      </div>
+
+      <div className="relative flex-1 overflow-y-auto px-4 py-4 space-y-4 z-10">
+        <div className="flex justify-end">
+          <div className="max-w-[80%] bg-accent/[0.12] ring-1 ring-accent/20 text-text-primary text-sm px-3.5 py-2 rounded-2xl rounded-tr-md">
+            Who's leading the East right now?
+          </div>
+        </div>
+        <div className="flex justify-start">
+          <div className="max-w-[85%] text-text-primary text-sm leading-relaxed">
+            The Celtics are 1st in the East at 48-15, two games up on the Bucks. Tatum's averaging 27.4 PPG.
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <div className="max-w-[80%] bg-accent/[0.12] ring-1 ring-accent/20 text-text-primary text-sm px-3.5 py-2 rounded-2xl rounded-tr-md">
+            How about LeBron's stats tonight?
+          </div>
+        </div>
+      </div>
+
+      <div className="relative px-3 pb-3 flex-shrink-0 z-10">
+        <div className="flex items-end gap-2 bg-white/[0.03] ring-1 ring-white/[0.08] rounded-2xl px-3 py-2.5 focus-within:ring-accent/40 transition-all duration-200">
+          <span className="flex-1 text-sm text-text-tertiary/60 leading-relaxed">Ask Sid anything...</span>
+          <button className="flex-shrink-0 p-1.5 rounded-full bg-accent text-white hover:bg-accent-hover transition-all duration-200">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <p className="relative text-center text-[11px] text-text-tertiary/50 px-4 pb-3 z-10">
+        AI-generated — verify important stats before relying on them
+      </p>
+    </div>
+  );
+}
+
+function RefreshedFavoritesPanelMock() {
+  return (
+    <div className="relative w-full max-w-[420px] bg-surface-elevated ring-1 ring-white/[0.08] rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden h-[600px]">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60 z-10" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent z-0" />
+
+      <div className="relative flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] flex-shrink-0 z-10">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-yellow-400/80" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+          </svg>
+          <span className="text-base font-semibold text-text-primary tracking-tight">Favorites</span>
+        </div>
+        <MockCloseButton />
+      </div>
+
+      <div className="relative flex-1 overflow-y-auto px-4 pt-4 pb-4 z-10 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-text-tertiary font-semibold mb-3 pl-3">Favorite Players</p>
+          <div className="flex flex-col">
+            {[
+              { name: "LeBron James", meta: "F · LAL · #23", status: null },
+              { name: "Anthony Davis", meta: "C/F · LAL · #3", status: "questionable" },
+              { name: "Jayson Tatum", meta: "F · BOS · #0", status: null },
+            ].map((p) => (
+              <div key={p.name} className="group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-200">
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200" />
+                <div className="w-9 h-9 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06] flex-shrink-0" />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-medium text-text-primary truncate group-hover:text-accent transition-colors duration-150">{p.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-text-tertiary truncate">{p.meta}</span>
+                    {p.status && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-accent px-2 py-0.5 rounded-full ring-1 ring-accent/20">{p.status}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-text-tertiary font-semibold mb-3 pl-3">Favorite Teams</p>
+          <div className="flex flex-col">
+            {[
+              { name: "Los Angeles Lakers", meta: "NBA · Pacific" },
+              { name: "Boston Celtics", meta: "NBA · Atlantic" },
+            ].map((t) => (
+              <div key={t.name} className="group relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-200">
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200" />
+                <div className="w-9 h-9 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06] flex-shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-text-primary truncate group-hover:text-accent transition-colors duration-150">{t.name}</span>
+                  <span className="text-[11px] text-text-tertiary truncate">{t.meta}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------- Layout helpers ----------------
 
 function SectionHeader({ kicker, title, sub }) {
@@ -2091,6 +2293,29 @@ export default function MockCards() {
         <section className="space-y-4 pt-8 border-t border-white/[0.06]">
           <SectionHeader kicker="24·C" title="DateNavigation — C: Soft ringed wrapper" sub="bg-white/[0.02] + ring-1 ring-white/[0.06]. Form-element treatment — discrete affordance, lighter than the current bg-surface-elevated card." />
           <div className="max-w-3xl mx-auto"><DateNavVariantC /></div>
+        </section>
+
+        <div className="pt-12 border-t border-accent/20">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold mb-1">Drawers</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-text-primary">Settings · Chat · Favorites</h2>
+          <p className="text-text-secondary text-sm mt-2 max-w-3xl">
+            Side-panel overlays. Each gets a top accent stripe (matches NewsPreviewModal), a subtle atmospheric gradient overlay, ring/softened-bg on accent containers, and a thicker tab indicator (Settings). Production drawers keep <code>fixed + border-l</code> for viewport anchoring — mock renders them as detached panels so they show inline at production width.
+          </p>
+        </div>
+
+        <section className="space-y-4">
+          <SectionHeader kicker="25" title="SettingsDrawer (refreshed)" sub="Top accent stripe + atmospheric gradient. Tab indicator bumped to h-[2px]. Tab content uses the same list-row pattern as FavoritesPanel (hover rail + softened avatar ring)." />
+          <div className="flex justify-center"><RefreshedSettingsDrawer /></div>
+        </section>
+
+        <section className="space-y-4 pt-8 border-t border-white/[0.06]">
+          <SectionHeader kicker="26" title="ChatPanel — Sid (refreshed)" sub="Top accent stripe replaces the via-accent/[0.15] gradient line under the header (redundant). Header icon container swapped from solid bg-accent/[0.12] to bg-accent/[0.08] + ring-1 ring-accent/15. Input row uses ring chrome. Atmospheric gradient kept (already on-pattern)." />
+          <div className="flex justify-center"><RefreshedChatPanelMock /></div>
+        </section>
+
+        <section className="space-y-4 pt-8 border-t border-white/[0.06]">
+          <SectionHeader kicker="27" title="FavoritesPanel (refreshed)" sub="Top accent stripe + atmospheric gradient (new, matches Chat). Star icon softened from text-yellow-400 to text-yellow-400/80. Sections use the same list-row pattern: hover rail + softened avatar ring + name color shifts to accent on hover." />
+          <div className="flex justify-center"><RefreshedFavoritesPanelMock /></div>
         </section>
 
         <section className="space-y-3 pt-8 border-t border-white/[0.06] text-sm text-text-secondary leading-relaxed">
