@@ -3,12 +3,16 @@ export default function PlayerAvgCard({ league, averages, season }) {
 
   if (!averages || Object.keys(averages).length === 0 || averages == null) {
     return (
-      <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full h-full overflow-hidden flex flex-col">
-        <div className="bg-accent/10 text-accent text-center text-xs font-semibold uppercase tracking-widest py-2.5 px-6 border-b border-white/[0.06]">
-          {season} Regular Season
-        </div>
-        <div className="p-5 flex-1 flex items-center justify-center">
-          <p className="text-sm text-center text-text-tertiary">No stats available.</p>
+      <div className="relative overflow-hidden rounded-2xl w-full">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.06] via-transparent to-transparent pointer-events-none" />
+        <div className="relative">
+          <div className="text-accent text-[11px] uppercase tracking-[0.22em] font-semibold text-center pt-4 pb-3 border-b border-white/[0.05]">
+            {season} Regular Season
+          </div>
+          <div className="p-5 flex items-center justify-center min-h-[80px]">
+            <p className="text-sm text-center text-text-tertiary">No stats available.</p>
+          </div>
         </div>
       </div>
     );
@@ -36,25 +40,25 @@ export default function PlayerAvgCard({ league, averages, season }) {
   }
 
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full h-full overflow-hidden flex flex-col">
-      {/* Tinted header */}
-      <div className="bg-accent/10 text-accent text-center text-xs font-semibold uppercase tracking-widest py-2.5 px-6 border-b border-white/[0.06]">
-        {season} Regular Season
-      </div>
-
-      {/* Stat row */}
-      <div className="p-6 flex-1 flex items-center">
-        <ul className="flex flex-wrap gap-y-6 justify-around w-full">
-          {statsToDisplay.map((stat, i) => (
-            <li key={i} className="flex flex-col items-center flex-1 min-w-[72px]">
-              <span className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium">{stat.label}</span>
-              <span className="font-bold text-3xl sm:text-4xl mt-1 text-text-primary tabular-nums">
-                {stat.value ?? "--"}
-                {stat.label.includes("%") && "%"}
-              </span>
-            </li>
-          ))}
-        </ul>
+    <div className="relative overflow-hidden rounded-2xl w-full">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.06] via-transparent to-transparent pointer-events-none" />
+      <div className="relative">
+        <div className="text-accent text-[11px] uppercase tracking-[0.22em] font-semibold text-center pt-4 pb-3 border-b border-white/[0.05]">
+          {season} Regular Season
+        </div>
+        <div className="px-6 py-7">
+          <ul className="flex flex-wrap gap-y-6 justify-around w-full">
+            {statsToDisplay.map((stat, i) => (
+              <li key={i} className="flex flex-col items-center flex-1 min-w-[72px]">
+                <span className="text-[10px] uppercase tracking-widest text-text-tertiary font-medium">{stat.label}</span>
+                <span className="font-bold text-4xl mt-1.5 text-text-primary tabular-nums">
+                  {stat.value ?? "--"}{stat.label.includes("%") && "%"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
