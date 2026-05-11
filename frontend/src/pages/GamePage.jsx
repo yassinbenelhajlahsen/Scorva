@@ -223,7 +223,6 @@ export default function GamePage() {
           topPlayers={topPlayers}
           winProbData={winProbData}
           scoreMargin={scoreMargin}
-          gameRating={game?.rating ?? null}
         />
       ),
     },
@@ -238,6 +237,7 @@ export default function GamePage() {
           season={game.season}
           isFinal={isFinal}
           inProgress={inProgress}
+          gameRating={game?.rating ?? null}
         />
       ),
     },
@@ -279,6 +279,7 @@ export default function GamePage() {
         awayWon={awayWon}
         playoffLogo={playoffLogo}
         scoreColor={scoreColor}
+        gameRating={game?.rating ?? null}
       />
 
       {/* Compare Teams button — hidden when either team is a placeholder */}

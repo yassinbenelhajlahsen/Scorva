@@ -6,6 +6,22 @@ import teamUrl from "../../utils/teamUrl.js";
 import { getPeriodLabel } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
+
+function GameRatingBadge({ rating }) {
+  if (!rating || rating.grade == null) return null;
+  return (
+    <div
+      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-overlay border border-white/[0.1]"
+      aria-label={`Game rating ${rating.grade.toFixed(1)} out of 10${rating.tierLabel ? `, ${rating.tierLabel}` : ""}`}
+    >
+      <span className="text-xs font-bold text-accent" aria-hidden="true">★</span>
+      <span className={`text-sm font-bold tabular-nums ${rating.grade < 0 ? "text-loss" : "text-text-primary"}`}>
+        {rating.grade.toFixed(1)}
+      </span>
+    </div>
+  );
+}
+
 export default function GameMatchupHeader({
   homeTeam,
   awayTeam,
@@ -17,6 +33,7 @@ export default function GameMatchupHeader({
   awayWon,
   playoffLogo,
   scoreColor,
+  gameRating,
 }) {
   const queryClient = useQueryClient();
   return (
@@ -70,6 +87,7 @@ export default function GameMatchupHeader({
 
       {/* VS divider */}
       <div className="flex flex-col items-center gap-1.5">
+        {gameRating?.grade != null && <GameRatingBadge rating={gameRating} />}
         {playoffLogo && (
           <div className="flex flex-col items-center gap-1.5 mb-0.5">
             <div className="h-24 w-48 flex items-center justify-center">

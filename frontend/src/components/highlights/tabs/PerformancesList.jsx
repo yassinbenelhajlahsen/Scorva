@@ -52,7 +52,7 @@ export default function PerformancesList({ league = "nba", window: win, sort, po
           const subjectAbbr = isTeamScoped ? it.game.opponent.abbreviation : it.team.abbr;
           const subjectLogo = isTeamScoped ? it.game.opponent.logo : it.team.logo;
           const subjectColor = isTeamScoped ? it.game.opponent.primary_color : it.team.primary_color;
-          const meta = isTeamScoped ? formatOpponentMeta(it, win) : formatTeamMeta(it, win);
+          const meta = isTeamScoped ? formatOpponentMeta(it) : formatTeamMeta(it, win);
           const props = {
             to,
             logo: subjectLogo,
@@ -180,7 +180,9 @@ function formatTeamMeta(it, win) {
 
 // Same data, opponent-centric: opponent is the visual subject of the row, so
 // we lead with location (vs/@) + result + score instead of repeating "vs OPP".
-function formatOpponentMeta(it, win) {
+// Always shows date — the team-scoped list spans an entire window, so the date
+// is the disambiguator. Window arg unused (kept for parity with formatTeamMeta).
+function formatOpponentMeta(it) {
   const loc = it.game.isHome ? "vs" : "@";
   const result = it.game.result ?? "";
   const score = it.game.isLive

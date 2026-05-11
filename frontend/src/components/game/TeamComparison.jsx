@@ -205,12 +205,27 @@ function renderRows(rows, homePlayers, awayPlayers) {
   });
 }
 
-export default function TeamComparison({ homeTeam, awayTeam, league }) {
+function RatingRow({ home, away }) {
+  return (
+    <StatRow
+      label="RATING"
+      valA={home}
+      valB={away}
+      displayA={home.toFixed(1)}
+      displayB={away.toFixed(1)}
+      lowerIsBetter={false}
+    />
+  );
+}
+
+export default function TeamComparison({ homeTeam, awayTeam, league, homeRating, awayRating }) {
   const homePlayers = homeTeam?.players || [];
   const awayPlayers = awayTeam?.players || [];
   const config = CONFIG[league];
   if (!config) return null;
   if (homePlayers.length === 0 && awayPlayers.length === 0) return null;
+
+  const hasRating = homeRating != null && awayRating != null;
 
   return (
     <div className="mt-6 w-full bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-6 sm:p-8">
@@ -228,6 +243,14 @@ export default function TeamComparison({ homeTeam, awayTeam, league }) {
 
       {config.sections ? (
         <div className="space-y-6">
+          {hasRating && (
+            <div>
+              <div className="space-y-3">
+                <RatingRow home={homeRating} away={awayRating} />
+              </div>
+              <div className="border-t border-white/[0.06] mt-6" />
+            </div>
+          )}
           {config.sections.map((section, i) => {
             const home = homePlayers.filter(section.filter);
             const away = awayPlayers.filter(section.filter);
@@ -248,6 +271,7 @@ export default function TeamComparison({ homeTeam, awayTeam, league }) {
         </div>
       ) : (
         <div className="space-y-3">
+          {hasRating && <RatingRow home={homeRating} away={awayRating} />}
           {renderRows(config.rows, homePlayers, awayPlayers)}
         </div>
       )}
