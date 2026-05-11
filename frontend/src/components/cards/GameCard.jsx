@@ -5,7 +5,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatDateShort, getPeriodLabel } from "../../utils/formatDate";
 import { scoreUpdateVariants } from "../../utils/motion.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
-import GameRatingPill from "./GameRatingPill.jsx";
 
 function useScoreAnimKey(score) {
   const prev = useRef(undefined);
@@ -15,6 +14,35 @@ function useScoreAnimKey(score) {
   }
   prev.current = score;
   return key.current;
+}
+
+function TrophyIcon({ className = "" }) {
+  return (
+    <svg viewBox="0 0 256 256" fill="currentColor" className={className} aria-hidden>
+      <path d="M232 64h-32V56a16 16 0 0 0-16-16H72a16 16 0 0 0-16 16v8H24a16 16 0 0 0-16 16v32a40 40 0 0 0 40 40h11a64.18 64.18 0 0 0 53 36.43V216H88a8 8 0 0 0 0 16h80a8 8 0 0 0 0-16h-24v-27.57A64.18 64.18 0 0 0 197 152h11a40 40 0 0 0 40-40V80a16 16 0 0 0-16-16zM48 128a24 24 0 0 1-24-24V80h32v32a64.3 64.3 0 0 0 .57 8.49A24.27 24.27 0 0 1 48 128zm184-24a24 24 0 0 1-24 24a24.27 24.27 0 0 1-8.57-1.51A64.3 64.3 0 0 0 200 112V80h32z" />
+    </svg>
+  );
+}
+
+function SeriesDots({ home, away, total = 4 }) {
+  const h = Number(home ?? 0);
+  const a = Number(away ?? 0);
+  if (h + a === 0) return null;
+  return (
+    <div className="flex items-center justify-center gap-2.5 mt-1.5">
+      <div className="flex items-center gap-1">
+        {Array.from({ length: total }).map((_, i) => (
+          <span key={`h${i}`} className={`w-1.5 h-1.5 rounded-full ${i < h ? "bg-text-primary" : "bg-white/15"}`} />
+        ))}
+      </div>
+      <span className="text-[9px] uppercase tracking-[0.15em] text-text-tertiary">vs</span>
+      <div className="flex items-center gap-1">
+        {Array.from({ length: total }).map((_, i) => (
+          <span key={`a${i}`} className={`w-1.5 h-1.5 rounded-full ${i < a ? "bg-text-primary" : "bg-white/15"}`} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function GameCard({ game }) {
@@ -30,7 +58,7 @@ function GameCard({ game }) {
   }, [game.id]);
   const isFinal = game.status.includes("Final");
   const inProgress =
-    game.status.includes("In Progress") || 
+    game.status.includes("In Progress") ||
     game.status.includes("Halftime") ||
     game.status.includes("End of Period");
   const homeWon = isFinal && game.hometeamid === game.winnerid;
@@ -54,6 +82,13 @@ function GameCard({ game }) {
   const nhl = league === "nhl";
   const gameType = game.type || 'regular';
   const isPlayoff = gameType === 'playoff' || gameType === 'final';
+  const isChampionship = gameType === "final";
+
+  const rail = isChampionship
+    ? "w-[3px] bg-accent"
+    : inProgress
+      ? "w-[2px] bg-live animate-[pulse_2s_ease-in-out_infinite]"
+      : "w-[2px] bg-white/15 group-hover:bg-white/30 transition-colors duration-200";
 
   const scoreColor = (isWinner, isLoser) => {
     if (!isFinal) return "text-text-primary";
@@ -78,223 +113,202 @@ function GameCard({ game }) {
       }}
       onMouseLeave={() => { if (window.matchMedia("(hover: hover)").matches) setIsExpanded(false); }}
     >
-      <div className="relative bg-surface-elevated border border-white/[0.08] p-5 text-center rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] cursor-pointer flex flex-col overflow-hidden">
-
-        {game.grade != null && (
-          <div className="absolute top-3 right-3 z-10">
-            <GameRatingPill grade={game.grade} />
-          </div>
+      <div className="group relative transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer hover:bg-white/[0.04] hover:-translate-y-0.5 max-w-md mx-auto">
+        <div className={`absolute left-0 top-0 bottom-0 ${rail}`} />
+        {(inProgress || isChampionship) && (
+          <div className={`absolute inset-0 bg-gradient-to-r ${inProgress ? "from-live/[0.05]" : "from-accent/[0.06]"} to-transparent pointer-events-none`} />
         )}
+        <div className="relative flex items-stretch">
+          <div className="flex-1 min-w-0 p-5 text-center">
 
-        {/* Teams & Scores */}
-        <div className="flex items-center justify-between gap-4 h-[120px]">
-          {/* Home */}
-          <div className="flex flex-col items-center flex-1 gap-1.5">
-            {homeLogo && (
-              <img
-                loading="lazy"
-                src={homeLogo}
-                alt={`${game.home_team_name} logo`}
-                className="w-12 h-12 object-contain"
-                onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
-              />
-            )}
-            <div className="text-sm font-semibold text-text-primary line-clamp-1">
-              {homeName}
-            </div>
-            {(isFinal || inProgress) && (
-              <AnimatePresence mode="wait">
-                <m.div
-                  key={homeAnimKey}
-                  variants={scoreUpdateVariants}
-                  initial={homeAnimKey === 0 ? false : "initial"}
-                  animate="animate"
-                  exit="exit"
-                  className={`text-lg font-bold min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}
-                >
-                  {game.homescore}
-                </m.div>
-              </AnimatePresence>
-            )}
-          </div>
-
-          {/* Center */}
-          <div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full overflow-hidden">
-            {!isFinal && !inProgress && game.start_time ? (
-              <>
-                <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>
-                <span className="text-xs text-text-tertiary">{game.start_time}</span>
-              </>
-            ) : (
-              <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>
-            )}
-            {inProgress && (
-              <>
-                <m.span
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                  className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full mt-1"
-                >
-                  Live
-                </m.span>
-                {game.clock && (
+            {/* Teams & Scores */}
+            <div className="flex items-center justify-between gap-4 h-[120px]">
+              {/* Home */}
+              <div className="flex flex-col items-center flex-1 gap-1.5">
+                {homeLogo && (
+                  <img
+                    loading="lazy"
+                    src={homeLogo}
+                    alt={`${game.home_team_name} logo`}
+                    className="w-12 h-12 object-contain"
+                    onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+                  />
+                )}
+                <div className="text-sm font-semibold text-text-primary line-clamp-1">
+                  {homeName}
+                </div>
+                {(isFinal || inProgress) && (
                   <AnimatePresence mode="wait">
-                    <m.span
-                      key={clockAnimKey}
+                    <m.div
+                      key={homeAnimKey}
                       variants={scoreUpdateVariants}
-                      initial={clockAnimKey === 0 ? false : "initial"}
+                      initial={homeAnimKey === 0 ? false : "initial"}
                       animate="animate"
                       exit="exit"
-                      className="text-[10px] text-live/70 font-medium mt-0.5"
+                      className={`text-lg font-bold tabular-nums flex items-baseline justify-center gap-1 min-h-[28px] ${scoreColor(homeWon, awayWon && isFinal)}`}
                     >
-                      {parseFloat(game.clock) === 0
-                        ? `End of ${getPeriodLabel(game.current_period, game.league)}`
-                        : `${getPeriodLabel(game.current_period, game.league)} ${game.clock}`}
-                    </m.span>
+                      {game.homescore}
+                      {homeWon && Math.abs(game.homescore - game.awayscore) > 0 && (
+                        <span className="text-[10px] text-text-tertiary font-medium">+{Math.abs(game.homescore - game.awayscore)}</span>
+                      )}
+                    </m.div>
                   </AnimatePresence>
                 )}
-              </>
-            )}
-            {!inProgress && (
-              <p className="text-xs text-text-tertiary text-center px-1 max-w-[80px]">
-                {game.status}
-              </p>
-            )}
-          </div>
+              </div>
 
-          {/* Away */}
-          <div className="flex flex-col items-center flex-1 gap-1.5">
-            {awayLogo && (
-              <img
-                loading="lazy"
-                src={awayLogo}
-                alt={`${game.away_team_name} logo`}
-                className="w-12 h-12 object-contain"
-                onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
-              />
-            )}
-            <div className="text-sm font-semibold text-text-primary line-clamp-1">
-              {awayName}
-            </div>
-            {(isFinal || inProgress) && (
-              <AnimatePresence mode="wait">
-                <m.div
-                  key={awayAnimKey}
-                  variants={scoreUpdateVariants}
-                  initial={awayAnimKey === 0 ? false : "initial"}
-                  animate="animate"
-                  exit="exit"
-                  className={`text-lg font-bold min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}
-                >
-                  {game.awayscore}
-                </m.div>
-              </AnimatePresence>
-            )}
-          </div>
-        </div>
+              {/* Center */}
+              <div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full overflow-hidden">
+                {!isFinal && !inProgress && game.start_time ? (
+                  <>
+                    <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>
+                    <span className="text-xs text-text-tertiary">{game.start_time}</span>
+                  </>
+                ) : (
+                  <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>
+                )}
+                {inProgress && (
+                  <>
+                    <m.span
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      className="text-[10px] font-semibold uppercase tracking-widest text-live bg-live/10 px-2 py-0.5 rounded-full mt-1"
+                    >
+                      Live
+                    </m.span>
+                    {game.clock && (
+                      <AnimatePresence mode="wait">
+                        <m.span
+                          key={clockAnimKey}
+                          variants={scoreUpdateVariants}
+                          initial={clockAnimKey === 0 ? false : "initial"}
+                          animate="animate"
+                          exit="exit"
+                          className="text-[10px] text-live/70 font-medium mt-0.5"
+                        >
+                          {parseFloat(game.clock) === 0
+                            ? `End of ${getPeriodLabel(game.current_period, game.league)}`
+                            : `${getPeriodLabel(game.current_period, game.league)} ${game.clock}`}
+                        </m.span>
+                      </AnimatePresence>
+                    )}
+                  </>
+                )}
+                {!inProgress && (
+                  <p className="text-xs text-text-tertiary text-center px-1 max-w-[80px]">
+                    {game.status}
+                  </p>
+                )}
+              </div>
 
-        {/* Quarter/period breakdown */}
-        {(isFinal || inProgress) && (() => {
-          const quarters = nhl
-            ? [game.firstqtr, game.secondqtr, game.thirdqtr]
-            : [game.firstqtr, game.secondqtr, game.thirdqtr, game.fourthqtr];
-          const otKeys = ["ot1", "ot2", "ot3", "ot4"].filter((k) => game[k]);
-          return (
-            <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
-              <div className="mt-3 font-mono text-sm border-t border-white/[0.06] pt-3">
-                <div className="flex items-center gap-x-3 text-[10px] uppercase tracking-widest text-text-tertiary pb-2 border-b border-white/[0.06]">
-                  <span className="flex-1 min-w-0 text-left">Team</span>
-                  {quarters.map((_, i) => (
-                    <span key={i} className="w-7 text-center shrink-0">{i + 1}</span>
-                  ))}
-                  {otKeys.map((key, i) => (
-                    <span key={key} className="w-8 text-center shrink-0">
-                      {i === 0 ? "OT" : `OT${i + 1}`}
-                    </span>
-                  ))}
-                  <span className="w-7 text-center shrink-0 font-semibold text-text-secondary">T</span>
+              {/* Away */}
+              <div className="flex flex-col items-center flex-1 gap-1.5">
+                {awayLogo && (
+                  <img
+                    loading="lazy"
+                    src={awayLogo}
+                    alt={`${game.away_team_name} logo`}
+                    className="w-12 h-12 object-contain"
+                    onError={(e) => { e.target.onerror = null; e.target.style.display = "none"; }}
+                  />
+                )}
+                <div className="text-sm font-semibold text-text-primary line-clamp-1">
+                  {awayName}
                 </div>
-                <div className="flex items-center gap-x-3 py-2">
-                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{homeName}</span>
-                  {quarters.map((q, i) => (
-                    <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[0] ?? "–"}</span>
-                  ))}
-                  {otKeys.map((key) => (
-                    <span key={key} className="w-8 text-center shrink-0 text-text-secondary text-xs">{game[key].split("-")[0]}</span>
-                  ))}
-                  <span className={`w-7 text-center shrink-0 font-bold tabular-nums text-xs ${scoreColor(homeWon, awayWon && isFinal)}`}>
-                    {game.homescore}
-                  </span>
-                </div>
-                <div className="border-t border-white/[0.04]" />
-                <div className="flex items-center gap-x-3 py-2">
-                  <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{awayName}</span>
-                  {quarters.map((q, i) => (
-                    <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[1] ?? "–"}</span>
-                  ))}
-                  {otKeys.map((key) => (
-                    <span key={key} className="w-8 text-center shrink-0 text-text-secondary text-xs">{game[key].split("-")[1]}</span>
-                  ))}
-                  <span className={`w-7 text-center shrink-0 font-bold tabular-nums text-xs ${scoreColor(awayWon, homeWon && isFinal)}`}>
-                    {game.awayscore}
-                  </span>
-                </div>
+                {(isFinal || inProgress) && (
+                  <AnimatePresence mode="wait">
+                    <m.div
+                      key={awayAnimKey}
+                      variants={scoreUpdateVariants}
+                      initial={awayAnimKey === 0 ? false : "initial"}
+                      animate="animate"
+                      exit="exit"
+                      className={`text-lg font-bold tabular-nums flex items-baseline justify-center gap-1 min-h-[28px] ${scoreColor(awayWon, homeWon && isFinal)}`}
+                    >
+                      {game.awayscore}
+                      {awayWon && Math.abs(game.homescore - game.awayscore) > 0 && (
+                        <span className="text-[10px] text-text-tertiary font-medium">+{Math.abs(game.homescore - game.awayscore)}</span>
+                      )}
+                    </m.div>
+                  </AnimatePresence>
+                )}
               </div>
             </div>
-          );
-        })()}
 
-        {/* Playoff round label + series score */}
-        {isPlayoff && game.game_label && (
-          <p className="mt-2 pt-2 border-t border-white/[0.06] text-xs font-medium text-text-tertiary text-center tracking-wide">
-            {game.game_label}
-          </p>
-        )}
-        {isPlayoff && game.game_label && (() => {
-          const h = Number(game.home_series_wins ?? 0);
-          const a = Number(game.away_series_wins ?? 0);
-          if (h + a === 0 || game.game_label.toLowerCase().includes('play-in')) return null;
-          const label =
-            h === 4
-              ? `${homeName} win series ${h}-${a}`
-              : a === 4
-                ? `${awayName} win series ${a}-${h}`
-                : h === a
-                  ? `Tied ${h}-${a}`
-                  : h > a
-                    ? `${homeName} lead ${h}-${a}`
-                    : `${awayName} lead ${a}-${h}`;
-          return (
-            <p className="text-[10px] text-text-tertiary text-center mt-0.5">
-              {label}
-            </p>
-          );
-        })()}
+            {/* Quarter/period breakdown */}
+            {(isFinal || inProgress) && (() => {
+              const quarters = nhl
+                ? [game.firstqtr, game.secondqtr, game.thirdqtr]
+                : [game.firstqtr, game.secondqtr, game.thirdqtr, game.fourthqtr];
+              const otKeys = ["ot1", "ot2", "ot3", "ot4"].filter((k) => game[k]);
+              return (
+                <div className={`overflow-hidden transition-[max-height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "max-h-[300px]" : "max-h-0"}`}>
+                  <div className="mt-3 font-mono text-sm border-t border-white/[0.06] pt-3">
+                    <div className="flex items-center gap-x-3 text-[10px] uppercase tracking-widest text-text-tertiary pb-2 border-b border-white/[0.06]">
+                      <span className="flex-1 min-w-0 text-left">Team</span>
+                      {quarters.map((_, i) => (
+                        <span key={i} className="w-7 text-center shrink-0">{i + 1}</span>
+                      ))}
+                      {otKeys.map((key, i) => (
+                        <span key={key} className="w-8 text-center shrink-0">
+                          {i === 0 ? "OT" : `OT${i + 1}`}
+                        </span>
+                      ))}
+                      <span className="w-7 text-center shrink-0 font-semibold text-text-secondary">T</span>
+                    </div>
+                    <div className="flex items-center gap-x-3 py-2">
+                      <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{homeName}</span>
+                      {quarters.map((q, i) => (
+                        <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[0] ?? "–"}</span>
+                      ))}
+                      {otKeys.map((key) => (
+                        <span key={key} className="w-8 text-center shrink-0 text-text-secondary text-xs">{game[key].split("-")[0]}</span>
+                      ))}
+                      <span className={`w-7 text-center shrink-0 font-bold tabular-nums text-xs ${scoreColor(homeWon, awayWon && isFinal)}`}>
+                        {game.homescore}
+                      </span>
+                    </div>
+                    <div className="border-t border-white/[0.04]" />
+                    <div className="flex items-center gap-x-3 py-2">
+                      <span className="flex-1 min-w-0 text-left font-semibold text-text-primary truncate text-xs">{awayName}</span>
+                      {quarters.map((q, i) => (
+                        <span key={i} className="w-7 text-center shrink-0 text-text-secondary text-xs">{q?.split("-")[1] ?? "–"}</span>
+                      ))}
+                      {otKeys.map((key) => (
+                        <span key={key} className="w-8 text-center shrink-0 text-text-secondary text-xs">{game[key].split("-")[1]}</span>
+                      ))}
+                      <span className={`w-7 text-center shrink-0 font-bold tabular-nums text-xs ${scoreColor(awayWon, homeWon && isFinal)}`}>
+                        {game.awayscore}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
-        {/* Mobile-only expand button — shown only on touch devices when there's a breakdown to reveal */}
-        {(isFinal || inProgress) && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsExpanded(v => {
-                const next = !v;
-                if (next) window.dispatchEvent(new CustomEvent("gamecard:expand", { detail: { id: game.id } }));
-                return next;
-              });
-            }}
-            aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
-            className="touch-target [@media(hover:hover)]:!hidden mt-3 mx-auto gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
-          >
-            <svg
-              className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
-              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-            </svg>
-            {isExpanded ? "Hide" : "Breakdown"}
-          </button>
-        )}
+            {/* Playoff round label + series dots */}
+            {isPlayoff && game.game_label && (
+              <div className={`mt-2 pt-2 border-t ${isChampionship ? "border-accent/30" : "border-white/[0.04]"}`}>
+                <p className={`flex items-center justify-center gap-1.5 text-center tracking-wide ${isChampionship ? "text-accent font-semibold uppercase tracking-[0.15em] text-[11px]" : "text-xs text-text-tertiary font-medium"}`}>
+                  {isChampionship && <TrophyIcon className="w-3 h-3" />}
+                  {game.game_label}
+                  {isChampionship && <TrophyIcon className="w-3 h-3" />}
+                </p>
+                {!game.game_label.toLowerCase().includes("play-in") && (
+                  <SeriesDots home={game.home_series_wins} away={game.away_series_wins} />
+                )}
+              </div>
+            )}
+
+          </div>
+          {game.grade != null && (
+            <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">
+              <span className={`font-bold text-3xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>
+                {game.grade.toFixed(1)}
+              </span>
+              <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium">Rating</span>
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );

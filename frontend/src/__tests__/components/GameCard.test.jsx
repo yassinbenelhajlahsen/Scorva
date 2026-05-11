@@ -135,47 +135,55 @@ describe("GameCard — playoff series label", () => {
     });
   }
 
-  it("shows home-team lead label when home leads series", () => {
+  it("shows series dots when home leads series", () => {
     render(<GameCard game={makePlayoffGame({ home_series_wins: 2, away_series_wins: 0 })} />);
-    expect(screen.getByText("LAL lead 2-0")).toBeInTheDocument();
-  });
-
-  it("shows away-team lead label when away leads series", () => {
-    render(<GameCard game={makePlayoffGame({ home_series_wins: 1, away_series_wins: 3 })} />);
-    expect(screen.getByText("GSW lead 3-1")).toBeInTheDocument();
-  });
-
-  it("shows tied label when series is even", () => {
-    render(<GameCard game={makePlayoffGame({ home_series_wins: 2, away_series_wins: 2 })} />);
-    expect(screen.getByText("Tied 2-2")).toBeInTheDocument();
-  });
-
-  it("shows win-series label when home team wins series with 4 wins", () => {
-    render(<GameCard game={makePlayoffGame({ home_series_wins: 4, away_series_wins: 2 })} />);
-    expect(screen.getByText("LAL win series 4-2")).toBeInTheDocument();
-  });
-
-  it("shows win-series label when away team wins series with 4 wins", () => {
-    render(<GameCard game={makePlayoffGame({ home_series_wins: 1, away_series_wins: 4 })} />);
-    expect(screen.getByText("GSW win series 4-1")).toBeInTheDocument();
-  });
-
-  it("hides series label when both teams have 0 wins (pre-series)", () => {
-    render(<GameCard game={makePlayoffGame({ home_series_wins: 0, away_series_wins: 0 })} />);
+    // SeriesDots renders dot spans + "vs" separator; no text label
+    expect(screen.getByText("vs")).toBeInTheDocument();
     expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
   });
 
-  it("hides series label for regular season games", () => {
+  it("shows series dots when away leads series", () => {
+    render(<GameCard game={makePlayoffGame({ home_series_wins: 1, away_series_wins: 3 })} />);
+    expect(screen.getByText("vs")).toBeInTheDocument();
+    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+  });
+
+  it("shows series dots when series is even", () => {
+    render(<GameCard game={makePlayoffGame({ home_series_wins: 2, away_series_wins: 2 })} />);
+    expect(screen.getByText("vs")).toBeInTheDocument();
+    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+  });
+
+  it("shows series dots when home team wins series with 4 wins", () => {
+    render(<GameCard game={makePlayoffGame({ home_series_wins: 4, away_series_wins: 2 })} />);
+    expect(screen.getByText("vs")).toBeInTheDocument();
+    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+  });
+
+  it("shows series dots when away team wins series with 4 wins", () => {
+    render(<GameCard game={makePlayoffGame({ home_series_wins: 1, away_series_wins: 4 })} />);
+    expect(screen.getByText("vs")).toBeInTheDocument();
+    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+  });
+
+  it("hides series dots when both teams have 0 wins (pre-series)", () => {
+    render(<GameCard game={makePlayoffGame({ home_series_wins: 0, away_series_wins: 0 })} />);
+    expect(screen.queryByText("vs")).toBeNull();
+    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+  });
+
+  it("hides series section for regular season games", () => {
     render(<GameCard game={makeGame({ type: "regular", home_series_wins: 0, away_series_wins: 0 })} />);
     expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
   });
 
-  it("hides series label for play-in games even with non-zero wins", () => {
+  it("hides series dots for play-in games even with non-zero wins", () => {
     render(<GameCard game={makePlayoffGame({
       game_label: "Play-In Game",
       home_series_wins: 1,
       away_series_wins: 0,
     })} />);
+    expect(screen.queryByText("vs")).toBeNull();
     expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
   });
 });
