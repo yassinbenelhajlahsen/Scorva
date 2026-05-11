@@ -115,6 +115,27 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
                     <p className="text-text-tertiary text-xs">No recent games</p>
                   ) : (
                     <>
+                      {showNext && (
+                        <Link
+                          to={`/${player.league}/games/${nextGame.id}`}
+                          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
+                        >
+                          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-tertiary shrink-0">
+                            Next
+                          </span>
+                          <span className="flex items-center gap-1.5 text-text-secondary shrink-0">
+                            {nextIsHome ? "vs" : "@"}
+                            {nextOpponentLogo && (
+                              <img src={nextOpponentLogo} alt="" className="w-4 h-4 object-contain" />
+                            )}
+                            {nextOpponentShort}
+                          </span>
+                          <span className="ml-auto text-text-tertiary whitespace-nowrap">
+                            {formatDateShort(nextGame.date)}
+                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
+                          </span>
+                        </Link>
+                      )}
                       {recentStats.map((stat) => {
                         const isHome = stat.hometeamid === player.team_id;
                         const opponent = isHome ? stat.away_shortname : stat.home_shortname;
@@ -151,27 +172,6 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
                           </Link>
                         );
                       })}
-                      {showNext && (
-                        <Link
-                          to={`/${player.league}/games/${nextGame.id}`}
-                          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
-                        >
-                          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-tertiary shrink-0">
-                            Next
-                          </span>
-                          <span className="flex items-center gap-1.5 text-text-secondary shrink-0">
-                            {nextIsHome ? "vs" : "@"}
-                            {nextOpponentLogo && (
-                              <img src={nextOpponentLogo} alt="" className="w-4 h-4 object-contain" />
-                            )}
-                            {nextOpponentShort}
-                          </span>
-                          <span className="ml-auto text-text-tertiary whitespace-nowrap">
-                            {formatDateShort(nextGame.date)}
-                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
-                          </span>
-                        </Link>
-                      )}
                     </>
                   )}
                 </div>
