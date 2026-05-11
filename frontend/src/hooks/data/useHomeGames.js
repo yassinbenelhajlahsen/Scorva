@@ -18,6 +18,11 @@ function hasActiveGame(games) {
   });
 }
 
+function mergeByMap(arr, map) {
+  if (!map || map.size === 0) return arr;
+  return arr.map((g) => (map.has(g.id) ? { ...g, ...map.get(g.id) } : g));
+}
+
 export function useHomeGames() {
   const queryClient = useQueryClient();
 
@@ -32,22 +37,22 @@ export function useHomeGames() {
     staleTime: 0,
   });
 
-  const { liveGames: liveNba } = useLiveGames(hasActiveGame(games.nba) ? "nba" : null);
-  const { liveGames: liveNhl } = useLiveGames(hasActiveGame(games.nhl) ? "nhl" : null);
-  const { liveGames: liveNfl } = useLiveGames(hasActiveGame(games.nfl) ? "nfl" : null);
+  const { liveGamesMap: liveNbaMap } = useLiveGames(hasActiveGame(games.nba) ? "nba" : null);
+  const { liveGamesMap: liveNhlMap } = useLiveGames(hasActiveGame(games.nhl) ? "nhl" : null);
+  const { liveGamesMap: liveNflMap } = useLiveGames(hasActiveGame(games.nfl) ? "nfl" : null);
 
-  // Push SSE updates into the query cache
   useEffect(() => {
-    if (!liveNba && !liveNhl && !liveNfl) return;
-    queryClient.setQueryData(queryKeys.homeGames(), (prev) => ({
-      nba: liveNba ?? prev?.nba ?? [],
-      nhl: liveNhl ?? prev?.nhl ?? [],
-      nfl: liveNfl ?? prev?.nfl ?? [],
-    }));
-  }, [liveNba, liveNhl, liveNfl, queryClient]);
+    if (!liveNbaMap && !liveNhlMap && !liveNflMap) return;
+    queryClient.setQueryData(queryKeys.homeGames(), (prev) => {
+      if (!prev) return prev;
+      return {
+        nba: mergeByMap(prev.nba, liveNbaMap),
+        nhl: mergeByMap(prev.nhl, liveNhlMap),
+        nfl: mergeByMap(prev.nfl, liveNflMap),
+      };
+    });
+  }, [liveNbaMap, liveNhlMap, liveNflMap, queryClient]);
 
-  // Refresh REST snapshot when the tab becomes visible again — covers stale
-  // data after the OS suspended the SSE on a backgrounded PWA tab.
   useVisibilityReconnect(() => {
     refetch();
   });
