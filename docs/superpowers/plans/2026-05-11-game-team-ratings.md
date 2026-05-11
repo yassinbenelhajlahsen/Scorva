@@ -2366,33 +2366,34 @@ Expected: PASS.
 
 - [ ] **Step 5: Add tab to `TeamPage.jsx`**
 
-In `frontend/src/pages/TeamPage.jsx`, update the `TABS` constant (line 29):
+**Context:** Recent commits added a second stats row (conf rank, div rank, last 10) to TeamPage and destructured many more fields from `useTeam` (`confRank`, `divRank`, `conf`, `division`, `last10`, plus existing `teamRecord`, `homeRecord`, `awayRecord`). Do NOT touch any of that — leave the new stats grid and the expanded destructure exactly as they are. The only changes for this task are: (a) make `TABS` league-aware, (b) add the `TeamHighlightsTab` import, (c) add the new branch inside the existing tab content `?:` chain.
 
-```jsx
-const TABS = ["schedule", "players", ...(/*league check inline below*/ [])];
-```
+Open `frontend/src/pages/TeamPage.jsx` and use `grep` if needed to confirm current line positions before editing. As of the plan's last update, the file has:
 
-Actually use this exact replacement so the tab list is conditional on league:
+- `const TABS = ["schedule", "players"];` at the module scope (around line 34).
+- The activeTab branching block starts around line 339 with `{activeTab === "schedule" ? (...) : rosterError ? (...) : rosterLoading ? (...) : (<RosterGrid ... />)}`.
 
-Replace line 29 (`const TABS = ["schedule", "players"];`) with a per-render computed list. Inside the component (just after `const league = (rawLeague || "").toLowerCase();`), add:
+Make three edits:
+
+**Edit 5a — replace the module-scope `TABS` constant** (the line `const TABS = ["schedule", "players"];`) so the tab list is computed per-render. Delete the module-scope declaration and add a per-render computed declaration inside the component, immediately after the line `const league = (rawLeague || "").toLowerCase();`:
 
 ```jsx
 const TABS = league === "nba" ? ["schedule", "players", "highlights"] : ["schedule", "players"];
 ```
 
-Then move the existing `useLayoutEffect` and tab logic to depend on this dynamic `TABS`. The existing logic already reads `TABS.indexOf(activeTab)` etc., so moving the declaration inside the component is the only change needed.
+The existing `useLayoutEffect`, `pickTab`, and tab-rendering code already references `TABS.indexOf(activeTab)` etc., so they work unchanged once `TABS` is in scope.
 
-Add the import at the top with other component imports:
+**Edit 5b — add the import** alongside the other component imports near the top:
 
 ```jsx
 import TeamHighlightsTab from "../components/team/TeamHighlightsTab.jsx";
 ```
 
-In the tab content block (the existing `{activeTab === "schedule" ? (...) : rosterError ? (...) : rosterLoading ? (...) : (<RosterGrid ... />)}` chain at lines 283-336), replace with:
+**Edit 5c — extend the tab content `?:` chain** so `highlights` renders the new tab. Locate the block that begins `{activeTab === "schedule" ? (` (around line 339) and modify the chain to:
 
 ```jsx
 {activeTab === "schedule" ? (
-  /* keep existing schedule content unchanged */
+  /* keep the entire existing schedule block unchanged */
 ) : activeTab === "highlights" ? (
   <TeamHighlightsTab team={team} league={league} />
 ) : rosterError ? (
@@ -2409,7 +2410,7 @@ In the tab content block (the existing `{activeTab === "schedule" ? (...) : rost
 )}
 ```
 
-Keep the entire existing schedule block intact — only add the new `highlights` branch.
+Only insert the new `: activeTab === "highlights" ? ( ... )` branch. Do not modify the schedule, roster, error, or loading branches.
 
 - [ ] **Step 6: Smoke-test**
 
