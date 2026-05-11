@@ -1,29 +1,6 @@
 import { Fragment } from "react";
 import Skeleton from "../ui/Skeleton.jsx";
-
-function TopPerformerSkeleton() {
-  return (
-    <div className="flex items-stretch bg-surface-elevated border border-white/[0.08] rounded-2xl h-[108px] overflow-hidden">
-      {/* Left slab */}
-      <div className="w-[88px] shrink-0 bg-white/[0.03] border-r border-white/[0.05] flex flex-col items-center justify-center gap-2">
-        <Skeleton className="w-12 h-12 rounded-full" />
-        <Skeleton className="h-2 w-14" />
-      </div>
-      {/* Right zone */}
-      <div className="flex-1 flex flex-col justify-between px-3.5 py-3">
-        <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-3.5 w-28" />
-          <Skeleton className="h-2.5 w-16" />
-        </div>
-        <div className="flex gap-3.5">
-          <Skeleton className="h-4 w-7" />
-          <Skeleton className="h-4 w-7" />
-          <Skeleton className="h-4 w-7" />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { TopPerformerCardSkeleton } from "./TopPerformersSkeleton.jsx";
 
 function TeamSideSkeleton() {
   return (
@@ -117,7 +94,7 @@ export default function GamePageSkeleton({ scheduled = false }) {
           {/* Top performer cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
             {Array.from({ length: 3 }).map((_, i) => (
-              <TopPerformerSkeleton key={i} />
+              <TopPerformerCardSkeleton key={i} />
             ))}
           </div>
 
