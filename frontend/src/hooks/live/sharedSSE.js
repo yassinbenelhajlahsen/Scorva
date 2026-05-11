@@ -26,7 +26,11 @@ function openConnection(url, state) {
   es.onmessage = (event) => {
     state.failureCount = 0;
     try {
-      state.pendingPayload = JSON.parse(event.data);
+      const parsed = JSON.parse(event.data);
+      const next = state.accumulate
+        ? state.accumulate(state.lastSnapshot?.data, parsed)
+        : parsed;
+      state.pendingPayload = next;
       if (!state.throttleTimer) {
         state.throttleTimer = setTimeout(() => {
           if (state.pendingPayload !== null) {
@@ -72,8 +76,11 @@ function startPollingFallback(state) {
   broadcast(state, { streamError: true, isStreaming: false });
   state.pollTimer = setInterval(async () => {
     try {
-      const data = await state.fetchFallback();
-      broadcast(state, { data });
+      const raw = await state.fetchFallback();
+      const next = state.accumulate
+        ? state.accumulate(state.lastSnapshot?.data, raw)
+        : raw;
+      broadcast(state, { data: next });
     } catch {
       // silently continue
     }
@@ -89,7 +96,7 @@ function teardown(url, state) {
   clients.delete(url);
 }
 
-export function subscribeSSE(url, { fetchFallback }, listener) {
+export function subscribeSSE(url, { fetchFallback, accumulate }, listener) {
   let state = clients.get(url);
 
   if (!state) {
@@ -98,6 +105,7 @@ export function subscribeSSE(url, { fetchFallback }, listener) {
       listeners: new Set(),
       lastSnapshot: {},
       fetchFallback,
+      accumulate,
       failureCount: 0,
       pollTimer: null,
       throttleTimer: null,

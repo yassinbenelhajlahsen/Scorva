@@ -242,4 +242,108 @@ describe("sharedSSE", () => {
     expect(fetchFallback).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
+
+  describe("accumulate option", () => {
+    it("applies accumulate(prev, next) to each message and stores accumulated data", async () => {
+      vi.useFakeTimers();
+      const accumulate = (prev, patch) => {
+        const next = new Map(prev ?? []);
+        next.set(patch.id, { ...next.get(patch.id), ...patch });
+        return next;
+      };
+      const snapshots = [];
+      subscribeSSE(
+        "http://test/acc",
+        { fetchFallback: () => Promise.resolve(), accumulate },
+        (s) => snapshots.push(s),
+      );
+      const es = MockEventSource.instances[0];
+
+      es.dispatchMessage({ id: 1, score: 5 });
+      await vi.advanceTimersByTimeAsync(1000);
+      es.dispatchMessage({ id: 2, score: 7 });
+      await vi.advanceTimersByTimeAsync(1000);
+      es.dispatchMessage({ id: 1, score: 9 });
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const last = snapshots.at(-1).data;
+      expect(last).toBeInstanceOf(Map);
+      expect(last.get(1)).toEqual({ id: 1, score: 9 });
+      expect(last.get(2)).toEqual({ id: 2, score: 7 });
+      vi.useRealTimers();
+    });
+
+    it("replays accumulated data (not just last message) to late subscribers", async () => {
+      vi.useFakeTimers();
+      const accumulate = (prev, patch) => {
+        const next = new Map(prev ?? []);
+        next.set(patch.id, { ...next.get(patch.id), ...patch });
+        return next;
+      };
+      const opts = { fetchFallback: () => Promise.resolve(), accumulate };
+      subscribeSSE("http://test/acc", opts, () => {});
+      const es = MockEventSource.instances[0];
+
+      es.dispatchMessage({ id: 1, score: 5 });
+      await vi.advanceTimersByTimeAsync(1000);
+      es.dispatchMessage({ id: 2, score: 7 });
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const lateSnapshots = [];
+      subscribeSSE("http://test/acc", opts, (s) => lateSnapshots.push(s));
+
+      const replayed = lateSnapshots[0].data;
+      expect(replayed).toBeInstanceOf(Map);
+      expect(replayed.size).toBe(2);
+      expect(replayed.get(1)).toEqual({ id: 1, score: 5 });
+      expect(replayed.get(2)).toEqual({ id: 2, score: 7 });
+      vi.useRealTimers();
+    });
+
+    it("runs polling-fallback results through accumulate too", async () => {
+      vi.useFakeTimers();
+      const accumulate = (prev, patch) => {
+        const next = new Map(prev ?? []);
+        // Polling returns a Map, so iterate and merge.
+        if (patch instanceof Map) {
+          for (const [k, v] of patch) next.set(k, { ...next.get(k), ...v });
+        } else {
+          next.set(patch.id, { ...next.get(patch.id), ...patch });
+        }
+        return next;
+      };
+      const fallbackMap = new Map([[1, { id: 1, score: 11 }]]);
+      const fetchFallback = vi.fn().mockResolvedValue(fallbackMap);
+
+      const snapshots = [];
+      subscribeSSE("http://test/acc", { fetchFallback, accumulate }, (s) =>
+        snapshots.push(s),
+      );
+      const es = MockEventSource.instances[0];
+      es.dispatchError();
+      es.dispatchError();
+      es.dispatchError();
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      await Promise.resolve();
+
+      const last = snapshots.at(-1).data;
+      expect(last).toBeInstanceOf(Map);
+      expect(last.get(1)).toEqual({ id: 1, score: 11 });
+      vi.useRealTimers();
+    });
+
+    it("falls back to raw payload when no accumulate option provided (existing behavior)", async () => {
+      vi.useFakeTimers();
+      const snapshots = [];
+      subscribeSSE("http://test/raw", { fetchFallback: () => Promise.resolve() }, (s) =>
+        snapshots.push(s),
+      );
+      MockEventSource.instances[0].dispatchMessage([{ id: 1 }]);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(snapshots.find((s) => s.data !== undefined).data).toEqual([{ id: 1 }]);
+      vi.useRealTimers();
+    });
+  });
 });
