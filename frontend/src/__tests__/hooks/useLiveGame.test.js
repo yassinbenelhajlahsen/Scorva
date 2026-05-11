@@ -221,6 +221,27 @@ describe("useLiveGame", () => {
     expect(MockEventSource.instances).toHaveLength(1);
   });
 
+  it("fans streamError out as connectionError to all subscribers for the same game", async () => {
+    getGameById.mockResolvedValue({});
+    const a = renderHook(() => useLiveGame("nba", "1", true));
+    const b = renderHook(() => useLiveGame("nba", "1", true));
+    expect(MockEventSource.instances).toHaveLength(1);
+    expect(a.result.current.connectionError).toBe(false);
+    expect(b.result.current.connectionError).toBe(false);
+
+    const es = MockEventSource.instances[0];
+    await act(async () => {
+      es.dispatchError();
+      es.dispatchError();
+      es.dispatchError();
+    });
+
+    expect(a.result.current.connectionError).toBe(true);
+    expect(b.result.current.connectionError).toBe(true);
+    expect(a.result.current.isStreaming).toBe(false);
+    expect(b.result.current.isStreaming).toBe(false);
+  });
+
   it("keeps EventSource open when one subscriber disables (enabled flips false)", () => {
     const a = renderHook(
       ({ enabled }) => useLiveGame("nba", "1", enabled),

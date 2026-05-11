@@ -6,6 +6,10 @@
 const MAX_FAILURES = 3;
 const POLL_INTERVAL_MS = 30_000;
 const THROTTLE_MS = 1000;
+// Visibility/pageshow/online fire forceReconnect from each subscribed hook.
+// When N hooks share a URL we'd otherwise close+reopen the EventSource N times
+// in the same tick. Debounce so only the first call in a short window lands.
+const RECONNECT_DEBOUNCE_MS = 1000;
 
 const clients = new Map();
 
@@ -99,6 +103,7 @@ export function subscribeSSE(url, { fetchFallback }, listener) {
       throttleTimer: null,
       pendingPayload: null,
       done: false,
+      lastReconnectAt: 0,
     };
     clients.set(url, state);
     state.listeners.add(listener);
@@ -126,6 +131,9 @@ export function subscribeSSE(url, { fetchFallback }, listener) {
 export function forceReconnect(url) {
   const state = clients.get(url);
   if (!state || state.done) return;
+  const now = Date.now();
+  if (now - state.lastReconnectAt < RECONNECT_DEBOUNCE_MS) return;
+  state.lastReconnectAt = now;
   closeEs(state);
   if (state.pollTimer) {
     clearInterval(state.pollTimer);

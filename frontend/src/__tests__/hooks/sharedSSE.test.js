@@ -142,6 +142,43 @@ describe("sharedSSE", () => {
     expect(MockEventSource.instances).toHaveLength(0);
   });
 
+  it("debounces rapid forceReconnect calls so N subscribers cause one reconnect", () => {
+    vi.useFakeTimers();
+    const opts = { fetchFallback: () => Promise.resolve() };
+    subscribeSSE("http://test/a", opts, () => {});
+    subscribeSSE("http://test/a", opts, () => {});
+    subscribeSSE("http://test/a", opts, () => {});
+    expect(MockEventSource.instances).toHaveLength(1);
+
+    // Three near-simultaneous reconnect calls (one per subscriber on visibility return).
+    forceReconnect("http://test/a");
+    forceReconnect("http://test/a");
+    forceReconnect("http://test/a");
+
+    // Only the first should land; subsequent calls within the debounce window
+    // are no-ops, so we end up with exactly one reconnect (2 ES instances total).
+    expect(MockEventSource.instances).toHaveLength(2);
+    vi.useRealTimers();
+  });
+
+  it("allows another forceReconnect after the debounce window elapses", () => {
+    vi.useFakeTimers();
+    subscribeSSE("http://test/a", { fetchFallback: () => Promise.resolve() }, () => {});
+    forceReconnect("http://test/a");
+    expect(MockEventSource.instances).toHaveLength(2);
+
+    // Another call inside the debounce window: blocked.
+    vi.advanceTimersByTime(500);
+    forceReconnect("http://test/a");
+    expect(MockEventSource.instances).toHaveLength(2);
+
+    // Past the window: allowed again.
+    vi.advanceTimersByTime(600);
+    forceReconnect("http://test/a");
+    expect(MockEventSource.instances).toHaveLength(3);
+    vi.useRealTimers();
+  });
+
   it("done event marks state done and broadcasts isStreaming:false (NOT streamError)", () => {
     const snapshots = [];
     subscribeSSE("http://test/a", { fetchFallback: () => Promise.resolve() }, (s) =>
