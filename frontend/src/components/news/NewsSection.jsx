@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { m } from "framer-motion";
 import { useNews } from "../../hooks/data/useNews.js";
 import { containerVariants, itemVariants } from "../../utils/motion.js";
@@ -84,36 +84,46 @@ export default function NewsSection() {
             </m.div>
           ))}
         </m.div>
-      ) : (
-        <m.div
-          key="compact"
-          className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x sm:divide-white/[0.04]"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <div className="flex flex-col divide-y divide-white/[0.04]">
-            {visible.slice(0, Math.ceil(visible.length / 2)).map((article, i) => (
-              <m.div key={`${article.league}-${i}`} variants={itemVariants}>
-                <NewsCardCompact
-                  article={article}
-                  onClick={() => setSelected(article)}
-                />
-              </m.div>
-            ))}
-          </div>
-          <div className="flex flex-col divide-y divide-white/[0.04]">
-            {visible.slice(Math.ceil(visible.length / 2)).map((article, i) => (
-              <m.div key={`${article.league}-${i}`} variants={itemVariants}>
-                <NewsCardCompact
-                  article={article}
-                  onClick={() => setSelected(article)}
-                />
-              </m.div>
-            ))}
-          </div>
-        </m.div>
-      )}
+      ) : (() => {
+        const half = Math.ceil(visible.length / 2);
+        return (
+          <m.div
+            key="compact"
+            className="grid grid-cols-1 sm:grid-cols-2"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {Array.from({ length: half }).map((_, rowIdx) => {
+              const left = visible[rowIdx];
+              const right = visible[rowIdx + half];
+              const isLastRow = rowIdx === half - 1;
+              const rowBorder = isLastRow ? "" : "border-b border-white/[0.04]";
+              return (
+                <Fragment key={`row-${rowIdx}`}>
+                  <m.div className={`flex ${rowBorder}`} variants={itemVariants}>
+                    <NewsCardCompact
+                      article={left}
+                      onClick={() => setSelected(left)}
+                    />
+                  </m.div>
+                  <m.div
+                    className={`flex sm:border-l sm:border-white/[0.04] ${rowBorder}`}
+                    variants={itemVariants}
+                  >
+                    {right ? (
+                      <NewsCardCompact
+                        article={right}
+                        onClick={() => setSelected(right)}
+                      />
+                    ) : null}
+                  </m.div>
+                </Fragment>
+              );
+            })}
+          </m.div>
+        );
+      })()}
 
       {showToggle && !loading && (
         <button
