@@ -88,12 +88,21 @@ export default function SeriesCard({ series, league }) {
   const isSingleGameLink = isPlayIn || (games.length === 1 && isComplete);
   const canExpand = hasGames && !isSingleGameLink && games.length > 1;
 
-  // Left-rail color reflects series state: active series = accent, complete = win, not started = subtle
+  // Left-rail color reflects series state: complete = win, in progress = accent, not started = subtle.
+  // 3px thick rail + tinted atmospheric gradient (variant C + thick).
   const railColor = isComplete
-    ? "bg-win/60"
+    ? "bg-win"
     : hasGames
-    ? "bg-accent/50"
-    : "bg-white/[0.12]";
+    ? "bg-accent/80"
+    : "bg-white/25";
+
+  const gradientStyle = {
+    background: isComplete
+      ? "linear-gradient(to right, rgba(52,199,89,0.06), transparent 70%)"
+      : hasGames
+        ? "linear-gradient(to right, rgba(232,134,58,0.05), transparent 70%)"
+        : "linear-gradient(to right, rgba(255,255,255,0.03), transparent 70%)",
+  };
 
   const cardClasses = `relative block rounded-xl overflow-hidden transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
     canExpand || isSingleGameLink ? "hover:bg-white/[0.04] hover:-translate-y-0.5" : ""
@@ -132,10 +141,17 @@ export default function SeriesCard({ series, league }) {
   );
 
   const railEl = (
-    <span
-      aria-hidden="true"
-      className={`absolute left-0 top-0 bottom-0 w-[2px] ${railColor}`}
-    />
+    <>
+      <span
+        aria-hidden="true"
+        className={`absolute left-0 top-0 bottom-0 w-[3px] ${railColor}`}
+      />
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none rounded-xl"
+        style={gradientStyle}
+      />
+    </>
   );
 
   // Single-game series: navigate directly to the game.
