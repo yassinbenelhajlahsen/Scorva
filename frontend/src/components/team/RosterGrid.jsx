@@ -61,8 +61,9 @@ function RosterCard({ league, season, player, showStatus, dupeSlugs }) {
     <Link
       to={href}
       onMouseEnter={handleHover}
-      className="group relative block overflow-hidden bg-surface-elevated border border-white/[0.08] rounded-2xl transition-all duration-[300ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.16] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.45)] shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+      className="group relative block overflow-hidden rounded-2xl transition-all duration-[300ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.04] hover:-translate-y-1 cursor-pointer"
     >
+      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-white/[0.06] group-hover:bg-accent transition-colors duration-200" />
       {/* Oversized jersey number as background graphic */}
       {player.jerseynum != null && (
         <span
@@ -85,7 +86,7 @@ function RosterCard({ league, season, player, showStatus, dupeSlugs }) {
                 }}
                 alt={player.name}
                 loading="lazy"
-                className="w-20 h-20 rounded-full object-cover bg-surface-overlay ring-1 ring-white/[0.06] group-hover:ring-white/[0.18] transition-all duration-[300ms]"
+                className="w-20 h-20 rounded-full object-cover bg-surface-overlay/40 ring-1 ring-white/[0.06] group-hover:ring-accent/30 transition-all duration-[300ms]"
               />
             </div>
           ) : (
@@ -104,7 +105,7 @@ function RosterCard({ league, season, player, showStatus, dupeSlugs }) {
 
             <div className="mt-2 flex items-center gap-1.5 flex-wrap">
               {player.position && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.06] text-text-secondary text-[10px] font-semibold uppercase tracking-[0.08em]">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/[0.05] ring-1 ring-white/[0.06] text-text-secondary text-[10px] font-semibold uppercase tracking-[0.08em]">
                   {player.position}
                 </span>
               )}
