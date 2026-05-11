@@ -18,24 +18,24 @@ export function usePlayerLiveGames(league, games) {
     () => Array.isArray(games) && games.some((g) => isLiveStatus(g.status)),
     [games],
   );
-  const { liveGames } = useLiveGames(hasLive ? league : null);
+  const { liveGamesMap } = useLiveGames(hasLive ? league : null);
 
   return useMemo(() => {
-    if (!Array.isArray(liveGames) || liveGames.length === 0) return {};
+    if (!liveGamesMap || liveGamesMap.size === 0) return {};
     const ids = new Set(
       (games || []).map((g) => g.gameid).filter((id) => id != null),
     );
     const map = {};
-    for (const lg of liveGames) {
-      if (!ids.has(lg.id)) continue;
-      map[lg.id] = {
-        status: lg.status,
-        current_period: lg.current_period,
-        clock: lg.clock,
-        homescore: lg.homescore,
-        awayscore: lg.awayscore,
+    for (const [id, partial] of liveGamesMap) {
+      if (!ids.has(id)) continue;
+      map[id] = {
+        status: partial.status,
+        current_period: partial.current_period,
+        clock: partial.clock,
+        homescore: partial.homescore,
+        awayscore: partial.awayscore,
       };
     }
     return map;
-  }, [liveGames, games]);
+  }, [liveGamesMap, games]);
 }
