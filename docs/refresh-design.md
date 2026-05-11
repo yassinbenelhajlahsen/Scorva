@@ -39,29 +39,51 @@ hover:bg-white/[0.04] hover:-translate-y-0.5
 
 **Date group headers** (for feed contexts) — `text-[10px] uppercase tracking-[0.22em] text-text-secondary font-semibold` with optional right-aligned game count in `text-text-tertiary tabular-nums`.
 
-**Rating column** (when `game.grade != null`) — dedicated right-side column, matches StatCard's treatment for visual consistency across the two card types. Drops the top-right pill that production currently uses (`GameRatingPill` at `absolute top-3 right-3`).
+**Rating placement** (when `game.grade != null`):
 
-Card structure becomes a two-column flex:
-```
-group relative ... hover:bg-white/[0.04] hover:-translate-y-0.5 max-w-md mx-auto
-  ↳ rail (absolute)
-  ↳ atmosphere overlay (absolute, conditional)
-  ↳ <div className="relative flex items-stretch">
-     ↳ <div className="flex-1 min-w-0 p-5 text-center">  ← all existing content
-     ↳ <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">  ← rating
-```
+| Card | Placement | Reason |
+|---|---|---|
+| **GameCard** | Inside the **center column**, between date and "Final" label (`text-2xl` accent value + tiny "Rating" kicker) | The card already has a center column between the two team blocks — rating fits naturally there. A right column would break the symmetric three-column grid (home / center / away). |
+| **StatCard** | Dedicated **right-side column** (`text-3xl` accent value + "Rating" label) | StatCard has no center column to insert into. The stat values + opponent header sit in a single content block; the right column adds visual weight without disturbing the layout. |
 
-**Rating values:**
+**Common rating values** (both cards):
 ```
-Grade:  font-bold text-3xl tabular-nums leading-none
+Grade:  font-bold tabular-nums leading-none
         text-accent   (positive grade)
         text-loss     (negative grade)
-Label:  text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium  →  "Rating"
+Label:  uppercase tracking-widest text-text-tertiary font-medium  →  "Rating"
 ```
 
-The rating column auto-stretches with the card height (`items-stretch`), so when the quarter breakdown expands on hover, the rating stays centered in the taller container.
+**GameCard center column (final games only):**
+```jsx
+<div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full overflow-hidden">
+  <span className="text-xs text-text-tertiary tabular-nums">{date}</span>
+  {isFinal && game.grade != null && (
+    <div className="flex flex-col items-center mt-1">
+      <span className="font-bold text-2xl tabular-nums leading-none text-accent">{grade.toFixed(1)}</span>
+      <span className="text-[8px] uppercase tracking-widest text-text-tertiary mt-0.5 font-medium">Rating</span>
+    </div>
+  )}
+  {/* Live / clock / status as before */}
+</div>
+```
 
-When porting to production: replace the `<div className="absolute top-3 right-3 z-10"><GameRatingPill grade={game.grade} /></div>` block at lines 83–87 with this two-column structure. The `GameRatingPill` component file can be deleted (or kept for use elsewhere).
+**StatCard right column:**
+```jsx
+<div className="relative flex items-stretch">
+  <div className="flex-1 min-w-0 p-5 text-center">{/* opponent header + stats + playoff label */}</div>
+  <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">
+    <span className="text-accent font-bold text-3xl tabular-nums leading-none">{grade.toFixed(1)}</span>
+    <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium">Rating</span>
+  </div>
+</div>
+```
+
+The StatCard right column auto-stretches with the card height (`items-stretch`), so playoff footer growth keeps the rating centered in the taller container.
+
+When porting GameCard, remove the `<div className="absolute top-3 right-3 z-10"><GameRatingPill .../></div>` block and inline the rating into the center column instead. The `GameRatingPill` file can then be deleted.
+
+**Mobile breakdown chevron — kept.** The hover-driven quarter-breakdown expand only fires on hover-capable devices. The `<button>` at the bottom of `GameCard` (mobile-only, hidden via `[@media(hover:hover)]:!hidden`) is the touch fallback. Production keeps it.
 
 ---
 

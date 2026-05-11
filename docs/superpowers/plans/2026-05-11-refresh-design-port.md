@@ -63,18 +63,22 @@ const rail = isChampionship
 
   The rest of the existing content (teams/scores/center/breakdown/playoff label) must now live inside a `<div className="relative flex items-stretch">` two-column wrapper. The first child wraps the existing content `<div className="flex-1 min-w-0 p-5 text-center">`. The second child is the rating column.
 
-- [ ] **Step 3: Add the rating column** as the second child of the `flex items-stretch` wrapper. This replaces the `<div className="absolute top-3 right-3 z-10"><GameRatingPill .../></div>` block (currently at lines ~83-87 of the file).
+- [ ] **Step 3: Add the rating into the CENTER column (between teams).** This replaces the `<div className="absolute top-3 right-3 z-10"><GameRatingPill .../></div>` block (currently at lines ~83-87 of the file). **No right-side rating column** — GameCard's center column already sits between the two teams, which is where the rating goes. (StatCard handles it differently — see Task 3 — because StatCard has no center column.)
+
+  Inside the center column (the `<div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] ...">` between Home and Away), insert the rating between the date and the status line, gated on Final games with a grade:
 
 ```jsx
-{game.grade != null && (
-  <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">
-    <span className={`font-bold text-3xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>
+{isFinal && game.grade != null && (
+  <div className="flex flex-col items-center mt-1">
+    <span className={`font-bold text-2xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>
       {game.grade.toFixed(1)}
     </span>
-    <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium">Rating</span>
+    <span className="text-[8px] uppercase tracking-widest text-text-tertiary mt-0.5 font-medium">Rating</span>
   </div>
 )}
 ```
+
+  Note: the outer `flex items-stretch` two-column wrapper from earlier drafts is NOT used here. The card stays single-column with `<div className="relative p-5 text-center">` wrapping all content. Make sure the center column carries `overflow-hidden` so the rating cleanly clips inside `w-[90px]`.
 
   Remove the `import GameRatingPill from "./GameRatingPill.jsx";` line at the top of the file. (`GameRatingPill.jsx` and its test get deleted in Task 2.)
 
@@ -119,7 +123,7 @@ const rail = isChampionship
 
   Mirror for `awayWon`.
 
-- [ ] **Step 6: Drop the chevron mobile breakdown toggle.** Delete the entire `<button onClick={...} aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}>` block at the bottom of the card (~lines 257-281 in the current file). The mock omits it; per user direction in the iteration, the chevron is removed. The hover-driven expand still works via the `isExpanded` state set in `onMouseEnter` for pointer devices. Remove the `useState`-backed `isExpanded` setter calls only inside the deleted button — keep the state.
+- [ ] **Step 6: Keep the chevron mobile breakdown toggle.** The mock omits it because it's a static demo (CSS hover only), but production needs the chevron as the touch-device fallback for the breakdown expand. Leave the `<button onClick={...} aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}>` block intact at the bottom of the card. It uses `[@media(hover:hover)]:!hidden` so it only renders on touch devices.
 
 - [ ] **Step 7: Lint.**
 

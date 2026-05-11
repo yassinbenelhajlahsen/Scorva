@@ -118,8 +118,7 @@ function GameCard({ game }) {
         {(inProgress || isChampionship) && (
           <div className={`absolute inset-0 bg-gradient-to-r ${inProgress ? "from-live/[0.05]" : "from-accent/[0.06]"} to-transparent pointer-events-none`} />
         )}
-        <div className="relative flex items-stretch">
-          <div className="flex-1 min-w-0 p-5 text-center">
+        <div className="relative p-5 text-center">
 
             {/* Teams & Scores */}
             <div className="flex items-center justify-between gap-4 h-[120px]">
@@ -165,6 +164,14 @@ function GameCard({ game }) {
                   </>
                 ) : (
                   <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>
+                )}
+                {isFinal && game.grade != null && (
+                  <div className="flex flex-col items-center mt-1">
+                    <span className={`font-bold text-2xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>
+                      {game.grade.toFixed(1)}
+                    </span>
+                    <span className="text-[8px] uppercase tracking-widest text-text-tertiary mt-0.5 font-medium">Rating</span>
+                  </div>
                 )}
                 {inProgress && (
                   <>
@@ -299,15 +306,30 @@ function GameCard({ game }) {
               </div>
             )}
 
-          </div>
-          {game.grade != null && (
-            <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">
-              <span className={`font-bold text-3xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>
-                {game.grade.toFixed(1)}
-              </span>
-              <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium">Rating</span>
-            </div>
-          )}
+            {/* Mobile breakdown toggle — hidden on hover-capable devices */}
+            {(isFinal || inProgress) && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsExpanded(v => {
+                    const next = !v;
+                    if (next) window.dispatchEvent(new CustomEvent("gamecard:expand", { detail: { id: game.id } }));
+                    return next;
+                  });
+                }}
+                aria-label={isExpanded ? "Hide quarter breakdown" : "Show quarter breakdown"}
+                className="touch-target [@media(hover:hover)]:!hidden mt-3 mx-auto gap-1 text-[11px] text-text-tertiary transition-colors duration-150 active:text-text-secondary"
+              >
+                <svg
+                  className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+                  fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+                {isExpanded ? "Hide" : "Breakdown"}
+              </button>
+            )}
         </div>
       </div>
     </Link>

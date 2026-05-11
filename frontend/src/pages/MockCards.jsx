@@ -287,8 +287,7 @@ function RailGameCard({ game }) {
       {(inProgress || isChampionship) && (
         <div className={`absolute inset-0 bg-gradient-to-r ${inProgress ? "from-live/[0.05]" : "from-accent/[0.06]"} to-transparent pointer-events-none`} />
       )}
-      <div className="relative flex items-stretch">
-        <div className="flex-1 min-w-0 p-5 text-center">
+      <div className="relative p-5 text-center">
         <div className="flex items-center justify-between gap-4 h-[120px]">
           <div className="flex flex-col items-center flex-1 gap-1.5">
             <img src={game.home_logo} alt="" className="w-12 h-12 object-contain" />
@@ -298,8 +297,16 @@ function RailGameCard({ game }) {
               {homeWon && margin > 0 && <span className="text-[10px] text-text-tertiary font-medium">+{margin}</span>}
             </div>
           </div>
-          <div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full">
+          <div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full overflow-hidden">
             <span className="text-xs text-text-tertiary tabular-nums">{formatShort(game.date)}</span>
+            {isFinal && game.grade != null && (
+              <div className="flex flex-col items-center mt-1">
+                <span className={`font-bold text-2xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>
+                  {game.grade.toFixed(1)}
+                </span>
+                <span className="text-[8px] uppercase tracking-widest text-text-tertiary mt-0.5 font-medium">Rating</span>
+              </div>
+            )}
             <p className="text-xs text-text-tertiary mt-1">Final</p>
           </div>
           <div className="flex flex-col items-center flex-1 gap-1.5">
@@ -341,13 +348,6 @@ function RailGameCard({ game }) {
               {isChampionship && <TrophyIcon className="w-3 h-3" />}
             </p>
             <SeriesDots home={game.home_series_wins} away={game.away_series_wins} />
-          </div>
-        )}
-        </div>
-        {game.grade != null && (
-          <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">
-            <span className={`font-bold text-3xl tabular-nums leading-none ${game.grade < 0 ? "text-loss" : "text-accent"}`}>{game.grade.toFixed(1)}</span>
-            <span className="text-[9px] uppercase tracking-widest text-text-tertiary mt-1.5 font-medium">Rating</span>
           </div>
         )}
       </div>
