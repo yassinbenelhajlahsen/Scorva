@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import formatDate, { formatDateWithTime } from "../../utils/formatDate.js";
 
 export default function GameInfoCard({ game, isFinal, inProgress }) {
@@ -16,20 +15,14 @@ export default function GameInfoCard({ game, isFinal, inProgress }) {
   ];
 
   return (
-    <div className="mb-6">
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-3">
+    <div className="relative pl-4 mb-6">
+      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent/40 rounded-full" />
+      <div className="flex flex-col">
         {rows.map(({ label, value }, i) => (
-          <Fragment key={label}>
-            {i > 0 && <div className="border-t border-white/[0.06]" />}
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-xs uppercase tracking-wider text-text-tertiary shrink-0">
-                {label}
-              </span>
-              <span className="text-sm font-medium text-text-primary text-right">
-                {value}
-              </span>
-            </div>
-          </Fragment>
+          <div key={label} className={`flex items-center justify-between gap-4 py-3 ${i < rows.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary font-semibold shrink-0">{label}</span>
+            <span className="text-sm font-medium text-text-primary text-right">{value}</span>
+          </div>
         ))}
       </div>
     </div>
