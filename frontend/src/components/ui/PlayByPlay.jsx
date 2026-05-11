@@ -53,20 +53,13 @@ function FilterPill({ label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`touch-target relative px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors duration-150 ${
+      className={`touch-target px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors duration-150 ${
         active
-          ? "text-white"
-          : "bg-surface-overlay text-text-secondary hover:text-text-primary hover:bg-white/[0.08]"
+          ? "bg-accent/15 text-accent ring-1 ring-accent/25"
+          : "bg-white/[0.03] text-text-secondary hover:bg-white/[0.06] hover:text-text-primary"
       }`}
     >
-      {active && (
-        <m.div
-          layoutId="activePlayFilterPill"
-          className="absolute inset-0 bg-accent rounded-full"
-          transition={{ type: "spring", stiffness: 240, damping: 28, mass: 0.9 }}
-        />
-      )}
-      <span className="relative z-10">{label}</span>
+      {label}
     </button>
   );
 }
@@ -143,9 +136,18 @@ function ParticipantChip({ participant, league, gameId, dupeSlugs }) {
 }
 
 // ─── Single play row ──────────────────────────────────────────────────────────
-function PlayRow({ play, isNew, highlightScoring, scoredSide, league, gameId, dupeSlugs }) {
+function PlayRow({ play, isNew, isLast, highlightScoring, scoredSide, homeColor, awayColor, league, gameId, dupeSlugs }) {
   const isScoring = highlightScoring && play.scoring_play;
   const participants = Array.isArray(play.participants) ? play.participants : [];
+
+  // Resolve team color for the scoring rail
+  let railColor = null;
+  if (isScoring) {
+    if (scoredSide === "home" && homeColor) railColor = homeColor;
+    else if (scoredSide === "away" && awayColor) railColor = awayColor;
+    else railColor = "rgba(232,134,58,0.4)"; // accent/40 fallback
+  }
+
   return (
     <m.div
       id={play.id != null ? `play-${play.id}` : undefined}
@@ -158,12 +160,16 @@ function PlayRow({ play, isNew, highlightScoring, scoredSide, league, gameId, du
         damping: 28,
         mass: 0.8,
       }}
-      className={`relative flex items-start gap-3 px-4 py-2.5 ${
-        isScoring
-          ? "bg-win/[0.05] border-l-2 border-win"
-          : "border-l-2 border-transparent"
-      }`}
+      className={`relative flex items-start gap-3 py-3 pl-4 pr-3 transition-colors duration-150 hover:bg-white/[0.02] ${
+        isScoring ? "bg-white/[0.015]" : ""
+      } ${!isLast ? "border-b border-white/[0.04]" : ""}`}
     >
+      {isScoring && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[2px] pointer-events-none"
+          style={{ background: railColor }}
+        />
+      )}
       {isNew && (
         <m.div
           className="absolute inset-0 bg-accent/[0.06] pointer-events-none"
@@ -227,15 +233,15 @@ function PlayRow({ play, isNew, highlightScoring, scoredSide, league, gameId, du
 }
 
 // ─── NFL drive group ──────────────────────────────────────────────────────────
-function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, scoredSideMap, league, gameId, dupeSlugs }) {
+function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highlightScoring, scoredSideMap, homeColor, awayColor, league, gameId, dupeSlugs }) {
   const [open, setOpen] = useState(false);
   const scoringPlay = plays.some((p) => p.scoring_play);
 
   return (
-    <div className="border-b border-white/[0.05] last:border-0">
+    <div className="border-b border-white/[0.04] last:border-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors duration-150 text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors duration-150 text-left"
       >
         <span className="text-xs text-text-tertiary font-mono w-8 shrink-0">D{driveNumber}</span>
         <span className="flex-1 text-sm text-text-secondary truncate">{description ?? "Drive"}</span>
@@ -261,13 +267,16 @@ function DriveGroup({ driveNumber, description, result, plays, newPlayIds, highl
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            {plays.map((play) => (
+            {plays.map((play, i) => (
               <PlayRow
                 key={play.id ?? play.espn_play_id ?? play.sequence}
                 play={play}
                 isNew={newPlayIds.has(play.espn_play_id)}
+                isLast={i === plays.length - 1}
                 highlightScoring={highlightScoring}
                 scoredSide={scoredSideMap?.get(play.id ?? play.espn_play_id ?? play.sequence) ?? null}
+                homeColor={homeColor}
+                awayColor={awayColor}
                 league={league}
                 gameId={gameId}
                 dupeSlugs={dupeSlugs}
@@ -306,7 +315,7 @@ function comparePlaysNewestFirst(a, b, league) {
 }
 
 // ─── Play list with optional period grouping ─────────────────────────────────
-function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, scoredSideMap, league, gameId, dupeSlugs }) {
+function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScoring, scoredSideMap, homeColor, awayColor, league, gameId, dupeSlugs }) {
   // Sort newest-first across all periods: period DESC, then clock-aware within period.
   const sortedPlays = useMemo(() => {
     return [...filteredPlays].sort((a, b) => {
@@ -327,14 +336,17 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
 
   if (!showPeriodHeaders) {
     return (
-      <div className="divide-y divide-white/[0.05]">
-        {sortedPlays.map((play) => (
+      <div>
+        {sortedPlays.map((play, i) => (
           <PlayRow
             key={play.id ?? play.espn_play_id ?? play.sequence}
             play={play}
             isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
+            isLast={i === sortedPlays.length - 1}
             highlightScoring={highlightScoring}
             scoredSide={scoredSideMap?.get(play.id ?? play.espn_play_id ?? play.sequence) ?? null}
+            homeColor={homeColor}
+            awayColor={awayColor}
             league={league}
             gameId={gameId}
             dupeSlugs={dupeSlugs}
@@ -349,14 +361,17 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
       {groups.map((group) => (
         <div key={group.period}>
           <PeriodHeader period={group.period} league={league} />
-          <div className="divide-y divide-white/[0.05]">
-            {group.plays.map((play) => (
+          <div>
+            {group.plays.map((play, i) => (
               <PlayRow
                 key={play.id ?? play.espn_play_id ?? play.sequence}
                 play={play}
                 isNew={newPlayIds.has(play.espn_play_id ?? String(play.sequence))}
+                isLast={i === group.plays.length - 1}
                 highlightScoring={highlightScoring}
                 scoredSide={scoredSideMap?.get(play.id ?? play.espn_play_id ?? play.sequence) ?? null}
+                homeColor={homeColor}
+                awayColor={awayColor}
                 league={league}
                 gameId={gameId}
                 dupeSlugs={dupeSlugs}
@@ -370,7 +385,7 @@ function PlayList({ filteredPlays, showPeriodHeaders, newPlayIds, highlightScori
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function PlayByPlay({ league, gameId, isLive }) {
+export default function PlayByPlay({ league, gameId, isLive, homeColor, awayColor }) {
   const { plays: playsData, loading, error, retry } = usePlays(league, gameId, isLive);
   const dupeSlugs = useDuplicatePlayerSlugs(league);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -551,7 +566,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
             <div className="h-3 w-48 bg-white/[0.04] rounded animate-pulse" />
           </div>
         </div>
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl h-64 animate-pulse" />
+        <div className="h-64 animate-pulse" />
       </div>
     );
   }
@@ -559,7 +574,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
   if (error) {
     return (
       <div className="mb-8">
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-8 flex flex-col items-center gap-3 text-center">
+        <div className="p-8 flex flex-col items-center gap-3 text-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -617,7 +632,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-full pl-1 pr-1.5"
+                className="absolute inset-0 flex items-center gap-2 bg-accent/10 ring-1 ring-accent/30 rounded-full pl-1 pr-1.5"
               >
                 {selectedPlayer.image_url ? (
                   <img
@@ -671,7 +686,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                   onKeyDown={onSearchKeyDown}
                   placeholder="Filter by player…"
                   aria-label="Filter plays by player"
-                  className="w-full bg-surface-overlay border border-white/[0.08] rounded-full text-xs text-text-primary placeholder:text-text-tertiary pl-9 pr-3 py-2 focus:outline-none focus:border-accent/40 focus:bg-surface-overlay focus:shadow-[0_0_0_3px_rgba(232,134,58,0.08)] transition-all duration-150"
+                  className="w-full bg-white/[0.03] ring-1 ring-white/[0.06] rounded-full text-xs text-text-primary placeholder:text-text-tertiary pl-9 pr-3 py-2 focus:outline-none focus:ring-accent/40 transition-all duration-150"
                 />
               </m.div>
             )}
@@ -687,7 +702,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 exit={{ opacity: 0, y: -6, scale: 0.97 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 style={{ transformOrigin: "top center" }}
-                className="absolute z-20 left-0 right-0 top-full mt-1 bg-surface-elevated border border-white/[0.08] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] max-h-64 overflow-y-auto"
+                className="absolute z-20 left-0 right-0 top-full mt-1 bg-surface-elevated ring-1 ring-white/[0.08] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] max-h-64 overflow-y-auto"
               >
                 {playerSuggestions.map((p, i) => (
                   <li key={p.id}>
@@ -724,7 +739,7 @@ export default function PlayByPlay({ league, gameId, isLive }) {
       </div>
 
       {/* Play list */}
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
+      <div className="relative">
         {isNfl ? (
           // NFL: drive-grouped view, most recent drive first
           driveGroups.length > 0 ? (
@@ -741,6 +756,8 @@ export default function PlayByPlay({ league, gameId, isLive }) {
                 newPlayIds={newPlayIds}
                 highlightScoring={activeFilter !== "scoring"}
                 scoredSideMap={scoredSideMap}
+                homeColor={homeColor}
+                awayColor={awayColor}
               />
             ))
           ) : (
@@ -764,6 +781,8 @@ export default function PlayByPlay({ league, gameId, isLive }) {
             newPlayIds={newPlayIds}
             highlightScoring={activeFilter !== "scoring"}
             scoredSideMap={scoredSideMap}
+            homeColor={homeColor}
+            awayColor={awayColor}
             league={league}
             gameId={gameId}
             dupeSlugs={dupeSlugs}

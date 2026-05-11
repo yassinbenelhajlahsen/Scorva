@@ -249,6 +249,8 @@ export default function GamePage() {
           gameId={gameId}
           isFinal={isFinal}
           inProgress={inProgress}
+          homeColor={homeTeam.info.color}
+          awayColor={awayTeam.info.color}
         />
       ),
     },

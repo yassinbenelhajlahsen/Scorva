@@ -1,8 +1,8 @@
 import PlayByPlay from "../ui/PlayByPlay.jsx";
 
-export default function PlaysTab({ league, gameId, isFinal, inProgress }) {
+export default function PlaysTab({ league, gameId, isFinal, inProgress, homeColor, awayColor }) {
   if (isFinal || inProgress) {
-    return <PlayByPlay league={league} gameId={gameId} isLive={inProgress} />;
+    return <PlayByPlay league={league} gameId={gameId} isLive={inProgress} homeColor={homeColor} awayColor={awayColor} />;
   }
 
   return (

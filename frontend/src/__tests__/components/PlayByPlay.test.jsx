@@ -196,7 +196,7 @@ describe("PlayByPlay", () => {
   });
 
   describe("Scoring play highlight", () => {
-    it("applies accent highlight class to scoring plays when filter is All", () => {
+    it("applies background tint to scoring play rows when filter is All", () => {
       usePlays.mockReturnValue({
         plays: {
           plays: [makePlay({ scoring_play: true, description: "Scoring!" })],
@@ -208,8 +208,13 @@ describe("PlayByPlay", () => {
 
       render(<PlayByPlay {...defaultProps} isLive={true} />);
 
-      const playRow = screen.getByText("Scoring!").closest("[class*='border-l-2']");
-      expect(playRow?.className).toContain("border-win");
+      // Scoring play rows get a subtle bg tint and the absolute rail div
+      const descEl = screen.getByText("Scoring!");
+      const playRow = descEl.closest("[class*='bg-white']");
+      expect(playRow).toBeTruthy();
+      // The scoring rail is an absolute child of the row
+      const rail = playRow?.querySelector("[class*='absolute'][class*='left-0']");
+      expect(rail).toBeTruthy();
     });
   });
 
