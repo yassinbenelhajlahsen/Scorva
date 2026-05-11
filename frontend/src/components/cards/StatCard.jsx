@@ -80,7 +80,8 @@ export default function StatCard({
 
   if (!stats.length) {
     return (
-      <div className="bg-surface-elevated border border-white/[0.08] text-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] w-full max-w-3xl p-6 text-center">
+      <div className="relative pl-4 text-text-primary w-full max-w-3xl p-6 text-center">
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-white/15 rounded-full" />
         <p className="text-text-tertiary text-sm">No stats available.</p>
       </div>
     );

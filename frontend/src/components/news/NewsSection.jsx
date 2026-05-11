@@ -118,7 +118,7 @@ export default function NewsSection() {
       {showToggle && !loading && (
         <button
           onClick={() => setShowAllMobile((v) => !v)}
-          className="mt-3 w-full text-center text-xs font-semibold uppercase tracking-wide text-text-secondary py-3 rounded-xl border border-white/[0.08] bg-surface-elevated hover:bg-surface-overlay hover:border-white/[0.14] transition-colors cursor-pointer"
+          className="mt-3 w-full text-center text-xs font-semibold uppercase tracking-wide text-text-secondary py-3 rounded-xl ring-1 ring-white/[0.06] bg-white/[0.03] hover:ring-white/[0.14] hover:bg-white/[0.06] transition-colors cursor-pointer"
         >
           {showAllMobile ? "Show less" : "Show more"}
         </button>
