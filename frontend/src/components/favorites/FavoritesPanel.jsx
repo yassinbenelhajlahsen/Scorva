@@ -8,12 +8,13 @@ import { queryKeys } from "../../lib/query.js";
 import { useSwipeToClose } from "../../hooks/useSwipeToClose.js";
 import FavoritePlayersSection from "./FavoritePlayersSection.jsx";
 import FavoriteTeamsSection from "./FavoriteTeamsSection.jsx";
+import AddFavoriteSearch from "./AddFavoriteSearch.jsx";
 import Skeleton from "../ui/Skeleton.jsx";
 
 export default function FavoritesPanel({ onClose }) {
   const panelRef = useRef(null);
   const { session } = useAuth();
-  const { favorites, loading } = useFavorites();
+  const { favorites, loading, refresh } = useFavorites();
   const queryClient = useQueryClient();
   const dragProps = useSwipeToClose(onClose, { containerRef: panelRef, direction: "right" });
 
@@ -127,6 +128,11 @@ export default function FavoritesPanel({ onClose }) {
 
       {/* Body */}
       <div className="relative flex-1 overflow-y-auto px-4 pt-4 pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom)))]" style={{ touchAction: "pan-y" }}>
+        {session && (
+          <div className="mb-4">
+            <AddFavoriteSearch session={session} onAdded={refresh} placeholder="Search to add favorites..." />
+          </div>
+        )}
         {loading || !favorites ? (
           <div className="flex flex-col items-center gap-3 pt-12">
             <Skeleton className="w-8 h-8 rounded-full" />
@@ -138,6 +144,7 @@ export default function FavoritesPanel({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
             </svg>
             <p className="text-text-secondary text-sm font-medium">Star teams or players to see them here</p>
+            <p className="text-text-tertiary text-xs mt-1">Or use the search above.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
