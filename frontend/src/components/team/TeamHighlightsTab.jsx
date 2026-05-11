@@ -9,7 +9,7 @@ const WINDOWS = [
   { id: "all",    label: "All-time" },
 ];
 
-export default function TeamHighlightsTab({ team, league }) {
+export default function TeamHighlightsTab({ team, league, season }) {
   const [win, setWin] = useState("week");
 
   if (league !== "nba" || !team?.id) {
@@ -51,6 +51,7 @@ export default function TeamHighlightsTab({ team, league }) {
         teamId={team.id}
         limit={25}
         fallback={false}
+        season={season}
       />
     </div>
   );

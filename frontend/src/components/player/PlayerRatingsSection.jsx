@@ -19,7 +19,7 @@ const slideVariants = {
   exit:   (dir) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
 };
 
-export default function PlayerRatingsSection({ league, playerId }) {
+export default function PlayerRatingsSection({ league, playerId, season }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const modeParam = searchParams.get("mode");
   const mode = TABS.some((t) => t.id === modeParam) ? modeParam : "games";
@@ -113,10 +113,10 @@ export default function PlayerRatingsSection({ league, playerId }) {
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 {mode === "games" && (
-                  <PerformancesList league={league} window={win} sort={sort} playerId={playerId} limit={10} fallback />
+                  <PerformancesList league={league} window={win} sort={sort} playerId={playerId} limit={10} fallback season={season} />
                 )}
                 {mode === "plays" && (
-                  <PlaysList league={league} window={win} sort={sort} playerId={playerId} limit={10} fallback />
+                  <PlaysList league={league} window={win} sort={sort} playerId={playerId} limit={10} fallback season={season} />
                 )}
               </m.div>
             </AnimatePresence>

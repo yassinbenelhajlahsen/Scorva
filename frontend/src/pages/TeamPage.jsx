@@ -387,7 +387,7 @@ export default function TeamPage() {
                 </div>
               </>
             ) : activeTab === "highlights" ? (
-              <TeamHighlightsTab team={team} league={league} />
+              <TeamHighlightsTab team={team} league={league} season={selectedSeason} />
             ) : rosterError ? (
               <ErrorState message={rosterError} onRetry={rosterRetry} />
             ) : rosterLoading ? (

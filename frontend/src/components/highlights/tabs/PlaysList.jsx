@@ -10,8 +10,8 @@ import { useWindowSync } from "../useWindowSync.js";
 
 const SHOW_DATE_FOR = new Set(["today", "week"]);
 
-export default function PlaysList({ league = "nba", window: win, sort, position, playerId, limit = 25, fallback = false }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "plays", window: win, sort, position, playerId, limit, fallback });
+export default function PlaysList({ league = "nba", window: win, sort, position, playerId, limit = 25, fallback = false, season }) {
+  const { data, isLoading } = useTopPerformances(league, { type: "plays", window: win, sort, position, playerId, limit, fallback, season: win === "season" ? season : undefined });
   useWindowSync(fallback ? data?.actualWindow : null, win);
   const qc = useQueryClient();
 

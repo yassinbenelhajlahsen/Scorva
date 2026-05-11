@@ -80,7 +80,7 @@ export function positionPredicate(position) {
 }
 
 export async function getTopPerformances({
-  league, type, window, sort = "desc", position = "all", limit, days, playerId, teamId, fallback, entity,
+  league, type, window, sort = "desc", position = "all", limit, days, playerId, teamId, fallback, entity, season,
 }) {
   const canonicalType = TYPE_ALIASES[type] ?? type ?? "performances";
   const canonicalEntity = entity ?? "player";
@@ -123,6 +123,7 @@ export async function getTopPerformances({
     limit: safeLimit,
     resolvedPlayerId,
     teamId,
+    seasonOverride: season || null,
   };
 
   if (fallback !== true) {
@@ -146,16 +147,17 @@ export async function getTopPerformances({
 async function runForWindow(ctxBase, canonicalWindow) {
   const {
     league, type: canonicalType, entity: canonicalEntity,
-    sort, position, limit: safeLimit, resolvedPlayerId, teamId,
+    sort, position, limit: safeLimit, resolvedPlayerId, teamId, seasonOverride,
   } = ctxBase;
   const playerSuffix = resolvedPlayerId == null ? "" : `:p${resolvedPlayerId}`;
   const teamSuffix = teamId == null ? "" : `:t${teamId}`;
-  const key = `top-performances:${league}:${canonicalEntity}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}${playerSuffix}${teamSuffix}`;
+  const seasonSuffix = canonicalWindow === "season" && seasonOverride ? `:s${seasonOverride}` : "";
+  const key = `top-performances:${league}:${canonicalEntity}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}${playerSuffix}${teamSuffix}${seasonSuffix}`;
   const ttl = TTL_BY_WINDOW[canonicalWindow] ?? 60;
 
   return cached(key, ttl, async () => {
     const season = canonicalWindow === "season"
-      ? await getCurrentSeason(league)
+      ? (seasonOverride ?? await getCurrentSeason(league))
       : null;
     const ctx = {
       league,

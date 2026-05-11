@@ -330,7 +330,7 @@ export default function PlayerPage() {
   );
 
   const highlightsContent = (
-    <PlayerRatingsSection league={league} playerId={slug} />
+    <PlayerRatingsSection league={league} playerId={slug} season={selectedSeason || apiSeason} />
   );
 
   const awardsContent = <PlayerAwardsCard awards={playerData.awards} />;

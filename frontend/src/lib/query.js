@@ -37,8 +37,8 @@ export const queryKeys = {
   playoffs:       (league, season) => ["playoffs", league, season],
   duplicatePlayerSlugs: (league) => ["duplicatePlayerSlugs", league],
   playerRankings: (league, slug) => ["playerRankings", league, slug],
-  topPerformances: (league, { type, entity, window, sort, position, limit, playerId, teamId, fallback }) =>
-    ["top-performances", league, entity ?? "player", type, window, sort, position, limit, playerId ?? null, teamId ?? null, fallback ? "fb" : "nofb"],
+  topPerformances: (league, { type, entity, window, sort, position, limit, playerId, teamId, fallback, season }) =>
+    ["top-performances", league, entity ?? "player", type, window, sort, position, limit, playerId ?? null, teamId ?? null, fallback ? "fb" : "nofb", window === "season" ? (season ?? null) : null],
 };
 
 export const queryFns = {

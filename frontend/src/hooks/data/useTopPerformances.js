@@ -20,8 +20,9 @@ export function useTopPerformances(league, opts = {}) {
     playerId,
     teamId,
     fallback = false,
+    season,
   } = opts;
-  const key = { type, entity, window, sort, position, limit, playerId, teamId, fallback };
+  const key = { type, entity, window, sort, position, limit, playerId, teamId, fallback, season };
   return useQuery({
     queryKey: queryKeys.topPerformances(league, key),
     queryFn:  queryFns.topPerformances(league, key),
