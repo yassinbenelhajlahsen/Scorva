@@ -66,52 +66,57 @@ function makeProps(overrides = {}) {
   };
 }
 
-describe("GameMatchupHeader — playoff series label", () => {
-  it("shows home-team lead label", () => {
+// Count filled dots (bg-text-primary) across both home and away dot groups.
+function countFilledDots(container) {
+  return container.querySelectorAll("span.bg-text-primary.rounded-full").length;
+}
+
+describe("GameMatchupHeader — playoff series dots", () => {
+  it("shows 2 filled dots when home leads 2-0", () => {
     const props = makeProps();
     props.game.seriesScore = { homeWins: 2, awayWins: 0 };
-    render(<GameMatchupHeader {...props} />);
-    expect(screen.getByText("BOS lead 2-0")).toBeInTheDocument();
+    const { container } = render(<GameMatchupHeader {...props} />);
+    expect(countFilledDots(container)).toBe(2);
   });
 
-  it("shows away-team lead label", () => {
+  it("shows 4 filled dots when away leads 1-3", () => {
     const props = makeProps();
     props.game.seriesScore = { homeWins: 1, awayWins: 3 };
-    render(<GameMatchupHeader {...props} />);
-    expect(screen.getByText("NYK lead 3-1")).toBeInTheDocument();
+    const { container } = render(<GameMatchupHeader {...props} />);
+    expect(countFilledDots(container)).toBe(4);
   });
 
-  it("shows tied label", () => {
+  it("shows 4 filled dots when tied 2-2", () => {
     const props = makeProps();
     props.game.seriesScore = { homeWins: 2, awayWins: 2 };
-    render(<GameMatchupHeader {...props} />);
-    expect(screen.getByText("Tied 2-2")).toBeInTheDocument();
+    const { container } = render(<GameMatchupHeader {...props} />);
+    expect(countFilledDots(container)).toBe(4);
   });
 
-  it("shows win-series label when home wins series", () => {
+  it("shows 5 filled dots when home wins series 4-1", () => {
     const props = makeProps();
     props.game.seriesScore = { homeWins: 4, awayWins: 1 };
-    render(<GameMatchupHeader {...props} />);
-    expect(screen.getByText("BOS win series 4-1")).toBeInTheDocument();
+    const { container } = render(<GameMatchupHeader {...props} />);
+    expect(countFilledDots(container)).toBe(5);
   });
 
-  it("shows win-series label when away wins series", () => {
+  it("shows 6 filled dots when away wins series 4-2", () => {
     const props = makeProps();
     props.game.seriesScore = { homeWins: 2, awayWins: 4 };
-    render(<GameMatchupHeader {...props} />);
-    expect(screen.getByText("NYK win series 4-2")).toBeInTheDocument();
+    const { container } = render(<GameMatchupHeader {...props} />);
+    expect(countFilledDots(container)).toBe(6);
   });
 
-  it("hides series label when both wins are 0", () => {
-    render(<GameMatchupHeader {...makeProps()} />);
-    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+  it("hides dots when both wins are 0", () => {
+    const { container } = render(<GameMatchupHeader {...makeProps()} />);
+    expect(countFilledDots(container)).toBe(0);
   });
 
-  it("hides series label when seriesScore is absent", () => {
+  it("hides dots when seriesScore is absent", () => {
     const props = makeProps();
     props.game.seriesScore = null;
-    render(<GameMatchupHeader {...props} />);
-    expect(screen.queryByText(/lead|Tied|win series/)).toBeNull();
+    const { container } = render(<GameMatchupHeader {...props} />);
+    expect(countFilledDots(container)).toBe(0);
   });
 
   it("renders game label text", () => {
