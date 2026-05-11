@@ -17,11 +17,19 @@ const SORTS = [
   { id: "desc", label: "Best" },
   { id: "asc",  label: "Worst" },
 ];
+const ENTITIES = [
+  { id: "player", label: "Players" },
+  { id: "team",   label: "Teams" },
+  { id: "game",   label: "Games" },
+];
 
 export default function FilterBar({
   window,
   position,
   sort,
+  entity,
+  entityOptions,
+  disabledEntities = [],
   showPosition = true,
   defaultWindow = "week",
   defaultSort = "desc",
@@ -36,27 +44,49 @@ export default function FilterBar({
     }, { replace: true });
   };
 
+  const entityList = entityOptions
+    ? ENTITIES.filter((e) => entityOptions.includes(e.id))
+    : null;
+  const positionDisabled = entity != null && entity !== "player";
+
   return (
     <div className="flex flex-wrap gap-2 mb-6">
-      <Dropdown options={WINDOWS}   value={window}   onChange={setParam("win", defaultWindow)} />
-      {showPosition && (
-        <Dropdown options={POSITIONS} value={position} onChange={setParam("pos", "all")} />
+      <Dropdown options={WINDOWS} value={window} onChange={setParam("win", defaultWindow)} aria-label="Window" />
+      {entityList && (
+        <Dropdown
+          options={entityList}
+          value={entity}
+          onChange={setParam("entity", "player")}
+          disabledOptions={disabledEntities}
+          aria-label="Entity"
+        />
       )}
-      <Dropdown options={SORTS}     value={sort}     onChange={setParam("sort", defaultSort)} />
+      {showPosition && (
+        <Dropdown
+          options={POSITIONS}
+          value={position}
+          onChange={setParam("pos", "all")}
+          disabled={positionDisabled}
+          aria-label="Position"
+        />
+      )}
+      <Dropdown options={SORTS} value={sort} onChange={setParam("sort", defaultSort)} aria-label="Sort" />
     </div>
   );
 }
 
-function Dropdown({ options, value, onChange }) {
+function Dropdown({ options, value, onChange, disabled, disabledOptions = [], "aria-label": ariaLabel }) {
   return (
     <div className="relative inline-flex items-center">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 pr-9 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:border-accent/60"
+        disabled={disabled}
+        aria-label={ariaLabel}
+        className={`appearance-none bg-surface-elevated border border-white/[0.08] rounded-xl text-text-primary text-sm font-medium px-4 py-2 pr-9 cursor-pointer transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-white/[0.14] hover:bg-surface-overlay focus:outline-none focus:border-accent/60 ${disabled ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
       >
         {options.map((o) => (
-          <option key={o.id} value={o.id} className="bg-surface-primary">
+          <option key={o.id} value={o.id} disabled={disabledOptions.includes(o.id)} className="bg-surface-primary">
             {o.label}
           </option>
         ))}

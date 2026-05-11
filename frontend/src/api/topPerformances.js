@@ -2,13 +2,12 @@ import { apiFetch } from "./client.js";
 
 export function getTopPerformances(
   league,
-  { type = "performances", window = "week", sort = "desc", position = "all", limit = 25, playerId, fallback, signal } = {},
+  { type = "performances", entity, window = "week", sort = "desc", position = "all", limit = 25, playerId, teamId, fallback, signal } = {},
 ) {
   const params = { type, window, sort, position, limit };
+  if (entity && entity !== "player") params.entity = entity;
   if (playerId) params.playerId = playerId;
+  if (teamId) params.teamId = teamId;
   if (fallback) params.fallback = "true";
-  return apiFetch(`/api/${league}/top-performances`, {
-    signal,
-    params,
-  });
+  return apiFetch(`/api/${league}/top-performances`, { signal, params });
 }

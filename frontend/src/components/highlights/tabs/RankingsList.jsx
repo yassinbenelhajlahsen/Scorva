@@ -3,11 +3,18 @@ import { useTopPerformances } from "../../../hooks/data/useTopPerformances.js";
 import { queryKeys, queryFns } from "../../../lib/query.js";
 import HeroRow from "../rows/HeroRow.jsx";
 import CompactRow from "../rows/CompactRow.jsx";
+import TeamHeroRow from "../rows/TeamHeroRow.jsx";
+import TeamCompactRow from "../rows/TeamCompactRow.jsx";
 import TopPerformersSkeleton from "../../skeletons/TopPerformersSkeleton.jsx";
 import { useWindowSync } from "../useWindowSync.js";
+import slugify from "../../../utils/slugify.js";
 
-export default function RankingsList({ league = "nba", window: win, sort, position, fallback = false }) {
-  const { data, isLoading } = useTopPerformances(league, { type: "rankings", window: win, sort, position, limit: 25, fallback });
+export default function RankingsList({ league = "nba", window: win, sort, position, entity = "player", fallback = false }) {
+  const { data, isLoading } = useTopPerformances(league, {
+    type: "rankings", entity, window: win, sort,
+    position: entity === "player" ? position : "all",
+    limit: 25, fallback,
+  });
   useWindowSync(fallback ? data?.actualWindow : null, win);
   const qc = useQueryClient();
 
@@ -21,6 +28,42 @@ export default function RankingsList({ league = "nba", window: win, sort, positi
     );
   }
 
+  if (entity === "team") {
+    return (
+      <ul className="flex flex-col gap-1">
+        {items.map((it, i) => {
+          const rank = i + 1;
+          const slug = slugify(it.team.name);
+          const to = `/${league}/teams/${slug}`;
+          const props = {
+            to,
+            logo: it.team.logo,
+            name: it.team.name,
+            abbr: it.team.abbr,
+            meta: `${it.gamesPlayed} GP · avg ${it.avgPerGame.toFixed(1)}`,
+            value: it.totalRating.toFixed(1),
+            onMouseEnter: () => {
+              if (window.matchMedia?.("(hover: hover)").matches) {
+                qc.prefetchQuery({
+                  queryKey: queryKeys.team(league, slug),
+                  queryFn: queryFns.team(league, slug),
+                  staleTime: 10_000,
+                });
+              }
+            },
+            color: it.team.primary_color,
+          };
+          return (
+            <li key={`${it.team.id}`}>
+              {rank <= 3 ? <TeamHeroRow rank={rank} {...props} /> : <TeamCompactRow rank={rank} {...props} />}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  // Player (default)
   return (
     <ul className="flex flex-col gap-1">
       {items.map((it, i) => {

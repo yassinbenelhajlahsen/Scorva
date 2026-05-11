@@ -12,14 +12,16 @@ const TTL_BY_WINDOW = {
 export function useTopPerformances(league, opts = {}) {
   const {
     type = "performances",
+    entity = "player",
     window = "week",
     sort = "desc",
     position = "all",
     limit = 25,
     playerId,
+    teamId,
     fallback = false,
   } = opts;
-  const key = { type, window, sort, position, limit, playerId, fallback };
+  const key = { type, entity, window, sort, position, limit, playerId, teamId, fallback };
   return useQuery({
     queryKey: queryKeys.topPerformances(league, key),
     queryFn:  queryFns.topPerformances(league, key),
