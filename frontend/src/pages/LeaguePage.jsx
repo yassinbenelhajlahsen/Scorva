@@ -314,7 +314,7 @@ export default function LeaguePage() {
         <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
           {league === "nfl" ? "AFC" : "Eastern Conference"}
         </h3>
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <div className="divide-y divide-white/[0.04]">
           {renderStandingsRows(standings.eastOrAFC)}
         </div>
       </div>
@@ -324,7 +324,7 @@ export default function LeaguePage() {
         <h3 className="text-sm font-semibold uppercase tracking-widest text-text-tertiary mb-4 text-center">
           {league === "nfl" ? "NFC" : "Western Conference"}
         </h3>
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <div className="divide-y divide-white/[0.04]">
           {renderStandingsRows(standings.westOrNFC)}
         </div>
       </div>
@@ -382,29 +382,30 @@ export default function LeaguePage() {
         />
       </div>
 
-      {/* Tab pills */}
-      <div className="flex justify-center mb-8">
-        <div ref={tabNavRef} className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-          {pillBounds && (
-            <m.div
-              className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
-              initial={{ left: pillBounds.left, width: pillBounds.width }}
-              animate={{ left: pillBounds.left, width: pillBounds.width }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            />
-          )}
-          {tabs.map((tab, i) => (
-            <button
-              key={tab}
-              ref={(el) => (tabRefs.current[i] = el)}
-              onClick={() => pickTab(tab)}
-              className="relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
-              style={{ color: activeTab === tab ? "var(--color-accent)" : "var(--color-text-secondary)" }}
-            >
-              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-            </button>
-          ))}
-        </div>
+      {/* Tab bar — GameTabBar pattern: bottom border + animated underline indicator, no surrounding chrome */}
+      <div ref={tabNavRef} className="relative flex border-b border-white/[0.06] mb-8">
+        {pillBounds && (
+          <m.div
+            className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
+            initial={{ left: pillBounds.left, width: pillBounds.width }}
+            animate={{ left: pillBounds.left, width: pillBounds.width }}
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+          />
+        )}
+        {tabs.map((tab, i) => (
+          <button
+            key={tab}
+            ref={(el) => (tabRefs.current[i] = el)}
+            onClick={() => pickTab(tab)}
+            className={`touch-target relative px-5 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${
+              activeTab === tab
+                ? "text-accent"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
       </div>
 
       {activeTab === "games" && (

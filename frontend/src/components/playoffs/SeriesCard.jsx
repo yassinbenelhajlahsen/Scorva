@@ -88,8 +88,15 @@ export default function SeriesCard({ series, league }) {
   const isSingleGameLink = isPlayIn || (games.length === 1 && isComplete);
   const canExpand = hasGames && !isSingleGameLink && games.length > 1;
 
-  const cardClasses = `block bg-surface-elevated border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-    canExpand || isSingleGameLink ? "hover:border-white/[0.14]" : ""
+  // Left-rail color reflects series state: active series = accent, complete = win, not started = subtle
+  const railColor = isComplete
+    ? "bg-win/60"
+    : hasGames
+    ? "bg-accent/50"
+    : "bg-white/[0.12]";
+
+  const cardClasses = `relative block rounded-xl overflow-hidden transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+    canExpand || isSingleGameLink ? "hover:bg-white/[0.04] hover:-translate-y-0.5" : ""
   }`;
 
   const showWins = !isSingleGameLink;
@@ -124,6 +131,13 @@ export default function SeriesCard({ series, league }) {
     </>
   );
 
+  const railEl = (
+    <span
+      aria-hidden="true"
+      className={`absolute left-0 top-0 bottom-0 w-[2px] ${railColor}`}
+    />
+  );
+
   // Single-game series: navigate directly to the game.
   if (isSingleGameLink) {
     return (
@@ -138,6 +152,7 @@ export default function SeriesCard({ series, league }) {
         }
         className={cardClasses}
       >
+        {railEl}
         {teamRows}
       </Link>
     );
@@ -145,6 +160,7 @@ export default function SeriesCard({ series, league }) {
 
   return (
     <div className={cardClasses}>
+      {railEl}
       <button
         type="button"
         onClick={() => canExpand && setExpanded((v) => !v)}

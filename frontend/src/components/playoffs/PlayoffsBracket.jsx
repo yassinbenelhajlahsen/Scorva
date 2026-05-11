@@ -111,37 +111,33 @@ function MobileConferenceTabs({ conferences, activeConf, onPick }) {
   }, [activeConf, conferences]);
 
   return (
-    <div className="flex justify-center mb-6">
-      <div
-        ref={navRef}
-        className="relative flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1"
-      >
-        {pillBounds && (
-          <m.div
-            className="absolute inset-y-1 rounded-full bg-accent/15 border border-accent/25 pointer-events-none"
-            initial={{ left: pillBounds.left, width: pillBounds.width }}
-            animate={{ left: pillBounds.left, width: pillBounds.width }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          />
-        )}
+    <div
+      ref={navRef}
+      className="relative flex border-b border-white/[0.06] mb-6"
+    >
+      {pillBounds && (
+        <m.div
+          className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
+          initial={{ left: pillBounds.left, width: pillBounds.width }}
+          animate={{ left: pillBounds.left, width: pillBounds.width }}
+          transition={{ type: "spring", stiffness: 500, damping: 35 }}
+        />
+      )}
 
-        {conferences.map((conf, i) => (
-          <button
-            key={conf.key}
-            ref={(el) => (tabRefs.current[i] = el)}
-            onClick={() => onPick(conf.key)}
-            className="touch-target relative px-5 py-2 rounded-full text-sm font-medium z-10 transition-colors duration-200"
-            style={{
-              color:
-                activeConf === conf.key
-                  ? "var(--color-accent)"
-                  : "var(--color-text-secondary)",
-            }}
-          >
-            {conf.label}
-          </button>
-        ))}
-      </div>
+      {conferences.map((conf, i) => (
+        <button
+          key={conf.key}
+          ref={(el) => (tabRefs.current[i] = el)}
+          onClick={() => onPick(conf.key)}
+          className={`touch-target relative px-5 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px ${
+            activeConf === conf.key
+              ? "text-accent"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          {conf.label}
+        </button>
+      ))}
     </div>
   );
 }

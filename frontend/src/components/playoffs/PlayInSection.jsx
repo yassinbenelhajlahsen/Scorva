@@ -100,7 +100,7 @@ function ConferenceBracket({ heading, series, league, delay = 0 }) {
               {gameDecisive ? (
                 <SeriesCard series={gameDecisive} league={league} />
               ) : (
-                <div className="bg-surface-elevated border border-white/[0.08] rounded-xl px-3 py-4 text-center">
+                <div className="rounded-xl px-3 py-4 text-center bg-white/[0.03]">
                   <span className="text-[11px] text-text-tertiary">TBD</span>
                 </div>
               )}
@@ -162,7 +162,7 @@ function ConferenceBracket({ heading, series, league, delay = 0 }) {
             <SeriesCard series={gameDecisive} league={league} />
           </div>
         ) : (
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-xl px-3 py-3 text-center">
+          <div className="rounded-xl px-3 py-3 text-center bg-white/[0.03]">
             <span className="text-[10px] uppercase tracking-wider text-text-tertiary">
               Decisive — TBD
             </span>
