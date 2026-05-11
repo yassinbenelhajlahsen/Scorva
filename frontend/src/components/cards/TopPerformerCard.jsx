@@ -56,7 +56,7 @@ function TopPerformerCard({ player, title = "Top Performer", league, season: sea
     <Link
       to={path}
       onMouseEnter={() => queryClient.prefetchQuery({ queryKey: queryKeys.player(league, slug, season), queryFn: queryFns.player(league, slug, season), staleTime: 10_000 })}
-      className="group flex items-stretch bg-surface-elevated border border-white/[0.08] rounded-2xl h-[108px] overflow-hidden transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 w-full"
+      className="group relative flex items-stretch h-[108px] rounded-2xl overflow-hidden transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/[0.04] hover:-translate-y-0.5 w-full"
     >
       {/* Left zone — gradient slab */}
       <div
@@ -113,7 +113,7 @@ function TopPerformerCard({ player, title = "Top Performer", league, season: sea
         </div>
 
         {ratingGrade != null && (
-          <div className="shrink-0 pl-3 pr-3.5 py-3 flex flex-col items-center justify-center border-l border-white/[0.08]">
+          <div className="shrink-0 pl-3 pr-3.5 py-3 flex flex-col items-center justify-center">
             <span className="text-accent font-black text-3xl tabular-nums leading-none">
               {ratingGrade.toFixed(1)}
             </span>
