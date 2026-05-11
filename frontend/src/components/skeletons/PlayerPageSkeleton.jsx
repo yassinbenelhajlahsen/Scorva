@@ -1,6 +1,6 @@
 import Skeleton from "../ui/Skeleton.jsx";
 import StatCardSkeleton from "./StatCardSkeleton.jsx";
-import { SkeletonCard } from "./_chrome.jsx";
+import { SkeletonCard, SkeletonRow } from "./_chrome.jsx";
 
 function unslugify(slug) {
   return slug
@@ -113,26 +113,41 @@ export default function PlayerPageSkeleton({ slug, league }) {
       {/* Averages + similar players sidebar */}
       <div className="flex flex-col lg:flex-row gap-8 mb-12">
         <div className="flex-1 min-w-0">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+          {/* PlayerAvgCard — top accent stripe + gradient (no rail chrome) */}
+          <div className="relative overflow-hidden rounded-2xl w-full">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+            <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.06] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-center text-xs font-semibold uppercase tracking-widest py-2.5 px-6 text-transparent select-none">
-                &nbsp;
+              <div className="text-accent text-[11px] uppercase tracking-[0.22em] font-semibold text-center pt-4 pb-3 border-b border-white/[0.05]">
+                <span className="text-transparent select-none">Regular Season</span>
               </div>
-              <Skeleton className="absolute inset-0 rounded-none" />
-            </div>
-            <div className="p-6">
-              <div className="flex flex-wrap gap-y-6 gap-x-10 justify-center">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center min-w-[72px]">
-                    <div className="relative">
-                      <span className="text-[10px] uppercase tracking-widest font-medium text-transparent select-none">PTS</span>
-                      <Skeleton className="absolute inset-0 rounded" />
-                    </div>
-                    <Skeleton className="h-9 w-14 rounded-lg mt-1" />
-                  </div>
-                ))}
+              <div className="px-6 py-7">
+                <ul className="flex flex-wrap gap-y-6 justify-around w-full">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <li key={i} className="flex flex-col items-center flex-1 min-w-[72px] gap-1.5">
+                      <Skeleton className="h-2.5 w-10" />
+                      <Skeleton className="h-10 w-14 rounded-lg" />
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* SimilarPlayersCard sidebar — matches live w-[400px] on lg */}
+        <div className="w-full lg:w-[400px] lg:shrink-0">
+          <Skeleton className="h-3 w-28 mb-3 ml-3" />
+          <div className="flex flex-col">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonRow key={i} className={i < 3 ? "border-b border-white/[0.04]" : ""}>
+                <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </SkeletonRow>
+            ))}
           </div>
         </div>
       </div>
