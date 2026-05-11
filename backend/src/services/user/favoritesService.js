@@ -1,10 +1,13 @@
+import { DateTime } from "luxon";
 import pool from "../../db/db.js";
+import pgDateToString from "../../utils/pgDateToString.js";
 import { ensureUser } from "./ensureUser.js";
 
 export { ensureUser };
 
 export async function getFavorites(userId) {
-  const [playersResult, playerStatsResult, teamsResult, teamGamesResult] =
+  const todayEST = DateTime.now().setZone("America/New_York").toFormat("yyyy-MM-dd");
+  const [playersResult, playerStatsResult, teamsResult, teamGamesResult, nextGamesResult] =
     await Promise.all([
       pool.query(
         `SELECT p.id, p.name, p.image_url, p.position, p.jerseynum, p.league,
@@ -82,6 +85,38 @@ export async function getFavorites(userId) {
          WHERE rg.rn <= 3`,
         [userId]
       ),
+      pool.query(
+        `WITH followed_teams AS (
+           SELECT team_id FROM user_favorite_teams WHERE user_id = $1
+           UNION
+           SELECT p.teamid AS team_id
+             FROM user_favorite_players ufp
+             JOIN players p ON p.id = ufp.player_id
+            WHERE ufp.user_id = $1 AND p.teamid IS NOT NULL
+         )
+         SELECT ng.team_id,
+                ng.id, ng.league, ng.date, ng.start_time, ng.status,
+                ng.hometeamid, ng.awayteamid,
+                ng.home_shortname, ng.home_logo,
+                ng.away_shortname, ng.away_logo
+           FROM followed_teams ft
+           JOIN LATERAL (
+             SELECT g.id, g.league, g.date, g.start_time, g.status,
+                    g.hometeamid, g.awayteamid,
+                    th.shortname AS home_shortname, th.logo_url AS home_logo,
+                    ta.shortname AS away_shortname, ta.logo_url AS away_logo,
+                    ft.team_id
+               FROM games g
+               JOIN teams th ON g.hometeamid = th.id
+               JOIN teams ta ON g.awayteamid = ta.id
+              WHERE (g.hometeamid = ft.team_id OR g.awayteamid = ft.team_id)
+                AND g.date >= $2::date
+                AND g.status = 'Scheduled'
+              ORDER BY g.date ASC, g.id ASC
+              LIMIT 1
+           ) ng ON true`,
+        [userId, todayEST]
+      ),
     ]);
 
   const statsByPlayer = {};
@@ -96,14 +131,22 @@ export async function getFavorites(userId) {
     gamesByTeam[row.fav_team_id].push(row);
   }
 
+  const nextGameByTeam = {};
+  for (const row of nextGamesResult.rows) {
+    const { team_id, ...rest } = row;
+    nextGameByTeam[team_id] = { ...rest, date: pgDateToString(rest.date) };
+  }
+
   return {
     players: playersResult.rows.map((p) => ({
       ...p,
       recentStats: statsByPlayer[p.id] || [],
+      nextGame: p.team_id ? nextGameByTeam[p.team_id] || null : null,
     })),
     teams: teamsResult.rows.map((t) => ({
       ...t,
       recentGames: gamesByTeam[t.id] || [],
+      nextGame: nextGameByTeam[t.id] || null,
     })),
   };
 }

@@ -51,6 +51,8 @@ describe("Favorites Routes", () => {
       mockPool.query.mockResolvedValueOnce({ rows: [{ id: 10, name: "Lakers", shortname: "LAL", location: "Los Angeles", logo_url: null, record: "30-10", league: "nba" }] });
       // team games query
       mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // next games query
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const res = await request(app).get("/api/favorites");
       expect(res.status).toBe(200);
@@ -78,6 +80,8 @@ describe("Favorites Routes", () => {
       mockPool.query.mockResolvedValueOnce({ rows: [{ id: 10, name: "Lakers", shortname: "LAL", location: "Los Angeles", logo_url: null, record: "30-10", league: "nba" }] });
       // team games query — multiple rows for same team
       mockPool.query.mockResolvedValueOnce({ rows: [game1, game2] });
+      // next games query
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const res = await request(app).get("/api/favorites");
       expect(res.status).toBe(200);

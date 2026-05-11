@@ -7,6 +7,15 @@ import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
+function isLiveStatus(status) {
+  if (!status) return false;
+  return (
+    status.includes("In Progress") ||
+    status.includes("Halftime") ||
+    status.includes("End of Period")
+  );
+}
+
 export default function FavoriteTeamsSection({ teams, compact = false, onRemove }) {
   const queryClient = useQueryClient();
   return (
@@ -17,6 +26,16 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
           const url = teamUrl(team.league, team);
           const teamSlug = url.split("/").pop();
           const recentGames = compact ? team.recentGames.slice(0, 3) : team.recentGames;
+          const hasLive = compact && recentGames.some((g) => isLiveStatus(g.status));
+          const showNext = compact && !hasLive && team.nextGame;
+          const nextGame = team.nextGame;
+          const nextIsHome = nextGame ? nextGame.hometeamid === team.id : false;
+          const nextOpponentShort = nextGame
+            ? nextIsHome ? nextGame.away_shortname : nextGame.home_shortname
+            : null;
+          const nextOpponentLogo = nextGame
+            ? nextIsHome ? nextGame.away_logo : nextGame.home_logo
+            : null;
 
           return (
             <m.div
@@ -64,37 +83,60 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
 
               {compact ? (
                 <div className="flex flex-col gap-1.5">
-                  {recentGames.length === 0 ? (
+                  {recentGames.length === 0 && !showNext ? (
                     <p className="text-text-tertiary text-xs">No recent games</p>
                   ) : (
-                    recentGames.map((game) => {
-                      const homeScore = game.homescore ?? game.home_score;
-                      const awayScore = game.awayscore ?? game.away_score;
-                      const hasScore = homeScore != null && awayScore != null;
+                    <>
+                      {recentGames.map((game) => {
+                        const homeScore = game.homescore ?? game.home_score;
+                        const awayScore = game.awayscore ?? game.away_score;
+                        const hasScore = homeScore != null && awayScore != null;
 
-                      return (
+                        return (
+                          <Link
+                            key={game.id}
+                            to={`/${team.league}/games/${game.id}`}
+                            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
+                          >
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <img src={game.away_logo || game.awaylogo} alt="" className="w-4 h-4 object-contain" />
+                              <span className="text-text-secondary">{game.away_shortname || game.awayshortname}</span>
+                            </div>
+                            {hasScore ? (
+                              <span className="text-text-primary font-bold shrink-0">{awayScore} - {homeScore}</span>
+                            ) : (
+                              <span className="text-text-tertiary shrink-0">vs</span>
+                            )}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-text-secondary">{game.home_shortname || game.homeshortname}</span>
+                              <img src={game.home_logo || game.homelogo} alt="" className="w-4 h-4 object-contain" />
+                            </div>
+                            <span className="ml-auto text-text-tertiary whitespace-nowrap">{formatDateShort(game.date)}</span>
+                          </Link>
+                        );
+                      })}
+                      {showNext && (
                         <Link
-                          key={game.id}
-                          to={`/${team.league}/games/${game.id}`}
+                          to={`/${team.league}/games/${nextGame.id}`}
                           className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
                         >
+                          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-tertiary shrink-0">
+                            Next
+                          </span>
+                          <span className="text-text-secondary shrink-0">{nextIsHome ? "vs" : "@"}</span>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <img src={game.away_logo || game.awaylogo} alt="" className="w-4 h-4 object-contain" />
-                            <span className="text-text-secondary">{game.away_shortname || game.awayshortname}</span>
+                            {nextOpponentLogo && (
+                              <img src={nextOpponentLogo} alt="" className="w-4 h-4 object-contain" />
+                            )}
+                            <span className="text-text-secondary">{nextOpponentShort}</span>
                           </div>
-                          {hasScore ? (
-                            <span className="text-text-primary font-bold shrink-0">{awayScore} - {homeScore}</span>
-                          ) : (
-                            <span className="text-text-tertiary shrink-0">vs</span>
-                          )}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="text-text-secondary">{game.home_shortname || game.homeshortname}</span>
-                            <img src={game.home_logo || game.homelogo} alt="" className="w-4 h-4 object-contain" />
-                          </div>
-                          <span className="ml-auto text-text-tertiary whitespace-nowrap">{formatDateShort(game.date)}</span>
+                          <span className="ml-auto text-text-tertiary whitespace-nowrap">
+                            {formatDateShort(nextGame.date)}
+                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
+                          </span>
                         </Link>
-                      );
-                    })
+                      )}
+                    </>
                   )}
                 </div>
               ) : (

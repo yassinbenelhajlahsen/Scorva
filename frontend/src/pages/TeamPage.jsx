@@ -8,8 +8,11 @@ import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import RosterGrid from "../components/team/RosterGrid.jsx";
 import RosterGridSkeleton from "../components/skeletons/RosterGridSkeleton.jsx";
 import StreakBadge from "../components/ui/StreakBadge.jsx";
+import NextGameCard from "../components/player/NextGameCard.jsx";
+import LiveGameCard from "../components/player/LiveGameCard.jsx";
 import { useStreak } from "../hooks/data/useStreak.js";
 import { useTeam } from "../hooks/data/useTeam.js";
+import { useTeamNextGame } from "../hooks/data/useTeamNextGame.js";
 import { useTeamRoster } from "../hooks/data/useTeamRoster.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import { useSeasons } from "../hooks/data/useSeasons.js";
@@ -24,6 +27,12 @@ import Skeleton from "../components/ui/Skeleton.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
 
 const TABS = ["schedule", "players"];
+
+function GameStatusCard({ league, game }) {
+  if (!game) return null;
+  if (game.kind === "live") return <LiveGameCard league={league} game={game} />;
+  return <NextGameCard league={league} game={game} />;
+}
 
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
@@ -62,6 +71,9 @@ export default function TeamPage() {
 
   const isCurrentSeason = !selectedSeason || selectedSeason === leagueSeasons[0];
   const { streak } = useStreak(league, "team", team?.id, {
+    enabled: isCurrentSeason && !!team?.id,
+  });
+  const { nextGame } = useTeamNextGame(league, team?.id, {
     enabled: isCurrentSeason && !!team?.id,
   });
 
@@ -185,6 +197,7 @@ export default function TeamPage() {
             </button>
           </div>
           {streak && <StreakBadge streak={streak} />}
+          {nextGame && <GameStatusCard league={league} game={nextGame} />}
           {team.logo_url && (
             <img
               src={team.logo_url}
