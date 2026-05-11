@@ -313,7 +313,7 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
           <h2 className="text-xl font-bold tracking-tight text-text-primary">Pre-Game Forecast</h2>
         </div>
         {prediction && !loading && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] uppercase tracking-[0.12em] font-medium text-text-secondary">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] ring-1 ring-white/[0.08] text-[10px] uppercase tracking-[0.12em] font-medium text-text-secondary">
             <span className="relative flex w-1.5 h-1.5">
               <span
                 className="absolute inset-0 rounded-full animate-ping opacity-60"
@@ -330,7 +330,8 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
       </div>
 
       {/* Card */}
-      <div className="relative bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
+      <div className="relative overflow-hidden rounded-2xl">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
         {prediction && !loading && (
           <div
             aria-hidden="true"
@@ -461,7 +462,7 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
               {((prediction.homeTeam.injuries?.players?.length ?? 0) > 0 ||
                 (prediction.awayTeam.injuries?.players?.length ?? 0) > 0) && (
                 <div className="border-t border-white/[0.06] pt-4 mb-4">
-                  <p className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2.5">Injuries</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary mb-2.5">Injuries</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold text-text-tertiary mb-1.5 truncate">
@@ -482,7 +483,7 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
               {/* ── Stats comparison ── */}
               {(prediction.homeTeam.offRating != null || prediction.homeTeam.defRating != null) && (
                 <div className="border-t border-white/[0.06] pt-4 mb-4 space-y-2">
-                  <p className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2.5">Stats</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary mb-2.5">Stats</p>
                   <StatRow
                     label="OFF"
                     homeVal={prediction.homeTeam.offRating}
@@ -503,7 +504,7 @@ export default function PredictionCard({ prediction, loading, league, homeColor:
               {/* ── Key factors ── */}
               {prediction.keyFactors?.length > 0 && (
                 <div className="border-t border-white/[0.06] pt-4">
-                  <p className="text-[10px] uppercase tracking-wider text-text-tertiary mb-2.5">Key Factors</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary mb-2.5">Key Factors</p>
                   <ul className="space-y-1.5">
                     {prediction.keyFactors.map((factor, i) => {
                       // Support both old shape (string) and new shape ({ text, type })
