@@ -1,4 +1,5 @@
 import Skeleton from "../ui/Skeleton.jsx";
+import { SkeletonCard } from "./_chrome.jsx";
 
 export default function ComparePageSkeleton() {
   return (
@@ -7,7 +8,8 @@ export default function ComparePageSkeleton() {
       <Skeleton className="w-16 h-5 rounded" />
 
       {/* Hero card */}
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+      <SkeletonCard>
+        <div className="p-6 sm:p-8">
         {/* Season selector */}
         <div className="flex justify-end mb-6">
           <Skeleton className="w-24 h-9 rounded-xl" />
@@ -59,23 +61,26 @@ export default function ComparePageSkeleton() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </SkeletonCard>
 
       {/* Head-to-Head */}
       <div>
         <Skeleton className="w-28 h-5 mb-3" />
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
-          <div className="flex items-center justify-center gap-4 mb-5">
-            <Skeleton className="w-12 h-10" />
-            <Skeleton className="w-4 h-4" />
-            <Skeleton className="w-12 h-10" />
+        <SkeletonCard>
+          <div className="p-6">
+            <div className="flex items-center justify-center gap-4 mb-5">
+              <Skeleton className="w-12 h-10" />
+              <Skeleton className="w-4 h-4" />
+              <Skeleton className="w-12 h-10" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-8 w-full" />
-            ))}
-          </div>
-        </div>
+        </SkeletonCard>
       </div>
 
       {/* Recent Games */}
@@ -83,17 +88,19 @@ export default function ComparePageSkeleton() {
         <Skeleton className="w-28 h-5 mb-3" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[0, 1].map((col) => (
-            <div key={col} className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
-              <div className="flex items-center gap-2 mb-3">
-                <Skeleton className="w-6 h-6 rounded-full" />
-                <Skeleton className="w-24 h-4" />
+            <SkeletonCard key={col}>
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Skeleton className="w-6 h-6 rounded-full" />
+                  <Skeleton className="w-24 h-4" />
+                </div>
+                <div className="space-y-1.5">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-7 w-full" />
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-7 w-full" />
-                ))}
-              </div>
-            </div>
+            </SkeletonCard>
           ))}
         </div>
       </div>
