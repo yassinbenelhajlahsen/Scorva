@@ -5,10 +5,12 @@ export async function topPerformances(req, res, next) {
     if (req.params.league !== "nba") {
       return res.status(400).json({ error: "top-performances supports nba only in v1" });
     }
-    const { type, window, sort, position, limit, days, playerId, fallback } = req.query;
+    const { type, window, sort, position, limit, days, playerId, teamId, entity, fallback } = req.query;
+    const parsedTeamId = teamId != null && teamId !== "" ? parseInt(teamId, 10) : undefined;
     const out = await getTopPerformances({
       league: req.params.league,
-      type, window, sort, position, limit, days, playerId,
+      type, window, sort, position, limit, days, playerId, entity,
+      teamId: Number.isNaN(parsedTeamId) ? undefined : parsedTeamId,
       fallback: fallback === "true",
     });
     res.json(out);

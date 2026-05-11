@@ -14,6 +14,7 @@ const TTL_BY_WINDOW = {
 
 const TYPE_ALIASES = { games: "performances", cumulative: "rankings" };
 const ALLOWED_TYPES = new Set(["performances", "rankings", "plays"]);
+const ALLOWED_ENTITIES = new Set(["player", "team", "game"]);
 const ALLOWED_SORTS = new Set(["desc", "asc"]);
 const ALLOWED_WINDOWS = new Set(["today", "week", "month", "season", "all"]);
 const ALLOWED_POSITIONS = new Set(["all", "G", "F", "C"]);
@@ -78,11 +79,18 @@ export function positionPredicate(position) {
 }
 
 export async function getTopPerformances({
-  league, type, window, sort = "desc", position = "all", limit, days, playerId, fallback,
+  league, type, window, sort = "desc", position = "all", limit, days, playerId, teamId, fallback, entity,
 }) {
   const canonicalType = TYPE_ALIASES[type] ?? type ?? "performances";
+  const canonicalEntity = entity ?? "player";
   if (!ALLOWED_TYPES.has(canonicalType)) {
     const err = new Error(`invalid type: ${type}`); err.status = 400; throw err;
+  }
+  if (!ALLOWED_ENTITIES.has(canonicalEntity)) {
+    const err = new Error(`invalid entity: ${entity}`); err.status = 400; throw err;
+  }
+  if (canonicalEntity === "game" && canonicalType === "rankings") {
+    const err = new Error("rankings not supported for entity=game"); err.status = 400; throw err;
   }
   if (!ALLOWED_SORTS.has(sort)) {
     const err = new Error(`invalid sort: ${sort}`); err.status = 400; throw err;
@@ -108,10 +116,12 @@ export async function getTopPerformances({
   const ctxBase = {
     league,
     type: canonicalType,
+    entity: canonicalEntity,
     sort,
     position,
     limit: safeLimit,
     resolvedPlayerId,
+    teamId,
   };
 
   if (fallback !== true) {
@@ -133,9 +143,13 @@ export async function getTopPerformances({
 }
 
 async function runForWindow(ctxBase, canonicalWindow) {
-  const { league, type: canonicalType, sort, position, limit: safeLimit, resolvedPlayerId } = ctxBase;
+  const {
+    league, type: canonicalType, entity: canonicalEntity,
+    sort, position, limit: safeLimit, resolvedPlayerId, teamId,
+  } = ctxBase;
   const playerSuffix = resolvedPlayerId == null ? "" : `:p${resolvedPlayerId}`;
-  const key = `top-performances:${league}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}${playerSuffix}`;
+  const teamSuffix = teamId == null ? "" : `:t${teamId}`;
+  const key = `top-performances:${league}:${canonicalEntity}:${canonicalType}:${canonicalWindow}:${sort}:${position}:${safeLimit}${playerSuffix}${teamSuffix}`;
   const ttl = TTL_BY_WINDOW[canonicalWindow] ?? 60;
 
   return cached(key, ttl, async () => {
@@ -150,7 +164,11 @@ async function runForWindow(ctxBase, canonicalWindow) {
       position,
       limit: safeLimit,
       playerId: resolvedPlayerId,
+      teamId,
     };
+    if (canonicalEntity === "team" && canonicalType === "performances") return queryTeamPerformances(ctx);
+    if (canonicalEntity === "team" && canonicalType === "rankings")     return queryTeamRankings(ctx);
+    if (canonicalEntity === "game" && canonicalType === "performances") return queryGamePerformances(ctx);
     if (canonicalType === "performances") return queryPerformances(ctx);
     if (canonicalType === "rankings")     return queryRankings(ctx);
     return queryPlays(ctx);
@@ -384,6 +402,216 @@ function shapeCumulativeRow(r) {
       opponentAbbreviation: r.best_opp_abbreviation,
     },
   };
+}
+
+async function queryTeamPerformances({ league, window, season, sort, limit, teamId }) {
+  const filters = [];
+  const binds = [league];
+  let nextIdx = 2;
+  const w = resolveWindow(window, { season, startIdx: nextIdx });
+  if (w.predicate) { filters.push(w.predicate); binds.push(...w.binds); nextIdx = w.nextIdx; }
+  if (teamId != null) {
+    filters.push(`t.id = $${nextIdx}`);
+    binds.push(teamId);
+    nextIdx += 1;
+  }
+
+  const { rows } = await pool.query(
+    `WITH team_games AS (
+       SELECT g.id AS gameid,
+              CASE WHEN COALESCE(s.teamid, p.teamid) = g.hometeamid THEN g.hometeamid ELSE g.awayteamid END AS team_id,
+              SUM(s.rating) AS team_rating
+         FROM stats s
+         JOIN games g   ON g.id = s.gameid
+         JOIN players p ON p.id = s.playerid
+        WHERE g.league = $1
+          AND ${RATEABLE_STATUS_SQL}
+          AND g.type IN ('regular','playoff','final','makeup')
+          AND s.rating IS NOT NULL
+        GROUP BY g.id, team_id
+     )
+     SELECT tg.gameid, tg.team_id, tg.team_rating,
+            t.name, t.abbreviation, t.logo_url, t.primary_color,
+            g.date, g.hometeamid, g.awayteamid, g.homescore, g.awayscore, g.status,
+            ${LIVE_STATUS_SQL} AS is_live,
+            ot.id AS opp_id, ot.abbreviation AS opp_abbreviation, ot.logo_url AS opp_logo_url
+       FROM team_games tg
+       JOIN teams t  ON t.id = tg.team_id
+       JOIN games g  ON g.id = tg.gameid
+       JOIN teams ot ON ot.id = CASE WHEN tg.team_id = g.hometeamid THEN g.awayteamid ELSE g.hometeamid END
+      WHERE TRUE
+        ${filters.length ? "AND " + filters.join(" AND ") : ""}
+      ORDER BY tg.team_rating ${sort === "asc" ? "ASC" : "DESC"}, tg.gameid ASC, tg.team_id ASC
+      LIMIT $${nextIdx}`,
+    [...binds, limit],
+  );
+  return { type: "performances", window, performances: rows.map(shapeTeamGameRow) };
+}
+
+async function queryTeamRankings({ league, window, season, sort, limit }) {
+  const filters = [];
+  const binds = [league];
+  let nextIdx = 2;
+  const w = resolveWindow(window, { season, startIdx: nextIdx });
+  if (w.predicate) { filters.push(w.predicate); binds.push(...w.binds); nextIdx = w.nextIdx; }
+
+  const { rows } = await pool.query(
+    `WITH team_games AS (
+       SELECT g.id AS gameid,
+              CASE WHEN COALESCE(s.teamid, p.teamid) = g.hometeamid THEN g.hometeamid ELSE g.awayteamid END AS team_id,
+              CASE WHEN COALESCE(s.teamid, p.teamid) = g.hometeamid THEN g.awayteamid ELSE g.hometeamid END AS opp_id,
+              SUM(s.rating) AS team_rating
+         FROM stats s
+         JOIN games g   ON g.id = s.gameid
+         JOIN players p ON p.id = s.playerid
+        WHERE g.league = $1
+          AND ${RATEABLE_STATUS_SQL}
+          AND g.type IN ('regular','playoff','final','makeup')
+          AND s.rating IS NOT NULL
+          ${filters.length ? "AND " + filters.join(" AND ") : ""}
+        GROUP BY g.id, team_id, opp_id
+     )
+     SELECT tg.team_id,
+            t.name, t.abbreviation, t.logo_url, t.primary_color,
+            SUM(tg.team_rating)  AS total_rating,
+            COUNT(*)             AS games_played,
+            AVG(tg.team_rating)  AS avg_per_game,
+            (ARRAY_AGG(tg.gameid ORDER BY tg.team_rating DESC))[1] AS best_game_id,
+            MAX(tg.team_rating)  AS best_game_rating,
+            (ARRAY_AGG(ot.abbreviation ORDER BY tg.team_rating DESC))[1] AS best_opp_abbreviation
+       FROM team_games tg
+       JOIN teams t  ON t.id = tg.team_id
+       JOIN teams ot ON ot.id = tg.opp_id
+      GROUP BY tg.team_id, t.name, t.abbreviation, t.logo_url, t.primary_color
+      ORDER BY total_rating ${sort === "asc" ? "ASC" : "DESC"}, tg.team_id ASC
+      LIMIT $${nextIdx}`,
+    [...binds, limit],
+  );
+  return { type: "rankings", window, performances: rows.map(shapeTeamCumulativeRow) };
+}
+
+async function queryGamePerformances({ league, window, season, sort, limit }) {
+  const filters = [];
+  const binds = [league];
+  let nextIdx = 2;
+  const w = resolveWindow(window, { season, startIdx: nextIdx });
+  if (w.predicate) { filters.push(w.predicate); binds.push(...w.binds); nextIdx = w.nextIdx; }
+
+  const { rows } = await pool.query(
+    `WITH per_game AS (
+       SELECT g.id AS gameid,
+              g.date, g.status, g.homescore, g.awayscore, g.hometeamid, g.awayteamid,
+              SUM(CASE WHEN COALESCE(s.teamid, p.teamid) = g.hometeamid THEN s.rating END) AS home_rating,
+              SUM(CASE WHEN COALESCE(s.teamid, p.teamid) = g.awayteamid THEN s.rating END) AS away_rating,
+              SUM(s.rating)                                                                 AS game_rating
+         FROM stats s
+         JOIN games g   ON g.id = s.gameid
+         JOIN players p ON p.id = s.playerid
+        WHERE g.league = $1
+          AND ${RATEABLE_STATUS_SQL}
+          AND g.type IN ('regular','playoff','final','makeup')
+          AND s.rating IS NOT NULL
+          ${filters.length ? "AND " + filters.join(" AND ") : ""}
+        GROUP BY g.id
+     )
+     SELECT pg.*, ${LIVE_STATUS_SQL} AS is_live,
+            th.name AS home_name, th.abbreviation AS home_abbr, th.logo_url AS home_logo, th.primary_color AS home_color,
+            ta.name AS away_name, ta.abbreviation AS away_abbr, ta.logo_url AS away_logo, ta.primary_color AS away_color
+       FROM per_game pg
+       JOIN games g  ON g.id = pg.gameid
+       JOIN teams th ON th.id = pg.hometeamid
+       JOIN teams ta ON ta.id = pg.awayteamid
+      ORDER BY pg.game_rating ${sort === "asc" ? "ASC" : "DESC"}, pg.gameid ASC
+      LIMIT $${nextIdx}`,
+    [...binds, limit],
+  );
+  return { type: "performances", window, performances: rows.map(shapeGameRatingRow) };
+}
+
+function shapeTeamGameRow(r) {
+  const teamId = r.team_id;
+  const isLive = !!r.is_live;
+  const rating = Number(r.team_rating);
+  return {
+    team: {
+      id: teamId, name: r.name, abbr: r.abbreviation,
+      logo: r.logo_url, primary_color: r.primary_color,
+    },
+    game: {
+      id: r.gameid, date: r.date,
+      opponent: { id: r.opp_id, abbreviation: r.opp_abbreviation, logo: r.opp_logo_url },
+      isHome: teamId === r.hometeamid,
+      isLive,
+      homeScore: r.homescore, awayScore: r.awayscore,
+      result: isLive
+        ? null
+        : (r.homescore != null && r.awayscore != null
+            ? (((teamId === r.hometeamid && r.homescore > r.awayscore) ||
+                (teamId === r.awayteamid && r.awayscore > r.homescore)) ? "W" : "L")
+            : null),
+    },
+    rating: round1(rating),
+    ratingGrade: round1(gradeFromRaw(rating)),
+  };
+}
+
+function shapeTeamCumulativeRow(r) {
+  return {
+    team: {
+      id: r.team_id, name: r.name, abbr: r.abbreviation,
+      logo: r.logo_url, primary_color: r.primary_color,
+    },
+    totalRating: round1(Number(r.total_rating)),
+    gamesPlayed: parseInt(r.games_played, 10),
+    avgPerGame: Math.round(Number(r.avg_per_game) * 100) / 100,
+    bestGame: {
+      gameId: r.best_game_id,
+      rating: round1(Number(r.best_game_rating)),
+      opponentAbbreviation: r.best_opp_abbreviation,
+    },
+  };
+}
+
+function shapeGameRatingRow(r) {
+  const gameRaw = Number(r.game_rating);
+  const homeRaw = r.home_rating == null ? null : Number(r.home_rating);
+  const awayRaw = r.away_rating == null ? null : Number(r.away_rating);
+  const homeGrade = homeRaw == null ? null : round1(gradeFromRaw(homeRaw));
+  const awayGrade = awayRaw == null ? null : round1(gradeFromRaw(awayRaw));
+  const gameGrade = round1(gradeFromRaw(gameRaw));
+  return {
+    game: {
+      id: r.gameid, date: r.date,
+      homeTeam: { id: r.hometeamid, name: r.home_name, abbr: r.home_abbr, logo: r.home_logo, primary_color: r.home_color },
+      awayTeam: { id: r.awayteamid, name: r.away_name, abbr: r.away_abbr, logo: r.away_logo, primary_color: r.away_color },
+      homeScore: r.homescore, awayScore: r.awayscore,
+      isLive: !!r.is_live,
+    },
+    homeTeamRating: homeRaw == null ? null : round1(homeRaw),
+    awayTeamRating: awayRaw == null ? null : round1(awayRaw),
+    rating: round1(gameRaw),
+    ratingGrade: gameGrade,
+    tierLabel: computeTier({
+      gameGrade, homeGrade, awayGrade,
+      status: r.status, homeScore: r.homescore, awayScore: r.awayscore,
+    }),
+  };
+}
+
+function computeTier({ gameGrade, homeGrade, awayGrade, status, homeScore, awayScore }) {
+  if (gameGrade == null) return null;
+  const isFinal = typeof status === "string" && status.toLowerCase().includes("final");
+  if (isFinal
+      && homeGrade != null && awayGrade != null
+      && homeScore != null && awayScore != null
+      && Math.abs(homeGrade - awayGrade) <= 1.0
+      && Math.abs(homeScore - awayScore) <= 5) {
+    return "Close";
+  }
+  if (gameGrade >= 8.5) return "Elite";
+  if (gameGrade >= 7.0) return "Great";
+  if (gameGrade >= 5.5) return "Solid";
+  return "Routine";
 }
 
 function round1(n) { return n == null ? null : Math.round(n * 10) / 10; }

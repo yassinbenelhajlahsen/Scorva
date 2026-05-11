@@ -50,7 +50,7 @@ describe("getTopPerformances", () => {
     expect(out.performances[0].ratingGrade).toBeCloseTo(5.4, 1);
     expect(out.performances[0].player.team.primary_color).toBe("#00538C");
     expect(mockCached).toHaveBeenCalledWith(
-      "top-performances:nba:performances:week:desc:all:5",
+      "top-performances:nba:player:performances:week:desc:all:5",
       60,
       expect.any(Function),
     );
@@ -204,7 +204,7 @@ describe("getTopPerformances — new params", () => {
       sort: "desc", position: "G", limit: 10,
     });
     expect(mockCached).toHaveBeenCalledWith(
-      "top-performances:nba:performances:week:desc:G:10",
+      "top-performances:nba:player:performances:week:desc:G:10",
       expect.any(Number),
       expect.any(Function),
     );
@@ -486,13 +486,13 @@ describe("fallback cascade", () => {
     // Two cache lookups, one per probed window — same key shape as non-cascade calls
     expect(mockCached).toHaveBeenNthCalledWith(
       1,
-      "top-performances:nba:performances:week:desc:all:10",
+      "top-performances:nba:player:performances:week:desc:all:10",
       60,
       expect.any(Function),
     );
     expect(mockCached).toHaveBeenNthCalledWith(
       2,
-      "top-performances:nba:performances:month:desc:all:10",
+      "top-performances:nba:player:performances:month:desc:all:10",
       5 * 60,
       expect.any(Function),
     );
