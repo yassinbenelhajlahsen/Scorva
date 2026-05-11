@@ -32,6 +32,7 @@ export async function streamGames(req, res) {
   setSSEHeaders(res);
 
   let heartbeat;
+  let cleanedUp = false;
 
   async function onNotification(msg) {
     if (res.writableEnded) return;
@@ -50,6 +51,8 @@ export async function streamGames(req, res) {
   }
 
   async function cleanup() {
+    if (cleanedUp) return;
+    cleanedUp = true;
     clearInterval(heartbeat);
     await unsubscribe(onNotification);
   }

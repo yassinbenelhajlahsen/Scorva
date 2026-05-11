@@ -195,4 +195,19 @@ describe("liveController.streamGames", () => {
     expect(mockUnsubscribe).toHaveBeenCalled();
     expect(res.end).toHaveBeenCalled();
   });
+
+  it("cleanup is idempotent — error path then req.close calls unsubscribe only once", async () => {
+    const req = makeReq("nba");
+    const res = makeRes();
+    await streamGames(req, res);
+
+    mockGetLiveGamePartial.mockRejectedValueOnce(new Error("db down"));
+    await mockSubscribe._cb({ channel: "game_updated", payload: "1" });
+
+    // Error path called cleanup once and then res.end(). Now simulate the
+    // socket close that res.end() would trigger.
+    await req._trigger("close");
+
+    expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+  });
 });
