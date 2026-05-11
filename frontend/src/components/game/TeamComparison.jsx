@@ -228,18 +228,22 @@ export default function TeamComparison({ homeTeam, awayTeam, league, homeRating,
   const hasRating = homeRating != null && awayRating != null;
 
   return (
-    <div className="mt-6 w-full bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] p-6 sm:p-8">
-      <h3 className="text-2xl font-bold tracking-tight text-text-primary mb-6 text-center">
-        Team Comparison
-      </h3>
+    <div className="relative overflow-hidden rounded-2xl mt-6 w-full">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+      <div className="relative p-6 sm:p-8">
+        <div className="text-center">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-text-tertiary font-semibold">Team Comparison</p>
+          <h3 className="text-2xl font-bold tracking-tight text-text-primary mt-1">Season Averages</h3>
+        </div>
 
-      <div className="flex items-center gap-4 pb-5 mb-5 border-b border-white/[0.06]">
-        <TeamHeader team={homeTeam} align="left" />
-        <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
-          vs
-        </span>
-        <TeamHeader team={awayTeam} align="right" />
-      </div>
+        <div className="flex items-center gap-4 py-4 mt-4 border-y border-white/[0.06]">
+          <TeamHeader team={homeTeam} align="left" />
+          <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+            vs
+          </span>
+          <TeamHeader team={awayTeam} align="right" />
+        </div>
 
       {config.sections ? (
         <div className="space-y-6">
@@ -275,6 +279,7 @@ export default function TeamComparison({ homeTeam, awayTeam, league, homeRating,
           {renderRows(config.rows, homePlayers, awayPlayers)}
         </div>
       )}
+      </div>
     </div>
   );
 }
