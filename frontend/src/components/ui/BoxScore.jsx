@@ -220,16 +220,16 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
   }
 
   const renderTable = (team, players) => (
-    <div className="w-full bg-surface-elevated border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.35)] flex flex-col h-full">
+    <div className="w-full">
       {/* Table header */}
-      <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 pb-3 mb-2 border-b border-white/[0.08]">
         <h4 className="text-base font-semibold text-text-primary">
           {team.info.name}
         </h4>
         {sortKey && (
           <button
             onClick={resetSort}
-            className="touch-target flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors duration-150"
+            className="touch-target flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 ring-1 ring-accent/20 text-[11px] font-medium text-accent hover:bg-accent/20 transition-colors duration-150"
           >
             <span>
               {sortKey === "__name__" ? "Player" : sortKey === RTG_KEY ? "RTG" : sortKey}
@@ -244,15 +244,15 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
       </div>
 
       {/* Scrollable table */}
-      <div className="overflow-x-auto scrollbar-thin flex-1 flex flex-col">
+      <div className="overflow-x-auto scrollbar-thin">
         <table className="min-w-[600px] sm:min-w-full text-left">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-white/[0.05]">
               {/* Player name — sortable */}
-              <th className="py-2.5 px-5 font-medium">
+              <th className="py-2.5 px-5 font-semibold">
                 <button
                   onClick={() => handleHeaderClick("__name__")}
-                  className={`group flex items-center text-[10px] uppercase tracking-widest transition-colors duration-150 ${
+                  className={`group flex items-center text-[10px] uppercase tracking-[0.18em] transition-colors duration-150 ${
                     sortKey === "__name__"
                       ? "text-accent"
                       : "text-text-tertiary hover:text-text-secondary"
@@ -264,10 +264,10 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
               </th>
 
               {hasAnyRating && (
-                <th key={RTG_KEY} className="py-2.5 px-3 font-medium">
+                <th key={RTG_KEY} className="py-2.5 px-3 font-semibold">
                   <button
                     onClick={() => handleHeaderClick(RTG_KEY)}
-                    className={`group flex items-center justify-end w-full text-[10px] uppercase tracking-widest transition-colors duration-150 ${
+                    className={`group flex items-center justify-end w-full text-[10px] uppercase tracking-[0.18em] transition-colors duration-150 ${
                       sortKey === RTG_KEY
                         ? "text-accent"
                         : "text-text-tertiary hover:text-text-secondary"
@@ -280,10 +280,10 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
               )}
 
               {statHeaders.map((stat) => (
-                <th key={stat} className="py-2.5 px-3 font-medium">
+                <th key={stat} className="py-2.5 px-3 font-semibold">
                   <button
                     onClick={() => handleHeaderClick(stat)}
-                    className={`group flex items-center justify-end w-full text-[10px] uppercase tracking-widest transition-colors duration-150 ${
+                    className={`group flex items-center justify-end w-full text-[10px] uppercase tracking-[0.18em] transition-colors duration-150 ${
                       sortKey === stat
                         ? "text-accent"
                         : "text-text-tertiary hover:text-text-secondary"
@@ -297,14 +297,14 @@ export default function BoxScore({ league, homeTeam, awayTeam, season }) {
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-white/[0.04]">
+          <tbody>
             {players.map((p) => {
               const slug = playerSlug(p, dupeSlugs);
               return (
               <tr
                 id={slug}
                 key={p.id}
-                className="hover:bg-surface-overlay/60 transition-colors duration-150"
+                className="border-b border-white/[0.03] last:border-b-0 hover:bg-white/[0.02] transition-colors duration-150"
               >
                 <td className="py-2.5 px-5 font-medium whitespace-nowrap">
                   <Link
