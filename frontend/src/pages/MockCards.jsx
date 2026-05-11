@@ -2115,6 +2115,134 @@ function SectionHeader({ kicker, title, sub }) {
   );
 }
 
+// ---------------- SeriesCard exploration ----------------
+
+const seriesMockTeams = {
+  lal: { name: "Lakers", abbr: "LAL", logoUrl: "https://a.espncdn.com/i/teamlogos/nba/500/lal.png", color: "#552583" },
+  bos: { name: "Celtics", abbr: "BOS", logoUrl: "https://a.espncdn.com/i/teamlogos/nba/500/bos.png", color: "#007A33" },
+  den: { name: "Nuggets", abbr: "DEN", logoUrl: "https://a.espncdn.com/i/teamlogos/nba/500/den.png", color: "#0E2240" },
+  okc: { name: "Thunder", abbr: "OKC", logoUrl: "https://a.espncdn.com/i/teamlogos/nba/500/okc.png", color: "#007AC1" },
+  tbd: { name: "TBD", abbr: "TBD", logoUrl: null, color: "#444" },
+};
+
+function MockSeriesTeamRow({ team, wins, winner, loser }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt="" className="w-7 h-7 object-contain shrink-0" />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-surface-overlay/40 ring-1 ring-white/[0.06]" />
+        )}
+        <span className={`text-sm font-semibold truncate ${winner ? "text-text-primary" : loser ? "text-text-tertiary" : "text-text-primary"}`}>
+          {team.abbr}
+        </span>
+      </div>
+      <span className={`text-base font-bold tabular-nums ${winner ? "text-win" : loser ? "text-text-tertiary" : "text-text-primary"}`}>
+        {wins}
+      </span>
+    </div>
+  );
+}
+
+// state = "complete" | "active" | "pending"
+function MockSeriesCardWithVariant({ variant, state, teamA, teamB, winsA, winsB }) {
+  const complete = state === "complete";
+  const active = state === "active";
+  const aWon = complete && winsA > winsB;
+  const bWon = complete && winsB > winsA;
+  const railColor = complete ? "bg-win/60" : active ? "bg-accent/50" : "bg-white/[0.12]";
+
+  const baseClass = "relative block rounded-xl overflow-hidden transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer hover:-translate-y-0.5";
+
+  const variantClasses = {
+    ring: "ring-1 ring-white/[0.05] hover:ring-white/[0.1] hover:bg-white/[0.03]",
+    bg: "bg-white/[0.02] hover:bg-white/[0.04]",
+    gradient: "hover:bg-white/[0.04]",
+    both: "bg-white/[0.02] ring-1 ring-white/[0.06] hover:ring-white/[0.12] hover:bg-white/[0.04]",
+    "thick-rail": "hover:bg-white/[0.04]",
+  };
+
+  const thickRail = variant === "thick-rail";
+  const railWidth = thickRail ? "w-[3px]" : "w-[2px]";
+  const railIntense = thickRail
+    ? complete ? "bg-win" : active ? "bg-accent/80" : "bg-white/25"
+    : railColor;
+
+  const gradientOverlay = variant === "gradient" ? (
+    <div
+      className="absolute inset-0 pointer-events-none rounded-xl"
+      style={{
+        background: complete
+          ? "linear-gradient(to right, rgba(52,199,89,0.06), transparent 70%)"
+          : active
+            ? "linear-gradient(to right, rgba(232,134,58,0.05), transparent 70%)"
+            : "linear-gradient(to right, rgba(255,255,255,0.03), transparent 70%)",
+      }}
+    />
+  ) : null;
+
+  return (
+    <div className={`${baseClass} ${variantClasses[variant] ?? ""}`}>
+      <span aria-hidden className={`absolute left-0 top-0 bottom-0 ${railWidth} ${railIntense}`} />
+      {gradientOverlay}
+      <div className="relative">
+        <MockSeriesTeamRow team={teamA} wins={winsA} winner={aWon} loser={bWon} />
+        <div className="h-px bg-white/[0.05]" />
+        <MockSeriesTeamRow team={teamB} wins={winsB} winner={bWon} loser={aWon} />
+        {state === "pending" && (
+          <div className="text-[10px] uppercase tracking-wider text-text-tertiary text-center py-1 border-t border-white/[0.05]">
+            Projected
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SeriesCardOption({ number, title, sub, variant }) {
+  return (
+    <section className="space-y-4 pt-8 border-t border-white/[0.06]">
+      <SectionHeader kicker={number} title={title} sub={sub} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-widest text-text-tertiary font-semibold pl-1">Complete</p>
+          <MockSeriesCardWithVariant
+            variant={variant}
+            state="complete"
+            teamA={seriesMockTeams.bos}
+            teamB={seriesMockTeams.lal}
+            winsA={4}
+            winsB={2}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-widest text-text-tertiary font-semibold pl-1">In progress</p>
+          <MockSeriesCardWithVariant
+            variant={variant}
+            state="active"
+            teamA={seriesMockTeams.den}
+            teamB={seriesMockTeams.okc}
+            winsA={2}
+            winsB={1}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-widest text-text-tertiary font-semibold pl-1">Not started</p>
+          <MockSeriesCardWithVariant
+            variant={variant}
+            state="pending"
+            teamA={seriesMockTeams.lal}
+            teamB={seriesMockTeams.tbd}
+            winsA={0}
+            winsB={0}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------------- Page ----------------
 
 export default function MockCards() {
@@ -2317,6 +2445,45 @@ export default function MockCards() {
           <SectionHeader kicker="27" title="FavoritesPanel (refreshed)" sub="Top accent stripe + atmospheric gradient (new, matches Chat). Star icon softened from text-yellow-400 to text-yellow-400/80. Sections use the same list-row pattern: hover rail + softened avatar ring + name color shifts to accent on hover." />
           <div className="flex justify-center"><RefreshedFavoritesPanelMock /></div>
         </section>
+
+        <div className="pt-12 border-t border-accent/20">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold mb-1">Exploration</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-text-primary">SeriesCard chrome options</h2>
+          <p className="text-text-secondary text-sm mt-2 max-w-3xl">
+            Current production SeriesCard has no border at all (just a 2px state rail). User feedback: feels weird. Below are five alternatives that add visual weight in different ways. Each option shows three states side-by-side: complete (winner), in-progress, not started.
+          </p>
+        </div>
+
+        <SeriesCardOption
+          number="28A"
+          title="A — Soft ring (subtle outline)"
+          sub="ring-1 ring-white/[0.05] adds a faint visible edge without the heaviness of bg-surface-elevated. Closest to a 'thin pencil line around the card' look."
+          variant="ring"
+        />
+        <SeriesCardOption
+          number="28B"
+          title="B — Soft background + rail"
+          sub="bg-white/[0.02] gives the card a barely-there fill so it reads as a discrete tile against the page bg. Rail stays as the state delimiter."
+          variant="bg"
+        />
+        <SeriesCardOption
+          number="28C"
+          title="C — Atmospheric gradient (rail-color tinted)"
+          sub="absolute inset-0 gradient that picks up the rail color — accent for in-progress, win for complete, white for not-started. Softer than a flat bg; teaches the state via color bleed."
+          variant="gradient"
+        />
+        <SeriesCardOption
+          number="28D"
+          title="D — Ring + soft bg (combined)"
+          sub="bg-white/[0.02] + ring-1 ring-white/[0.06]. The most card-like option. Reads as a proper container without the heavy chrome of the original."
+          variant="both"
+        />
+        <SeriesCardOption
+          number="28E"
+          title="E — Thicker rail (3px, brighter)"
+          sub="No bg, no ring, no gradient. Just bump the rail from 2px to 3px and intensify the color (accent/80 instead of accent/50). The rail becomes the dominant visual signal, the lack of chrome reads as intentional minimalism."
+          variant="thick-rail"
+        />
 
         <section className="space-y-3 pt-8 border-t border-white/[0.06] text-sm text-text-secondary leading-relaxed">
           <h2 className="text-base font-semibold text-text-primary">Pattern summary</h2>
