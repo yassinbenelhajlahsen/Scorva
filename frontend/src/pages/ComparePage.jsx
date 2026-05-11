@@ -173,9 +173,9 @@ function PlayerCompare({
 
       <div className="space-y-8">
         {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
-          <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+        <div className="relative p-6 sm:p-8">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60 rounded-t-2xl pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent rounded-2xl pointer-events-none" />
           <div className="relative">
           <div className="flex items-center justify-center gap-6 sm:gap-25">
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
@@ -359,9 +359,9 @@ function TeamCompare({
 
       <div className="space-y-8">
         {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
-          <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+        <div className="relative p-6 sm:p-8">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60 rounded-t-2xl pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent rounded-2xl pointer-events-none" />
           <div className="relative">
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
