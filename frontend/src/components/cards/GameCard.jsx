@@ -116,14 +116,13 @@ function GameCard({ game }) {
       <div className="group relative transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer hover:bg-white/[0.04] hover:-translate-y-0.5 max-w-md mx-auto">
         <div className={`absolute left-0 top-0 bottom-0 ${rail}`} />
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: inProgress
-              ? "radial-gradient(ellipse at center, rgba(255,69,58,0.08) 0%, transparent 65%)"
+          className={`absolute inset-0 bg-gradient-to-r ${
+            inProgress
+              ? "from-live/[0.05]"
               : isChampionship
-                ? "radial-gradient(ellipse at center, rgba(232,134,58,0.09) 0%, transparent 65%)"
-                : "radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, transparent 65%)",
-          }}
+                ? "from-accent/[0.06]"
+                : "from-white/[0.04]"
+          } to-transparent pointer-events-none`}
         />
         <div className="relative p-5 text-center">
 
