@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Skeleton from "../ui/Skeleton.jsx";
+import { SkeletonCard } from "./_chrome.jsx";
 import { TopPerformerCardSkeleton } from "./TopPerformersSkeleton.jsx";
 
 function TeamSideSkeleton() {
@@ -40,17 +41,19 @@ export default function GamePageSkeleton({ scheduled = false }) {
 
       {/* Game info — standalone card */}
       <div className="mb-6">
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-3">
-          {INFO_FIELDS.map(({ label, width }, i) => (
-            <Fragment key={label}>
-              {i > 0 && <div className="border-t border-white/[0.06]" />}
-              <div className="flex items-center justify-between gap-4">
-                <Skeleton className="h-3 w-14 shrink-0" />
-                <Skeleton className={`h-3 ${width}`} />
-              </div>
-            </Fragment>
-          ))}
-        </div>
+        <SkeletonCard>
+          <div className="p-5 flex flex-col gap-3">
+            {INFO_FIELDS.map(({ label, width }, i) => (
+              <Fragment key={label}>
+                {i > 0 && <div className="border-t border-white/[0.06]" />}
+                <div className="flex items-center justify-between gap-4">
+                  <Skeleton className="h-3 w-14 shrink-0" />
+                  <Skeleton className={`h-3 ${width}`} />
+                </div>
+              </Fragment>
+            ))}
+          </div>
+        </SkeletonCard>
       </div>
 
       {/* Tab bar */}
@@ -69,27 +72,29 @@ export default function GamePageSkeleton({ scheduled = false }) {
       {!scheduled && (
         <>
           {/* Quarter scores */}
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-6">
-            <div className="flex items-center gap-x-4 pb-3 border-b border-white/[0.06]">
-              <Skeleton className="h-3 flex-1" />
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-3 w-10 shrink-0" />
-              ))}
+          <SkeletonCard className="mb-6">
+            <div className="p-5">
+              <div className="flex items-center gap-x-4 pb-3 border-b border-white/[0.06]">
+                <Skeleton className="h-3 flex-1" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-3 w-10 shrink-0" />
+                ))}
+              </div>
+              <div className="flex items-center gap-x-4 py-3">
+                <Skeleton className="h-3.5 flex-1" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-3.5 w-10 shrink-0" />
+                ))}
+              </div>
+              <div className="border-t border-white/[0.04]" />
+              <div className="flex items-center gap-x-4 py-3">
+                <Skeleton className="h-3.5 flex-1" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-3.5 w-10 shrink-0" />
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-x-4 py-3">
-              <Skeleton className="h-3.5 flex-1" />
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-3.5 w-10 shrink-0" />
-              ))}
-            </div>
-            <div className="border-t border-white/[0.04]" />
-            <div className="flex items-center gap-x-4 py-3">
-              <Skeleton className="h-3.5 flex-1" />
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-3.5 w-10 shrink-0" />
-              ))}
-            </div>
-          </div>
+          </SkeletonCard>
 
           {/* Top performer cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
@@ -99,7 +104,9 @@ export default function GamePageSkeleton({ scheduled = false }) {
           </div>
 
           {/* Chart placeholder */}
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl h-48 animate-pulse" />
+          <SkeletonCard>
+            <div className="h-48 animate-pulse" />
+          </SkeletonCard>
         </>
       )}
     </div>
