@@ -1,8 +1,9 @@
 import Skeleton from "../ui/Skeleton.jsx";
+import { SkeletonCard } from "./_chrome.jsx";
 
 export default function NewsCardSkeleton() {
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
+    <SkeletonCard railClass="bg-transparent">
       <Skeleton className="aspect-[16/9] w-full rounded-none" />
       <div className="p-4 flex flex-col gap-2.5">
         <Skeleton className="h-4 w-full" />
@@ -12,6 +13,6 @@ export default function NewsCardSkeleton() {
           <Skeleton className="h-3 w-16" />
         </div>
       </div>
-    </div>
+    </SkeletonCard>
   );
 }
