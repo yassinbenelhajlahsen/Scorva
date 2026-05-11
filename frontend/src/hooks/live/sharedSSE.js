@@ -28,7 +28,7 @@ function openConnection(url, state) {
     try {
       const parsed = JSON.parse(event.data);
       const next = state.accumulate
-        ? state.accumulate(state.lastSnapshot?.data, parsed)
+        ? state.accumulate(state.pendingPayload ?? state.lastSnapshot?.data, parsed)
         : parsed;
       state.pendingPayload = next;
       if (!state.throttleTimer) {

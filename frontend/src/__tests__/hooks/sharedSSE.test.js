@@ -333,6 +333,37 @@ describe("sharedSSE", () => {
       vi.useRealTimers();
     });
 
+    it("aggregates in-window messages without losing intermediate partials", async () => {
+      vi.useFakeTimers();
+      const accumulate = (prev, patch) => {
+        const next = new Map(prev ?? []);
+        next.set(patch.id, { ...next.get(patch.id), ...patch });
+        return next;
+      };
+      const snapshots = [];
+      subscribeSSE(
+        "http://test/window",
+        { fetchFallback: () => Promise.resolve(), accumulate },
+        (s) => snapshots.push(s),
+      );
+      const es = MockEventSource.instances[0];
+
+      // Three messages within the same throttle window (no timer advance between).
+      es.dispatchMessage({ id: 1, score: 5 });
+      es.dispatchMessage({ id: 2, score: 7 });
+      es.dispatchMessage({ id: 1, score: 9 });
+
+      // Drain the throttle.
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const last = snapshots.at(-1).data;
+      expect(last).toBeInstanceOf(Map);
+      expect(last.size).toBe(2);
+      expect(last.get(1)).toEqual({ id: 1, score: 9 });
+      expect(last.get(2)).toEqual({ id: 2, score: 7 });
+      vi.useRealTimers();
+    });
+
     it("falls back to raw payload when no accumulate option provided (existing behavior)", async () => {
       vi.useFakeTimers();
       const snapshots = [];
