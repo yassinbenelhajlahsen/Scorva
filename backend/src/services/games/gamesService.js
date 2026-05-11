@@ -235,6 +235,15 @@ export async function getGames(league, { teamId, season, date, live } = {}) {
   });
 }
 
+export async function getLiveGamePartial(league, eventid) {
+  const { rows } = await pool.query(
+    `SELECT id, status, homescore, awayscore, current_period, clock
+     FROM games WHERE league = $1 AND eventid = $2`,
+    [league, eventid]
+  );
+  return rows[0] ?? null;
+}
+
 export async function getGameDates(league, season) {
   const resolvedSeason = season || (await getCurrentSeason(league));
   const key = `gameDates:${league}:${resolvedSeason}`;

@@ -19,11 +19,11 @@ export function useTeamNextGame(league, teamId, { enabled = true } = {}) {
   // so the next-scheduled game replaces it.
   const game = query.data;
   const isLive = game?.kind === "live";
-  const { liveGames } = useLiveGames(isLive ? league : null);
+  const { liveGamesMap } = useLiveGames(isLive ? league : null);
 
   useEffect(() => {
-    if (!isLive || !liveGames || !game?.id) return;
-    const fresh = liveGames.find((g) => g.id === game.id);
+    if (!isLive || !liveGamesMap || !game?.id) return;
+    const fresh = liveGamesMap.get(game.id);
     if (!fresh) return;
 
     if (fresh.status?.includes("Final")) {
@@ -47,7 +47,7 @@ export function useTeamNextGame(league, teamId, { enabled = true } = {}) {
         };
       },
     );
-  }, [liveGames, isLive, game?.id, league, teamId, queryClient]);
+  }, [liveGamesMap, isLive, game?.id, league, teamId, queryClient]);
 
   return {
     nextGame: query.data ?? null,

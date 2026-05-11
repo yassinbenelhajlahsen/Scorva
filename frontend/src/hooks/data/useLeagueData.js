@@ -19,6 +19,11 @@ function hasActiveGame(games) {
   });
 }
 
+function mergeByMap(arr, map) {
+  if (!map || map.size === 0) return arr;
+  return arr.map((g) => (map.has(g.id) ? { ...g, ...map.get(g.id) } : g));
+}
+
 export function useLeagueData(league, selectedSeason, selectedDate) {
   const queryClient = useQueryClient();
   const [displayData, setDisplayData] = useState(false);
@@ -72,30 +77,19 @@ export function useLeagueData(league, selectedSeason, selectedDate) {
     ? league
     : null;
 
-  const { liveGames } = useLiveGames(sseLeague);
+  const { liveGamesMap } = useLiveGames(sseLeague);
 
-  // Push SSE updates into the games query cache.
-  // The live SSE endpoint serves the home/league default slate, which
-  // back-fills with future scheduled games to reach LIMIT 12. When the
-  // caller asked for a specific date, drop those future-date rows so the
-  // date-keyed cache stays restricted to that date.
   useEffect(() => {
-    if (!liveGames || !sseLeague) return;
-    let payload = liveGames;
-    if (selectedDate) {
-      payload = liveGames.filter((g) => {
-        const d = typeof g.date === "string" ? g.date.slice(0, 10) : "";
-        return d === selectedDate;
-      });
-    }
-    const updated = selectedDate
-      ? { games: payload, resolvedDate, resolvedSeason }
-      : payload;
+    if (!liveGamesMap || !sseLeague) return;
     queryClient.setQueryData(
       queryKeys.leagueGames(league, selectedSeason, selectedDate),
-      updated
+      (prev) => {
+        if (!prev) return prev;
+        if (Array.isArray(prev)) return mergeByMap(prev, liveGamesMap);
+        return { ...prev, games: mergeByMap(prev.games ?? [], liveGamesMap) };
+      },
     );
-  }, [liveGames, sseLeague, queryClient, league, selectedSeason, selectedDate, resolvedDate, resolvedSeason]);
+  }, [liveGamesMap, sseLeague, queryClient, league, selectedSeason, selectedDate]);
 
   // Preserve 50ms display delay for animation timing
   useEffect(() => {

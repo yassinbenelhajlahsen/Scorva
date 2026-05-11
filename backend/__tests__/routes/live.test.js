@@ -131,105 +131,29 @@ describe("streamGames", () => {
     expect(res.written[0]).toBe("retry: 30000\n\n");
   });
 
-  it("sends data event with game list on first tick", async () => {
-    const liveGame = makeLiveGame();
-    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
-
+  it("does not push an initial data: frame before any notification", async () => {
     const req = makeReq({ league: "nba" });
     const res = makeRes();
     await streamGames(req, res);
 
-    const dataFrame = res.written.find((w) => w.startsWith("data:"));
-    expect(dataFrame).toBeDefined();
-    const parsed = JSON.parse(dataFrame.replace("data: ", "").replace("\n\n", ""));
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed[0].status).toBe("In Progress");
+    expect(res.written.find((w) => w.startsWith("data:"))).toBeUndefined();
+    expect(mockPool.query).not.toHaveBeenCalled();
   });
 
-  it("skips EXISTS check by passing live: true (single query per tick)", async () => {
-    const liveGame = makeLiveGame();
-    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
-
+  it("never emits event: done for terminal slates (frontend handles teardown)", async () => {
     const req = makeReq({ league: "nba" });
     const res = makeRes();
     await streamGames(req, res);
 
-    expect(mockPool.query).toHaveBeenCalledTimes(1);
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.not.stringContaining("EXISTS"),
-      expect.any(Array)
-    );
-  });
-
-  it("sends event: done and ends stream when slate is all terminal", async () => {
-    const finalGame = { ...fixtures.game(), status: "Final" };
-    const postponed = { ...fixtures.game(), status: "Postponed" };
-    const canceled = { ...fixtures.game(), status: "Canceled" };
-    mockPool.query.mockResolvedValueOnce({
-      rows: [finalGame, postponed, canceled],
-    });
-
-    const req = makeReq({ league: "nba" });
-    const res = makeRes();
-    await streamGames(req, res);
-
-    expect(res.written).toContain("event: done\ndata: final\n\n");
-    expect(res.end).toHaveBeenCalled();
-  });
-
-  it("sends event: done and ends stream when slate is empty", async () => {
+    // Simulate a notification with no matching live game (partial returns null).
     mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-    const req = makeReq({ league: "nba" });
-    const res = makeRes();
-    await streamGames(req, res);
-
-    expect(res.written).toContain("event: done\ndata: final\n\n");
-    expect(res.end).toHaveBeenCalled();
-  });
-
-  it("keeps stream open when games are at Halftime", async () => {
-    const halftimeGame = { ...fixtures.game(), status: "Halftime" };
-    mockPool.query.mockResolvedValueOnce({ rows: [halftimeGame] });
-
-    const req = makeReq({ league: "nba" });
-    const res = makeRes();
-    await streamGames(req, res);
-
-    expect(res.written).not.toContain("event: done\ndata: final\n\n");
-    expect(res.end).not.toHaveBeenCalled();
-  });
-
-  it("keeps stream open for a Scheduled-only slate so tip-offs are caught", async () => {
-    const scheduled = { ...fixtures.game(), status: "Scheduled" };
-    mockPool.query.mockResolvedValueOnce({ rows: [scheduled, scheduled] });
-
-    const req = makeReq({ league: "nba" });
-    const res = makeRes();
-    await streamGames(req, res);
-
-    expect(res.written).not.toContain("event: done\ndata: final\n\n");
-    expect(res.end).not.toHaveBeenCalled();
-    expect(res.written.find((w) => w.startsWith("data:"))).toBeDefined();
-  });
-
-  it("keeps stream open for a mixed slate (scheduled + final)", async () => {
-    const scheduled = { ...fixtures.game(), status: "Scheduled" };
-    const finalGame = { ...fixtures.game(), status: "Final" };
-    mockPool.query.mockResolvedValueOnce({ rows: [scheduled, finalGame] });
-
-    const req = makeReq({ league: "nba" });
-    const res = makeRes();
-    await streamGames(req, res);
+    await Promise.all(subscribedCallbacks.map((cb) => cb({ channel: "game_updated", payload: "401705234" })));
 
     expect(res.written).not.toContain("event: done\ndata: final\n\n");
     expect(res.end).not.toHaveBeenCalled();
   });
 
   it("subscribes to notificationBus on setup", async () => {
-    const liveGame = makeLiveGame();
-    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
-
     const req = makeReq({ league: "nba" });
     const res = makeRes();
     await streamGames(req, res);
@@ -238,30 +162,60 @@ describe("streamGames", () => {
     expect(mockSubscribe).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  it("pushes data on notification", async () => {
-    const liveGame = makeLiveGame();
-    mockPool.query
-      .mockResolvedValueOnce({ rows: [liveGame] })  // initial send
-      .mockResolvedValueOnce({ rows: [liveGame] }); // notification-triggered send
+  it("emits one partial per notification using msg.payload as eventid", async () => {
+    const liveGame = makeLiveGame({ id: 42, eventid: "401705234" });
+    // getLiveGamePartial query path: a single SELECT keyed by eventid.
+    mockPool.query.mockResolvedValueOnce({ rows: [liveGame] });
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
     await streamGames(req, res);
 
     const framesBefore = res.written.filter((w) => w.startsWith("data:")).length;
+    expect(framesBefore).toBe(0);
 
-    await fireNotification();
+    await Promise.all(
+      subscribedCallbacks.map((cb) =>
+        cb({ channel: "game_updated", payload: "401705234" }),
+      ),
+    );
 
     const framesAfter = res.written.filter((w) => w.startsWith("data:")).length;
-    expect(framesAfter).toBeGreaterThan(framesBefore);
+    expect(framesAfter).toBe(1);
   });
 
-  it("does not crash on DB error", async () => {
+  it("skips emit when the partial is null (eventid not in this league)", async () => {
+    mockPool.query.mockResolvedValueOnce({ rows: [] }); // no row → partial is null
+
+    const req = makeReq({ league: "nba" });
+    const res = makeRes();
+    await streamGames(req, res);
+
+    await Promise.all(
+      subscribedCallbacks.map((cb) =>
+        cb({ channel: "game_updated", payload: "999999" }),
+      ),
+    );
+
+    const dataFrames = res.written.filter((w) => w.startsWith("data:"));
+    expect(dataFrames).toHaveLength(0);
+  });
+
+  it("does not crash on DB error during notification handling", async () => {
     mockPool.query.mockRejectedValueOnce(new Error("DB down"));
 
     const req = makeReq({ league: "nba" });
     const res = makeRes();
-    await expect(streamGames(req, res)).resolves.toBeUndefined();
+    await streamGames(req, res);
+
+    await expect(
+      Promise.all(
+        subscribedCallbacks.map((cb) =>
+          cb({ channel: "game_updated", payload: "1" }),
+        ),
+      ),
+    ).resolves.toBeDefined();
+    expect(res.end).toHaveBeenCalled();
   });
 
   it("unsubscribes from notificationBus on close", async () => {

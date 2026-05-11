@@ -18,7 +18,7 @@ const mockGames = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useLiveGames.mockReturnValue({ liveGames: null });
+  useLiveGames.mockReturnValue({ liveGamesMap: null });
 });
 
 describe("useHomeGames", () => {
@@ -97,22 +97,65 @@ describe("useHomeGames", () => {
     );
   });
 
-  it("updates games with liveGames data when available", async () => {
-    getAllLeagueGames.mockResolvedValue(mockGames);
-    useLiveGames.mockReturnValue({ liveGames: null });
+  it("merges liveGamesMap partials into games by id, preserving non-live rows", async () => {
+    const initial = {
+      nba: [
+        { id: 1, status: "Final", homescore: 100, awayscore: 99, home_team_name: "Lakers" },
+        { id: 2, status: "In Progress", homescore: 50, awayscore: 48, home_team_name: "Suns" },
+      ],
+      nhl: [{ id: 10, status: "Final", home_team_name: "Bruins" }],
+      nfl: [{ id: 20, status: "Final", home_team_name: "49ers" }],
+    };
+    getAllLeagueGames.mockResolvedValue(initial);
+    useLiveGames.mockReturnValue({ liveGamesMap: null });
 
     const { result, rerender } = renderHook(() => useHomeGames(), {
       wrapper: createWrapper(),
     });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const liveNba = [{ id: 1, status: "In Progress", score: "55-50" }];
-    useLiveGames.mockReturnValue({ liveGames: liveNba });
+    const liveNbaMap = new Map([
+      [2, { id: 2, status: "In Progress - Q3", homescore: 55, awayscore: 51, current_period: 3, clock: "5:42" }],
+    ]);
+    useLiveGames.mockReturnValue({ liveGamesMap: liveNbaMap });
     rerender();
 
-    await waitFor(() =>
-      expect(result.current.games.nba).toEqual(liveNba)
-    );
+    await waitFor(() => {
+      const updated = result.current.games.nba.find((g) => g.id === 2);
+      return updated.status === "In Progress - Q3" && updated.homescore === 55;
+    });
+    // Non-live row untouched (Final)
+    expect(result.current.games.nba.find((g) => g.id === 1)).toMatchObject({
+      id: 1, status: "Final", homescore: 100, home_team_name: "Lakers",
+    });
+    // Merged row keeps non-volatile field (home_team_name)
+    expect(result.current.games.nba.find((g) => g.id === 2)).toMatchObject({
+      id: 2, status: "In Progress - Q3", homescore: 55, home_team_name: "Suns",
+    });
+  });
+
+  it("ignores partials whose id is not in the slate", async () => {
+    const initial = {
+      nba: [{ id: 1, status: "Final" }],
+      nhl: [],
+      nfl: [],
+    };
+    getAllLeagueGames.mockResolvedValue(initial);
+    useLiveGames.mockReturnValue({ liveGamesMap: null });
+
+    const { result, rerender } = renderHook(() => useHomeGames(), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    useLiveGames.mockReturnValue({
+      liveGamesMap: new Map([[999, { id: 999, status: "In Progress" }]]),
+    });
+    rerender();
+
+    // Slate untouched.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(result.current.games.nba).toEqual([{ id: 1, status: "Final" }]);
   });
 
   it("refetches on visibilitychange→visible", async () => {

@@ -1,4 +1,4 @@
-import { getGames } from "../../services/games/gamesService.js";
+import { getLiveGamePartial } from "../../services/games/gamesService.js";
 import { getNbaGame, getNflGame, getNhlGame } from "../../services/games/gameDetailService.js";
 import { subscribe, unsubscribe } from "../../db/notificationBus.js";
 import logger from "../../logger.js";
@@ -12,16 +12,6 @@ const leagueHandlers = {
   nhl: getNhlGame,
 };
 
-function isTerminalStatus(status) {
-  return (
-    status.includes("Final") ||
-    status.includes("Postponed") ||
-    status.includes("Canceled") ||
-    status.includes("Cancelled") ||
-    status.includes("Suspended")
-  );
-}
-
 function setSSEHeaders(res) {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -34,43 +24,40 @@ function setSSEHeaders(res) {
 
 export async function streamGames(req, res) {
   const { league } = req.params;
-  if (!VALID_LEAGUES.includes(league?.toLowerCase())) {
+  const lcLeague = league?.toLowerCase();
+  if (!VALID_LEAGUES.includes(lcLeague)) {
     return res.status(400).json({ error: "Invalid league" });
   }
 
   setSSEHeaders(res);
 
   let heartbeat;
+  let cleanedUp = false;
 
-  async function send() {
+  async function onNotification(msg) {
     if (res.writableEnded) return;
+    const eventid = msg?.payload;
+    if (!eventid) return;
     try {
-      const games = await getGames(league.toLowerCase(), { live: true });
+      const partial = await getLiveGamePartial(lcLeague, eventid);
       if (res.writableEnded) return;
-      res.write(`data: ${JSON.stringify(games)}\n\n`);
-      const allTerminal =
-        games.length === 0 || games.every((g) => isTerminalStatus(g.status));
-      if (allTerminal) {
-        res.write("event: done\ndata: final\n\n");
-        cleanup();
-        res.end();
-      }
+      if (!partial) return; // wrong league / unknown eventid
+      res.write(`data: ${JSON.stringify(partial)}\n\n`);
     } catch (err) {
-      logger.error({ err }, "SSE streamGames error");
+      logger.error({ err }, "SSE streamGames notification error");
       cleanup();
       if (!res.writableEnded) res.end();
     }
   }
 
   async function cleanup() {
+    if (cleanedUp) return;
+    cleanedUp = true;
     clearInterval(heartbeat);
-    await unsubscribe(send);
+    await unsubscribe(onNotification);
   }
 
-  await subscribe(send);
-
-  await send();
-  if (res.writableEnded) { await cleanup(); return; }
+  await subscribe(onNotification);
 
   heartbeat = setInterval(() => {
     if (!res.writableEnded) res.write(": ping\n\n");

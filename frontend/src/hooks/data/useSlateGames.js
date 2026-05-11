@@ -40,21 +40,22 @@ export function useSlateGames(league, { enabled = true } = {}) {
   // SSE subscription gated on active-or-upcoming games (live or scheduled today)
   // so a Scheduled game flips to In Progress without a manual refresh.
   const sseLeague = enabled && hasActiveGame(games) ? league : null;
-  const { liveGames } = useLiveGames(sseLeague);
+  const { liveGamesMap } = useLiveGames(sseLeague);
 
-  // Fold SSE updates back into the same cache key the query uses, so the rail
-  // updates without refetching. Mirrors useLeagueData's pump.
   useEffect(() => {
-    if (!liveGames || !sseLeague) return;
-    const payload = liveGames.filter((g) => {
-      const d = typeof g.date === "string" ? g.date.slice(0, 10) : "";
-      return d === slateDate;
-    });
+    if (!liveGamesMap || liveGamesMap.size === 0 || !sseLeague) return;
     queryClient.setQueryData(
       queryKeys.leagueGames(league, null, slateDate),
-      { games: payload, resolvedDate, resolvedSeason: null }
+      (prev) => {
+        if (!prev) return prev;
+        const arr = Array.isArray(prev) ? prev : prev.games ?? [];
+        const merged = arr.map((g) =>
+          liveGamesMap.has(g.id) ? { ...g, ...liveGamesMap.get(g.id) } : g
+        );
+        return Array.isArray(prev) ? merged : { ...prev, games: merged };
+      },
     );
-  }, [liveGames, sseLeague, queryClient, league, slateDate, resolvedDate]);
+  }, [liveGamesMap, sseLeague, queryClient, league, slateDate]);
 
   // Refresh REST snapshot when the tab becomes visible again — covers stale
   // data after the OS suspended the SSE on a backgrounded PWA tab.

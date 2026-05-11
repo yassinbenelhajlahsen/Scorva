@@ -1,93 +1,58 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { getLiveGamesUrl, getLeagueGames } from "../../api/games.js";
 import { useVisibilityReconnect } from "./useVisibilityReconnect.js";
+import { subscribeSSE, forceReconnect } from "./sharedSSE.js";
 
-const MAX_FAILURES = 3;
-const POLL_INTERVAL_MS = 30_000;
+const VOLATILE_FIELDS = ["id", "status", "homescore", "awayscore", "current_period", "clock"];
+
+function projectVolatile(row) {
+  const out = {};
+  for (const k of VOLATILE_FIELDS) out[k] = row[k];
+  return out;
+}
+
+function accumulate(prev, next) {
+  const map = new Map(prev ?? []);
+  if (Array.isArray(next)) {
+    // fetchFallback path — full Game[] from REST.
+    for (const row of next) {
+      if (row?.id == null) continue;
+      const partial = projectVolatile(row);
+      map.set(row.id, { ...map.get(row.id), ...partial });
+    }
+  } else if (next && typeof next === "object" && next.id != null) {
+    map.set(next.id, { ...map.get(next.id), ...next });
+  }
+  return map;
+}
 
 export function useLiveGames(league) {
-  const [liveGames, setLiveGames] = useState(null);
+  const [liveGamesMap, setLiveGamesMap] = useState(null);
   const [streamError, setStreamError] = useState(false);
-  const [reconnectKey, setReconnectKey] = useState(0);
 
-  const esRef = useRef(null);
-  const pollRef = useRef(null);
-  const failureCount = useRef(0);
-  const pendingRef = useRef(null);
-  const throttleRef = useRef(null);
-
-  // On tab return, force a reconnect — mobile PWAs and desktop sleep often
-  // leave the EventSource silently dead even though readyState reports OPEN.
   useVisibilityReconnect(() => {
-    if (!league) return;
-    setReconnectKey((k) => k + 1);
+    if (league) forceReconnect(getLiveGamesUrl(league));
   }, !!league);
 
   useEffect(() => {
     if (!league) {
-      setLiveGames(null);
-      return;
+      setLiveGamesMap(null);
+      setStreamError(false);
+      return undefined;
     }
+    const url = getLiveGamesUrl(league);
+    return subscribeSSE(
+      url,
+      {
+        fetchFallback: () => getLeagueGames(league),
+        accumulate,
+      },
+      ({ data, streamError: e }) => {
+        if (data !== undefined) setLiveGamesMap(data);
+        if (e !== undefined) setStreamError(e);
+      },
+    );
+  }, [league]);
 
-    function startPollingFallback() {
-      setStreamError(true);
-      pollRef.current = setInterval(async () => {
-        try {
-          const games = await getLeagueGames(league);
-          setLiveGames(games);
-        } catch {
-          // silently continue
-        }
-      }, POLL_INTERVAL_MS);
-    }
-
-    function cleanup() {
-      if (esRef.current) {
-        esRef.current.close();
-        esRef.current = null;
-      }
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-      clearTimeout(throttleRef.current);
-      throttleRef.current = null;
-    }
-
-    const es = new EventSource(getLiveGamesUrl(league));
-    esRef.current = es;
-    failureCount.current = 0;
-
-    es.onmessage = (event) => {
-      failureCount.current = 0;
-      try {
-        pendingRef.current = JSON.parse(event.data);
-        if (!throttleRef.current) {
-          throttleRef.current = setTimeout(() => {
-            if (pendingRef.current) {
-              setLiveGames(pendingRef.current);
-              pendingRef.current = null;
-            }
-            throttleRef.current = null;
-          }, 1000);
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
-
-    es.addEventListener("done", () => {
-      cleanup();
-    });
-
-    es.onerror = () => {
-      failureCount.current += 1;
-      if (failureCount.current >= MAX_FAILURES) {
-        cleanup();
-        startPollingFallback();
-      }
-    };
-
-    return cleanup;
-  }, [league, reconnectKey]);
-
-  return { liveGames, streamError };
+  return { liveGamesMap, streamError };
 }

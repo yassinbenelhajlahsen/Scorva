@@ -16,7 +16,7 @@ const { useSlateGames } = await import("../../hooks/data/useSlateGames.js");
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useLiveGames.mockReturnValue({ liveGames: null });
+  useLiveGames.mockReturnValue({ liveGamesMap: null });
 });
 
 describe("useSlateGames", () => {
@@ -149,5 +149,36 @@ describe("useSlateGames", () => {
     await waitFor(() => expect(getLeagueGames).toHaveBeenCalled());
     const lastCall = useLiveGames.mock.calls.at(-1);
     expect(lastCall?.[0]).toBe(null);
+  });
+
+  it("merges liveGamesMap partials into games by id", async () => {
+    getLeagueGames.mockResolvedValue({
+      games: [
+        { id: 1, status: "In Progress", homescore: 50, awayscore: 48, home_team_name: "Suns" },
+        { id: 2, status: "Final", homescore: 100, awayscore: 99 },
+      ],
+      resolvedDate: "2026-05-02",
+    });
+    useLiveGames.mockReturnValue({
+      liveGamesMap: new Map([
+        [1, { id: 1, status: "In Progress - Q3", homescore: 55, awayscore: 51, current_period: 3, clock: "5:42" }],
+      ]),
+    });
+
+    const { result } = renderHook(() => useSlateGames("nba"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      const live = result.current.games.find((g) => g.id === 1);
+      expect(live?.status).toBe("In Progress - Q3");
+      expect(live?.homescore).toBe(55);
+    });
+    expect(result.current.games.find((g) => g.id === 1)).toMatchObject({
+      id: 1, home_team_name: "Suns", current_period: 3,
+    });
+    expect(result.current.games.find((g) => g.id === 2)).toMatchObject({
+      id: 2, status: "Final", homescore: 100,
+    });
   });
 });
