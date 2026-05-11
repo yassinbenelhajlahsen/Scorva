@@ -87,6 +87,27 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
                     <p className="text-text-tertiary text-xs">No recent games</p>
                   ) : (
                     <>
+                      {showNext && (
+                        <Link
+                          to={`/${team.league}/games/${nextGame.id}`}
+                          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
+                        >
+                          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-tertiary shrink-0">
+                            Next
+                          </span>
+                          <span className="text-text-secondary shrink-0">{nextIsHome ? "vs" : "@"}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {nextOpponentLogo && (
+                              <img src={nextOpponentLogo} alt="" className="w-4 h-4 object-contain" />
+                            )}
+                            <span className="text-text-secondary">{nextOpponentShort}</span>
+                          </div>
+                          <span className="ml-auto text-text-tertiary whitespace-nowrap">
+                            {formatDateShort(nextGame.date)}
+                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
+                          </span>
+                        </Link>
+                      )}
                       {recentGames.map((game) => {
                         const homeScore = game.homescore ?? game.home_score;
                         const awayScore = game.awayscore ?? game.away_score;
@@ -115,27 +136,6 @@ export default function FavoriteTeamsSection({ teams, compact = false, onRemove 
                           </Link>
                         );
                       })}
-                      {showNext && (
-                        <Link
-                          to={`/${team.league}/games/${nextGame.id}`}
-                          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-xs"
-                        >
-                          <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-tertiary shrink-0">
-                            Next
-                          </span>
-                          <span className="text-text-secondary shrink-0">{nextIsHome ? "vs" : "@"}</span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {nextOpponentLogo && (
-                              <img src={nextOpponentLogo} alt="" className="w-4 h-4 object-contain" />
-                            )}
-                            <span className="text-text-secondary">{nextOpponentShort}</span>
-                          </div>
-                          <span className="ml-auto text-text-tertiary whitespace-nowrap">
-                            {formatDateShort(nextGame.date)}
-                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
-                          </span>
-                        </Link>
-                      )}
                     </>
                   )}
                 </div>
