@@ -2,6 +2,7 @@ import pool from "../../db/db.js";
 import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 import { gradeFromRaw } from "./ratingEngine.js";
+import { teamGradeFromRaw, gameGradeFromRaw } from "./ratingAggregates.js";
 import { getPlayerIdBySlug } from "../../utils/slugResolver.js";
 
 const TTL_BY_WINDOW = {
@@ -551,7 +552,7 @@ function shapeTeamGameRow(r) {
             : null),
     },
     rating: round1(rating),
-    ratingGrade: round1(gradeFromRaw(rating)),
+    ratingGrade: round1(teamGradeFromRaw(rating)),
   };
 }
 
@@ -576,9 +577,9 @@ function shapeGameRatingRow(r) {
   const gameRaw = Number(r.game_rating);
   const homeRaw = r.home_rating == null ? null : Number(r.home_rating);
   const awayRaw = r.away_rating == null ? null : Number(r.away_rating);
-  const homeGrade = homeRaw == null ? null : round1(gradeFromRaw(homeRaw));
-  const awayGrade = awayRaw == null ? null : round1(gradeFromRaw(awayRaw));
-  const gameGrade = round1(gradeFromRaw(gameRaw));
+  const homeGrade = homeRaw == null ? null : round1(teamGradeFromRaw(homeRaw));
+  const awayGrade = awayRaw == null ? null : round1(teamGradeFromRaw(awayRaw));
+  const gameGrade = round1(gameGradeFromRaw(gameRaw));
   return {
     game: {
       id: r.gameid, date: r.date,

@@ -1,5 +1,30 @@
 // backend/src/services/games/ratingAggregates.js
-import { gradeFromRaw } from "./ratingEngine.js";
+
+// Team/game ratings are sums of player ratings. The player-level sqrt curve in
+// ratingEngine.gradeFromRaw is calibrated for single-player raws (~10-50) and
+// saturates immediately at the aggregate scale. Calibrated against observed
+// 1,303 NBA Final games: team raw p50=145, p90=187, max≈250; game raw p50=280,
+// p90=349, max≈475. Linear scaling produces a usable spread:
+//   GAME_DIVISOR=50  → median game ~5.6, p90 ~7.0 ("Great"), top ~5% ≥8.5 ("Elite")
+//   TEAM_DIVISOR=25  → median team ~5.8, p90 ~7.5, top ~5% ≥8.5
+const GAME_DIVISOR = 50;
+const TEAM_DIVISOR = 25;
+
+export function gameGradeFromRaw(raw) {
+  if (raw == null) return null;
+  return clamp10(Number(raw) / GAME_DIVISOR);
+}
+
+export function teamGradeFromRaw(raw) {
+  if (raw == null) return null;
+  return clamp10(Number(raw) / TEAM_DIVISOR);
+}
+
+function clamp10(v) {
+  if (v > 10) return 10;
+  if (v < -10) return -10;
+  return v;
+}
 
 /**
  * Aggregate per-game team + game ratings from stats.rating.
@@ -38,9 +63,9 @@ export async function ratingsForGames(client, gameIds) {
     const homeRaw = r.home_rating == null ? null : Number(r.home_rating);
     const awayRaw = r.away_rating == null ? null : Number(r.away_rating);
     const gameRaw = r.game_rating == null ? null : Number(r.game_rating);
-    const homeGrade = homeRaw == null ? null : round1(gradeFromRaw(homeRaw));
-    const awayGrade = awayRaw == null ? null : round1(gradeFromRaw(awayRaw));
-    const gameGrade = gameRaw == null ? null : round1(gradeFromRaw(gameRaw));
+    const homeGrade = homeRaw == null ? null : round1(teamGradeFromRaw(homeRaw));
+    const awayGrade = awayRaw == null ? null : round1(teamGradeFromRaw(awayRaw));
+    const gameGrade = gameRaw == null ? null : round1(gameGradeFromRaw(gameRaw));
     const label = gameGrade == null ? null : tierLabel({
       gameGrade, homeGrade, awayGrade,
       status: r.status, homeScore: r.homescore, awayScore: r.awayscore,

@@ -26,40 +26,41 @@ describe("ratingsForGames", () => {
     mockPool.query.mockResolvedValueOnce({
       rows: [{
         gameid: 7,
-        home_rating: "18.4",
-        away_rating: "16.2",
-        game_rating: "34.6",
+        home_rating: "147.5",
+        away_rating: "132.5",
+        game_rating: "280.0",
         status: "Final",
         homescore: 118, awayscore: 115,
       }],
     });
     const map = await ratingsForGames(mockPool, [7]);
     const r = map.get(7);
-    expect(r.gameRating).toBe(34.6);
-    expect(r.homeTeamRating).toBe(18.4);
-    expect(r.awayTeamRating).toBe(16.2);
-    expect(r.gameGrade).toBeGreaterThan(0);
-    expect(r.homeGrade).toBeGreaterThan(0);
-    expect(r.awayGrade).toBeGreaterThan(0);
-    // game_grade for raw 34.6 with GRADE_COEFFICIENT 0.92 → 0.92 * sqrt(34.6) ≈ 5.41
-    expect(r.gameGrade).toBeCloseTo(5.4, 1);
+    expect(r.gameRating).toBe(280);
+    expect(r.homeTeamRating).toBe(147.5);
+    expect(r.awayTeamRating).toBe(132.5);
+    // Linear: game_grade = 280/50 = 5.6; team_grade = raw/25.
+    expect(r.gameGrade).toBeCloseTo(5.6, 1);
+    expect(r.homeGrade).toBeCloseTo(5.9, 1);
+    expect(r.awayGrade).toBeCloseTo(5.3, 1);
   });
 
   test("handles single-team aggregate (one side null)", async () => {
     mockPool.query.mockResolvedValueOnce({
       rows: [{
         gameid: 9,
-        home_rating: "8.0",
+        home_rating: "40.0",
         away_rating: null,
-        game_rating: "8.0",
+        game_rating: "40.0",
         status: "In Progress - Q1",
         homescore: 0, awayscore: 0,
       }],
     });
     const r = (await ratingsForGames(mockPool, [9])).get(9);
-    expect(r.homeTeamRating).toBe(8.0);
+    expect(r.homeTeamRating).toBe(40);
     expect(r.awayTeamRating).toBeNull();
     expect(r.awayGrade).toBeNull();
+    // 40/25 = 1.6
+    expect(r.homeGrade).toBeCloseTo(1.6, 1);
   });
 });
 
