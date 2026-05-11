@@ -237,7 +237,7 @@ export default function TeamComparison({ homeTeam, awayTeam, league, homeRating,
           <h3 className="text-2xl font-bold tracking-tight text-text-primary mt-1">Season Averages</h3>
         </div>
 
-        <div className="flex items-center gap-4 py-4 mt-4 border-y border-white/[0.06]">
+        <div className="flex items-center gap-4 py-4 mt-4 border-t border-white/[0.06] mb-2">
           <TeamHeader team={homeTeam} align="left" />
           <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
             vs
