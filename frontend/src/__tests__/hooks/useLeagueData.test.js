@@ -16,7 +16,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getLeagueGames.mockResolvedValue([]);
   getStandings.mockResolvedValue([]);
-  useLiveGames.mockReturnValue({ liveGames: null });
+  useLiveGames.mockReturnValue({ liveGamesMap: null });
 });
 
 describe("useLeagueData — response shape handling", () => {
@@ -232,29 +232,59 @@ describe("useLeagueData — SSE activation", () => {
   });
 });
 
-describe("useLeagueData — SSE payload filter", () => {
-  it("filters live SSE payload to selectedDate when set", async () => {
+describe("useLeagueData — SSE merge by id", () => {
+  it("merges liveGamesMap partials into games by id, keeping non-live rows", async () => {
     const todayET = new Date().toLocaleDateString("en-CA", {
       timeZone: "America/New_York",
     });
     getLeagueGames.mockResolvedValue({
-      games: [{ id: 1, status: "In Progress", date: `${todayET}T00:00:00.000Z` }],
+      games: [
+        { id: 1, status: "In Progress", homescore: 50, awayscore: 48, home_team_name: "Suns" },
+        { id: 2, status: "Final", homescore: 100, awayscore: 99, home_team_name: "Lakers" },
+      ],
       resolvedDate: todayET,
       resolvedSeason: "2025-26",
     });
     useLiveGames.mockReturnValue({
-      liveGames: [
-        { id: 1, status: "In Progress", date: `${todayET}T00:00:00.000Z` },
-        { id: 2, status: "Scheduled", date: "2099-12-31T00:00:00.000Z" },
-      ],
+      liveGamesMap: new Map([
+        [1, { id: 1, status: "In Progress - Q3", homescore: 55, awayscore: 51, current_period: 3, clock: "5:42" }],
+      ]),
     });
 
     const { result } = renderHook(() => useLeagueData("nba", null, todayET), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.games.length).toBe(1));
-    expect(result.current.games[0].id).toBe(1);
+    await waitFor(() => {
+      const live = result.current.games.find((g) => g.id === 1);
+      expect(live?.status).toBe("In Progress - Q3");
+      expect(live?.homescore).toBe(55);
+    });
+    // Non-volatile field preserved on the merged row
+    expect(result.current.games.find((g) => g.id === 1)).toMatchObject({
+      id: 1, home_team_name: "Suns", current_period: 3, clock: "5:42",
+    });
+    // Final row untouched
+    expect(result.current.games.find((g) => g.id === 2)).toMatchObject({
+      id: 2, status: "Final", homescore: 100, home_team_name: "Lakers",
+    });
+  });
+
+  it("ignores partials whose id is not in the slate", async () => {
+    const todayET = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
+    getLeagueGames.mockResolvedValue([{ id: 1, status: "Final" }]);
+    useLiveGames.mockReturnValue({
+      liveGamesMap: new Map([[999, { id: 999, status: "In Progress" }]]),
+    });
+
+    const { result } = renderHook(() => useLeagueData("nba", null, null), {
+      wrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.displayData).toBe(true));
+
+    expect(result.current.games).toEqual([{ id: 1, status: "Final" }]);
   });
 });
 
