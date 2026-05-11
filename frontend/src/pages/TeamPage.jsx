@@ -7,6 +7,7 @@ import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import RosterGrid from "../components/team/RosterGrid.jsx";
 import TeamHighlightsTab from "../components/team/TeamHighlightsTab.jsx";
+import TeamRankings from "../components/team/TeamRankings.jsx";
 import RosterGridSkeleton from "../components/skeletons/RosterGridSkeleton.jsx";
 import StreakBadge from "../components/ui/StreakBadge.jsx";
 import NextGameCard from "../components/player/NextGameCard.jsx";
@@ -15,6 +16,7 @@ import { useStreak } from "../hooks/data/useStreak.js";
 import { useTeam } from "../hooks/data/useTeam.js";
 import { useTeamNextGame } from "../hooks/data/useTeamNextGame.js";
 import { useTeamRoster } from "../hooks/data/useTeamRoster.js";
+import { useTeamRankings } from "../hooks/data/useTeamRankings.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import { useSeasons } from "../hooks/data/useSeasons.js";
 import buildSeasonUrl from "../utils/buildSeasonUrl.js";
@@ -104,6 +106,7 @@ export default function TeamPage() {
   const { nextGame } = useTeamNextGame(league, team?.id, {
     enabled: isCurrentSeason && !!team?.id,
   });
+  const teamRankings = useTeamRankings(league, team?.id);
 
   useLayoutEffect(() => {
     const idx = TABS.indexOf(activeTab);
@@ -301,6 +304,13 @@ export default function TeamPage() {
                 </div>
               ))}
             </div>
+
+            {league === "nba" && (
+              <>
+                <div className="border-t border-white/[0.06]" />
+                <TeamRankings rankings={teamRankings} />
+              </>
+            )}
           </div>
         </div>
       </div>

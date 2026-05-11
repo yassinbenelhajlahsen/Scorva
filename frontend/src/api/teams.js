@@ -19,3 +19,7 @@ export function getTeamRoster(league, teamId, { season, signal } = {}) {
 export function getTeamNextGame(league, teamId, { signal } = {}) {
   return apiFetch(`/api/${league}/teams/${teamId}/next-game`, { signal });
 }
+
+export function getTeamRankings(league, teamId, { signal } = {}) {
+  return apiFetch(`/api/${league}/teams/${teamId}/rankings`, { signal });
+}
