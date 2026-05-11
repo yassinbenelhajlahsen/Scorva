@@ -90,18 +90,20 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
               className={[
                 "flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-all duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
                 isSelected
-                  ? "bg-accent"
+                  ? "bg-accent/15"
+                  : isToday && hasGames
+                  ? "ring-1 ring-accent/20 hover:ring-accent/40 hover:bg-white/[0.04] cursor-pointer"
                   : hasGames
-                  ? "hover:bg-white/[0.06] cursor-pointer"
+                  ? "hover:bg-white/[0.04] cursor-pointer"
                   : "cursor-not-allowed",
               ].join(" ")}
               aria-label={`${dayLabel} ${month}/${day}${isToday ? " (today)" : ""}${!hasGames ? " (no games)" : ""}`}
             >
               <span
                 className={[
-                  "text-[9px] font-semibold uppercase tracking-widest leading-none",
+                  "text-[9px] font-semibold uppercase tracking-[0.18em] leading-none",
                   isSelected
-                    ? "text-white/60"
+                    ? "text-accent/70"
                     : !hasGames
                     ? "text-text-tertiary/20"
                     : isToday
@@ -115,7 +117,7 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
                 className={[
                   "text-[13px] font-bold leading-none tabular-nums",
                   isSelected
-                    ? "text-white"
+                    ? "text-accent"
                     : !hasGames
                     ? "text-text-tertiary/20"
                     : isToday
@@ -130,7 +132,7 @@ export default function DateStrip({ selectedDate, onDateChange, gameDates, gameC
                   "text-[9px] font-medium tabular-nums leading-none",
                   hasGames && count > 0
                     ? isSelected
-                      ? "text-white/50"
+                      ? "text-accent/60"
                       : isToday
                       ? "text-text-tertiary"
                       : "text-text-tertiary/60"

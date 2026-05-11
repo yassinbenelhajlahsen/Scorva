@@ -31,10 +31,10 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
     : undefined;
 
   return (
-    <div className="bg-surface-elevated border border-white/[0.07] rounded-2xl mb-8">
+    <div className="mb-8">
       {/* Header row: month label + Today + Calendar */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/[0.05]">
-        <span className="text-xs font-semibold text-text-tertiary tracking-wider uppercase">
+      <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-white/[0.05]">
+        <span className="text-[10px] font-semibold text-text-tertiary tracking-[0.22em] uppercase">
           {displayMonth}
         </span>
 
@@ -47,10 +47,10 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
               className={[
                 "touch-target text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full transition-all duration-[220ms]",
                 isViewingDefault
-                  ? "text-accent bg-accent/10 cursor-default border border-transparent"
+                  ? "text-accent bg-accent/10 cursor-default ring-1 ring-transparent"
                   : todayHasGames
-                  ? "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] border border-white/[0.08]"
-                  : "text-text-tertiary/30 cursor-not-allowed border border-white/[0.04]",
+                  ? "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] ring-1 ring-white/[0.08]"
+                  : "text-text-tertiary/30 cursor-not-allowed ring-1 ring-white/[0.04]",
               ].join(" ")}
             >
               Today
@@ -94,15 +94,13 @@ export default function DateNavigation({ selectedDate, onDateChange, gameDates, 
       </div>
 
       {/* Strip row: full-width 7-day navigator */}
-      <div className="px-2 py-2">
-        <DateStrip
-          selectedDate={selectedDate}
-          onDateChange={onDateChange}
-          gameDates={gameDates}
-          gameCounts={gameCounts}
-          resetKey={resetKey}
-        />
-      </div>
+      <DateStrip
+        selectedDate={selectedDate}
+        onDateChange={onDateChange}
+        gameDates={gameDates}
+        gameCounts={gameCounts}
+        resetKey={resetKey}
+      />
     </div>
   );
 }

@@ -118,7 +118,7 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.95 }}
           transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute right-0 top-full mt-2 z-50 bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 select-none"
+          className="absolute right-0 top-full mt-2 z-50 bg-surface-elevated ring-1 ring-white/[0.08] rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 select-none"
           style={{ transformOrigin: "top right" }}
         >
           {/* Month header */}
@@ -126,20 +126,20 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
             <button
               onClick={prevMonth}
               disabled={prevMonthBlocked}
-              className="touch-target rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
+              className="touch-target rounded-full text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
               aria-label="Previous month"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <span className="text-sm font-semibold text-text-primary">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
               {MONTH_NAMES[viewMonth]} {viewYear}
             </span>
             <button
               onClick={nextMonth}
               disabled={nextMonthBlocked}
-              className="touch-target rounded-full text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
+              className="touch-target rounded-full text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-25 disabled:cursor-not-allowed disabled:pointer-events-none"
               aria-label="Next month"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +151,7 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
           {/* Day of week headers */}
           <div className="grid grid-cols-7 mb-1">
             {DAY_HEADERS.map((h) => (
-              <div key={h} className="text-center text-[10px] uppercase tracking-wider text-text-tertiary py-1">
+              <div key={h} className="text-center text-[9px] uppercase tracking-[0.18em] text-text-tertiary py-1 font-semibold">
                 {h}
               </div>
             ))}
@@ -179,12 +179,12 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
                   className={[
                     "w-8 min-h-[44px] mx-auto flex flex-col items-center justify-center gap-0.5 py-1 rounded-xl text-xs font-medium transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
                     isSelected
-                      ? "bg-accent text-white cursor-pointer"
+                      ? "bg-accent/15 text-accent cursor-pointer"
                       : !hasGames
                       ? "text-text-tertiary/30 cursor-not-allowed"
                       : isToday
-                      ? "ring-1 ring-accent/50 text-text-primary hover:bg-surface-overlay cursor-pointer"
-                      : "text-text-primary hover:bg-surface-overlay cursor-pointer",
+                      ? "ring-1 ring-accent/20 text-text-primary hover:bg-white/[0.04] hover:ring-accent/40 cursor-pointer"
+                      : "text-text-primary hover:bg-white/[0.04] cursor-pointer",
                   ].join(" ")}
                   aria-label={dateStr}
                 >
@@ -192,7 +192,7 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
                   {hasGames && count > 0 && (
                     <span className={[
                       "text-[8px] font-medium tabular-nums leading-none",
-                      isSelected ? "text-white/50" : "text-text-tertiary/60",
+                      isSelected ? "text-accent/60" : "text-text-tertiary/60",
                     ].join(" ")}>
                       {count}
                     </span>

@@ -1,6 +1,8 @@
 // Throwaway visual exploration — left-rail refresh applied across components.
 // Route: /_mocks/cards
 
+import { useState } from "react";
+
 // ---------------- Mock data ----------------
 
 const mockGame = {
@@ -1514,6 +1516,391 @@ function MockNewsPreviewModal({ article }) {
   );
 }
 
+// ---------------- Date Navigation (refresh exploration) ----------------
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_HEADERS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function parseUTCDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+function addDaysMock(dateStr, n) {
+  const d = parseUTCDate(dateStr);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+const mockTodayET = "2026-05-11";
+const mockGameDates = [
+  "2026-05-07", "2026-05-08", "2026-05-10", "2026-05-11", "2026-05-12",
+  "2026-05-14", "2026-05-15", "2026-05-17", "2026-05-18", "2026-05-20",
+];
+const mockGameCounts = new Map([
+  ["2026-05-07", 4], ["2026-05-08", 6], ["2026-05-10", 3], ["2026-05-11", 5],
+  ["2026-05-12", 2], ["2026-05-14", 8], ["2026-05-15", 4], ["2026-05-17", 3],
+  ["2026-05-18", 5], ["2026-05-20", 2],
+]);
+
+function RefreshedDateStrip({ selectedDate, onDateChange, windowStart, onShift }) {
+  const visibleDates = Array.from({ length: 7 }, (_, i) => addDaysMock(windowStart, i));
+  const gameDateSet = new Set(mockGameDates);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={() => onShift(-7)}
+        className="flex-shrink-0 p-2 rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200"
+        aria-label="Previous week"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <div className="flex flex-1 min-w-0 gap-0.5">
+        {visibleDates.map((dateStr) => {
+          const d = parseUTCDate(dateStr);
+          const dayLabel = DAY_LABELS[d.getUTCDay()];
+          const month = d.getUTCMonth() + 1;
+          const day = d.getUTCDate();
+          const isSelected = dateStr === selectedDate;
+          const isToday = dateStr === mockTodayET;
+          const hasGames = gameDateSet.has(dateStr);
+          const count = mockGameCounts.get(dateStr);
+
+          return (
+            <button
+              key={dateStr}
+              disabled={!hasGames}
+              onClick={() => hasGames && onDateChange(dateStr)}
+              className={[
+                "flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-xl transition-all duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                isSelected
+                  ? "bg-accent"
+                  : isToday && hasGames
+                  ? "ring-1 ring-accent/40 hover:ring-accent/60 hover:bg-white/[0.04] cursor-pointer"
+                  : hasGames
+                  ? "hover:bg-white/[0.04] cursor-pointer"
+                  : "cursor-not-allowed",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "text-[9px] font-semibold uppercase tracking-[0.18em] leading-none",
+                  isSelected
+                    ? "text-white/60"
+                    : !hasGames
+                    ? "text-text-tertiary/20"
+                    : isToday
+                    ? "text-accent"
+                    : "text-text-tertiary",
+                ].join(" ")}
+              >
+                {dayLabel}
+              </span>
+              <span
+                className={[
+                  "text-[13px] font-bold leading-none tabular-nums",
+                  isSelected
+                    ? "text-white"
+                    : !hasGames
+                    ? "text-text-tertiary/20"
+                    : "text-text-primary",
+                ].join(" ")}
+              >
+                {month}/{day}
+              </span>
+              <span
+                className={[
+                  "text-[9px] font-medium tabular-nums leading-none",
+                  hasGames && count > 0
+                    ? isSelected
+                      ? "text-white/50"
+                      : isToday
+                      ? "text-text-tertiary"
+                      : "text-text-tertiary/60"
+                    : "invisible",
+                ].join(" ")}
+              >
+                {count ?? 0}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={() => onShift(7)}
+        className="flex-shrink-0 p-2 rounded-full text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200"
+        aria-label="Next week"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function RefreshedCalendarPopup({ isOpen, selectedDate, viewYear, viewMonth, onPrev, onNext, onDateSelect }) {
+  if (!isOpen) return null;
+  const gameDateSet = new Set(mockGameDates);
+
+  const firstDow = new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const mm = String(viewMonth + 1).padStart(2, "0");
+    const dd = String(d).padStart(2, "0");
+    cells.push(`${viewYear}-${mm}-${dd}`);
+  }
+
+  return (
+    <div
+      className="absolute right-0 top-full mt-2 z-50 bg-surface-elevated ring-1 ring-white/[0.08] rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] w-64 select-none"
+      style={{ transformOrigin: "top right" }}
+    >
+      <div className="absolute top-0 left-4 right-4 h-[1px] bg-accent/30" />
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={onPrev}
+          className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200"
+          aria-label="Previous month"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+          {MONTH_NAMES[viewMonth]} {viewYear}
+        </span>
+        <button
+          onClick={onNext}
+          className="p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-white/[0.06] transition-all duration-200"
+          aria-label="Next month"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 mb-1">
+        {DAY_HEADERS.map((h) => (
+          <div key={h} className="text-center text-[9px] uppercase tracking-[0.18em] text-text-tertiary py-1 font-semibold">
+            {h}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {cells.map((dateStr, i) => {
+          if (!dateStr) return <div key={`empty-${i}`} />;
+          const isSelected = dateStr === selectedDate;
+          const isToday = dateStr === mockTodayET;
+          const hasGames = gameDateSet.has(dateStr);
+          const count = mockGameCounts.get(dateStr);
+
+          return (
+            <button
+              key={dateStr}
+              disabled={!hasGames}
+              onClick={() => hasGames && onDateSelect(dateStr)}
+              className={[
+                "w-8 min-h-[36px] mx-auto flex flex-col items-center justify-center gap-0.5 py-1 rounded-xl text-xs font-medium transition-all duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                isSelected
+                  ? "bg-accent text-white cursor-pointer"
+                  : !hasGames
+                  ? "text-text-tertiary/30 cursor-not-allowed"
+                  : isToday
+                  ? "ring-1 ring-accent/40 text-text-primary hover:bg-white/[0.04] cursor-pointer"
+                  : "text-text-primary hover:bg-white/[0.04] cursor-pointer",
+              ].join(" ")}
+            >
+              <span className="tabular-nums">{parseUTCDate(dateStr).getUTCDate()}</span>
+              {hasGames && count > 0 && (
+                <span
+                  className={[
+                    "text-[8px] font-medium tabular-nums leading-none",
+                    isSelected ? "text-white/50" : "text-text-tertiary/60",
+                  ].join(" ")}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DateNavHeader({ displayMonth, isViewingDefault, todayHasGames, onToday, calendarOpen, onToggleCalendar, calendar }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-semibold text-text-tertiary tracking-[0.22em] uppercase">
+        {displayMonth}
+      </span>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onToday}
+          disabled={isViewingDefault || !todayHasGames}
+          className={[
+            "text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full transition-all duration-[220ms]",
+            isViewingDefault
+              ? "text-accent bg-accent/10 cursor-default ring-1 ring-transparent"
+              : todayHasGames
+              ? "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06] ring-1 ring-white/[0.08]"
+              : "text-text-tertiary/30 cursor-not-allowed ring-1 ring-white/[0.04]",
+          ].join(" ")}
+        >
+          Today
+        </button>
+
+        <div className="relative">
+          <button
+            onClick={onToggleCalendar}
+            className={[
+              "p-2 rounded-full transition-all duration-[220ms]",
+              calendarOpen
+                ? "bg-accent text-white"
+                : "text-text-tertiary hover:text-text-primary hover:bg-white/[0.06]",
+            ].join(" ")}
+            aria-label="Open calendar"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth={1.5} />
+              <path strokeLinecap="round" strokeWidth={1.5} d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+          </button>
+          {calendar}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function useDateNavMockState() {
+  const [selectedDate, setSelectedDate] = useState(mockTodayET);
+  const [windowStart, setWindowStart] = useState(addDaysMock(mockTodayET, -3));
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const center = parseUTCDate(selectedDate || mockTodayET);
+  const [viewYear, setViewYear] = useState(center.getUTCFullYear());
+  const [viewMonth, setViewMonth] = useState(center.getUTCMonth());
+
+  const todayHasGames = mockGameDates.includes(mockTodayET);
+  const isViewingDefault = selectedDate === mockTodayET;
+  const displayMonth = `${MONTH_NAMES[parseUTCDate(selectedDate).getUTCMonth()]} ${parseUTCDate(selectedDate).getUTCFullYear()}`;
+
+  return {
+    selectedDate, setSelectedDate, windowStart, setWindowStart,
+    calendarOpen, setCalendarOpen, viewYear, setViewYear, viewMonth, setViewMonth,
+    todayHasGames, isViewingDefault, displayMonth,
+  };
+}
+
+function DateNavMockBody({ state, calendarSlot }) {
+  return (
+    <>
+      <DateNavHeader
+        displayMonth={state.displayMonth}
+        isViewingDefault={state.isViewingDefault}
+        todayHasGames={state.todayHasGames}
+        onToday={() => { if (state.todayHasGames) state.setSelectedDate(mockTodayET); }}
+        calendarOpen={state.calendarOpen}
+        onToggleCalendar={() => state.setCalendarOpen((o) => !o)}
+        calendar={calendarSlot}
+      />
+    </>
+  );
+}
+
+function buildCalendarSlot(state) {
+  return (
+    <RefreshedCalendarPopup
+      isOpen={state.calendarOpen}
+      selectedDate={state.selectedDate}
+      viewYear={state.viewYear}
+      viewMonth={state.viewMonth}
+      onPrev={() => {
+        if (state.viewMonth === 0) { state.setViewMonth(11); state.setViewYear((y) => y - 1); }
+        else state.setViewMonth((m) => m - 1);
+      }}
+      onNext={() => {
+        if (state.viewMonth === 11) { state.setViewMonth(0); state.setViewYear((y) => y + 1); }
+        else state.setViewMonth((m) => m + 1);
+      }}
+      onDateSelect={(d) => {
+        state.setSelectedDate(d);
+        state.setCalendarOpen(false);
+        const parsed = parseUTCDate(d);
+        state.setViewYear(parsed.getUTCFullYear());
+        state.setViewMonth(parsed.getUTCMonth());
+        state.setWindowStart(addDaysMock(d, -3));
+      }}
+    />
+  );
+}
+
+function buildStripProps(state) {
+  return {
+    selectedDate: state.selectedDate,
+    onDateChange: (d) => state.setSelectedDate(d),
+    windowStart: state.windowStart,
+    onShift: (delta) => state.setWindowStart((s) => addDaysMock(s, delta)),
+  };
+}
+
+// Variant A — full chrome removal: flat header + hairline + strip below
+function DateNavVariantA() {
+  const state = useDateNavMockState();
+  return (
+    <div>
+      <div className="pb-2.5 mb-2 border-b border-white/[0.05]">
+        <DateNavMockBody state={state} calendarSlot={buildCalendarSlot(state)} />
+      </div>
+      <RefreshedDateStrip {...buildStripProps(state)} />
+    </div>
+  );
+}
+
+// Variant B — left accent rail + hairlines (GameInfoCard treatment)
+function DateNavVariantB() {
+  const state = useDateNavMockState();
+  return (
+    <div className="relative pl-4">
+      <div className="absolute left-0 top-1 bottom-1 w-[2px] bg-accent/40 rounded-full" />
+      <div className="pb-2.5 mb-2 border-b border-white/[0.05]">
+        <DateNavMockBody state={state} calendarSlot={buildCalendarSlot(state)} />
+      </div>
+      <RefreshedDateStrip {...buildStripProps(state)} />
+    </div>
+  );
+}
+
+// Variant C — soft ringed wrapper (form-element treatment)
+function DateNavVariantC() {
+  const state = useDateNavMockState();
+  return (
+    <div className="bg-white/[0.02] ring-1 ring-white/[0.06] rounded-2xl">
+      <div className="px-4 pt-3 pb-2.5 border-b border-white/[0.05]">
+        <DateNavMockBody state={state} calendarSlot={buildCalendarSlot(state)} />
+      </div>
+      <div className="px-2 py-2">
+        <RefreshedDateStrip {...buildStripProps(state)} />
+      </div>
+    </div>
+  );
+}
+
 // ---------------- Layout helpers ----------------
 
 function SectionHeader({ kicker, title, sub }) {
@@ -1681,6 +2068,29 @@ export default function MockCards() {
         <section className="space-y-4 pt-8 border-t border-white/[0.06]">
           <SectionHeader kicker="23" title="NewsPreviewModal" sub="Modal overlay — keeps surface fill + shadow elevation (modals genuinely need chrome to read as occluding the page). Border swapped to ring; top accent stripe added." />
           <MockNewsPreviewModal article={mockNews[0]} />
+        </section>
+
+        <div className="pt-12 border-t border-accent/20">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold mb-1">Date Navigation</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-text-primary">DateStrip + CalendarPopup + DateNavigation</h2>
+          <p className="text-text-secondary text-sm mt-2 max-w-3xl">
+            Three wrapper treatments for the date navigation bar. Inside is the same refreshed strip (today gets a ring-1 accent mark, kicker tracking tightened to 0.18em) and the same calendar popup (border → ring, month label tightened). Click a date to select; click the calendar icon to open the popup.
+          </p>
+        </div>
+
+        <section className="space-y-4">
+          <SectionHeader kicker="24·A" title="DateNavigation — A: Full chrome removal" sub="No surface fill, no border. Header row + bottom hairline + strip below. Matches the chrome-removed list-container pattern (PlayByPlay, ReportsList)." />
+          <div className="max-w-3xl mx-auto"><DateNavVariantA /></div>
+        </section>
+
+        <section className="space-y-4 pt-8 border-t border-white/[0.06]">
+          <SectionHeader kicker="24·B" title="DateNavigation — B: Left accent rail" sub="pl-4 + absolute w-[2px] bg-accent/40 rail. Lifted from GameInfoCard — anchors the bar as a 'control zone' without surface fill." />
+          <div className="max-w-3xl mx-auto"><DateNavVariantB /></div>
+        </section>
+
+        <section className="space-y-4 pt-8 border-t border-white/[0.06]">
+          <SectionHeader kicker="24·C" title="DateNavigation — C: Soft ringed wrapper" sub="bg-white/[0.02] + ring-1 ring-white/[0.06]. Form-element treatment — discrete affordance, lighter than the current bg-surface-elevated card." />
+          <div className="max-w-3xl mx-auto"><DateNavVariantC /></div>
         </section>
 
         <section className="space-y-3 pt-8 border-t border-white/[0.06] text-sm text-text-secondary leading-relaxed">
