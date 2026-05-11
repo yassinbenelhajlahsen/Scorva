@@ -6,6 +6,14 @@ import slugify from "../../utils/slugify.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 import { getPeriodLabel } from "../../utils/formatDate.js";
 
+function TrophyIcon({ className = "" }) {
+  return (
+    <svg viewBox="0 0 256 256" fill="currentColor" className={className} aria-hidden>
+      <path d="M232 64h-32V56a16 16 0 0 0-16-16H72a16 16 0 0 0-16 16v8H24a16 16 0 0 0-16 16v32a40 40 0 0 0 40 40h11a64.18 64.18 0 0 0 53 36.43V216H88a8 8 0 0 0 0 16h80a8 8 0 0 0 0-16h-24v-27.57A64.18 64.18 0 0 0 197 152h11a40 40 0 0 0 40-40V80a16 16 0 0 0-16-16zM48 128a24 24 0 0 1-24-24V80h32v32a64.3 64.3 0 0 0 .57 8.49A24.27 24.27 0 0 1 48 128zm184-24a24 24 0 0 1-24 24a24.27 24.27 0 0 1-8.57-1.51A64.3 64.3 0 0 0 200 112V80h32z" />
+    </svg>
+  );
+}
+
 function liveClockLabel(currentPeriod, clock, status, league) {
   if (status?.includes("Halftime")) return "Halftime";
   const period = getPeriodLabel(currentPeriod, league);
@@ -62,6 +70,13 @@ export default function StatCard({
 
   const isPlayoff = gameType === "playoff" || gameType === "final";
   const isChampionship = gameType === "final";
+  const rail = isChampionship
+    ? "w-[3px] bg-accent"
+    : isPlayoff
+      ? "w-[2px] bg-accent/70 group-hover:bg-accent transition-colors duration-200"
+      : result === "W"
+        ? "w-[2px] bg-win/60 group-hover:bg-win transition-colors duration-200"
+        : "w-[2px] bg-loss/60 group-hover:bg-loss transition-colors duration-200";
 
   if (!stats.length) {
     return (
@@ -87,8 +102,9 @@ export default function StatCard({
         }
       }}
     >
-      <div className="bg-surface-elevated border border-white/[0.08] mb-4 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-overlay hover:border-white/[0.14] hover:-translate-y-0.5 hover:z-10 cursor-pointer max-w-sm mx-auto overflow-hidden flex items-stretch">
-
+      <div className="group relative transition-all duration-[250ms] ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer max-w-sm mx-auto hover:bg-white/[0.04] hover:-translate-y-0.5">
+        <div className={`absolute left-0 top-0 bottom-0 ${rail}`} />
+        <div className="relative flex items-stretch">
         <div className="flex-1 min-w-0 p-5 text-center">
 
         {/* Game info */}
@@ -162,11 +178,13 @@ export default function StatCard({
           ))}
         </ul>
 
-        {isPlayoff && (
-          <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-center gap-2">
-            <span className="text-xs text-text-tertiary font-medium tracking-wide">
-              {gameLabel || (isChampionship ? "Finals" : "Playoffs")}
+        {isPlayoff && gameLabel && (
+          <div className={`mt-3 pt-3 border-t ${isChampionship ? "border-accent/30" : "border-white/[0.06]"} flex items-center justify-center gap-1.5`}>
+            {isChampionship && <TrophyIcon className="w-3 h-3 text-accent" />}
+            <span className={`tracking-wide ${isChampionship ? "text-accent font-semibold uppercase tracking-[0.15em] text-[11px]" : "text-xs text-text-tertiary font-medium"}`}>
+              {gameLabel}
             </span>
+            {isChampionship && <TrophyIcon className="w-3 h-3 text-accent" />}
           </div>
         )}
 
@@ -199,7 +217,7 @@ export default function StatCard({
         </div>
 
         {ratingGrade != null && (
-          <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center border-l border-white/[0.08]">
+          <div className="shrink-0 px-3.5 py-3 flex flex-col items-center justify-center">
             <span className="text-accent font-bold text-3xl tabular-nums leading-none">
               {ratingGrade.toFixed(1)}
             </span>
@@ -208,6 +226,7 @@ export default function StatCard({
             </span>
           </div>
         )}
+        </div>
       </div>
     </Link>
   );
