@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { usePlays } from "../../hooks/data/usePlays.js";
 import { useDuplicatePlayerSlugs } from "../../hooks/data/useDuplicatePlayerSlugs.js";
+import PlayByPlaySkeleton from "../skeletons/PlayByPlaySkeleton.jsx";
 import { playerSlug } from "../../utils/playerUrl.js";
 
 const DRIVE_RESULT_COLOR = {
@@ -557,18 +558,7 @@ export default function PlayByPlay({ league, gameId, isLive, homeColor, awayColo
   }, [filteredPlays, isNfl]);
 
   if (loading) {
-    return (
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.05] animate-pulse shrink-0" />
-          <div className="space-y-1.5">
-            <div className="h-4 w-36 bg-white/[0.05] rounded animate-pulse" />
-            <div className="h-3 w-48 bg-white/[0.04] rounded animate-pulse" />
-          </div>
-        </div>
-        <div className="h-64 animate-pulse" />
-      </div>
-    );
+    return <PlayByPlaySkeleton />;
   }
 
   if (error) {
