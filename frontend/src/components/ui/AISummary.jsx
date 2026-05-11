@@ -47,7 +47,9 @@ export default function AISummary({ gameId }) {
         </div>
 
         {/* Locked card — ghost preview + inline prompt */}
-        <div className="bg-surface-elevated border border-white/[0.06] rounded-2xl overflow-hidden relative">
+        <div className="relative overflow-hidden rounded-2xl pl-5">
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent/60" />
+          <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.04] via-transparent to-transparent pointer-events-none" />
           {/* Ghost content rows */}
           <div className="p-6 sm:p-8 space-y-5 pointer-events-none select-none">
             {[
@@ -67,7 +69,7 @@ export default function AISummary({ gameId }) {
           </div>
 
           {/* Gradient curtain */}
-          <div className="absolute inset-0 bg-gradient-to-b from-surface-elevated/30 via-surface-elevated/80 to-surface-elevated" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface-primary/80 to-surface-primary" />
 
           {/* Prompt — sits over the gradient */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pb-3">
@@ -122,8 +124,10 @@ export default function AISummary({ gameId }) {
       </div>
 
       {/* Content card */}
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.35)] overflow-hidden">
-        <div className="p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl pl-5">
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.04] via-transparent to-transparent pointer-events-none" />
+        <div className="relative p-6 sm:p-8">
           {error ? (
             <div className="flex items-start gap-3 text-text-secondary">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-live flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -176,7 +180,7 @@ export default function AISummary({ gameId }) {
         </div>
 
         {showFooter && (
-          <div className="px-6 sm:px-8 py-3 bg-surface-base/40 border-t border-white/[0.05]">
+          <div className="relative px-6 sm:px-8 py-3 border-t border-white/[0.05]">
             <p className="text-[11px] text-text-tertiary">
               Generated using AI based on official game statistics
             </p>
