@@ -38,9 +38,9 @@ export default function TeamPageSkeleton({ teamId }) {
           <Skeleton className="w-44 h-44 rounded-2xl" />
         </div>
 
-        {/* Stats card */}
+        {/* Stats block */}
         <div className="flex-1 flex flex-col">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             {/* Location row */}
             <div className="flex items-center justify-between">
               <Skeleton className="h-3 w-14" />
@@ -55,6 +55,18 @@ export default function TeamPageSkeleton({ teamId }) {
                 <div key={i} className="flex flex-col items-center gap-2 px-3 first:pl-0 last:pr-0">
                   <Skeleton className="h-3 w-12" />
                   <Skeleton className="h-7 w-16" />
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-white/[0.06]" />
+
+            {/* 3-col standings context grid */}
+            <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 px-3 first:pl-0 last:pr-0">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-6 w-20" />
                 </div>
               ))}
             </div>

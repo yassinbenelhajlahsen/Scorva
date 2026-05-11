@@ -25,6 +25,10 @@ import TeamPageSkeleton from "../components/skeletons/TeamPageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
+import {
+  formatConference,
+  formatDivision,
+} from "../utils/teamStandingsLabels.js";
 
 const TABS = ["schedule", "players"];
 
@@ -39,7 +43,31 @@ export default function TeamPage() {
   const league = (rawLeague || "").toLowerCase();
   const [searchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
-  const { team, games, availableSeasons, teamRecord, homeRecord, awayRecord, loading, recordsLoading, seasonLoading, error, retry, refetch } = useTeam(league, teamId, urlSeason);
+  const {
+    team,
+    games,
+    availableSeasons,
+    teamRecord,
+    homeRecord,
+    awayRecord,
+    confRank,
+    divRank,
+    conf,
+    division,
+    last10,
+    loading,
+    recordsLoading,
+    seasonLoading,
+    error,
+    retry,
+    refetch,
+  } = useTeam(league, teamId, urlSeason);
+
+  const confLabel = formatConference(league, conf);
+  const divLabel = formatDivision(league, division);
+  const last10Count = last10?.n ?? 0;
+  const last10Label = last10Count > 0 ? `Last ${Math.min(10, last10Count)}` : "Last 10";
+  const last10Value = last10?.label ?? null;
 
   const handleRefresh = async () => {
     await refetch();
@@ -208,9 +236,9 @@ export default function TeamPage() {
           )}
         </div>
 
-        {/* Stats card */}
+        {/* Stats block */}
         <div className="flex-1 flex flex-col">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider text-text-tertiary">Location</span>
               <span className="text-sm font-medium text-text-primary">{team.location}</span>
@@ -233,6 +261,43 @@ export default function TeamPage() {
                     ? <Skeleton className="h-7 w-16 mt-0.5" />
                     : <span className="text-xl font-bold tabular-nums text-text-primary">{value ?? "—"}</span>
                   }
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-white/[0.06]" />
+
+            <div
+              className="grid grid-cols-3 divide-x divide-white/[0.06]"
+              style={{ opacity: seasonLoading ? 0.5 : 1, transition: 'opacity 200ms ease' }}
+            >
+              {[
+                { label: confLabel ?? "Conf", rank: confRank, skeleton: recordsLoading, kind: "rank", key: "conf" },
+                { label: divLabel ?? "Div", rank: divRank, skeleton: recordsLoading, kind: "rank", key: "div" },
+                { label: last10Label, value: last10Value, skeleton: recordsLoading, kind: "value", key: "last10" },
+              ].map(({ label, rank, value, skeleton, kind, key }) => (
+                <div key={key} className="flex flex-col items-center gap-1 px-3 first:pl-0 last:pr-0 min-w-0">
+                  <span className="text-xs uppercase tracking-wider text-text-tertiary truncate max-w-full">{label}</span>
+                  {skeleton ? (
+                    <Skeleton className="h-7 w-16 mt-0.5" />
+                  ) : kind === "rank" ? (
+                    rank != null ? (
+                      <span className="text-xl font-bold tabular-nums text-text-primary leading-none">
+                        <span className="text-sm font-semibold text-text-tertiary mr-0.5">#</span>
+                        {rank}
+                      </span>
+                    ) : (
+                      <span aria-label="Unranked" className="flex items-center h-7">
+                        <span className="block w-5 border-t-2 border-dashed border-text-tertiary/50" />
+                      </span>
+                    )
+                  ) : value ? (
+                    <span className="text-xl font-bold tabular-nums text-text-primary">{value}</span>
+                  ) : (
+                    <span aria-label="No data" className="flex items-center h-7">
+                      <span className="block w-5 border-t-2 border-dashed border-text-tertiary/50" />
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

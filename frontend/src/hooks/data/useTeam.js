@@ -4,6 +4,46 @@ import { getTeams, getStandings, getTeamSeasons } from "../../api/teams.js";
 import { getTeamGames } from "../../api/games.js";
 import resolveTeam from "../../utils/resolveTeam.js";
 import { queryKeys } from "../../lib/query.js";
+import { recordFromGames, formatRecord } from "../../utils/recordFromGames.js";
+
+function computeRanks(standings, teamId) {
+  if (!Array.isArray(standings) || !teamId) return { confRank: null, divRank: null };
+  const team = standings.find((t) => t.id === teamId);
+  if (!team) return { confRank: null, divRank: null };
+
+  const conf = (team.conf || "").toLowerCase();
+  const division = (team.division || "").toLowerCase();
+
+  let confRank = null;
+  if (conf) {
+    let pos = 0;
+    for (const t of standings) {
+      if ((t.conf || "").toLowerCase() === conf) {
+        pos += 1;
+        if (t.id === teamId) {
+          confRank = pos;
+          break;
+        }
+      }
+    }
+  }
+
+  let divRank = null;
+  if (division) {
+    let pos = 0;
+    for (const t of standings) {
+      if ((t.division || "").toLowerCase() === division) {
+        pos += 1;
+        if (t.id === teamId) {
+          divRank = pos;
+          break;
+        }
+      }
+    }
+  }
+
+  return { confRank, divRank, conf: team.conf ?? null, division: team.division ?? null };
+}
 
 export function useTeam(league, teamId, selectedSeason) {
   // Phase 1: resolve slug → team object
@@ -31,8 +71,9 @@ export function useTeam(league, teamId, selectedSeason) {
   const gamesQuery = useQuery({
     queryKey: queryKeys.teamGames(league, teamQuery.data?.id, selectedSeason),
     queryFn: async ({ signal }) => {
+      const teamIdResolved = teamQuery.data.id;
       const [gamesData, standingsData] = await Promise.all([
-        getTeamGames(league, teamQuery.data.id, { season: selectedSeason, signal }),
+        getTeamGames(league, teamIdResolved, { season: selectedSeason, signal }),
         getStandings(league, { season: selectedSeason, signal }),
       ]);
 
@@ -40,48 +81,30 @@ export function useTeam(league, teamId, selectedSeason) {
         .slice()
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      const finalGames = gamesData.filter(
-        (g) =>
-          /final/i.test(g.status ?? "") &&
-          (g.type === "regular" || g.type === "makeup") &&
-          !(g.game_label || "").toLowerCase().includes("play-in")
-      );
-      const homeGames = finalGames.filter((g) => g.hometeamid === teamQuery.data.id);
-      const homeWins = homeGames.filter(
-        (g) => g.winnerid === g.hometeamid
-      ).length;
-      const awayGames = finalGames.filter((g) => g.awayteamid === teamQuery.data.id);
-      const awayWins = awayGames.filter(
-        (g) => g.winnerid === g.awayteamid
-      ).length;
-
       const isNHL = league === "nhl";
-      const otStatuses = ["Final/OT", "Final/SO"];
-      const homeOTL = isNHL
-        ? homeGames.filter((g) => g.winnerid !== g.hometeamid && otStatuses.includes(g.status)).length
-        : 0;
-      const awayOTL = isNHL
-        ? awayGames.filter((g) => g.winnerid !== g.awayteamid && otStatuses.includes(g.status)).length
-        : 0;
+      const standing = standingsData.find((t) => t.id === teamIdResolved);
+      const home = recordFromGames(gamesData, teamIdResolved, league, { side: "home" });
+      const away = recordFromGames(gamesData, teamIdResolved, league, { side: "away" });
+      const last10 = recordFromGames(gamesData, teamIdResolved, league, { limit: 10 });
 
-      const standing = standingsData.find((t) => t.id === teamQuery.data.id);
+      const teamRecord = standing
+        ? (isNHL
+          ? `${standing.wins}-${standing.losses - (standing.otl || 0)}-${standing.otl || 0}`
+          : `${standing.wins}-${standing.losses}`)
+        : null;
 
-      const homeLosses = homeGames.length - homeWins;
-      const awayLosses = awayGames.length - awayWins;
+      const { confRank, divRank, conf, division } = computeRanks(standingsData, teamIdResolved);
 
       return {
         games: sorted,
-        teamRecord: standing
-          ? (isNHL
-            ? `${standing.wins}-${standing.losses - (standing.otl || 0)}-${standing.otl || 0}`
-            : `${standing.wins}-${standing.losses}`)
-          : null,
-        homeRecord: isNHL
-          ? `${homeWins}-${homeLosses - homeOTL}-${homeOTL}`
-          : `${homeWins}-${homeLosses}`,
-        awayRecord: isNHL
-          ? `${awayWins}-${awayLosses - awayOTL}-${awayOTL}`
-          : `${awayWins}-${awayLosses}`,
+        teamRecord,
+        homeRecord: formatRecord(home, league),
+        awayRecord: formatRecord(away, league),
+        confRank,
+        divRank,
+        conf,
+        division,
+        last10: { ...last10, label: formatRecord(last10, league) },
       };
     },
     enabled: !!teamQuery.data,
@@ -115,6 +138,11 @@ export function useTeam(league, teamId, selectedSeason) {
     teamRecord: gamesQuery.data?.teamRecord ?? null,
     homeRecord: gamesQuery.data?.homeRecord ?? null,
     awayRecord: gamesQuery.data?.awayRecord ?? null,
+    confRank: gamesQuery.data?.confRank ?? null,
+    divRank: gamesQuery.data?.divRank ?? null,
+    conf: gamesQuery.data?.conf ?? null,
+    division: gamesQuery.data?.division ?? null,
+    last10: gamesQuery.data?.last10 ?? null,
     loading,
     recordsLoading,
     seasonLoading,
