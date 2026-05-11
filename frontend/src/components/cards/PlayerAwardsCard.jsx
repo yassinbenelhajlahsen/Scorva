@@ -80,11 +80,12 @@ function DetailStrip({ award }) {
   );
 }
 
-function Section({ title, awards, tier, activeType, onToggle }) {
-  if (awards.length === 0) return null;
+function AwardSection({ title, awards, tier, accentRail, activeType, onToggle }) {
+  if (!awards?.length) return null;
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-[0.16em] text-text-tertiary mb-3 font-medium">
+    <div className={`relative ${accentRail ? "pl-4" : ""}`}>
+      {accentRail && <div className="absolute left-0 top-1 bottom-1 w-[2px] bg-accent rounded-full" />}
+      <div className={`text-[10px] uppercase tracking-[0.18em] mb-3 font-semibold ${accentRail ? "text-accent" : "text-text-tertiary"}`}>
         {title}
       </div>
       <m.div
@@ -149,29 +150,27 @@ export default function PlayerAwardsCard({ awards }) {
   if (!awards || awards.length === 0) return null;
 
   return (
-    <div
-      ref={cardRef}
-      className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
-    >
-      <div className="text-xs uppercase tracking-[0.14em] text-text-tertiary mb-6">
+    <div ref={cardRef} className="w-full max-w-2xl">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-text-tertiary mb-6 pl-3 font-semibold">
         Career Honors
       </div>
-      <div className="flex flex-col gap-6">
-        <Section
+      <div className="flex flex-col gap-7">
+        <AwardSection
           title="Legendary"
           awards={groups.legendary}
           tier="legendary"
+          accentRail
           activeType={activeType}
           onToggle={handleToggle}
         />
-        <Section
+        <AwardSection
           title="Major Honors"
           awards={groups.major}
           tier="major"
           activeType={activeType}
           onToggle={handleToggle}
         />
-        <Section
+        <AwardSection
           title="Selections"
           awards={groups.selection}
           tier="selection"
