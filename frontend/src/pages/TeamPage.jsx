@@ -6,6 +6,7 @@ import GameCard from "../components/cards/GameCard";
 import SeasonSelector from "../components/navigation/SeasonSelector.jsx";
 import MonthNavigation from "../components/navigation/MonthNavigation.jsx";
 import RosterGrid from "../components/team/RosterGrid.jsx";
+import TeamHighlightsTab from "../components/team/TeamHighlightsTab.jsx";
 import RosterGridSkeleton from "../components/skeletons/RosterGridSkeleton.jsx";
 import StreakBadge from "../components/ui/StreakBadge.jsx";
 import NextGameCard from "../components/player/NextGameCard.jsx";
@@ -30,8 +31,6 @@ import {
   formatDivision,
 } from "../utils/teamStandingsLabels.js";
 
-const TABS = ["schedule", "players"];
-
 function GameStatusCard({ league, game }) {
   if (!game) return null;
   if (game.kind === "live") return <LiveGameCard league={league} game={game} />;
@@ -41,6 +40,7 @@ function GameStatusCard({ league, game }) {
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
+  const TABS = league === "nba" ? ["schedule", "players", "highlights"] : ["schedule", "players"];
   const [searchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
   const {
@@ -386,6 +386,8 @@ export default function TeamPage() {
                   </AnimatePresence>
                 </div>
               </>
+            ) : activeTab === "highlights" ? (
+              <TeamHighlightsTab team={team} league={league} />
             ) : rosterError ? (
               <ErrorState message={rosterError} onRetry={rosterRetry} />
             ) : rosterLoading ? (
