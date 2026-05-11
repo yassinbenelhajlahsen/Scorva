@@ -155,22 +155,6 @@ export default function PulsePage() {
     }
   }, [showHighlights, subTabParam, setSearchParams]);
 
-  // Sub-tab pill indicator
-  const subTabNavRef = useRef(null);
-  const subTabRefs = useRef([]);
-  const [subTabBounds, setSubTabBounds] = useState(null);
-
-  useLayoutEffect(() => {
-    const idx = visibleSubTabs.findIndex((t) => t.id === subTab);
-    const btn = subTabRefs.current[idx];
-    const nav = subTabNavRef.current;
-    if (btn && nav) {
-      const btnRect = btn.getBoundingClientRect();
-      const navRect = nav.getBoundingClientRect();
-      setSubTabBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
-    }
-  }, [subTab, visibleSubTabs]);
-
   function setLeague(next) {
     setSearchParams(
       (prev) => {
@@ -357,26 +341,20 @@ export default function PulsePage() {
         })}
       </div>
 
-      {/* Sub-tabs (sliding underline) */}
+      {/* Sub-view headline switcher (separates this level from the underline tabs below) */}
       {visibleSubTabs.length > 1 && (
-        <div ref={subTabNavRef} className="relative flex border-b border-white/[0.06] mb-8">
-          {subTabBounds && (
-            <m.div
-              className="absolute bottom-0 h-0.5 bg-accent pointer-events-none"
-              animate={{ left: subTabBounds.left, width: subTabBounds.width }}
-              transition={{ type: "spring", stiffness: 500, damping: 35 }}
-            />
-          )}
-          {visibleSubTabs.map((t, i) => {
+        <div className="flex items-baseline gap-5 mb-6">
+          {visibleSubTabs.map((t) => {
             const isActive = subTab === t.id;
             return (
               <button
                 key={t.id}
-                ref={(el) => (subTabRefs.current[i] = el)}
                 type="button"
                 onClick={() => setSubTab(t.id)}
-                className={`relative flex items-center gap-2 px-3 pb-2.5 pt-2 text-sm font-medium transition-colors duration-150 -mb-px cursor-pointer ${
-                  isActive ? "text-accent" : "text-text-secondary hover:text-text-primary"
+                className={`transition-colors duration-200 cursor-pointer tracking-tight ${
+                  isActive
+                    ? "text-3xl font-bold text-text-primary"
+                    : "text-xl font-semibold text-text-tertiary hover:text-text-secondary"
                 }`}
               >
                 {t.label}

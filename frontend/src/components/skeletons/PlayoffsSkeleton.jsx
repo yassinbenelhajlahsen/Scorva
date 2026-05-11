@@ -216,15 +216,14 @@ export default function PlayoffsSkeleton({ league, season } = {}) {
       </m.div>
       {/* Mobile: tab strip + single conference rounds */}
       <div className="lg:hidden">
-        <div className="flex justify-center mb-6">
-          <div className="flex gap-0 bg-surface-elevated border border-white/[0.08] rounded-full p-1">
-            <span className="px-5 py-2 rounded-full text-sm font-medium bg-accent/15 border border-accent/25 text-accent">
-              {labels.conferences?.[0]?.label ?? "Eastern"}
-            </span>
-            <span className="px-5 py-2 rounded-full text-sm font-medium text-text-secondary">
-              {labels.conferences?.[1]?.label ?? "Western"}
-            </span>
-          </div>
+        <div className="relative flex border-b border-white/[0.06] mb-6">
+          <span className="relative px-4 pt-2 pb-2.5 text-sm font-medium text-accent">
+            {labels.conferences?.[0]?.label ?? "Eastern"}
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
+          </span>
+          <span className="px-4 pt-2 pb-2.5 text-sm font-medium text-text-secondary">
+            {labels.conferences?.[1]?.label ?? "Western"}
+          </span>
         </div>
         <div className="flex flex-col gap-8">
           <div>

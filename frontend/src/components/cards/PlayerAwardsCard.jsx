@@ -150,7 +150,7 @@ export default function PlayerAwardsCard({ awards }) {
   if (!awards || awards.length === 0) return null;
 
   return (
-    <div ref={cardRef} className="w-full max-w-2xl">
+    <div ref={cardRef} className="w-full">
       <div className="text-[11px] uppercase tracking-[0.22em] text-text-tertiary mb-6 pl-3 font-semibold">
         Career Honors
       </div>
