@@ -4,7 +4,7 @@ import PlayoffsSkeleton from "./PlayoffsSkeleton.jsx";
 
 function GamePillSkeleton() {
   return (
-    <div className="flex-none inline-flex items-center justify-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2">
+    <div className="flex-none inline-flex items-center justify-center gap-3 ring-1 ring-white/[0.06] bg-white/[0.02] rounded-xl px-3 py-2">
       <div className="flex items-center gap-1.5 pr-3 border-r border-white/[0.08]">
         <Skeleton className="h-2.5 w-8 rounded" />
       </div>
