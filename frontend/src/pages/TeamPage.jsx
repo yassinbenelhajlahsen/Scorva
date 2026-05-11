@@ -42,7 +42,10 @@ function GameStatusCard({ league, game }) {
 export default function TeamPage() {
   const { league: rawLeague, teamId } = useParams();
   const league = (rawLeague || "").toLowerCase();
-  const TABS = league === "nba" ? ["schedule", "players", "highlights"] : ["schedule", "players"];
+  const TABS = useMemo(
+    () => (league === "nba" ? ["schedule", "players", "highlights"] : ["schedule", "players"]),
+    [league],
+  );
   const [searchParams] = useSearchParams();
   const urlSeason = searchParams.get("season") || null;
   const {
@@ -117,7 +120,7 @@ export default function TeamPage() {
       const navRect = nav.getBoundingClientRect();
       setPillBounds({ left: btnRect.left - navRect.left, width: btnRect.width });
     }
-  }, [activeTab, team]);
+  }, [activeTab, team, TABS]);
 
   function pickTab(tab) {
     setTabDirection(TABS.indexOf(tab) > TABS.indexOf(activeTab) ? 1 : -1);
