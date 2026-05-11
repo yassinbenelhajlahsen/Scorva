@@ -40,27 +40,47 @@ export default function SearchBar({ allItems, query, setQuery, loading, inputRef
 
   const showDropdown = query.trim().length > 0 && (allItems.length > 0 || loading);
 
+  const hasQuery = query.length > 0;
+
   return (
     <div className="relative w-full max-w-sm flex-grow">
       <div className="relative">
+        <svg
+          aria-hidden="true"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none"
+          fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0015.803 15.803z" />
+        </svg>
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search players, teams, games, dates..."
-          className="w-full px-4 py-2 pr-10 rounded-full bg-surface-elevated text-text-primary placeholder-text-tertiary border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/30 transition-all duration-200 text-base"
+          className="w-full pl-10 pr-10 py-2 rounded-full bg-white/[0.03] text-text-primary placeholder-text-tertiary ring-1 ring-white/[0.06] hover:bg-white/[0.06] hover:ring-white/[0.10] focus:outline-none focus:bg-white/[0.04] focus:ring-1 focus:ring-accent/40 transition-all duration-200 text-base"
           autoComplete="off"
         />
-        {loading && (
+        {loading ? (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-white/[0.08] border-t-accent rounded-full animate-spin" />
           </div>
-        )}
+        ) : hasQuery ? (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors duration-150"
+          >
+            <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M6 6l12 12M6 18L18 6" />
+            </svg>
+          </button>
+        ) : null}
       </div>
 
       {showDropdown && (
-        <ul className="absolute z-50 w-full mt-2 bg-surface-elevated/95 backdrop-blur-2xl border border-white/[0.1] rounded-xl max-h-80 overflow-y-auto shadow-[0_12px_40px_rgba(0,0,0,0.6)] scrollbar-thin divide-y divide-white/[0.05]">
+        <ul className="absolute z-50 w-full mt-2 bg-surface-elevated/95 backdrop-blur-2xl ring-1 ring-white/[0.08] rounded-xl max-h-80 overflow-y-auto shadow-[0_12px_40px_rgba(0,0,0,0.6)] scrollbar-thin divide-y divide-white/[0.04]">
           {loading && allItems.length === 0 ? (
             <li className="px-4 py-3 text-text-tertiary text-sm text-center">
               Searching...
@@ -75,16 +95,20 @@ export default function SearchBar({ allItems, query, setQuery, loading, inputRef
                 key={`${item.type}-${item.id}`}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => prefetchItem(item)}
-                className="flex items-center px-4 py-3 hover:bg-surface-overlay cursor-pointer transition-colors duration-150"
+                className="group relative flex items-center pl-4 pr-3 py-3 hover:bg-white/[0.03] cursor-pointer transition-colors duration-150"
               >
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 top-0 bottom-0 w-[2px] bg-transparent group-hover:bg-accent transition-colors duration-200"
+                />
                 {item.imageUrl && (
                   <img
                     loading="lazy"
                     src={item.imageUrl}
                     alt={item.name}
-                    className={`mr-3 ${
+                    className={`mr-3 ring-1 ring-white/[0.06] bg-surface-overlay/40 ${
                       item.type === "team"
-                        ? "w-9 h-9 rounded-lg object-contain"
+                        ? "w-9 h-9 rounded-lg object-contain p-0.5"
                         : "w-8 h-9 rounded-full object-cover"
                     }`}
                     onError={(e) => {
@@ -93,10 +117,10 @@ export default function SearchBar({ allItems, query, setQuery, loading, inputRef
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text-primary truncate">
+                  <div className="text-sm font-medium text-text-primary truncate group-hover:text-accent transition-colors duration-150">
                     {item.name}
                   </div>
-                  <div className="text-[10px] text-text-tertiary uppercase tracking-wider mt-0.5">
+                  <div className="text-[10px] text-text-tertiary uppercase tracking-[0.18em] mt-0.5">
                     {item.type} · {item.league}
                     {item.type === "game" && item.date && (
                       <> · {new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</>

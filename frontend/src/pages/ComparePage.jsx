@@ -484,7 +484,7 @@ function EntitySearchCard({ league, entityType, onSelect, label }) {
 
       {/* Search input */}
       <div className="relative w-40 sm:w-52">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
@@ -493,14 +493,25 @@ function EntitySearchCard({ league, entityType, onSelect, label }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={label}
-          className="w-full bg-surface-overlay ring-1 ring-white/[0.06] rounded-xl py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-accent/40 transition-colors duration-200"
+          className="w-full bg-white/[0.03] ring-1 ring-white/[0.06] hover:bg-white/[0.06] hover:ring-white/[0.10] focus:bg-white/[0.04] rounded-xl py-2 pl-9 pr-9 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-accent/40 transition-all duration-200"
           autoComplete="off"
         />
-        {loading && query.trim() && (
+        {loading && query.trim() ? (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="w-3.5 h-3.5 border-2 border-white/[0.08] border-t-accent rounded-full animate-spin" />
           </div>
-        )}
+        ) : query.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors duration-150"
+          >
+            <svg aria-hidden="true" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M6 6l12 12M6 18L18 6" />
+            </svg>
+          </button>
+        ) : null}
       </div>
 
       {/* Dropdown */}
