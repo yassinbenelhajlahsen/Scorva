@@ -27,9 +27,9 @@ export default function OverviewTab({
     <>
       {/* Quarter-by-quarter */}
       {(isFinal || inProgress) && (
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] mb-6">
+        <div className="relative mb-6">
           <div className="font-mono text-sm w-full">
-            <div className="flex items-center gap-x-4 text-[10px] uppercase tracking-widest text-text-tertiary pb-3 border-b border-white/[0.06]">
+            <div className="flex items-center gap-x-4 text-[10px] uppercase tracking-[0.18em] text-text-tertiary pb-3 border-b border-white/[0.08]">
               <span className="flex-1 min-w-0">Team</span>
               {quarterKeys.map((_, i) => (
                 <span key={i} className="w-10 text-center shrink-0">
@@ -58,7 +58,7 @@ export default function OverviewTab({
               {quarterKeys.map((q) => (
                 <span
                   key={q}
-                  className="w-10 text-center shrink-0 text-text-secondary"
+                  className="w-10 text-center shrink-0 text-text-secondary tabular-nums"
                 >
                   {game.score.quarters[q]?.split("-")[0] ?? "–"}
                 </span>
@@ -68,7 +68,7 @@ export default function OverviewTab({
                   val && (
                     <span
                       key={`home-OT${i + 1}`}
-                      className="w-10 text-center shrink-0 text-text-secondary"
+                      className="w-10 text-center shrink-0 text-text-secondary tabular-nums"
                     >
                       {val.split("-")[0]}
                     </span>
@@ -88,7 +88,7 @@ export default function OverviewTab({
               {quarterKeys.map((q) => (
                 <span
                   key={q}
-                  className="w-10 text-center shrink-0 text-text-secondary"
+                  className="w-10 text-center shrink-0 text-text-secondary tabular-nums"
                 >
                   {game.score.quarters[q]?.split("-")[1] ?? "–"}
                 </span>
@@ -98,7 +98,7 @@ export default function OverviewTab({
                   val && (
                     <span
                       key={`away-OT${i + 1}`}
-                      className="w-10 text-center shrink-0 text-text-secondary"
+                      className="w-10 text-center shrink-0 text-text-secondary tabular-nums"
                     >
                       {val.split("-")[1]}
                     </span>
@@ -116,10 +116,11 @@ export default function OverviewTab({
 
       {/* Prediction — pre-game only; hidden when a prior playoff series game is still pending */}
       {isPreGame && game?.hasUnplayedPriorSeriesGames ? (
-        <div className="relative overflow-hidden bg-surface-elevated border border-white/[0.08] rounded-2xl p-5 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <div className="relative overflow-hidden rounded-2xl mb-6">
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent/60" />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            className="pointer-events-none absolute inset-0 opacity-[0.05]"
             style={{
               backgroundImage:
                 "repeating-linear-gradient(135deg, rgba(255,255,255,0.8) 0 1px, transparent 1px 12px)",
@@ -131,7 +132,7 @@ export default function OverviewTab({
             style={{ background: "radial-gradient(circle, #e8863a 0%, transparent 70%)" }}
           />
 
-          <div className="relative flex items-start gap-4">
+          <div className="relative flex items-start gap-4 p-5">
             <div className="shrink-0 w-11 h-11 rounded-xl bg-accent/10 border border-accent/25 flex items-center justify-center">
               <svg
                 viewBox="0 0 24 24"
