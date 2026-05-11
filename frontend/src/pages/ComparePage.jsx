@@ -173,7 +173,10 @@ function PlayerCompare({
 
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+          <div className="relative">
           <div className="flex items-center justify-center gap-6 sm:gap-25">
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
               {slug1 && a ? (
@@ -276,6 +279,7 @@ function PlayerCompare({
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Head-to-Head */}
@@ -355,7 +359,10 @@ function TeamCompare({
 
       <div className="space-y-8">
         {/* Hero */}
-        <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+          <div className="relative">
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             <div className="flex flex-col items-center gap-3 w-40 sm:w-52">
               {slug1 && a ? (
@@ -417,6 +424,7 @@ function TeamCompare({
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Head-to-Head */}
@@ -462,7 +470,7 @@ function EntitySearchCard({ league, entityType, onSelect, label }) {
   return (
     <div className="relative flex flex-col items-center gap-3">
       {/* Placeholder image */}
-      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-white/[0.04] ring-1 ring-white/[0.06] flex items-center justify-center">
         {isPlayer ? (
           <svg className="w-10 h-10 sm:w-14 sm:h-14 text-text-tertiary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -485,7 +493,7 @@ function EntitySearchCard({ league, entityType, onSelect, label }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={label}
-          className="w-full bg-surface-overlay border border-white/[0.08] rounded-xl py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/50 transition-colors duration-200"
+          className="w-full bg-surface-overlay ring-1 ring-white/[0.06] rounded-xl py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-accent/40 transition-colors duration-200"
           autoComplete="off"
         />
         {loading && query.trim() && (
@@ -497,7 +505,7 @@ function EntitySearchCard({ league, entityType, onSelect, label }) {
 
       {/* Dropdown */}
       {query.trim() && (
-        <div className="absolute top-full mt-1 w-56 sm:w-64 bg-surface-elevated border border-white/[0.1] rounded-xl max-h-60 overflow-y-auto shadow-[0_12px_40px_rgba(0,0,0,0.6)] scrollbar-thin z-50 left-1/2 -translate-x-1/2">
+        <div className="absolute top-full mt-1 w-56 sm:w-64 bg-surface-elevated ring-1 ring-white/[0.08] rounded-xl max-h-60 overflow-y-auto shadow-[0_12px_40px_rgba(0,0,0,0.6)] scrollbar-thin z-50 left-1/2 -translate-x-1/2">
           {loading && filtered.length === 0 ? (
             <div className="px-3 py-4 text-center">
               <div className="inline-block w-4 h-4 border-2 border-text-tertiary/30 border-t-accent rounded-full animate-spin" />
@@ -562,7 +570,7 @@ function PlayerHero({ player, league, season, onClear }) {
       {onClear && (
         <button
           onClick={onClear}
-          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-overlay border border-white/[0.12] flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-white/[0.1] transition-colors duration-200 z-10"
+          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-overlay ring-1 ring-white/[0.1] flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-white/[0.1] transition-colors duration-200 z-10"
           aria-label="Remove player"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -601,7 +609,7 @@ function TeamHero({ team, league, season, onClear }) {
       {onClear && (
         <button
           onClick={onClear}
-          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-overlay border border-white/[0.12] flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-white/[0.1] transition-colors duration-200 z-10"
+          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-overlay ring-1 ring-white/[0.1] flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-white/[0.1] transition-colors duration-200 z-10"
           aria-label="Remove team"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -672,7 +680,10 @@ function RecentGamesColumn({ player, stats, league }) {
   const slug = playerSlug(player, dupeSlugs);
 
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+    <div className="relative overflow-hidden rounded-2xl p-4">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+      <div className="relative">
       <div className="flex items-center gap-2 mb-3">
         <img
           src={player.imageUrl || "/images/placeholder.png"}
@@ -733,6 +744,7 @@ function RecentGamesColumn({ player, stats, league }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -740,8 +752,10 @@ function RecentGamesColumn({ player, stats, league }) {
 function HeadToHeadSection({ games, loading, entityA, entityB, league, scopeNote }) {
   if (loading) {
     return (
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
-        <div className="animate-pulse space-y-3">
+      <div className="relative overflow-hidden rounded-2xl p-6">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+        <div className="relative animate-pulse space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-8 bg-white/[0.04] rounded-lg" />
           ))}
@@ -752,11 +766,15 @@ function HeadToHeadSection({ games, loading, entityA, entityB, league, scopeNote
 
   if (!games || games.length === 0) {
     return (
-      <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+      <div className="relative overflow-hidden rounded-2xl p-6">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+        <div className="relative">
         {scopeNote && (
           <p className="text-xs text-text-tertiary text-center mb-2">{scopeNote}</p>
         )}
         <p className="text-sm text-text-tertiary text-center">No head-to-head games found</p>
+        </div>
       </div>
     );
   }
@@ -767,7 +785,10 @@ function HeadToHeadSection({ games, loading, entityA, entityB, league, scopeNote
   const bWins = games.filter((g) => g.winnerid === bTeamId).length;
 
   return (
-    <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+    <div className="relative overflow-hidden rounded-2xl p-6">
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.04] to-transparent pointer-events-none" />
+      <div className="relative">
       {/* Summary */}
       <div className="flex items-center justify-center gap-4 mb-5">
         <div className="text-center">
@@ -779,7 +800,7 @@ function HeadToHeadSection({ games, loading, entityA, entityB, league, scopeNote
           <p className="text-2xl font-bold tabular-nums text-text-primary">{bWins}</p>
           <p className="text-xs text-text-tertiary">{entityB.name}</p>
         </div>
-        
+
       </div>
             {scopeNote && (
         <p className="text-xs text-text-tertiary text-center mb-3">{scopeNote}</p>
@@ -807,6 +828,7 @@ function HeadToHeadSection({ games, loading, entityA, entityB, league, scopeNote
             </div>
           </Link>
         ))}
+      </div>
       </div>
     </div>
   );
