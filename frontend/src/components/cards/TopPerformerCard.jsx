@@ -12,31 +12,45 @@ const colorMap = {
   "Impact Player": "#34c759",
 };
 
-const statFormatMap = {
-  nba: (stats) =>
-    [
-      stats.PTS  && { label: "PTS", value: stats.PTS },
-      stats.REB  && { label: "REB", value: stats.REB },
-      stats.AST  && { label: "AST", value: stats.AST },
-    ].filter(Boolean),
+const num = (v) => (typeof v === "number" ? v : Number(v) || 0);
 
-  nfl: (stats) =>
-    [
-      stats.YDS  && { label: "YDS",  value: stats.YDS },
-      stats.TD   && { label: "TD",   value: stats.TD },
-      stats.SCKS && { label: "SCK",  value: stats.SCKS },
-      stats.INT  && { label: "INT",  value: stats.INT },
-    ].filter(Boolean),
+function formatPlusMinus(v) {
+  if (v == null || v === "") return "0";
+  if (typeof v === "string") return v.startsWith("+") || v.startsWith("-") ? v : `+${v}`;
+  return v > 0 ? `+${v}` : String(v);
+}
 
-  nhl: (stats) =>
-    [
-      stats.G     && { label: "G",   value: stats.G },
-      stats.A     && { label: "A",   value: stats.A },
-      stats.SAVES && { label: "SV",  value: stats.SAVES },
-      stats.HT    && { label: "HIT", value: stats.HT },
-      stats.BS    && { label: "BLK", value: stats.BS },
-    ].filter(Boolean),
-};
+// Each card shows the stats that drive its selection metric (see topPlayers.js).
+function getCardStats(league, title, stats) {
+  if (league === "nba") {
+    if (title === "Top Performer") {
+      return [{ label: "PRA", value: num(stats.PTS) + num(stats.REB) + num(stats.AST) }];
+    }
+    if (title === "Top Scorer")    return [{ label: "PTS", value: num(stats.PTS) }];
+    if (title === "Impact Player") return [{ label: "+/-", value: formatPlusMinus(stats["+/-"]) }];
+  }
+  if (league === "nfl") {
+    if (title === "Top Performer") {
+      return [
+        { label: "TD",  value: num(stats.TD) },
+        { label: "YDS", value: num(stats.YDS) },
+      ];
+    }
+    if (title === "Top Scorer")    return [{ label: "TD", value: num(stats.TD) }];
+    if (title === "Impact Player") {
+      return [
+        { label: "SCK", value: num(stats.SCKS) },
+        { label: "INT", value: num(stats.INT) },
+      ];
+    }
+  }
+  if (league === "nhl") {
+    if (title === "Top Performer") return [{ label: "PTS", value: num(stats.G) + num(stats.A) }];
+    if (title === "Top Scorer")    return [{ label: "G",   value: num(stats.G) }];
+    if (title === "Impact Player") return [{ label: "+/-", value: formatPlusMinus(stats["+/-"]) }];
+  }
+  return [];
+}
 
 function TopPerformerCard({ player, title = "Top Performer", league, season: seasonProp }) {
   const queryClient = useQueryClient();
@@ -49,7 +63,7 @@ function TopPerformerCard({ player, title = "Top Performer", league, season: sea
   const ratingGrade = player.ratingGrade;
   const slug = playerSlug(player, dupeSlugs);
   const path = buildSeasonUrl(`/${league}/players/${slug}`, season);
-  const formattedStats = statFormatMap[league]?.(stats) || [];
+  const formattedStats = getCardStats(league, title, stats);
   const color = colorMap[title] ?? "#e8863a";
 
   return (

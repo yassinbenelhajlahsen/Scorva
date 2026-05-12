@@ -61,27 +61,54 @@ describe("TopPerformerCard", () => {
     expect(screen.getByRole("link").getAttribute("href")).toBe("/nba/players/lebron-james");
   });
 
-  it("renders NBA stats (PTS, REB, AST)", () => {
+  it("renders NBA Top Performer as PRA (PTS+REB+AST)", () => {
     render(<TopPerformerCard player={nbaPlayer} title="Top Performer" league="nba" />);
-    expect(screen.getByText("PTS")).toBeInTheDocument();
-    expect(screen.getByText("30")).toBeInTheDocument();
-    expect(screen.getByText("REB")).toBeInTheDocument();
-    expect(screen.getByText("AST")).toBeInTheDocument();
+    expect(screen.getByText("PRA")).toBeInTheDocument();
+    expect(screen.getByText("48")).toBeInTheDocument();
   });
 
-  it("renders NFL stats", () => {
+  it("renders NBA Top Scorer as PTS", () => {
+    render(<TopPerformerCard player={nbaPlayer} title="Top Scorer" league="nba" />);
+    expect(screen.getByText("PTS")).toBeInTheDocument();
+    expect(screen.getByText("30")).toBeInTheDocument();
+  });
+
+  it("renders NBA Impact Player as +/-", () => {
+    const player = { ...nbaPlayer, stats: { ...nbaPlayer.stats, "+/-": "+12" } };
+    render(<TopPerformerCard player={player} title="Impact Player" league="nba" />);
+    expect(screen.getByText("+/-")).toBeInTheDocument();
+    expect(screen.getByText("+12")).toBeInTheDocument();
+  });
+
+  it("renders NFL Top Performer as TD and YDS", () => {
     const nflPlayer = {
       name: "Patrick Mahomes",
       position: "QB",
       imageUrl: null,
       stats: { YDS: 320, TD: 3, INT: 0, SCKS: 0 },
     };
-    render(<TopPerformerCard player={nflPlayer} title="Top Scorer" league="nfl" />);
+    render(<TopPerformerCard player={nflPlayer} title="Top Performer" league="nfl" />);
+    expect(screen.getByText("TD")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("YDS")).toBeInTheDocument();
     expect(screen.getByText("320")).toBeInTheDocument();
   });
 
-  it("renders NHL stats", () => {
+  it("renders NFL Impact Player as SCK and INT", () => {
+    const nflPlayer = {
+      name: "Micah Parsons",
+      position: "DE",
+      imageUrl: null,
+      stats: { YDS: 0, TD: 0, INT: 1, SCKS: 2 },
+    };
+    render(<TopPerformerCard player={nflPlayer} title="Impact Player" league="nfl" />);
+    expect(screen.getByText("SCK")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("INT")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  it("renders NHL Top Performer as PTS (G+A)", () => {
     const nhlPlayer = {
       name: "Connor McDavid",
       position: "C",
@@ -89,6 +116,18 @@ describe("TopPerformerCard", () => {
       stats: { G: 2, A: 1, SAVES: 0, HT: 3, BS: 1 },
     };
     render(<TopPerformerCard player={nhlPlayer} title="Top Performer" league="nhl" />);
+    expect(screen.getByText("PTS")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("renders NHL Top Scorer as G", () => {
+    const nhlPlayer = {
+      name: "Connor McDavid",
+      position: "C",
+      imageUrl: null,
+      stats: { G: 2, A: 1 },
+    };
+    render(<TopPerformerCard player={nhlPlayer} title="Top Scorer" league="nhl" />);
     expect(screen.getByText("G")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
   });
