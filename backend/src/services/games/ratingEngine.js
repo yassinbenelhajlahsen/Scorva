@@ -87,7 +87,14 @@ export function wpaContribution(wpaDelta, side, role, ctx = {}) {
   if (mult === 0) return 0;
   const teamSign = side === "home" ? 1 : -1;
   const wpaSign = delta < 0 ? -1 : 1;
-  return mult * WPA_WEIGHT * wpaSign * Math.sqrt(Math.abs(delta)) * teamSign;
+  const value = mult * WPA_WEIGHT * wpaSign * Math.sqrt(Math.abs(delta)) * teamSign;
+  // FT possession-swap artifact: ESPN's homePct on the LAST FT in a trip includes
+  // the possession change to the opposing team. On a 1-point FT, that swing can
+  // outweigh the score effect and flip the WPA against the shooter (or in favor of
+  // a missed-FT shooter). Clamp FT WPA to its "correct" direction.
+  if (ctx.type === "made_ft" && value < 0) return 0;
+  if (ctx.type === "missed_ft" && value > 0) return 0;
+  return value;
 }
 
 /**

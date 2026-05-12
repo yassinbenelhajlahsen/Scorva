@@ -187,6 +187,36 @@ describe("wpaContribution (v2: role-aware, sqrt-compressed)", () => {
     expect(wpaContribution(Infinity, "home", "scorer", {})).toBe(0);
     expect(wpaContribution("garbage", "home", "scorer", {})).toBe(0);
   });
+
+  // FT possession-swap guard: ESPN bakes the trip-ending possession change into
+  // homePct on the last FT, so an away-team made FT can show homePct rising.
+  // Clamp wrong-direction WPA contributions to 0 for FTs only.
+  test("made FT with wrong-direction WPA (away shooter, homePct rose) → 0", () => {
+    expect(wpaContribution(0.018, "away", "scorer", { type: "made_ft" })).toBe(0);
+  });
+
+  test("made FT with correct-direction WPA is unaffected", () => {
+    expect(wpaContribution(-0.018, "away", "scorer", { type: "made_ft" })).toBeCloseTo(
+      7 * Math.sqrt(0.018), 4,
+    );
+  });
+
+  test("missed FT with wrong-direction WPA (away shooter, homePct fell) → 0", () => {
+    expect(wpaContribution(-0.03, "away", "shot_attempter", { type: "missed_ft" })).toBe(0);
+  });
+
+  test("missed FT with correct-direction WPA is unaffected", () => {
+    expect(wpaContribution(0.03, "away", "shot_attempter", { type: "missed_ft" })).toBeCloseTo(
+      -0.5 * 7 * Math.sqrt(0.03), 4,
+    );
+  });
+
+  test("non-FT plays are not affected by the FT clamp", () => {
+    // Made 2pt scorer on away with positive homePct delta — wrong direction, but not an FT.
+    expect(wpaContribution(0.05, "away", "scorer", { type: "made_2pt" })).toBeCloseTo(
+      -7 * Math.sqrt(0.05), 4,
+    );
+  });
 });
 
 describe("clampPlayValue (model space, ±6)", () => {

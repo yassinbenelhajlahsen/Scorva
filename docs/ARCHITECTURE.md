@@ -346,9 +346,6 @@ Consumed by `injuriesReports.js` (Reports feed), `aiSummaryService.getInGameInju
 
 **Status="Active" entries are skipped.** ESPN's NFL injury feed bundles non-injury news — contract signings, trade announcements, return-from-injury notes — into the same feed with `status: "Active"` and roster-news `shortComment` text. `ESPN_STATUS_MAP` deliberately omits `active`, so `normalizeStatus` returns `null` for those entries and the per-entry loop skips them via the `if (!status) continue;` guard. A genuinely-recovered player (e.g. moving from `out` to `Active`) is still cleared correctly: by skipping their entry we don't push their espn id into `injuredEspnIds`, so the per-team clear sweep transitions them from their prior status to `null`. The reports query layers a defensive `COALESCE(prev_status, '') <> 'active' AND COALESCE(new_status, '') <> 'active'` filter as belt-and-suspenders against any historical rows pre-dating this change.
 
-## cleanupNonScoringPlays (`ingestion/cleanup/cleanupPlays.js`)
-After a game finalizes, this helper deletes non-scoring rows from `plays` for that game, keeping only scoring plays needed for AI summaries / clutch-play context / GamePage timelines. Called from the upsert pipeline post-game-processing. Reduces row count for old games without affecting any feature.
-
 ## News headlines
 
 ESPN news articles fetched on demand (no DB table, no ingestion job).
