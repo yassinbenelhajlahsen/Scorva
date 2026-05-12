@@ -49,9 +49,13 @@ export function useSlateGames(league, { enabled = true } = {}) {
       (prev) => {
         if (!prev) return prev;
         const arr = Array.isArray(prev) ? prev : prev.games ?? [];
-        const merged = arr.map((g) =>
-          liveGamesMap.has(g.id) ? { ...g, ...liveGamesMap.get(g.id) } : g
-        );
+        const merged = arr.map((g) => {
+          // Final is terminal — REST is authoritative. Guards against a stale
+          // live partial that survived a missed Final notify (SSE reconnect,
+          // throttle drop) shadowing the row.
+          if (g.status?.startsWith("Final")) return g;
+          return liveGamesMap.has(g.id) ? { ...g, ...liveGamesMap.get(g.id) } : g;
+        });
         return Array.isArray(prev) ? merged : { ...prev, games: merged };
       },
     );

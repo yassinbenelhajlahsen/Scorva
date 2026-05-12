@@ -11,17 +11,26 @@ function projectVolatile(row) {
   return out;
 }
 
+function mergePartial(map, partial) {
+  const prev = map.get(partial.id);
+  // Final is terminal — once a row is Final, never let a later non-Final
+  // partial overwrite it (defends against ESPN status flap).
+  if (prev?.status?.startsWith("Final") && !partial.status?.startsWith("Final")) {
+    return;
+  }
+  map.set(partial.id, { ...prev, ...partial });
+}
+
 function accumulate(prev, next) {
   const map = new Map(prev ?? []);
   if (Array.isArray(next)) {
     // fetchFallback path — full Game[] from REST.
     for (const row of next) {
       if (row?.id == null) continue;
-      const partial = projectVolatile(row);
-      map.set(row.id, { ...map.get(row.id), ...partial });
+      mergePartial(map, projectVolatile(row));
     }
   } else if (next && typeof next === "object" && next.id != null) {
-    map.set(next.id, { ...map.get(next.id), ...next });
+    mergePartial(map, next);
   }
   return map;
 }

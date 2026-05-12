@@ -263,6 +263,55 @@ describe("useLiveGames", () => {
     vi.useRealTimers();
   });
 
+  it("refuses to overwrite a Final entry with a non-Final partial (regression)", async () => {
+    // Defends against ESPN status flap: once a game is Final, a later
+    // "In Progress" partial must not roll the Map entry back. Hard refresh
+    // would otherwise be the only way to clear the stale live state.
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useLiveGames("nba"));
+    const es = MockEventSource.instances[0];
+
+    await act(async () => {
+      es.dispatchMessage({ id: 1, status: "Final", homescore: 110, awayscore: 105, current_period: 4, clock: "0:00" });
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.liveGamesMap.get(1).status).toBe("Final");
+
+    // Stale partial arrives (ESPN flap regression). Map must stay Final.
+    await act(async () => {
+      es.dispatchMessage({ id: 1, status: "In Progress", current_period: 4, clock: "12:00" });
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.liveGamesMap.get(1)).toMatchObject({
+      id: 1,
+      status: "Final",
+      homescore: 110,
+      awayscore: 105,
+      clock: "0:00",
+    });
+    vi.useRealTimers();
+  });
+
+  it("allows a Final partial to replace an earlier In Progress entry", async () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useLiveGames("nba"));
+    const es = MockEventSource.instances[0];
+
+    await act(async () => {
+      es.dispatchMessage({ id: 1, status: "In Progress", current_period: 4, clock: "12:00" });
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.liveGamesMap.get(1).status).toBe("In Progress");
+
+    await act(async () => {
+      es.dispatchMessage({ id: 1, status: "Final", current_period: 4, clock: "0:00" });
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(result.current.liveGamesMap.get(1).status).toBe("Final");
+    expect(result.current.liveGamesMap.get(1).clock).toBe("0:00");
+    vi.useRealTimers();
+  });
+
   it("replays accumulated map to late subscribers synchronously", async () => {
     vi.useFakeTimers();
     const partial = { id: 1, status: "In Progress" };

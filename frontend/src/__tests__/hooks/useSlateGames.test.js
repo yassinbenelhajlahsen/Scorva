@@ -151,6 +151,41 @@ describe("useSlateGames", () => {
     expect(lastCall?.[0]).toBe(null);
   });
 
+  it("does NOT merge a stale partial onto a row REST says is Final (regression)", async () => {
+    // Reproduces the bug where SSE missed a Final notify and a stale
+    // "In Progress - Q4 12:00" partial kept overwriting the Final REST row
+    // until a hard refresh. REST is authoritative when status starts with
+    // "Final".
+    getLeagueGames.mockResolvedValue({
+      games: [
+        { id: 1, status: "Final", homescore: 110, awayscore: 105, current_period: 4, clock: "0:00" },
+      ],
+      resolvedDate: "2026-05-02",
+    });
+    useLiveGames.mockReturnValue({
+      liveGamesMap: new Map([
+        [1, { id: 1, status: "In Progress", current_period: 4, clock: "12:00", homescore: 78, awayscore: 80 }],
+      ]),
+    });
+
+    const { result } = renderHook(() => useSlateGames("nba"), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // Give the merge effect a tick to run (it would overwrite if buggy).
+    await new Promise((r) => setTimeout(r, 20));
+
+    const game = result.current.games.find((g) => g.id === 1);
+    expect(game).toMatchObject({
+      id: 1,
+      status: "Final",
+      homescore: 110,
+      awayscore: 105,
+      clock: "0:00",
+    });
+  });
+
   it("merges liveGamesMap partials into games by id", async () => {
     getLeagueGames.mockResolvedValue({
       games: [
