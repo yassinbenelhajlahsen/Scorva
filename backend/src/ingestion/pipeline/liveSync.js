@@ -210,20 +210,15 @@ export async function tick(liveLeagues) {
 
                       // NBA only — keep participants + ratings fresh on the fast path
                       // so play-by-play chips don't lag the 2-min full-update cycle.
-                      // Wrapped in a savepoint so a rating-engine failure can't poison
-                      // the plays write we just committed above.
+                      // Queries run in autocommit (no surrounding BEGIN), so the
+                      // upsertPlays writes above are already durable; a failure
+                      // here cannot poison them.
                       if (slug === "nba") {
-                        await client.query("SAVEPOINT live_rating_calc");
                         try {
                           await upsertPlayParticipants(client, gameId, pbpData, slug);
                           await recomputeGame(client, gameId);
-                          await client.query("RELEASE SAVEPOINT live_rating_calc");
                         } catch (err) {
-                          log.warn({ err, eventId, gameId }, "fast-path rating recompute failed; rolled back");
-                          try {
-                            await client.query("ROLLBACK TO SAVEPOINT live_rating_calc");
-                            await client.query("RELEASE SAVEPOINT live_rating_calc");
-                          } catch { /* ignore */ }
+                          log.warn({ err, eventId, gameId }, "fast-path rating recompute failed");
                         }
                       }
 
