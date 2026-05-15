@@ -38,8 +38,9 @@ describe("parseStartTime", () => {
     expect(parseStartTime("7PM ET")).toBe(19 * 60);
   });
 
-  it("parses '12AM ET' as midnight (0)", () => {
-    expect(parseStartTime("12AM ET")).toBe(0);
+  it("treats '12AM ET' as a placeholder and sorts it to the end", () => {
+    // ESPN emits 12AM ET when tipoff is TBD — no real ET game starts at midnight.
+    expect(parseStartTime("12AM ET")).toBe(9999);
   });
 
   it("parses '12PM ET' as noon (12*60)", () => {

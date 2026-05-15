@@ -7,6 +7,7 @@ import { playerSlug } from "../../utils/playerUrl.js";
 import { useDuplicatePlayerSlugsAll } from "../../hooks/data/useDuplicatePlayerSlugs.js";
 import { itemVariants } from "../../utils/motion.js";
 import { formatDateShort } from "../../utils/formatDate.js";
+import { displayStartTime } from "../../utils/slateDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
 function isLiveStatus(status) {
@@ -132,7 +133,7 @@ export default function FavoritePlayersSection({ players, compact = false, onRem
                           </span>
                           <span className="ml-auto text-text-tertiary whitespace-nowrap">
                             {formatDateShort(nextGame.date)}
-                            {nextGame.start_time ? ` · ${nextGame.start_time}` : ""}
+                            {nextGame.start_time ? ` · ${displayStartTime(nextGame.start_time)}` : ""}
                           </span>
                         </Link>
                       )}

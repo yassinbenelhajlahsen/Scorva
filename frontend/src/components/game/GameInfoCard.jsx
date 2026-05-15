@@ -1,4 +1,5 @@
 import formatDate, { formatDateWithTime } from "../../utils/formatDate.js";
+import { displayStartTime } from "../../utils/slateDate.js";
 
 export default function GameInfoCard({ game, isFinal, inProgress }) {
   const rows = [
@@ -6,7 +7,7 @@ export default function GameInfoCard({ game, isFinal, inProgress }) {
       label: "Date",
       value:
         game.startTime && !isFinal && !inProgress
-          ? formatDateWithTime(game.date, game.startTime)
+          ? formatDateWithTime(game.date, displayStartTime(game.startTime))
           : formatDate(game.date),
     },
     { label: "Status", value: game.status },

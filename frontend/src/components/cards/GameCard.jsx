@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, memo } from "react";
 import { m, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDateShort, getPeriodLabel } from "../../utils/formatDate";
+import { displayStartTime } from "../../utils/slateDate.js";
 import { scoreUpdateVariants } from "../../utils/motion.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
@@ -163,10 +164,10 @@ function GameCard({ game }) {
 
               {/* Center */}
               <div className="flex flex-col items-center justify-center flex-shrink-0 w-[90px] gap-0.5 h-full overflow-hidden">
-                {!isFinal && !inProgress && game.start_time ? (
+                {!isFinal && !inProgress ? (
                   <>
                     <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>
-                    <span className="text-xs text-text-tertiary">{game.start_time}</span>
+                    <span className="text-xs text-text-tertiary">{displayStartTime(game.start_time)}</span>
                   </>
                 ) : (
                   <span className="text-xs text-text-tertiary">{formatDateShort(game.date)}</span>

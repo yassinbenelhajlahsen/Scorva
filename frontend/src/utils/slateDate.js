@@ -38,10 +38,23 @@ export function getSlateDateET() {
   return `${yy}-${mm}-${dd}`;
 }
 
+// ESPN emits "12AM ET" as a placeholder when the actual tipoff is unknown
+// (game scheduled but time not announced). No real ET game starts at midnight,
+// so treat it as missing everywhere.
+export function isPlaceholderStartTime(s) {
+  if (!s) return true;
+  return /^12(?::00)?\s*AM\s*ET\s*$/i.test(s);
+}
+
+// Display form: "TBD" for missing/placeholder, otherwise the raw string.
+export function displayStartTime(s) {
+  return isPlaceholderStartTime(s) ? "TBD" : s;
+}
+
 // "7:30PM ET" / "7PM ET" → minutes since midnight (for chronological sort).
-// Returns 9999 for unparseable input so those pills sort to the end.
+// Returns 9999 for unparseable/placeholder input so those pills sort to the end.
 export function parseStartTime(s) {
-  if (!s) return 9999;
+  if (isPlaceholderStartTime(s)) return 9999;
   const m = s.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i);
   if (!m) return 9999;
   let h = parseInt(m[1], 10);
@@ -54,7 +67,7 @@ export function parseStartTime(s) {
 
 // "7:30PM ET" → "7:30P"
 export function compactTime(s) {
-  if (!s) return "TBD";
+  if (isPlaceholderStartTime(s)) return "TBD";
   return s.replace(/\s*ET\s*$/i, "").replace(/([AP])M/i, "$1");
 }
 

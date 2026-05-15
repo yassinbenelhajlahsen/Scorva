@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { formatDateShort } from "../../utils/formatDate.js";
+import { displayStartTime } from "../../utils/slateDate.js";
 
 export default function NextGameCard({ league, game }) {
   if (!game) return null;
@@ -31,7 +32,7 @@ export default function NextGameCard({ league, game }) {
       <span aria-hidden className="text-text-tertiary">·</span>
       <span className="text-[11px] text-text-tertiary tabular-nums">
         {formatDateShort(date)}
-        {startTime ? ` · ${startTime}` : ""}
+        {startTime ? ` · ${displayStartTime(startTime)}` : ""}
       </span>
     </Link>
   );
