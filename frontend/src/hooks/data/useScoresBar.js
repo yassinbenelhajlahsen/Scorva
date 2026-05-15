@@ -1,10 +1,6 @@
 import { useMemo } from "react";
 import { useSlateGames } from "./useSlateGames.js";
-import {
-  getSlateDateET,
-  parseStartTime,
-  statusGroup,
-} from "../../utils/slateDate.js";
+import { getSlateDateET, sortBySlateOrder } from "../../utils/slateDate.js";
 
 function isInScope(league, leagueFilter) {
   return leagueFilter === null || leagueFilter === league;
@@ -14,23 +10,6 @@ function shouldDropLeague(slateDate, source) {
   // Off-season signal: backend redirects to an earlier resolvedDate when
   // today has no games. Drop that league's contribution silently.
   return source.resolvedDate !== null && source.resolvedDate !== slateDate;
-}
-
-function sortBySlateOrder(games) {
-  // live → scheduled (chrono) → final
-  const live = [];
-  const scheduled = [];
-  const final = [];
-  for (const g of games) {
-    const grp = statusGroup(g);
-    if (grp === "live") live.push(g);
-    else if (grp === "final") final.push(g);
-    else scheduled.push(g);
-  }
-  scheduled.sort(
-    (a, b) => parseStartTime(a.start_time) - parseStartTime(b.start_time)
-  );
-  return [...live, ...scheduled, ...final];
 }
 
 export function useScoresBar(leagueFilter) {

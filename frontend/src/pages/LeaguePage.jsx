@@ -15,6 +15,7 @@ import { useSeasons } from "../hooks/data/useSeasons.js";
 import { useSeasonParam } from "../hooks/useSeasonParam.js";
 import buildSeasonUrl from "../utils/buildSeasonUrl.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
+import { sortBySlateOrder } from "../utils/slateDate.js";
 import LeaguePageSkeleton from "../components/skeletons/LeaguePageSkeleton.jsx";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import PlayoffsBracket from "../components/playoffs/PlayoffsBracket.jsx";
@@ -59,8 +60,9 @@ export default function LeaguePage() {
   const tabNavRef = useRef(null);
   const [pillBounds, setPillBounds] = useState(null);
 
-  const { games, standings, standingsFetching, error, displayData, retry, refetch: refetchLeague, resolvedDate, resolvedSeason } =
+  const { games: rawGames, standings, standingsFetching, error, displayData, retry, refetch: refetchLeague, resolvedDate, resolvedSeason } =
     useLeagueData(league, selectedSeason, selectedDate);
+  const games = useMemo(() => sortBySlateOrder(rawGames), [rawGames]);
   const { dates: gameDates, gameCounts, loading: datesLoading, refetch: refetchGameDates } = useGameDates(league, selectedSeason);
 
   const handleRefresh = async () => {

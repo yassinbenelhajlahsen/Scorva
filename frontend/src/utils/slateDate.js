@@ -58,6 +58,23 @@ export function compactTime(s) {
   return s.replace(/\s*ET\s*$/i, "").replace(/([AP])M/i, "$1");
 }
 
+// live → scheduled (chronological by start_time) → final
+export function sortBySlateOrder(games) {
+  const live = [];
+  const scheduled = [];
+  const final = [];
+  for (const g of games) {
+    const grp = statusGroup(g);
+    if (grp === "live") live.push(g);
+    else if (grp === "final") final.push(g);
+    else scheduled.push(g);
+  }
+  scheduled.sort(
+    (a, b) => parseStartTime(a.start_time) - parseStartTime(b.start_time)
+  );
+  return [...live, ...scheduled, ...final];
+}
+
 // First path segment → "nba" | "nfl" | "nhl" | null
 const LEAGUE_SLUGS = new Set(["nba", "nfl", "nhl"]);
 export function resolveLeagueFilter(pathname) {
