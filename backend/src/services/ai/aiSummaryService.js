@@ -16,16 +16,103 @@ function periodLabel(period, league) {
   return otNum === 1 ? "OT" : `OT${otNum}`;
 }
 
-function mapPlay(play, leagueUpper) {
-  return {
-    clock: play.clock,
-    period: periodLabel(play.period, leagueUpper),
+// Pre-render the clock as "X left in [period]" so the model can't read a
+// countdown like "29.4" as 29.4 seconds elapsed. The raw clock field is the
+// time *remaining* in the period in MM:SS or sub-minute "SS.s" form.
+function formatTimeRemaining(clock, periodLabelStr) {
+  if (clock == null || clock === "") return null;
+  const s = String(clock).trim();
+  if (s.includes(":")) return `${s} left in ${periodLabelStr}`;
+  return `${s} seconds left in ${periodLabelStr}`;
+}
+
+function mapPlay(play, leagueUpper, extras = {}) {
+  const period = periodLabel(play.period, leagueUpper);
+  const base = {
+    period,
+    timeRemaining: formatTimeRemaining(play.clock, period),
     description: play.description,
     score: play.home_score != null && play.away_score != null
       ? `${play.home_score}-${play.away_score}`
       : null,
     scoringPlay: play.scoring_play,
   };
+  if (extras.wpaDelta != null) base.wpaDelta = Math.round(extras.wpaDelta * 1000) / 1000;
+  return base;
+}
+
+// Walk plays backward to find the latest scoring play by the eventual winner
+// where the game was still within one possession BEFORE that play. The bad
+// previous heuristic ("last scoring play") would surface garbage-time scores
+// by the losing team, which is exactly the bug we're fixing.
+function findGoAheadScoringPlay(plays, leagueUpper) {
+  if (plays.length === 0) return null;
+  const last = plays[plays.length - 1];
+  if (last.home_score == null || last.away_score == null) return null;
+  if (last.home_score === last.away_score) return null;
+  const winnerIsHome = last.home_score > last.away_score;
+  const onePoss = ONE_POSSESSION[leagueUpper] ?? 5;
+
+  for (let i = plays.length - 1; i >= 0; i--) {
+    const p = plays[i];
+    if (!p.scoring_play) continue;
+    if (p.home_score == null || p.away_score == null) continue;
+
+    // Find the most recent prior play with score state to compute who scored.
+    let prevHome = 0;
+    let prevAway = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      if (plays[j].home_score != null && plays[j].away_score != null) {
+        prevHome = plays[j].home_score;
+        prevAway = plays[j].away_score;
+        break;
+      }
+    }
+    const winnerScored = winnerIsHome
+      ? p.home_score > prevHome
+      : p.away_score > prevAway;
+    if (!winnerScored) continue;
+
+    // Pre-play margin from the winner's perspective. Must be within one
+    // possession either direction (close game, decisive moment).
+    const preMargin = winnerIsHome ? prevHome - prevAway : prevAway - prevHome;
+    if (preMargin > onePoss) continue;
+    if (preMargin < -onePoss) continue;
+
+    return p;
+  }
+  return null;
+}
+
+// NBA-only: re-rank clutch plays by per-play |wpa_delta| from play_ratings.
+// Returns plays in chronological order with wpaDelta attached. Falls back to
+// the raw chronological tail when ratings aren't available (older NBA games,
+// other leagues, or query failures).
+async function selectClutchByWpa(gameId, clutchPlays) {
+  if (clutchPlays.length === 0) return [];
+  const ids = clutchPlays.map((p) => p.id).filter((id) => id != null);
+  if (ids.length === 0) return null;
+  try {
+    const { rows } = await pool.query(
+      `SELECT play_id, MAX(ABS(wpa_delta)) AS max_wpa
+       FROM play_ratings
+       WHERE game_id = $1 AND play_id = ANY($2::int[]) AND wpa_delta IS NOT NULL
+       GROUP BY play_id`,
+      [gameId, ids],
+    );
+    if (rows.length === 0) return null;
+    const wpaMap = new Map(rows.map((r) => [r.play_id, Number(r.max_wpa)]));
+    const ranked = clutchPlays
+      .map((p) => ({ play: p, wpa: wpaMap.get(p.id) ?? 0 }))
+      .filter(({ wpa }) => wpa >= 0.03)
+      .sort((a, b) => b.wpa - a.wpa)
+      .slice(0, 12)
+      .sort((a, b) => a.play.sequence - b.play.sequence);
+    return ranked.map(({ play, wpa }) => ({ play, wpaDelta: wpa }));
+  } catch (err) {
+    logger.warn({ err }, "WPA-ranked clutch selection failed; falling back");
+    return null;
+  }
 }
 
 // One-possession margin per league. If the score was never within this margin
@@ -70,16 +157,29 @@ export async function getClutchPlays(gameId, league) {
       return { plays: [], gameWinningPlay: null };
     }
 
-    const lastScoringPlay = [...result.plays]
-      .reverse()
-      .find((p) => p.scoring_play);
-    const gameWinningPlay = lastScoringPlay ? mapPlay(lastScoringPlay, leagueUpper) : null;
+    const goAhead = findGoAheadScoringPlay(result.plays, leagueUpper);
+    const gameWinningPlay = goAhead ? mapPlay(goAhead, leagueUpper) : null;
 
     clutch.sort((a, b) => a.sequence - b.sequence);
-    const capped = clutch.slice(-20);
+
+    // NBA: rank by play impact so the OT logo shot doesn't get crowded out by
+    // substitutions and team rebounds. Other leagues + games without ratings
+    // fall back to the chronological tail.
+    let mapped;
+    if (leagueUpper === "NBA") {
+      const ranked = await selectClutchByWpa(gameId, clutch);
+      if (ranked && ranked.length > 0) {
+        mapped = ranked.map(({ play, wpaDelta }) =>
+          mapPlay(play, leagueUpper, { wpaDelta }),
+        );
+      }
+    }
+    if (!mapped) {
+      mapped = clutch.slice(-20).map((play) => mapPlay(play, leagueUpper));
+    }
 
     return {
-      plays: capped.map((play) => mapPlay(play, leagueUpper)),
+      plays: mapped,
       gameWinningPlay,
     };
   } catch (err) {
@@ -802,12 +902,14 @@ Narrative frame: ${frame}${seriesContext}
 
 Rules:
 - Start each bullet with a dash (-)
+- The ONLY two team names you may reference are "${gameData.homeTeam}" and "${gameData.awayTeam}". Never name any other franchise, city, or nickname — not even if you start to and catch yourself. If you write a wrong team name, restart the bullet silently rather than apologizing inline.
 - Do NOT restate the final score as a bullet — the reader already knows it
 - Anchor each bullet to something specific in the game data: a player performance, a period swing, a statistical gap, a late-game play, or context (series, injuries, streaks)
-- Never echo input field names in the bullets (e.g. "benchPointsSwing," "storyType," "topByRating," "seriesState," "gameWinningPlay," "enteringStreaks," "topPerformers," "inGameInjuries", "scoringArc"). They are internal labels — translate them into natural sportswriter language
+- Never echo input field names in the bullets (e.g. "benchPointsSwing," "storyType," "topByRating," "seriesState," "gameWinningPlay," "enteringStreaks," "topPerformers," "inGameInjuries", "scoringArc", "wpaDelta"). They are internal labels — translate them into natural sportswriter language
 - Vary the structure — don't follow a fixed template (e.g. series-then-performer-then-final-play). Combine ideas across bullets when they reinforce each other, and skip a category entirely if forcing it would produce filler
 - Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist
-- scoringArc is the AUTHORITATIVE running-score narrative — each entry's "cumulative" string names which team led and by how much AFTER that period. NEVER infer the lead arc from quarterByQuarter or per-period scores; those are per-period only and easy to misread. If you describe a comeback, rally, blown lead, or who led entering a period, the claim MUST be consistent with scoringArc. Do NOT name "scoringArc" in the bullet — translate it into prose (e.g. "the Knicks erased a 14-point Cavaliers lead in the fourth")${winningPlayRule}${ratingRule}${injuryRule}${streakRule}${benchRule}
+- scoringArc is the AUTHORITATIVE running-score narrative — each entry's "cumulative" string names which team led and by how much AFTER that period. NEVER infer the lead arc from quarterByQuarter or per-period scores; those are per-period only and easy to misread. If you describe a comeback, rally, blown lead, or who led entering a period, the claim MUST be consistent with scoringArc. Do NOT name "scoringArc" in the bullet — translate it into prose (e.g. "the Knicks erased a 14-point Cavaliers lead in the fourth")
+- clutchPlays entries may carry an internal wpaDelta signal used ONLY to rank importance — higher = more decisive. Use it silently to choose which plays to highlight; plays with low values are incidental and should not be framed as decisive. NEVER mention the number, the term "win probability," "WPA," "swing value," "impact score," or any phrase that hints at an underlying model or rating. The reader sees only basketball/football/hockey language — never a reference to internal metrics or insider numbers of any kind (this applies to topByRating's ratingGrade, wpaDelta, and any other numeric signal in the data that isn't a real box-score stat).${winningPlayRule}${ratingRule}${injuryRule}${streakRule}${benchRule}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;
