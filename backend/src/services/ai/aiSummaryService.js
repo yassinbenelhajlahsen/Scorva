@@ -367,6 +367,33 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
     }
   }
 
+  // Precompute an authoritative running-score narrative so the LLM cannot
+  // invert who led entering a given period. Without this, models confuse the
+  // home/away per-period arrays and produce backwards lead narratives.
+  const scoringArc = [];
+  let cumHome = 0;
+  let cumAway = 0;
+  for (let i = 0; i < quarterByQuarter.periods.length; i++) {
+    cumHome += quarterByQuarter.home[i];
+    cumAway += quarterByQuarter.away[i];
+    const period = quarterByQuarter.periods[i];
+    const diff = cumHome - cumAway;
+    let lead;
+    if (diff === 0) {
+      lead = `tied ${cumHome}-${cumAway}`;
+    } else if (diff > 0) {
+      lead = `${game.home_team_name} ${cumHome}-${cumAway} (+${diff})`;
+    } else {
+      lead = `${game.away_team_name} ${cumAway}-${cumHome} (+${-diff})`;
+    }
+    scoringArc.push({
+      period,
+      homePoints: quarterByQuarter.home[i],
+      awayPoints: quarterByQuarter.away[i],
+      cumulative: lead,
+    });
+  }
+
   const margin = Math.abs(game.homescore - game.awayscore);
 
   const thresholds = {
@@ -448,6 +475,7 @@ export function buildGameData(game, stats, clutchData = {}, extras = {}) {
     storyType,
     hadOT,
     quarterByQuarter,
+    scoringArc,
     topPerformers,
     ...(topByRating && topByRating.length > 0 ? { topByRating } : {}),
     teamStats: {
@@ -776,9 +804,10 @@ Rules:
 - Start each bullet with a dash (-)
 - Do NOT restate the final score as a bullet — the reader already knows it
 - Anchor each bullet to something specific in the game data: a player performance, a period swing, a statistical gap, a late-game play, or context (series, injuries, streaks)
-- Never echo input field names in the bullets (e.g. "benchPointsSwing," "storyType," "topByRating," "seriesState," "gameWinningPlay," "enteringStreaks," "topPerformers," "inGameInjuries"). They are internal labels — translate them into natural sportswriter language
+- Never echo input field names in the bullets (e.g. "benchPointsSwing," "storyType," "topByRating," "seriesState," "gameWinningPlay," "enteringStreaks," "topPerformers," "inGameInjuries", "scoringArc"). They are internal labels — translate them into natural sportswriter language
 - Vary the structure — don't follow a fixed template (e.g. series-then-performer-then-final-play). Combine ideas across bullets when they reinforce each other, and skip a category entirely if forcing it would produce filler
-- Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist${winningPlayRule}${ratingRule}${injuryRule}${streakRule}${benchRule}
+- Pick the three most distinctive observations for THIS specific game; the storyType and topPerformers are anchors, not a checklist
+- scoringArc is the AUTHORITATIVE running-score narrative — each entry's "cumulative" string names which team led and by how much AFTER that period. NEVER infer the lead arc from quarterByQuarter or per-period scores; those are per-period only and easy to misread. If you describe a comeback, rally, blown lead, or who led entering a period, the claim MUST be consistent with scoringArc. Do NOT name "scoringArc" in the bullet — translate it into prose (e.g. "the Knicks erased a 14-point Cavaliers lead in the fourth")${winningPlayRule}${ratingRule}${injuryRule}${streakRule}${benchRule}
 
 Game data:
 ${JSON.stringify(gameData, null, 2)}`;
