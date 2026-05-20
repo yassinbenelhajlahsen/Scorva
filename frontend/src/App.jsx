@@ -21,16 +21,36 @@ import IOSInstallHint from "./components/pwa/IOSInstallHint.jsx";
 import { trackVisit } from "./lib/pwaVisitTracking.js";
 import { resolveLeagueFilter } from "./utils/slateDate.js";
 
-const About        = lazy(() => import("./pages/About.jsx"));
-const LeaguePage   = lazy(() => import("./pages/LeaguePage.jsx"));
-const PlayerPage   = lazy(() => import("./pages/PlayerPage.jsx"));
-const TeamPage     = lazy(() => import("./pages/TeamPage.jsx"));
-const GamePage     = lazy(() => import("./pages/GamePage.jsx"));
-const PrivacyPage  = lazy(() => import("./pages/PrivacyPage.jsx"));
-const ErrorPage    = lazy(() => import("./pages/ErrorPage.jsx"));
-const ComparePage  = lazy(() => import("./pages/ComparePage.jsx"));
-const PulsePage    = lazy(() => import("./pages/PulsePage.jsx"));
-const MockCards    = lazy(() => import("./pages/MockCards.jsx"));
+function lazyWithReload(factory) {
+  return lazy(async () => {
+    try {
+      return await factory();
+    } catch (err) {
+      const isChunkError =
+        err?.name === "ChunkLoadError" ||
+        /Failed to fetch dynamically imported module|Importing a module script failed/i.test(
+          err?.message || ""
+        );
+      if (isChunkError && !sessionStorage.getItem("chunk-reload")) {
+        sessionStorage.setItem("chunk-reload", "1");
+        window.location.reload();
+        return { default: () => null };
+      }
+      throw err;
+    }
+  });
+}
+
+const About        = lazyWithReload(() => import("./pages/About.jsx"));
+const LeaguePage   = lazyWithReload(() => import("./pages/LeaguePage.jsx"));
+const PlayerPage   = lazyWithReload(() => import("./pages/PlayerPage.jsx"));
+const TeamPage     = lazyWithReload(() => import("./pages/TeamPage.jsx"));
+const GamePage     = lazyWithReload(() => import("./pages/GamePage.jsx"));
+const PrivacyPage  = lazyWithReload(() => import("./pages/PrivacyPage.jsx"));
+const ErrorPage    = lazyWithReload(() => import("./pages/ErrorPage.jsx"));
+const ComparePage  = lazyWithReload(() => import("./pages/ComparePage.jsx"));
+const PulsePage    = lazyWithReload(() => import("./pages/PulsePage.jsx"));
+const MockCards    = lazyWithReload(() => import("./pages/MockCards.jsx"));
 
 function useBlockEdgeSwipe() {
   useEffect(() => {
@@ -72,6 +92,7 @@ function AppShellInner() {
 
   useEffect(() => {
     trackVisit();
+    sessionStorage.removeItem("chunk-reload");
   }, []);
   useBlockEdgeSwipe();
 
