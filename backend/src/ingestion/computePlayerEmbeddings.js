@@ -242,7 +242,31 @@ export async function computeLeagueEmbeddings(pool, league, season) {
   return normalized.length;
 }
 
-export async function computeAllEmbeddings(pool) {
+// Minimum gap between full embedding recomputes. The upsert worker runs every
+// 30 minutes; z-score normalization rewrites nearly every row each time
+// (5.9M updates on 32k rows over 6 weeks before this cap was added), so cap
+// it to a few runs per day. similarPlayers is approximate by design — a
+// 6-hour lag in vector freshness is invisible to users.
+const MIN_RECOMPUTE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+export async function computeAllEmbeddings(pool, { force = false } = {}) {
+  if (!force) {
+    const { rows } = await pool.query(
+      "SELECT MAX(updated_at) AS last_run FROM player_stat_embeddings",
+    );
+    const lastRun = rows[0]?.last_run;
+    if (lastRun) {
+      const elapsed = Date.now() - new Date(lastRun).getTime();
+      if (elapsed < MIN_RECOMPUTE_INTERVAL_MS) {
+        log.info(
+          { elapsedMin: Math.round(elapsed / 60000), minIntervalMin: MIN_RECOMPUTE_INTERVAL_MS / 60000 },
+          "embeddings recently computed, skipping",
+        );
+        return;
+      }
+    }
+  }
+
   const leagues = ["nba", "nfl", "nhl"];
   for (const league of leagues) {
     const season = await getCurrentSeason(league);
@@ -267,7 +291,8 @@ if (resolve(process.argv[1]) === __filename) {
   });
 
   try {
-    await computeAllEmbeddings(pool);
+    // Manual CLI invocation bypasses the 6-hour throttle.
+    await computeAllEmbeddings(pool, { force: true });
   } finally {
     await pool.end();
     process.exit(0);

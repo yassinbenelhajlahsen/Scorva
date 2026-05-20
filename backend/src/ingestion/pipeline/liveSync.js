@@ -21,6 +21,10 @@ const SCOREBOARD_URL = (sport, league) =>
 const TICK_MS = 15_000;
 const FULL_UPDATE_INTERVAL_MS = 120_000;
 const PLAYS_UPDATE_INTERVAL_MS = 15_000;
+// Rating recompute is far more expensive than upsertPlays (writes
+// play_ratings + play_participants for every play in the game) — throttle
+// independently so it runs ~once/minute on the fast path instead of every 15s.
+const RATINGS_UPDATE_INTERVAL_MS = 60_000;
 const NO_GAMES_SLEEP_MS = 5 * 60 * 1000;
 
 // ESPN sport path for the /playbyplay endpoint (differs from scoreboard path)
@@ -162,19 +166,32 @@ export async function tick(liveLeagues) {
       await Promise.all(
         liveEvents.slice(i, i + 5).map(async (event) => {
           const eventId = parseInt(event.id, 10);
-          const state = eventState.get(eventId) ?? { lastFullUpdate: 0, lastPeriod: null };
+          const state =
+            eventState.get(eventId) ?? { lastFullUpdate: 0, lastPeriod: null, lastRatingsUpdate: 0 };
           const currentPeriod = event.status?.period ?? null;
           const periodChanged = currentPeriod !== state.lastPeriod;
           const needsFullUpdate =
             now - state.lastFullUpdate > FULL_UPDATE_INTERVAL_MS || periodChanged;
 
-          const client = await pool.connect();
+          let client;
+          try {
+            client = await pool.connect();
+          } catch (err) {
+            log.error({ err, eventId }, "Failed to acquire DB client for live event");
+            return;
+          }
           try {
             if (needsFullUpdate) {
               try {
                 await processEvent(client, slug, event);
-                // processEvent already calls upsertPlays, so sync lastPlaysUpdate
-                eventState.set(eventId, { lastFullUpdate: now, lastPeriod: currentPeriod, lastPlaysUpdate: now });
+                // processEvent calls upsertPlays + recomputeGame (NBA), so sync
+                // both timers — avoids redundant fast-path rewrites right after.
+                eventState.set(eventId, {
+                  lastFullUpdate: now,
+                  lastPeriod: currentPeriod,
+                  lastPlaysUpdate: now,
+                  lastRatingsUpdate: slug === "nba" ? now : 0,
+                });
                 await client.query("SELECT pg_notify('game_updated', $1)", [String(eventId)]);
               } catch (err) {
                 log.error({ err, eventId }, "Full update failed for event");
@@ -206,17 +223,28 @@ export async function tick(liveLeagues) {
                       const awayComp = comps.find((c) => c.homeAway === "away");
                       const homeEspnId = parseInt(homeComp?.team?.id, 10);
                       const awayEspnId = parseInt(awayComp?.team?.id, 10);
-                      await upsertPlays(client, gameId, pbpData, slug, hometeamid, awayteamid, homeEspnId, awayEspnId);
+                      await upsertPlays(
+                        client, gameId, pbpData, slug,
+                        hometeamid, awayteamid, homeEspnId, awayEspnId,
+                        { incrementalOnly: true },
+                      );
 
                       // NBA only — keep participants + ratings fresh on the fast path
                       // so play-by-play chips don't lag the 2-min full-update cycle.
                       // Queries run in autocommit (no surrounding BEGIN), so the
                       // upsertPlays writes above are already durable; a failure
                       // here cannot poison them.
-                      if (slug === "nba") {
+                      // Throttled separately from plays: recomputeGame rewrites
+                      // play_ratings (delete-all + reinsert) for every play, so
+                      // running it every 15s is the single biggest WAL source.
+                      if (
+                        slug === "nba" &&
+                        now - (state.lastRatingsUpdate ?? 0) > RATINGS_UPDATE_INTERVAL_MS
+                      ) {
                         try {
                           await upsertPlayParticipants(client, gameId, pbpData, slug);
                           await recomputeGame(client, gameId);
+                          newState.lastRatingsUpdate = now;
                         } catch (err) {
                           log.warn({ err, eventId, gameId }, "fast-path rating recompute failed");
                         }
@@ -244,7 +272,13 @@ export async function tick(liveLeagues) {
     // Write Final status for games that just ended — each gets its own client
     for (const event of justFinalized) {
       const eventId = parseInt(event.id, 10);
-      const client = await pool.connect();
+      let client;
+      try {
+        client = await pool.connect();
+      } catch (err) {
+        log.error({ err, eventId }, "Failed to acquire DB client for finalized event");
+        continue;
+      }
       try {
         try {
           await processEvent(client, slug, event);
@@ -315,7 +349,11 @@ async function main() {
 
     // Run ticks until no games remain; re-discover all leagues each iteration
     // so leagues that go live after initial discovery are picked up immediately.
-    liveLeagues = await tick(liveLeagues);
+    try {
+      liveLeagues = await tick(liveLeagues);
+    } catch (err) {
+      log.error({ err }, "tick failed, retrying next interval");
+    }
 
     while (!shuttingDown && liveLeagues.length) {
       await sleep(TICK_MS);
@@ -333,7 +371,11 @@ async function main() {
           }
         }
       }
-      liveLeagues = await tick(liveLeagues);
+      try {
+        liveLeagues = await tick(liveLeagues);
+      } catch (err) {
+        log.error({ err }, "tick failed, retrying next interval");
+      }
     }
 
     if (!shuttingDown) {

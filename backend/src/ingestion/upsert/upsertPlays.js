@@ -17,6 +17,7 @@ export default async function upsertPlays(
   awayTeamId,
   homeEspnId,
   awayEspnId,
+  { incrementalOnly = false } = {},
 ) {
   const rawRows = league === "nfl"
     ? extractNflPlays(summaryData, homeTeamId, awayTeamId, homeEspnId, awayEspnId)
@@ -26,9 +27,22 @@ export default async function upsertPlays(
   // keep the last occurrence to match ESPN's own ordering.
   const seenSeq = new Map();
   for (const row of rawRows) seenSeq.set(row.sequence, row);
-  const rows = Array.from(seenSeq.values());
+  let rows = Array.from(seenSeq.values());
 
   if (rows.length === 0) return;
+
+  // Fast path (liveSync 15s tick) passes incrementalOnly to skip the bulk
+  // rewrite of already-stored plays. The 2-min full path from processEvent
+  // still rewrites everything, so retroactive corrections land within ~2min.
+  if (incrementalOnly) {
+    const { rows: maxRows } = await client.query(
+      "SELECT COALESCE(MAX(sequence), 0) AS max_seq FROM plays WHERE gameid = $1",
+      [gameId],
+    );
+    const maxSeq = Number(maxRows[0]?.max_seq) || 0;
+    rows = rows.filter((r) => r.sequence > maxSeq);
+    if (rows.length === 0) return;
+  }
 
   // Bulk upsert via unnest — single round trip regardless of row count
   await client.query(
