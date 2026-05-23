@@ -66,7 +66,7 @@ export async function getGames(league, { teamId, season, date, live } = {}) {
         AND g2.season = g.season
         AND g2.type IN ('playoff', 'final')
         AND g2.status ILIKE 'Final%'
-        AND g2.id <= g.id
+        AND g2.date <= g.date
         AND (
           (g2.hometeamid = g.hometeamid AND g2.awayteamid = g.awayteamid) OR
           (g2.hometeamid = g.awayteamid AND g2.awayteamid = g.hometeamid)

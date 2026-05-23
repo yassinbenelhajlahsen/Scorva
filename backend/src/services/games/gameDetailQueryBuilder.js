@@ -143,7 +143,7 @@ LEFT JOIN LATERAL (
     AND g2.season = g.season
     AND g2.type IN ('playoff', 'final')
     AND g2.status ILIKE 'Final%'
-    AND g2.id <= g.id
+    AND g2.date <= g.date
     AND (
       (g2.hometeamid = g.hometeamid AND g2.awayteamid = g.awayteamid) OR
       (g2.hometeamid = g.awayteamid AND g2.awayteamid = g.hometeamid)
@@ -159,7 +159,7 @@ LEFT JOIN LATERAL (
       AND g3.season = g.season
       AND g3.type IN ('playoff', 'final')
       AND (g3.game_label IS NULL OR g3.game_label NOT ILIKE '%play-in%')
-      AND g3.id < g.id
+      AND g3.date < g.date
       AND g3.status NOT ILIKE 'Final%'
       AND g3.status NOT ILIKE 'Cancel%'
       AND (

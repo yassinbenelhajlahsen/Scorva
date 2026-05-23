@@ -15,25 +15,15 @@ function TrophyIcon({ className = "" }) {
   );
 }
 
-function SeriesDots({ home, away, total = 4 }) {
-  const h = Number(home ?? 0);
-  const a = Number(away ?? 0);
+function seriesLabel(homeWins, awayWins, homeName, awayName) {
+  const h = Number(homeWins ?? 0);
+  const a = Number(awayWins ?? 0);
   if (h + a === 0) return null;
-  return (
-    <div className="flex items-center justify-center gap-2.5 mt-1.5">
-      <div className="flex items-center gap-1">
-        {Array.from({ length: total }).map((_, i) => (
-          <span key={`h${i}`} className={`w-1.5 h-1.5 rounded-full ${i < h ? "bg-text-primary" : "bg-white/15"}`} />
-        ))}
-      </div>
-      <span className="text-[9px] uppercase tracking-[0.15em] text-text-tertiary">vs</span>
-      <div className="flex items-center gap-1">
-        {Array.from({ length: total }).map((_, i) => (
-          <span key={`a${i}`} className={`w-1.5 h-1.5 rounded-full ${i < a ? "bg-text-primary" : "bg-white/15"}`} />
-        ))}
-      </div>
-    </div>
-  );
+  if (h === 4) return `${homeName} win series ${h}-${a}`;
+  if (a === 4) return `${awayName} win series ${a}-${h}`;
+  if (h === a) return `Tied ${h}-${a}`;
+  if (h > a) return `${homeName} lead ${h}-${a}`;
+  return `${awayName} lead ${a}-${h}`;
 }
 
 function GameRatingBadge({ rating }) {
@@ -138,9 +128,17 @@ export default function GameMatchupHeader({
                   {isChampionship && <TrophyIcon className="w-3 h-3" />}
                 </p>
               )}
-              {game.seriesScore && (
-                <SeriesDots home={game.seriesScore.homeWins} away={game.seriesScore.awayWins} />
-              )}
+              {game.seriesScore && (() => {
+                const label = seriesLabel(
+                  game.seriesScore.homeWins,
+                  game.seriesScore.awayWins,
+                  homeTeam.info.shortName,
+                  awayTeam.info.shortName,
+                );
+                return label ? (
+                  <span className="text-xs text-text-tertiary text-center block mt-0.5">{label}</span>
+                ) : null;
+              })()}
             </div>
           )}
           {inProgress && (

@@ -45,9 +45,9 @@ describe("buildGameDetailSQL", () => {
     expect(sql).toContain("'hasUnplayedPriorSeriesGames'");
   });
 
-  it("uses strict less-than for prior series games and excludes finals/cancellations", () => {
+  it("orders prior series games by date and excludes finals/cancellations", () => {
     const sql = buildGameDetailSQL("nba");
-    expect(sql).toContain("g3.id < g.id");
+    expect(sql).toContain("g3.date < g.date");
     expect(sql).toContain("g3.status NOT ILIKE 'Final%'");
     expect(sql).toContain("g3.status NOT ILIKE 'Cancel%'");
   });
