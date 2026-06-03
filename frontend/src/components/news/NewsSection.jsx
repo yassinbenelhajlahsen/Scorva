@@ -8,7 +8,7 @@ import NewsCardSkeleton from "../skeletons/NewsCardSkeleton.jsx";
 import Skeleton from "../ui/Skeleton.jsx";
 import NewsPreviewModal from "./NewsPreviewModal.jsx";
 
-const MOBILE_COLLAPSED_COUNT = 4;
+const COLLAPSED_COUNT = 4;
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -31,23 +31,21 @@ export default function NewsSection() {
   const [selected, setSelected] = useState(null);
   const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState(false);
-  const [showAllMobile, setShowAllMobile] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     setExpanded(!isMobile);
   }, [isMobile]);
 
   useEffect(() => {
-    setShowAllMobile(false);
-  }, [isMobile]);
+    setShowAll(false);
+  }, [expanded]);
 
   if (error || (!loading && articles.length === 0)) return null;
 
-  const visible =
-    isMobile && !showAllMobile
-      ? articles.slice(0, MOBILE_COLLAPSED_COUNT)
-      : articles;
-  const showToggle = isMobile && articles.length > MOBILE_COLLAPSED_COUNT;
+  // Both views paginate: 4 first, then the rest via the show more button.
+  const visible = !showAll ? articles.slice(0, COLLAPSED_COUNT) : articles;
+  const showToggle = articles.length > COLLAPSED_COUNT;
 
   return (
     <div className="mb-14">
@@ -144,10 +142,10 @@ export default function NewsSection() {
 
       {showToggle && !loading && (
         <button
-          onClick={() => setShowAllMobile((v) => !v)}
+          onClick={() => setShowAll((v) => !v)}
           className="mt-3 w-full text-center text-xs font-semibold uppercase tracking-wide text-text-secondary py-3 rounded-xl ring-1 ring-white/[0.06] bg-white/[0.03] hover:ring-white/[0.14] hover:bg-white/[0.06] transition-colors cursor-pointer"
         >
-          {showAllMobile ? "Show less" : "Show more"}
+          {showAll ? "Show less" : "Show more"}
         </button>
       )}
 
