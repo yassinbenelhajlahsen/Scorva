@@ -88,6 +88,47 @@ export function sortBySlateOrder(games) {
   return [...live, ...scheduled, ...final];
 }
 
+// Normalize a game's date (a "YYYY-MM-DD" DATE string or an ISO timestamp)
+// to a "YYYY-MM-DD" key in UTC, matching how game dates are stored at ingest.
+function toDateKey(input) {
+  if (!input) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(input)) return input.slice(0, 10);
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+// Section heading for the homepage slate, derived from the games actually shown.
+// The backend serves one of three slates (today's games, nearest upcoming, or an
+// off-season fallback of recent finals), so a static "Today's Games" is often wrong
+// — e.g. during the Finals when the next game is 2-3 days out.
+// Precedence: any live > any game today > any upcoming > recent finals.
+export function slateLabel(games) {
+  if (!games || games.length === 0) return "Games";
+  const slateToday = getSlateDateET();
+  let hasLive = false;
+  let hasToday = false;
+  let hasFuture = false;
+  let hasFinal = false;
+  for (const g of games) {
+    const grp = statusGroup(g);
+    if (grp === "live") {
+      hasLive = true;
+    } else if (toDateKey(g.date) === slateToday) {
+      hasToday = true; // final-today or scheduled-today
+    } else if (grp === "scheduled") {
+      hasFuture = true;
+    } else {
+      hasFinal = true; // final in the past (off-season fallback)
+    }
+  }
+  if (hasLive) return "Live Now";
+  if (hasToday) return "Today's Games";
+  if (hasFuture) return "Upcoming Games";
+  if (hasFinal) return "Recent Games";
+  return "Games";
+}
+
 // First path segment → "nba" | "nfl" | "nhl" | null
 const LEAGUE_SLUGS = new Set(["nba", "nfl", "nhl"]);
 export function resolveLeagueFilter(pathname) {

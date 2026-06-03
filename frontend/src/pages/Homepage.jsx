@@ -14,6 +14,7 @@ import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import NewsSection from "../components/news/NewsSection.jsx";
 import { PullToRefresh } from "../components/ui/PullToRefresh.jsx";
+import { slateLabel } from "../utils/slateDate.js";
 
 export default function Homepage() {
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ export default function Homepage() {
           {/* Section header with inline league tabs */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xs uppercase tracking-widest text-text-tertiary font-semibold">
-              Today's Games
+              {slateLabel(games[activeLeague])}
             </h2>
             <div ref={tabNavRef} className="relative flex border-b border-white/[0.06]">
               {indicatorBounds && (
