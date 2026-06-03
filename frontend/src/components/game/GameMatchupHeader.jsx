@@ -7,14 +7,6 @@ import { getPeriodLabel } from "../../utils/formatDate.js";
 import { queryKeys, queryFns } from "../../lib/query.js";
 
 
-function TrophyIcon({ className = "" }) {
-  return (
-    <svg viewBox="0 0 256 256" fill="currentColor" className={className} aria-hidden>
-      <path d="M232 64h-32V56a16 16 0 0 0-16-16H72a16 16 0 0 0-16 16v8H24a16 16 0 0 0-16 16v32a40 40 0 0 0 40 40h11a64.18 64.18 0 0 0 53 36.43V216H88a8 8 0 0 0 0 16h80a8 8 0 0 0 0-16h-24v-27.57A64.18 64.18 0 0 0 197 152h11a40 40 0 0 0 40-40V80a16 16 0 0 0-16-16zM48 128a24 24 0 0 1-24-24V80h32v32a64.3 64.3 0 0 0 .57 8.49A24.27 24.27 0 0 1 48 128zm184-24a24 24 0 0 1-24 24a24.27 24.27 0 0 1-8.57-1.51A64.3 64.3 0 0 0 200 112V80h32z" />
-    </svg>
-  );
-}
-
 function seriesLabel(homeWins, awayWins, homeName, awayName) {
   const h = Number(homeWins ?? 0);
   const a = Number(awayWins ?? 0);
@@ -123,9 +115,7 @@ export default function GameMatchupHeader({
               </div>
               {game.gameLabel && (
                 <p className={`flex items-center justify-center gap-1.5 ${isChampionship ? "text-accent font-semibold uppercase tracking-[0.18em] text-[11px]" : "text-sm font-medium text-text-secondary"}`}>
-                  {isChampionship && <TrophyIcon className="w-3 h-3" />}
                   {game.gameLabel}
-                  {isChampionship && <TrophyIcon className="w-3 h-3" />}
                 </p>
               )}
               {game.seriesScore && (() => {
