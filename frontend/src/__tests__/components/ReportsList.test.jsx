@@ -31,8 +31,8 @@ describe("ReportsList", () => {
       { id: "i2", type: "injury", date: "2026-04-29T12:00:00Z", league: "nba", player, prevStatus: null, newStatus: "out" },
     ];
     render(inRouter(<ReportsList reports={reports} groupByDate={true} />));
-    expect(screen.getByText(/Apr 30/i)).toBeInTheDocument();
-    expect(screen.getByText(/Apr 29/i)).toBeInTheDocument();
+    expect(screen.getByText(/Apr 30, 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/Apr 29, 2026/i)).toBeInTheDocument();
   });
 
   it("renders skeletons when loading", () => {
