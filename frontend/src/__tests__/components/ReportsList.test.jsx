@@ -22,7 +22,9 @@ describe("ReportsList", () => {
       { id: "i2", type: "injury", date: "2026-04-29T00:00:00Z", league: "nba", player, prevStatus: null, newStatus: "out" },
     ];
     render(inRouter(<ReportsList reports={reports} groupByDate={false} />));
-    expect(screen.queryByText(/Apr 30/i)).not.toBeInTheDocument();
+    // Date group headers always include the year (e.g. "Apr 30, 2026"); row
+    // timestamps never do. Asserting the header text is absent is timezone-safe.
+    expect(screen.queryByText(/Apr 30, 2026/i)).not.toBeInTheDocument();
   });
 
   it("renders date headers when groupByDate=true", () => {
