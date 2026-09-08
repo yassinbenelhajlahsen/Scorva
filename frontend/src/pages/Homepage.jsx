@@ -8,7 +8,6 @@ import GameCardSkeleton from "../components/skeletons/GameCardSkeleton.jsx";
 import leagueData from "../utils/leagueData.js";
 import { useHomeGames } from "../hooks/data/useHomeGames.js";
 import { containerVariants, itemVariants } from "../utils/motion.js";
-import { useAuth } from "../context/AuthContext.jsx";
 import { useUserPrefs } from "../hooks/user/useUserPrefs.js";
 import ErrorState from "../components/ui/ErrorState.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
@@ -24,15 +23,14 @@ export default function Homepage() {
   const handleRefresh = async () => {
     await refetch();
   };
-  const { session } = useAuth();
-  const { prefs, loading: prefsLoading } = useUserPrefs();
+  const { prefs } = useUserPrefs();
 
-  // Resolve the active league: wait for prefs when logged in, default to "nba" when not
-  const resolvedLeague = session === undefined || (session && (prefsLoading || prefs === null))
-    ? null  // still loading — don't commit yet
-    : prefs?.default_league ?? "nba";
+  // The games grid has no auth dependency, so it must never wait on one. Supabase
+  // auth init can stall for seconds (stale refresh token + unreachable project
+  // retries with backoff); gating the slate on it left the page in skeletons.
+  const preferredLeague = prefs?.default_league ?? null;
 
-  const [activeLeague, setActiveLeague] = useState(null);
+  const [activeLeague, setActiveLeague] = useState("nba");
   const [userPicked, setUserPicked] = useState(false);
   const [tabDirection, setTabDirection] = useState(1);
 
@@ -41,7 +39,7 @@ export default function Homepage() {
   const [indicatorBounds, setIndicatorBounds] = useState(null);
 
   useLayoutEffect(() => {
-    if (!activeLeague || loading) return;
+    if (loading) return;
     const idx = leagues.findIndex((l) => l.id === activeLeague);
     const btn = tabRefs.current[idx];
     const nav = tabNavRef.current;
@@ -53,8 +51,8 @@ export default function Homepage() {
   }, [activeLeague, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!userPicked && resolvedLeague) setActiveLeague(resolvedLeague);
-  }, [resolvedLeague, userPicked]);
+    if (!userPicked && preferredLeague) setActiveLeague(preferredLeague);
+  }, [preferredLeague, userPicked]);
 
   function pickLeague(id) {
     if (id === activeLeague) {
@@ -93,7 +91,7 @@ export default function Homepage() {
       {/* League tabs + Games */}
       {error ? (
         <ErrorState message={error} onRetry={retry} />
-      ) : loading || !activeLeague ? (
+      ) : loading ? (
         <>
           {/* Skeleton header row */}
           <div className="flex items-center justify-between mb-6">

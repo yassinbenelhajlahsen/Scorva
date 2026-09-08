@@ -4,16 +4,20 @@ import { render, screen, act, fireEvent } from "@testing-library/react";
 
 let mockOnAuthStateChange;
 let mockUnsubscribe;
+let mockGetSession;
 
 vi.mock("../../lib/supabase.js", () => {
   mockUnsubscribe = vi.fn();
   mockOnAuthStateChange = vi.fn(() => ({
     data: { subscription: { unsubscribe: mockUnsubscribe } },
   }));
+  // Default: never settles, mirroring an unreachable auth host
+  mockGetSession = vi.fn(() => new Promise(() => {}));
   return {
     supabase: {
       auth: {
         onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
+        getSession: (...args) => mockGetSession(...args),
       },
     },
   };
@@ -66,6 +70,7 @@ describe("AuthProvider + useAuth", () => {
     mockOnAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: mockUnsubscribe } },
     });
+    mockGetSession.mockReturnValue(new Promise(() => {}));
   });
 
   it("provides undefined session initially", () => {
@@ -135,5 +140,89 @@ describe("AuthProvider + useAuth", () => {
     const { unmount } = renderProvider();
     unmount();
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves session from getSession when the subscription has not fired", async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: "tok123" } } });
+    renderProvider();
+
+    await act(async () => {});
+
+    expect(screen.getByTestId("session").textContent).toBe("set");
+  });
+
+  it("commits null when getSession resolves with no session", async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    renderProvider();
+
+    await act(async () => {});
+
+    expect(screen.getByTestId("session").textContent).toBe("null");
+  });
+
+  it("commits null when getSession rejects", async () => {
+    mockGetSession.mockRejectedValue(new Error("Failed to fetch"));
+    renderProvider();
+
+    await act(async () => {});
+
+    expect(screen.getByTestId("session").textContent).toBe("null");
+  });
+
+  it("commits null after the init timeout when auth never resolves", () => {
+    vi.useFakeTimers();
+    try {
+      renderProvider();
+      expect(screen.getByTestId("session").textContent).toBe("undefined");
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      expect(screen.getByTestId("session").textContent).toBe("null");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not override a real session with the timeout fallback", () => {
+    vi.useFakeTimers();
+    try {
+      renderProvider();
+
+      const callback = mockOnAuthStateChange.mock.calls[0][0];
+      act(() => {
+        callback("SIGNED_IN", { access_token: "tok123" });
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      expect(screen.getByTestId("session").textContent).toBe("set");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("still applies a later auth event after the timeout fallback", () => {
+    vi.useFakeTimers();
+    try {
+      renderProvider();
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(screen.getByTestId("session").textContent).toBe("null");
+
+      const callback = mockOnAuthStateChange.mock.calls[0][0];
+      act(() => {
+        callback("SIGNED_IN", { access_token: "tok123" });
+      });
+
+      expect(screen.getByTestId("session").textContent).toBe("set");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
