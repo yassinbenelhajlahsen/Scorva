@@ -1,5 +1,7 @@
 import logger from "../logger.js";
 import { getCurrentSeason } from "../cache/seasons.js";
+import { cached } from "../cache/cache.js";
+import { finalsSignature } from "./finalsSignature.js";
 
 const log = logger.child({ worker: "streakEvents" });
 
@@ -27,61 +29,76 @@ const PLAYER_STATS_BY_LEAGUE = {
 const PLAYER_THRESHOLD = { nba: 4, nfl: 3, nhl: 3 };
 const TEAM_THRESHOLD = { nba: 3, nfl: 3, nhl: 3 };
 
-function buildPlayerScanSQL(statExpr, label) {
+// One pass for every stat label: the stats ⋈ games ⋈ players CTE is the
+// expensive part (a full scan of stats), so each label is computed as its own
+// column and unpivoted with a LATERAL VALUES instead of re-running the CTE
+// per label. Labels are code constants, safe to inline.
+function buildPlayerScanSQL(stats) {
+  const meetsCols = stats.map(({ expr }, i) => `${expr} AS m${i}`).join(",\n             ");
+  const streakCols = stats
+    .map(
+      (_, i) => `
+             LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT m${i}) - 1, COUNT(*)), COUNT(*))::int AS len${i},
+             BOOL_AND(m${i}) FILTER (WHERE rn = 1) AS ok${i}`,
+    )
+    .join(",");
+  const labelRows = stats
+    .map(({ label }, i) => `('${label}', s.len${i}, s.ok${i})`)
+    .join(",\n               ");
   return `
-    -- streak label: ${label}
+    -- streak labels: ${stats.map((s) => s.label).join(", ")}
     WITH recent AS (
       SELECT s.playerid AS subject_id,
              g.date,
              ROW_NUMBER() OVER (PARTITION BY s.playerid ORDER BY g.date DESC) AS rn,
-             ${statExpr} AS meets
+             ${meetsCols}
       FROM stats s
       JOIN games g ON g.id = s.gameid
       JOIN players p ON p.id = s.playerid
-      WHERE p.league = $1
+      WHERE g.league = $1
+        AND p.league = $1
         AND g.season = $2
         AND g.type IN ('regular','makeup','playoff','final')
         AND g.status ILIKE 'Final%'
     ),
     streaks AS (
       SELECT subject_id,
-             LEAST(COALESCE(MIN(rn) FILTER (WHERE NOT meets) - 1, COUNT(*)), COUNT(*))::int AS length,
-             BOOL_AND(meets) FILTER (WHERE rn = 1) AS most_recent_ok,
-             MAX(date)       FILTER (WHERE rn = 1) AS last_game_date
+             MAX(date) FILTER (WHERE rn = 1) AS last_game_date,${streakCols}
       FROM recent
       GROUP BY subject_id
+    ),
+    labeled AS (
+      SELECT s.subject_id, s.last_game_date, l.stat_label, l.length
+      FROM streaks s
+      CROSS JOIN LATERAL (
+        VALUES ${labelRows}
+      ) AS l(stat_label, length, most_recent_ok)
+      WHERE l.length >= $3
+        AND l.most_recent_ok = TRUE
     )
-    SELECT s.subject_id,
-           s.length,
+    SELECT l.subject_id,
+           l.stat_label,
+           l.length,
            r.date AS start_game_date,
-           s.last_game_date
-    FROM streaks s
-    JOIN recent r ON r.subject_id = s.subject_id AND r.rn = s.length
-    WHERE s.length >= $3
-      AND s.most_recent_ok = TRUE
+           l.last_game_date
+    FROM labeled l
+    JOIN recent r ON r.subject_id = l.subject_id AND r.rn = l.length
   `;
 }
 
 async function scanPlayerStreaks(client, league, season) {
   const stats = PLAYER_STATS_BY_LEAGUE[league] || [];
   const threshold = PLAYER_THRESHOLD[league];
-  if (!threshold) return [];
-  const out = [];
-  for (const { label, expr } of stats) {
-    const sql = buildPlayerScanSQL(expr, label);
-    const { rows } = await client.query(sql, [league, season, threshold]);
-    for (const row of rows) {
-      out.push({
-        subject_type: "player",
-        subject_id: row.subject_id,
-        stat_label: label,
-        length: row.length,
-        start_game_date: row.start_game_date,
-        last_game_date: row.last_game_date,
-      });
-    }
-  }
-  return out;
+  if (!threshold || stats.length === 0) return [];
+  const { rows } = await client.query(buildPlayerScanSQL(stats), [league, season, threshold]);
+  return rows.map((row) => ({
+    subject_type: "player",
+    subject_id: row.subject_id,
+    stat_label: row.stat_label,
+    length: row.length,
+    start_game_date: row.start_game_date,
+    last_game_date: row.last_game_date,
+  }));
 }
 
 function buildTeamScanSQL(outcomeCol /* 'won' | 'lost' */) {
@@ -230,6 +247,11 @@ async function deactivateMissing(client, league, active) {
   );
 }
 
+// How long a "scanned for this finals signature" marker lives. A new Final
+// game changes the signature and busts it immediately; the TTL only bounds how
+// long an out-of-band data repair (repairStats etc.) waits for a rescan.
+const SCAN_MEMO_TTL_SECONDS = 24 * 60 * 60;
+
 export async function updateStreakEvents(pool, league, opts = {}) {
   const seasonProvided = "season" in opts;
   let effectiveSeason = opts.season;
@@ -244,6 +266,27 @@ export async function updateStreakEvents(pool, league, opts = {}) {
       `updateStreakEvents: explicit season required when option is provided (got ${effectiveSeason})`,
     );
   }
+
+  // Backfill (explicit season) always scans. The scheduled path memoizes on
+  // the finals signature: streaks can only change when a game goes Final, and
+  // in the off-season that's never — the scan used to run 48×/day regardless.
+  if (seasonProvided) {
+    await runScan(pool, league, effectiveSeason);
+    return;
+  }
+  const sig = await finalsSignature(pool, league, effectiveSeason);
+  let ran = false;
+  await cached(`ingest:streaks:${league}:${effectiveSeason}:${sig}`, SCAN_MEMO_TTL_SECONDS, async () => {
+    await runScan(pool, league, effectiveSeason);
+    ran = true;
+    return true;
+  });
+  if (!ran) {
+    log.info({ league, season: effectiveSeason, sig }, "no new final games since last scan; skipping");
+  }
+}
+
+async function runScan(pool, league, effectiveSeason) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

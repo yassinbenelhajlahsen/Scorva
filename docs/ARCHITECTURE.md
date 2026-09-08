@@ -70,7 +70,8 @@ Applied in: `playerDetailService.js` (stats JOIN), `playerComparison.js`, `teamS
 - For NBA and NHL: calls `cleanupClinchedPlayoffGames(pool, league)` inside isolated try/catch — deletes `status='Scheduled'` playoff games whose series already clinched (one team has ≥ 4 wins; both leagues are best-of-7). Not called for NFL — single-elimination has no extra games to clean up.
 - Invalidates `games:*`, `standings:*`, and `gameDates:*` cache keys per league after batch; also invalidates `playoffs:nba:*`, `playoffs:nhl:*`, or `playoffs:nfl:*` per league
 - `runUpcomingProcessing` fetches 14 days ahead (days 1–14) in batches of 3, deduplicating by ESPN event ID
-- After the league loop, calls `refreshPopularity(pool)` — single UPDATE that counts `stats` rows per player and writes to `players.popularity`
+- After the league loop, calls `refreshPopularity(pool)` — incremental UPDATE for players with a game in the last 3 days, plus one full `COUNT(*) FROM stats GROUP BY playerid` pass per EST day (memoized in Redis under `ingest:popularity:full:{date}`)
+- Cost gates (`ingestion/finalsSignature.js`): streak scans and embedding recomputes are memoized in Redis on a per-league `count:lastDate` fingerprint of Final games for the current season (`ingest:streaks:…`, `ingest:embeddings:…`). No new Final game → no scan. Redis down → fail-open (runs every cycle, the pre-2026-09 behavior). Explicit-season backfills and `--force` bypass the gate.
 
 ## SSE endpoints
 - `GET /api/live/:league/games` — pushes game list on each `pg_notify('game_updated')`; sends `event: done` when no live games remain
@@ -223,7 +224,8 @@ streak_events(
 
 ### Ingestion (`ingestion/streakEvents.js`)
 - `updateStreakEvents(pool, league)` is wired into `runUpsert` per league; runs after game/injury processing.
-- `scanPlayerStreaks` finds active player stat streaks via window functions (`ROW_NUMBER`, `BOOL_AND`); thresholds NBA=4, NFL=3, NHL=3 games. NBA also tracks 20+ point streaks. Includes playoff games.
+- `scanPlayerStreaks` finds active player stat streaks via window functions (`ROW_NUMBER`, `BOOL_AND`); thresholds NBA=4, NFL=3, NHL=3 games. NBA also tracks 20+ point streaks. Includes playoff games. All of a league's stat labels are computed in one pass over `stats ⋈ games ⋈ players` (per-label columns unpivoted with `LATERAL VALUES`) — the per-label rebuild of that CTE used to be 92% of the database's disk reads.
+- Scheduled runs skip the scan when the league's finals signature hasn't changed since the last run (see "Cost gates" above).
 - `scanTeamStreaks` finds team W/L streaks (threshold 3 games across all leagues), filtered to the current season.
 - Backfill (one-time): `node backend/src/ingestion/scripts/backfillStreaks.js --league nba --season 2025-26` — same scan logic but season-wide.
 - Stat-tier ranking: `services/streaks/streakTiers.js` exports `PLAYER_TIER` (per-league prioritization, e.g. NBA: triple-double > 30+ point > double-double) and `tierCaseSql()` which builds an ordered `CASE` for queries that should surface the most prestigious active streak.
@@ -324,7 +326,9 @@ Sticky horizontal slate of today's games (across NBA + NFL + NHL) shown above th
 ## syncInjuries (`ingestion/syncInjuries.js`)
 Polls the ESPN league-wide injuries feed and writes `players.status`, `players.status_description`, `players.status_updated_at`, `players.status_changed_at`. Source of truth for `get_injuries` / `get_player_status` chat tools and the prediction injury impact model.
 
-**Change detection** is keyed on ESPN's `entry.date` (the canonical "this injury report was filed/edited at" timestamp), persisted in `players.status_changed_at` (migration `20260501000000_add_player_status_changed_at`). A new `player_status_history` row is inserted only when (a) `status` changed, or (b) `entry.date` differs from the stored `status_changed_at`. This stops `shortComment` text drift and intermittently-missing description fields from manufacturing history rows / churning timestamps every sync cycle. The history row's `changed_at` column is `COALESCE(entry.date, NOW())`. When an injury clears (player drops off the feed or staleness sweep fires), `status_changed_at` is reset to `NULL`.
+**Change detection** is keyed on ESPN's `entry.date` (the canonical "this injury report was filed/edited at" timestamp), persisted in `players.status_changed_at` (migration `20260501000000_add_player_status_changed_at`). A new `player_status_history` row is inserted only when (a) `status` changed, or (b) `entry.date` differs from the stored `status_changed_at`. This stops `shortComment` text drift and intermittently-missing description fields from manufacturing history rows / churning timestamps every sync cycle. The history row's `changed_at` column is `COALESCE(entry.date, NOW())`. When an injury clears (player drops off the feed), `status_changed_at` is reset to `NULL`.
+
+**Write gating**: the `players` row is only rewritten when the status, ESPN report date, or description actually changed — `status_updated_at` therefore means "last real change", not "last seen". Previously every injured player (~450 across leagues) was rewritten every 30-min cycle, 55% of all WAL. The league-wide clear sweep is NULL-safe (`espn_playerid IS NULL OR NOT (espn_playerid = ANY(...))`) and is the single clearing mechanism; the former 14-day `status_updated_at` stale sweep was removed along with the prediction model's 7-day staleness filter that depended on the old every-cycle touch.
 
 ### `player_status_history` schema (migration `20260430000000_add_player_status_history`)
 ```
@@ -573,7 +577,7 @@ Returns `"low"` when either team has <5 games played OR either team's `impactFac
 `keyFactors` includes one `injury` entry per team when `impactFactor ≥ 0.10`, e.g. `"BOS missing key contributors (~14% of production)"`.
 
 ### Cache
-Key includes `MAX(status_updated_at)` across both rosters as a freshness suffix — entries auto-invalidate when ESPN pushes a new injury report; otherwise served from cache for 1h. The cache key prefetch + freshness query runs *before* `cached()`, so an injury update reliably busts the prediction without a TTL drop.
+Key includes `MAX(status_updated_at)` across both rosters as a freshness suffix — entries auto-invalidate when an injury status actually changes (the column only moves on real change); otherwise served from cache for 1h. Injured players are never dropped for a stale timestamp — `syncInjuries` clears any status ESPN no longer lists, so an old timestamp is a long injury. The cache key prefetch + freshness query runs *before* `cached()`, so an injury update reliably busts the prediction without a TTL drop.
 
 ### Hidden for future playoff games
 For NBA/NHL playoff matchups, the prediction card in the frontend is hidden when the game-detail response sets `hasUnplayedPriorSeriesGames: true`. That flag is computed by a lateral subquery in `services/games/gameDetailQueryBuilder.js` (alias `ups`) that EXISTS-checks for any earlier game in the same series (same season, same team pair, type `playoff`/`final`, non-play-in) whose status is not `Final%` (and not `Cancel%`). Predictions for such games would be effectively static — the inputs (form, injuries, prior series result) won't change until Game N-1 finishes — so `OverviewTab.jsx` renders a small placeholder card instead. The prediction endpoint itself is not gated; the cost is one cached compute per game.
@@ -653,7 +657,7 @@ Two-phase search across players, teams, and games:
 - Ordered by `similarity()` DESC then `popularity` DESC
 
 **Popularity (`players.popularity`)**:
-- INT column, default 0; updated by `refreshPopularity(pool)` after every upsert run
+- INT column, default 0; updated by `refreshPopularity(pool)` after every upsert run (incremental for players with a game in the last 3 days; full recount once per day)
 - Derived as `COUNT(*) FROM stats GROUP BY playerid` — games played is a reliable proxy for prominence
 - `upsertPlayer.js` ON CONFLICT preserves the column (`popularity = players.popularity`) so ingestion never resets scores
 
@@ -742,9 +746,9 @@ Vectors are built from z-score normalized season averages — no OpenAI calls, p
 
 All vectors are stored as `vector(14)` (NHL max); NBA and NFL are zero-padded. Queries always filter by league so cross-league comparison never occurs.
 
-**Computation:** `computePlayerEmbeddings.js` runs after `refreshPopularity()` in `upsert.js` each daily cycle. Can also be run standalone: `node backend/src/ingestion/computePlayerEmbeddings.js`. Min games threshold: NBA/NHL 5, NFL 2.
+**Computation:** `computePlayerEmbeddings.js` runs after `refreshPopularity()` in `upsert.js` each cycle, gated by a 6h cap on `MAX(updated_at)` and a per-league finals-signature memo (no new regular-season Final → skip). Can also be run standalone: `node backend/src/ingestion/computePlayerEmbeddings.js` (bypasses both gates). Min games threshold: NBA/NHL 5, NFL 2. Only `type IN ('regular','makeup')` games count, so early-season/preseason-only leagues have no rows for the new season yet — that is expected, not a stall.
 
-**Similarity query:** `ORDER BY embedding <=> target_embedding` with HNSW index. NFL and NHL results are position-filtered (QB vs QB, goalie vs goalie, etc.) — position groups defined in `computePlayerEmbeddings.js` and reused by `similarPlayersService.js`.
+**Similarity query:** `ORDER BY embedding <=> target_embedding` as a sequential scan over the season's ~4k rows. The HNSW index was dropped (`20260908000000_drop_player_stat_embeddings_vec_idx`): it post-filtered by season and returned too few rows, so the service had bypassed it anyway. NFL and NHL results are position-filtered (QB vs QB, goalie vs goalie, etc.) — position groups defined in `computePlayerEmbeddings.js` and reused by `similarPlayersService.js`.
 
 **Cache:** `similarPlayers:{league}:{playerId}:{season}` — 120s current season, 30 days past. Invalidated on each upsert cycle.
 

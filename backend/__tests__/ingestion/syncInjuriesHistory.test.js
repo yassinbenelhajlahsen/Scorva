@@ -411,20 +411,110 @@ describe("syncInjuries history insertion", () => {
     expect(clearInserts).toHaveLength(0);
   });
 
-  it("inserts a history row for stale-cleared players", async () => {
-    // Empty injuries response so per-entry path doesn't fire
+  it("does NOT rewrite the players row when status, report date and description are unchanged", async () => {
+    // Every injured player used to get UPDATE players ... status_updated_at = NOW()
+    // on every cycle (~450 rows × 48/day of pure no-op WAL). A no-op must not write.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "knee",
+            date: "2025-09-05T21:43Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: new Date("2025-09-05T21:43Z") }] }],
+      [/UPDATE players[\s\S]*SET status\s*=\s*\$1/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const rowUpdates = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /UPDATE players[\s\S]*SET status\s*=\s*\$1/.test(sql)
+    );
+    expect(rowUpdates).toHaveLength(0);
+  });
+
+  it("still protects an unchanged player from the clear sweep", async () => {
+    // Skipping the no-op write must not drop the player out of injuredEspnIds,
+    // otherwise the league-wide sweep would clear them and re-add them next cycle.
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "knee",
+            date: "2025-09-05T21:43Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: new Date("2025-09-05T21:43Z") }] }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const sweepSelect = pool.queryHandler.mock.calls.find(([sql]) =>
+      /SELECT id, league, status, status_description FROM players[\s\S]*NOT \(espn_playerid = ANY/.test(sql)
+    );
+    expect(sweepSelect).toBeDefined();
+    expect(sweepSelect[1][1]).toEqual([4234]);
+  });
+
+  it("rewrites the players row when only the description text changed", async () => {
+    mockAxiosGet.mockResolvedValueOnce({
+      data: {
+        injuries: [{
+          id: 1,
+          injuries: [{
+            athlete: { links: [{ href: "/nba/player/_/id/4234/test" }] },
+            status: "out",
+            shortComment: "knee — re-evaluated Tuesday",
+            date: "2025-09-05T21:43Z",
+          }],
+        }],
+      },
+    });
+
+    const pool = makePool([
+      [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
+      [/SELECT id, espn_playerid, status, status_description, status_changed_at FROM players[\s\S]*WHERE espn_playerid = ANY/, { rows: [{ id: 4234, espn_playerid: 4234, status: "out", status_description: "knee", status_changed_at: new Date("2025-09-05T21:43Z") }] }],
+      [/UPDATE players[\s\S]*SET status\s*=\s*\$1/, { rowCount: 1 }],
+    ]);
+
+    await syncInjuriesForLeague(pool, "nba");
+
+    const rowUpdates = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /UPDATE players[\s\S]*SET status\s*=\s*\$1/.test(sql)
+    );
+    expect(rowUpdates).toHaveLength(1);
+    expect(rowUpdates[0][1][1]).toBe("knee — re-evaluated Tuesday");
+  });
+
+  it("clear sweep also covers players with a NULL espn_playerid", async () => {
+    // Replaces the old 14-day stale sweep: `NOT (NULL = ANY(...))` is NULL, so
+    // team-less / unmapped players were never cleared by the main sweep.
     mockAxiosGet.mockResolvedValueOnce({ data: { injuries: [{ id: 1, injuries: [] }] } });
 
     const pool = makePool([
       [/SELECT id, espnid FROM teams/, { rows: [{ id: 1, espnid: 1 }] }],
-      // League-wide clear sweep returns no rows
-      [/SELECT id, league, status, status_description FROM players[\s\S]*NOT \(espn_playerid = ANY/, { rows: [] }],
-      // Stale sweep finds one stale row
-      [/SELECT id, league, status, status_description FROM players[\s\S]*status_updated_at\s*<\s*NOW/, {
+      [/SELECT id, league, status, status_description FROM players[\s\S]*espn_playerid IS NULL OR NOT \(espn_playerid = ANY/, {
         rows: [{ id: 5000, league: "nba", status: "out", status_description: "recovery" }],
       }],
       [/INSERT INTO player_status_history/, { rowCount: 1 }],
-      [/UPDATE players[\s\S]*SET status[\s\S]*= NULL[\s\S]*status_updated_at\s*<\s*NOW/, { rowCount: 1 }],
+      [/UPDATE players[\s\S]*SET status[\s\S]*= NULL[\s\S]*espn_playerid IS NULL OR NOT \(espn_playerid = ANY/, { rowCount: 1 }],
     ]);
 
     await syncInjuriesForLeague(pool, "nba");
@@ -436,5 +526,9 @@ describe("syncInjuries history insertion", () => {
     expect(insertCall[1]).toEqual(
       expect.arrayContaining([5000, "nba", "out", "recovery", null, null])
     );
+    const staleSweeps = pool.queryHandler.mock.calls.filter(([sql]) =>
+      /status_updated_at\s*<\s*NOW/.test(sql)
+    );
+    expect(staleSweeps).toHaveLength(0);
   });
 });

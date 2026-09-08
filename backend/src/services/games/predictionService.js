@@ -10,12 +10,10 @@ const LEAGUE_CONFIG = {
   nhl: { homeBonus: 0.5, scale: 0.15, formScale: 1, h2hScale: 1, seriesScale: 0.4 },
 };
 
-// Drop injured players whose ESPN status hasn't been refreshed in N days —
-// a live injury entry gets re-touched on every ingestion, so a stale timestamp
-// signals an abandoned record (e.g. traded player whose old team's feed no longer updates).
-// `last_game_date` is not a reliable signal here: a legitimately shelved star can go weeks
-// without playing, especially across a regular-season → playoff gap.
-const INJURY_STALENESS_DAYS = 7;
+// No staleness filter on status_updated_at: syncInjuries only bumps it on a
+// real change and clears any status ESPN no longer lists, so an old timestamp
+// means a long injury, not an abandoned record. `last_game_date` is not a
+// reliable signal either — a shelved star can go weeks without playing.
 
 const AVAILABILITY = {
   out: 1.0,
@@ -115,18 +113,11 @@ export function computeTeamImpactFactor(rosterRows, league) {
 
   const players = [];
   let factor = 0;
-  const staleCutoffMs = Date.now() - INJURY_STALENESS_DAYS * 24 * 60 * 60 * 1000;
   for (const r of rosterRows) {
     const status = r.status;
     if (!status || status === "active" || status === "available") continue;
     const availability = AVAILABILITY[status];
     if (availability == null) continue;
-    if (r.status_updated_at != null) {
-      const updatedMs = r.status_updated_at instanceof Date
-        ? r.status_updated_at.getTime()
-        : new Date(r.status_updated_at).getTime();
-      if (Number.isFinite(updatedMs) && updatedMs < staleCutoffMs) continue;
-    }
     const share = computePlayerImpactShare(r, teamWeighted, league);
     if (share <= 0) continue;
     factor += share * availability;

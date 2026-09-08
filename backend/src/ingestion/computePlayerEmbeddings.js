@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import { Pool } from "pg";
 import logger from "../logger.js";
 import { getCurrentSeason } from "../cache/seasons.js";
+import { cached } from "../cache/cache.js";
+import { finalsSignature } from "./finalsSignature.js";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -98,7 +100,7 @@ const LEAGUE_CONFIGS = {
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
-      WHERE p.league = 'nba' AND g.season = $1 AND g.type IN ('regular', 'makeup')
+      WHERE g.league = 'nba' AND p.league = 'nba' AND g.season = $1 AND g.type IN ('regular', 'makeup')
         AND s.minutes > 0
       GROUP BY s.playerid, p.position
       HAVING COUNT(*) >= $2 AND AVG(s.minutes) >= 10
@@ -123,7 +125,7 @@ const LEAGUE_CONFIGS = {
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
-      WHERE p.league = 'nfl' AND g.season = $1 AND g.type IN ('regular', 'makeup')
+      WHERE g.league = 'nfl' AND p.league = 'nfl' AND g.season = $1 AND g.type IN ('regular', 'makeup')
       GROUP BY s.playerid, p.position
       HAVING COUNT(*) >= $2
     `,
@@ -153,7 +155,7 @@ const LEAGUE_CONFIGS = {
       FROM stats s
       JOIN games g ON s.gameid = g.id
       JOIN players p ON s.playerid = p.id
-      WHERE p.league = 'nhl' AND g.season = $1 AND g.type IN ('regular', 'makeup')
+      WHERE g.league = 'nhl' AND p.league = 'nhl' AND g.season = $1 AND g.type IN ('regular', 'makeup')
       GROUP BY s.playerid, p.position
       HAVING COUNT(*) >= $2
     `,
@@ -249,6 +251,13 @@ export async function computeLeagueEmbeddings(pool, league, season) {
 // 6-hour lag in vector freshness is invisible to users.
 const MIN_RECOMPUTE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
+// Per-league memo on the finals signature. The 6h cap alone stops gating after
+// a season rollover: the new season has no embedding rows, MAX(updated_at)
+// stays at last season's final run, and every cycle re-ran three aggregates
+// that returned nothing. Vectors only change when a regular-season game goes
+// Final, so that's the real gate; the cap just bounds in-season churn.
+const RECOMPUTE_MEMO_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 export async function computeAllEmbeddings(pool, { force = false } = {}) {
   if (!force) {
     const { rows } = await pool.query(
@@ -270,14 +279,29 @@ export async function computeAllEmbeddings(pool, { force = false } = {}) {
   const leagues = ["nba", "nfl", "nhl"];
   for (const league of leagues) {
     const season = await getCurrentSeason(league);
-    log.info({ league, season }, "computing player embeddings");
     try {
-      const count = await computeLeagueEmbeddings(pool, league, season);
-      log.info({ league, season, count }, "embeddings upserted");
+      if (force) {
+        await computeAndLog(pool, league, season);
+        continue;
+      }
+      const sig = await finalsSignature(pool, league, season);
+      let ran = false;
+      await cached(`ingest:embeddings:${league}:${season}:${sig}`, RECOMPUTE_MEMO_TTL_SECONDS, async () => {
+        await computeAndLog(pool, league, season);
+        ran = true;
+        return true;
+      });
+      if (!ran) log.info({ league, season, sig }, "no new final games since last recompute; skipping");
     } catch (err) {
       log.error({ err, league, season }, "failed computing embeddings");
     }
   }
+}
+
+async function computeAndLog(pool, league, season) {
+  log.info({ league, season }, "computing player embeddings");
+  const count = await computeLeagueEmbeddings(pool, league, season);
+  log.info({ league, season, count }, "embeddings upserted");
 }
 
 // CLI entry point

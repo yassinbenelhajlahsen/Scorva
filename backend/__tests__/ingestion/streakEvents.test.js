@@ -11,6 +11,13 @@ jest.unstable_mockModule(seasonsPath, () => ({
   getCurrentSeason: jest.fn().mockResolvedValue("2025-26"),
 }));
 
+// Passthrough by default (same as cache.js with no REDIS_URL); individual tests
+// override to simulate a memoized "already scanned this finals signature" hit.
+const mockCached = jest.fn(async (_key, _ttl, fn) => fn());
+jest.unstable_mockModule(resolve(__dirname, "../../src/cache/cache.js"), () => ({
+  cached: mockCached,
+}));
+
 const { updateStreakEvents } = await import(
   resolve(__dirname, "../../src/ingestion/streakEvents.js"),
 );
@@ -27,6 +34,8 @@ describe("updateStreakEvents — player streaks", () => {
     };
     pool.connect = jest.fn().mockResolvedValue(client);
     jest.clearAllMocks();
+    mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
+    pool.query.mockResolvedValue({ rows: [{ finals: 10, last_date: "2026-04-29" }] });
   });
 
   it("opens a transaction and releases the client", async () => {
@@ -63,6 +72,7 @@ describe("updateStreakEvents — player streaks", () => {
           rows: [
             {
               subject_id: 4234,
+              stat_label: "double-double",
               length: 5,
               start_game_date: "2026-04-20",
               last_game_date: "2026-04-29",
@@ -82,6 +92,45 @@ describe("updateStreakEvents — player streaks", () => {
     expect(upsertCall[0]).toMatch(/ON CONFLICT.*DO UPDATE/i);
     const params = upsertCall[1];
     expect(params).toEqual(expect.arrayContaining(["player", 4234, "double-double"]));
+  });
+
+  it("scans all player stat labels in a single pass over stats", async () => {
+    // Each label used to rebuild the identical stats ⋈ games ⋈ players CTE —
+    // 6 full scans per NBA cycle (92% of the database's disk reads).
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba");
+
+    const scanCalls = client.query.mock.calls.filter(
+      (c) => typeof c[0] === "string" && /FROM stats/i.test(c[0]),
+    );
+    expect(scanCalls).toHaveLength(1);
+    const [sql] = scanCalls[0];
+    for (const label of ["double-double", "triple-double", "30+ point", "20+ point", "10+ rebound", "10+ assist"]) {
+      expect(sql).toContain(label);
+    }
+    expect(sql).toMatch(/g\.league\s*=\s*\$1/);
+  });
+
+  it("skips the scan entirely when no game has gone Final since the last run", async () => {
+    mockCached.mockResolvedValue(true); // memoized hit for this finals signature
+
+    await updateStreakEvents(pool, "nba");
+
+    expect(mockCached).toHaveBeenCalledTimes(1);
+    expect(mockCached.mock.calls[0][0]).toMatch(/^ingest:streaks:nba:2025-26:10:2026-04-29$/);
+    expect(pool.connect).not.toHaveBeenCalled();
+    expect(client.query).not.toHaveBeenCalled();
+  });
+
+  it("always scans when an explicit season is provided (backfill path)", async () => {
+    mockCached.mockResolvedValue(true);
+    client.query.mockResolvedValue({ rows: [] });
+
+    await updateStreakEvents(pool, "nba", { season: "2024-25" });
+
+    expect(mockCached).not.toHaveBeenCalled();
+    expect(client.query.mock.calls.map((c) => c[0])).toContain("BEGIN");
   });
 
   it("deactivates rows that fall out of the active set", async () => {
@@ -217,6 +266,8 @@ describe("updateStreakEvents — team streaks", () => {
     };
     pool.connect = jest.fn().mockResolvedValue(client);
     jest.clearAllMocks();
+    mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
+    pool.query.mockResolvedValue({ rows: [{ finals: 10, last_date: "2026-04-29" }] });
   });
 
   it("scans team W/L streaks from games for the requested league", async () => {

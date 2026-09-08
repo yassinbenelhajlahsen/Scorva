@@ -122,17 +122,20 @@ describe("computeTeamImpactFactor", () => {
     expect(qResult.factor).toBeCloseTo(outResult.factor * 0.5, 5);
   });
 
-  it("drops players whose status_updated_at is older than the staleness window", () => {
-    const stale = {
-      id: 1, name: "Ghost", position: "F", status: "out",
+  it("keeps long-term injured players even when status_updated_at is weeks old", () => {
+    // status_updated_at only moves when ESPN's report changes; syncInjuries clears
+    // any status ESPN no longer lists, so an old timestamp is a long injury, not
+    // an abandoned record.
+    const longTerm = {
+      id: 1, name: "Season-long IR", position: "F", status: "out",
       pts: 25, ast: 5, reb: 5,
-      status_description: "old report",
+      status_description: "torn ACL",
       status_updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     };
     const filler = { id: 99, name: "Filler", status: "active", pts: 75, ast: 0, reb: 0 };
-    const result = computeTeamImpactFactor([stale, filler], "nba");
-    expect(result.players).toHaveLength(0);
-    expect(result.factor).toBe(0);
+    const result = computeTeamImpactFactor([longTerm, filler], "nba");
+    expect(result.players).toHaveLength(1);
+    expect(result.factor).toBeGreaterThan(0);
   });
 
   it("keeps players with a recently updated status even if they haven't played in weeks", () => {

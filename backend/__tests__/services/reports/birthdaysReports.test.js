@@ -15,12 +15,42 @@ jest.unstable_mockModule(resolve(__dirname, "../../../src/cache/seasons.js"), ()
   getCurrentSeason: mockGetCurrentSeason,
 }));
 
+const mockCached = jest.fn(async (_key, _ttl, fn) => fn());
+jest.unstable_mockModule(resolve(__dirname, "../../../src/cache/cache.js"), () => ({
+  cached: mockCached,
+}));
+
 const { getBirthdaysForLeague } = await import(
   resolve(__dirname, "../../../src/services/reports/birthdaysReports.js")
 );
 
 describe("getBirthdaysForLeague", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCached.mockImplementation(async (_key, _ttl, fn) => fn());
+  });
+
+  it("caches the DB result per league and EST calendar day", async () => {
+    // Birthdays only change at midnight, but the reports list cache is
+    // invalidated and re-warmed every 30-min upsert cycle (3 leagues × 48/day).
+    mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getBirthdaysForLeague("nba");
+
+    expect(mockCached).toHaveBeenCalledTimes(1);
+    const [key, ttl] = mockCached.mock.calls[0];
+    expect(key).toMatch(/^reports:birthdays:nba:\d{4}-\d{2}-\d{2}$/);
+    expect(ttl).toBeGreaterThanOrEqual(24 * 60 * 60);
+  });
+
+  it("does not hit the DB on a cache hit", async () => {
+    mockCached.mockResolvedValue([]);
+
+    const out = await getBirthdaysForLeague("nba");
+
+    expect(out).toEqual([]);
+    expect(mockPoolQuery).not.toHaveBeenCalled();
+  });
 
   it("maps rows into birthday reports with computed age and date", async () => {
     mockPoolQuery.mockResolvedValueOnce({
@@ -56,7 +86,7 @@ describe("getBirthdaysForLeague", () => {
     mockPoolQuery.mockResolvedValueOnce({ rows: [] });
     await getBirthdaysForLeague("nba");
     const [sql, params] = mockPoolQuery.mock.calls[0];
-    expect(sql).toMatch(/EXISTS[\s\S]*g\.season = \$2/i);
+    expect(sql).toMatch(/EXISTS[\s\S]*g\.league = \$1[\s\S]*g\.season = \$2/i);
     expect(params).toEqual(["nba", "2025-26"]);
   });
 

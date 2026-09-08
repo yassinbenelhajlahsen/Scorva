@@ -88,13 +88,10 @@ function extractEspnPlayerId(athlete) {
   return null;
 }
 
-const STALE_CLEAR_DAYS = 14;
-
 export async function syncInjuriesForLeague(pool, leagueSlug) {
   const client = await pool.connect();
   let updated = 0;
   let cleared = 0;
-  let staleCleared = 0;
   let teamsProcessed = 0;
   // League-global: every espn_playerid that ESPN's injury feed reported as
   // currently injured (under any team's block). The clear sweep filters on
@@ -107,7 +104,7 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
   try {
     const blocks = await fetchLeagueInjuries(leagueSlug);
     if (blocks === null) {
-      return { teamsProcessed, updated, cleared, staleCleared };
+      return { teamsProcessed, updated, cleared };
     }
 
     const byTeam = new Map();
@@ -155,6 +152,8 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
 
         const prev = priorMap.get(espnPlayerId);
         if (!prev) continue;
+        // Known-injured per ESPN regardless of whether we need to write anything.
+        injuredEspnIds.add(espnPlayerId);
 
         // ESPN's `entry.date` is the canonical "this injury report was filed/edited
         // at" timestamp — stable across sync cycles when nothing material changes,
@@ -165,6 +164,11 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
         const entryDateMs = entryDate ? entryDate.getTime() : null;
         const dateChanged = entryDateMs !== null && entryDateMs !== prevDateMs;
         const changed = prev.status !== status || dateChanged;
+        // COALESCE below keeps the stored description when ESPN omits it, so a
+        // null/identical description is a no-op write. ~450 injured players used
+        // to be rewritten every 30-min cycle (55% of all WAL) for nothing.
+        const descriptionChanged =
+          description !== null && description !== prev.status_description;
 
         if (changed) {
           await client.query(
@@ -175,6 +179,8 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
           );
         }
 
+        if (!changed && !descriptionChanged) continue;
+
         const res = await client.query(
           `UPDATE players
               SET status = $1,
@@ -184,24 +190,23 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
             WHERE espn_playerid = $3 AND league = $4`,
           [status, description, espnPlayerId, leagueSlug, entryDate],
         );
-        if (res.rowCount > 0) {
-          updated += res.rowCount;
-          injuredEspnIds.add(espnPlayerId);
-        }
+        updated += res.rowCount;
       }
     }
 
     // League-wide clear sweep — runs once after every team's entries have been
-    // processed so the global injuredEspnIds set is fully populated. Players
-    // whose espn_playerid isn't in the set get transitioned to null (history
-    // row + UPDATE). Players with NULL espn_playerid are excluded by `NOT (... =
-    // ANY(...))` evaluating to NULL, matching the prior per-team behavior.
+    // processed so the global injuredEspnIds set is fully populated. Any player
+    // with a status whom ESPN no longer lists gets transitioned to null (history
+    // row + UPDATE). The explicit IS NULL branch matters: `NOT (NULL = ANY(...))`
+    // is NULL, which used to leave unmapped players to a separate 14-day stale
+    // sweep keyed on status_updated_at. status_updated_at now only moves on a
+    // real change, so this sweep is the single source of clearing.
     const injuredArr = Array.from(injuredEspnIds);
     const toClear = await client.query(
       `SELECT id, league, status, status_description FROM players
         WHERE league = $1
           AND status IS NOT NULL
-          AND NOT (espn_playerid = ANY($2::int[]))`,
+          AND (espn_playerid IS NULL OR NOT (espn_playerid = ANY($2::int[])))`,
       [leagueSlug, injuredArr],
     );
 
@@ -222,49 +227,16 @@ export async function syncInjuriesForLeague(pool, leagueSlug) {
               status_changed_at = NULL
         WHERE league = $1
           AND status IS NOT NULL
-          AND NOT (espn_playerid = ANY($2::int[]))`,
+          AND (espn_playerid IS NULL OR NOT (espn_playerid = ANY($2::int[])))`,
       [leagueSlug, injuredArr],
     );
     cleared = clearRes.rowCount;
 
-    // Stale sweep — catches players (traded, cut, retired, team-less) whose
-    // injury rows never got refreshed above because they aren't on any active
-    // team's injury feed. Anything older than the threshold is cleared.
-    const staleRows = await client.query(
-      `SELECT id, league, status, status_description FROM players
-         WHERE league = $1
-           AND status IS NOT NULL
-           AND status_updated_at < NOW() - ($2 || ' days')::INTERVAL`,
-      [leagueSlug, String(STALE_CLEAR_DAYS)],
-    );
-
-    for (const row of staleRows.rows) {
-      await client.query(
-        `INSERT INTO player_status_history
-          (player_id, league, prev_status, prev_status_description, new_status, new_status_description)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [row.id, row.league, row.status, row.status_description, null, null],
-      );
-    }
-
-    const staleRes = await client.query(
-      `UPDATE players
-          SET status = NULL,
-              status_description = NULL,
-              status_updated_at = NOW(),
-              status_changed_at = NULL
-        WHERE league = $1
-          AND status IS NOT NULL
-          AND status_updated_at < NOW() - ($2 || ' days')::INTERVAL`,
-      [leagueSlug, String(STALE_CLEAR_DAYS)],
-    );
-    staleCleared = staleRes.rowCount;
-
     log.info(
-      { league: leagueSlug, teamsProcessed, updated, cleared, staleCleared },
+      { league: leagueSlug, teamsProcessed, updated, cleared },
       "injury sync complete",
     );
-    return { teamsProcessed, updated, cleared, staleCleared };
+    return { teamsProcessed, updated, cleared };
   } finally {
     client.release();
   }

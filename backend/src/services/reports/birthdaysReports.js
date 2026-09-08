@@ -1,5 +1,7 @@
+import { DateTime } from "luxon";
 import pool from "../../db/db.js";
 import logger from "../../logger.js";
+import { cached } from "../../cache/cache.js";
 import { getCurrentSeason } from "../../cache/seasons.js";
 
 const log = logger.child({ module: "birthdaysReports" });
@@ -30,7 +32,7 @@ const QUERY = `
       AND EXISTS (
         SELECT 1 FROM stats s
         JOIN games g ON g.id = s.gameid
-        WHERE s.playerid = p.id AND g.season = $2
+        WHERE s.playerid = p.id AND g.league = $1 AND g.season = $2
       )
   ),
   with_date AS (
@@ -75,7 +77,19 @@ const QUERY = `
   LIMIT 200
 `;
 
+// The reports list cache is invalidated and re-warmed every upsert cycle, but
+// birthdays only change at midnight — memoize the query per EST calendar day so
+// the per-player EXISTS probe over the season's stats runs 3×/day, not 144×.
+const BIRTHDAYS_TTL_SECONDS = 36 * 60 * 60;
+
 export async function getBirthdaysForLeague(league) {
+  const today = DateTime.now().setZone("America/New_York").toISODate();
+  return cached(`reports:birthdays:${league}:${today}`, BIRTHDAYS_TTL_SECONDS, () =>
+    queryBirthdays(league),
+  );
+}
+
+async function queryBirthdays(league) {
   try {
     const currentSeason = await getCurrentSeason(league);
     if (!currentSeason) return [];
