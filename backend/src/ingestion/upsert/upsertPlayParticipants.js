@@ -2,8 +2,8 @@ import { inferParticipantRoles } from "../mappings/nbaPlayRoles.js";
 
 /**
  * Resolves ESPN play participants → internal player IDs and writes to
- * play_participants. Idempotent: deletes existing participants for the game
- * before inserting fresh ones.
+ * play_participants. Idempotent: removes participants no longer in the feed and
+ * inserts new ones, leaving unchanged rows untouched.
  *
  * NBA only for v1 — early exits for other leagues. NFL/NHL phases will add
  * their own role inference modules and dispatch here.
@@ -57,11 +57,17 @@ export default async function upsertPlayParticipants(client, gameId, summaryData
     }
   }
 
-  // Step 5: idempotent DELETE + INSERT
+  // Step 5: diff against what's stored — live sync calls this every minute per
+  // game, and delete-all + reinsert bloated the table and its indexes.
   await client.query(
-    `DELETE FROM play_participants
-       WHERE play_id IN (SELECT id FROM plays WHERE gameid = $1)`,
-    [gameId],
+    `DELETE FROM play_participants pp
+       USING plays p
+      WHERE pp.play_id = p.id AND p.gameid = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest($2::int[], $3::int[], $4::text[]) AS n(play_id, player_id, role)
+           WHERE n.play_id = pp.play_id AND n.player_id = pp.player_id AND n.role = pp.role
+        )`,
+    [gameId, playIds, playerIds, roles],
   );
 
   if (playIds.length === 0) return;
@@ -72,7 +78,10 @@ export default async function upsertPlayParticipants(client, gameId, summaryData
        unnest($1::int[]),
        unnest($2::int[]),
        unnest($3::text[]),
-       unnest($4::text[])`,
+       unnest($4::text[])
+     ON CONFLICT (play_id, player_id, role) DO UPDATE
+       SET espn_athlete_id = EXCLUDED.espn_athlete_id
+       WHERE play_participants.espn_athlete_id IS DISTINCT FROM EXCLUDED.espn_athlete_id`,
     [playIds, playerIds, roles, espnAthleteIds],
   );
 }

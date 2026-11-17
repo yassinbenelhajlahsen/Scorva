@@ -104,3 +104,29 @@ test("skips DELETE+INSERT if there are no rated participants", async () => {
   // Should issue at most the player-lookup query, then no further writes
   expect(client.query.mock.calls.length).toBeLessThanOrEqual(2);
 });
+
+test("only deletes participants that are no longer current and leaves the rest in place", async () => {
+  const client = {
+    query: jest.fn()
+      .mockResolvedValueOnce({ rows: [
+        { id: 11, espn_playerid: 3912848 },
+        { id: 12, espn_playerid: 4432158 },
+        { id: 13, espn_playerid: 6440 },
+      ]})
+      .mockResolvedValueOnce({ rows: [
+        { id: 501, sequence: 1 },
+        { id: 502, sequence: 2 },
+      ]})
+      .mockResolvedValueOnce({ rowCount: 0 })
+      .mockResolvedValueOnce({ rowCount: 0 }),
+  };
+
+  await upsertPlayParticipants(client, 100, summaryData, "nba");
+
+  const [deleteSql, deleteArgs] = client.query.mock.calls[2];
+  expect(deleteSql).toMatch(/NOT EXISTS/);
+  expect(deleteArgs).toEqual([100, [501, 501, 502], [11, 12, 13], ["scorer", "assister", "rebounder"]]);
+
+  const [insertSql] = client.query.mock.calls[3];
+  expect(insertSql).toMatch(/ON CONFLICT \(play_id, player_id, role\)/);
+});

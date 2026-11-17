@@ -252,7 +252,7 @@ const { recomputeGame } = await import("../../../src/services/games/ratingEngine
 describe("recomputeGame", () => {
   beforeEach(() => { mockGetWinProbability.mockReset(); });
 
-  test("idempotent: deletes existing play_ratings, resets stats.rating, repopulates from current data", async () => {
+  test("idempotent: removes stale play_ratings, upserts current ones, and only touches changed stats.rating", async () => {
     // game 100, NBA, eventid 999
     // Plays: a made 3pt by home player (player 11) at 24ft, scoringPlay
     //        a steal by away player (player 22) on home turnover (commit by player 11)
@@ -283,23 +283,29 @@ describe("recomputeGame", () => {
         .mockResolvedValueOnce({ rows: playRows })
         // 3. participants joined to plays + side
         .mockResolvedValueOnce({ rows: participantRows })
-        // 4. DELETE play_ratings
-        .mockResolvedValueOnce({ rowCount: 5 })
-        // 5. INSERT play_ratings (bulk)
+        // 4. DELETE stale play_ratings
+        .mockResolvedValueOnce({ rowCount: 0 })
+        // 5. upsert play_ratings (bulk)
         .mockResolvedValueOnce({ rowCount: 3 })
-        // 6. UPDATE stats SET rating = NULL
-        .mockResolvedValueOnce({ rowCount: 10 })
-        // 7. UPDATE stats SET rating = sub.total
+        // 6. UPDATE stats.rating where changed
         .mockResolvedValueOnce({ rowCount: 2 }),
     };
 
     await recomputeGame(client, 100);
 
     expect(client.query.mock.calls[0][0]).toMatch(/SELECT .* FROM games WHERE id = \$1/);
-    expect(client.query.mock.calls[3][0]).toMatch(/DELETE FROM play_ratings WHERE game_id = \$1/);
-    expect(client.query.mock.calls[4][0]).toMatch(/INSERT INTO play_ratings/);
-    expect(client.query.mock.calls[5][0]).toMatch(/UPDATE stats SET rating = NULL WHERE gameid = \$1/);
-    expect(client.query.mock.calls[6][0]).toMatch(/UPDATE stats SET rating = /);
+    expect(client.query).toHaveBeenCalledTimes(6);
+    const [deleteSql, deleteArgs] = client.query.mock.calls[3];
+    expect(deleteSql).toMatch(/DELETE FROM play_ratings/);
+    expect(deleteSql).toMatch(/NOT EXISTS/);
+    expect(deleteArgs).toEqual([100, [501, 502, 502], [11, 11, 22], ["scorer", "turnover_committer", "stealer"]]);
+    const upsertSql = client.query.mock.calls[4][0];
+    expect(upsertSql).toMatch(/INSERT INTO play_ratings/);
+    expect(upsertSql).toMatch(/ON CONFLICT \(play_id, player_id, role\) DO UPDATE/);
+    expect(upsertSql).toMatch(/IS DISTINCT FROM/);
+    const statsSql = client.query.mock.calls[5][0];
+    expect(statsSql).toMatch(/UPDATE stats SET rating = /);
+    expect(statsSql).toMatch(/stats\.rating IS DISTINCT FROM/);
 
     // Inspect the INSERT bulk arrays — there should be 3 rows
     const insertArgs = client.query.mock.calls[4][1];
@@ -371,10 +377,10 @@ describe("recomputeGame", () => {
     };
     await recomputeGame(client, 100);
     // Final UPDATE statement should reference sign(...) * LEAST(...) with COALESCE on minutes
-    const finalUpdate = client.query.mock.calls[6][0];
-    expect(finalUpdate).toMatch(/sign\(sub\.total\)/);
+    const finalUpdate = client.query.mock.calls[5][0];
+    expect(finalUpdate).toMatch(/sign\(t\.total\)/);
     expect(finalUpdate).toMatch(/LEAST/);
-    expect(finalUpdate).toMatch(/GREATEST\(8,\s*1\.5\s*\*\s*COALESCE\(stats\.minutes,\s*0\)\)/);
+    expect(finalUpdate).toMatch(/GREATEST\(8,\s*1\.5\s*\*\s*COALESCE\(s\.minutes,\s*0\)\)/);
   });
 
   test("ctxFromPlay heave detection: malformed multi-colon clock returns no heave", async () => {

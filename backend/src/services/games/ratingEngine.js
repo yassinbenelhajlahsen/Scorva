@@ -262,7 +262,17 @@ export async function recomputeGame(client, gameId) {
     }
   }
 
-  await client.query(`DELETE FROM play_ratings WHERE game_id = $1`, [gameId]);
+  // Diff against stored rows instead of delete-all + reinsert: live sync runs this
+  // every minute per game, and rewriting unchanged rows bloated play_ratings' indexes.
+  await client.query(
+    `DELETE FROM play_ratings r
+      WHERE r.game_id = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest($2::int[], $3::int[], $4::text[]) AS n(play_id, player_id, role)
+           WHERE n.play_id = r.play_id AND n.player_id = r.player_id AND n.role = r.role
+        )`,
+    [gameId, insPlay, insPlayer, insRole],
+  );
 
   if (insPlay.length > 0) {
     await client.query(
@@ -274,27 +284,40 @@ export async function recomputeGame(client, gameId) {
          unnest($4::text[]),
          unnest($5::numeric[]),
          unnest($6::numeric[]),
-         unnest($7::numeric[])`,
+         unnest($7::numeric[])
+       ON CONFLICT (play_id, player_id, role) DO UPDATE SET
+         game_id        = EXCLUDED.game_id,
+         base_value     = EXCLUDED.base_value,
+         wpa_delta      = EXCLUDED.wpa_delta,
+         weighted_value = EXCLUDED.weighted_value
+       WHERE (play_ratings.game_id, play_ratings.base_value, play_ratings.wpa_delta, play_ratings.weighted_value)
+         IS DISTINCT FROM (EXCLUDED.game_id, EXCLUDED.base_value, EXCLUDED.wpa_delta, EXCLUDED.weighted_value)`,
       [insPlay, insPlayer, insGame, insRole, insBase, insWpa, insWeighted],
     );
   }
 
-  // Reset all stats.rating for this game first, so players whose participants
-  // got removed don't keep stale ratings.
-  await client.query(`UPDATE stats SET rating = NULL WHERE gameid = $1`, [gameId]);
-
+  // Players with no play_ratings left get NULL via the LEFT JOIN. Cast to the
+  // column's numeric(6,1) so an unchanged rating compares equal and isn't rewritten.
   await client.query(
-    `UPDATE stats SET rating = sign(sub.total) * LEAST(
-       abs(sub.total),
-       GREATEST(8, 1.5 * COALESCE(stats.minutes, 0))
+    `WITH totals AS (
+       SELECT player_id, SUM(weighted_value) AS total
+         FROM play_ratings
+        WHERE game_id = $1
+        GROUP BY player_id
+     ), next AS (
+       SELECT s.playerid,
+              (sign(t.total) * LEAST(
+                abs(t.total),
+                GREATEST(8, 1.5 * COALESCE(s.minutes, 0))
+              ))::numeric(6,1) AS rating
+         FROM stats s
+         LEFT JOIN totals t ON t.player_id = s.playerid
+        WHERE s.gameid = $1
      )
-       FROM (
-         SELECT player_id, SUM(weighted_value) AS total
-           FROM play_ratings
-          WHERE game_id = $1
-          GROUP BY player_id
-       ) sub
-      WHERE stats.playerid = sub.player_id AND stats.gameid = $1`,
+     UPDATE stats SET rating = next.rating
+       FROM next
+      WHERE stats.gameid = $1 AND stats.playerid = next.playerid
+        AND stats.rating IS DISTINCT FROM next.rating`,
     [gameId],
   );
 }

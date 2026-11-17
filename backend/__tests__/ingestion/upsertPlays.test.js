@@ -93,6 +93,21 @@ describe("upsertPlays", () => {
       expect(params.length).toBe(16); // gameId + 15 unnest arrays
     });
 
+    it("only rewrites a stored play when one of its updated columns changed", async () => {
+      await upsertPlays(mockClient, 42, makeNbaData(), "nba",
+        HOME_TEAM_ID, AWAY_TEAM_ID, HOME_ESPN_ID, AWAY_ESPN_ID);
+
+      const [sql] = mockClient.query.mock.calls[0];
+      const updated = [...sql.matchAll(/(\w+)\s*=\s*EXCLUDED\.\1/g)].map((m) => m[1]);
+      expect(updated.length).toBe(14);
+      const guard = sql.slice(sql.lastIndexOf("WHERE"));
+      expect(guard).toContain("IS DISTINCT FROM");
+      for (const col of updated) {
+        expect(guard).toContain(`plays.${col}`);
+        expect(guard).toContain(`EXCLUDED.${col}`);
+      }
+    });
+
     it("passes correct play fields", async () => {
       const play = makePlay();
       await upsertPlays(mockClient, 1, makeNbaData([play]), "nba",

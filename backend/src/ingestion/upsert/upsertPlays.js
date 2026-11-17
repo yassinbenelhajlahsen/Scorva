@@ -32,8 +32,9 @@ export default async function upsertPlays(
   if (rows.length === 0) return;
 
   // Fast path (liveSync 15s tick) passes incrementalOnly to skip the bulk
-  // rewrite of already-stored plays. The 2-min full path from processEvent
-  // still rewrites everything, so retroactive corrections land within ~2min.
+  // upsert of already-stored plays. The 2-min full path from processEvent
+  // still upserts everything (writing only changed rows), so retroactive
+  // corrections land within ~2min.
   if (incrementalOnly) {
     const { rows: maxRows } = await client.query(
       "SELECT COALESCE(MAX(sequence), 0) AS max_seq FROM plays WHERE gameid = $1",
@@ -84,7 +85,18 @@ export default async function upsertPlays(
        drive_number      = EXCLUDED.drive_number,
        drive_description = EXCLUDED.drive_description,
        drive_result      = EXCLUDED.drive_result,
-       shot_distance_ft  = EXCLUDED.shot_distance_ft`,
+       shot_distance_ft  = EXCLUDED.shot_distance_ft
+     -- Postgres writes a new row version even for identical updates; skipping them
+     -- keeps live sync's 2-min full rewrite from bloating plays and its indexes.
+     WHERE (plays.espn_play_id, plays.period, plays.clock, plays.description,
+            plays.short_text, plays.home_score, plays.away_score, plays.scoring_play,
+            plays.team_id, plays.play_type, plays.drive_number, plays.drive_description,
+            plays.drive_result, plays.shot_distance_ft)
+       IS DISTINCT FROM
+           (EXCLUDED.espn_play_id, EXCLUDED.period, EXCLUDED.clock, EXCLUDED.description,
+            EXCLUDED.short_text, EXCLUDED.home_score, EXCLUDED.away_score, EXCLUDED.scoring_play,
+            EXCLUDED.team_id, EXCLUDED.play_type, EXCLUDED.drive_number, EXCLUDED.drive_description,
+            EXCLUDED.drive_result, EXCLUDED.shot_distance_ft)`,
     [
       gameId,
       rows.map((r) => r.espn_play_id),

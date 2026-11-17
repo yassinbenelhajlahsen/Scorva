@@ -21,7 +21,7 @@ const SCOREBOARD_URL = (sport, league) =>
 const TICK_MS = 15_000;
 const FULL_UPDATE_INTERVAL_MS = 120_000;
 const PLAYS_UPDATE_INTERVAL_MS = 15_000;
-// Rating recompute is far more expensive than upsertPlays (writes
+// Rating recompute is far more expensive than upsertPlays (re-derives
 // play_ratings + play_participants for every play in the game) — throttle
 // independently so it runs ~once/minute on the fast path instead of every 15s.
 const RATINGS_UPDATE_INTERVAL_MS = 60_000;
@@ -234,9 +234,9 @@ export async function tick(liveLeagues) {
                       // Queries run in autocommit (no surrounding BEGIN), so the
                       // upsertPlays writes above are already durable; a failure
                       // here cannot poison them.
-                      // Throttled separately from plays: recomputeGame rewrites
-                      // play_ratings (delete-all + reinsert) for every play, so
-                      // running it every 15s is the single biggest WAL source.
+                      // Throttled separately from plays: recomputeGame re-derives
+                      // ratings for every play in the game, which is too costly
+                      // to run every 15s.
                       if (
                         slug === "nba" &&
                         now - (state.lastRatingsUpdate ?? 0) > RATINGS_UPDATE_INTERVAL_MS
